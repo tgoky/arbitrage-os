@@ -1,0 +1,54 @@
+{
+  "name": "arbitrage-os",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS=--max_old_space_size=4096 refine dev",
+    "build": "refine build",
+    "start": "refine start",
+    "lint": "next lint",
+    "refine": "refine"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "@heroicons/react": "^2.2.0",
+    "@refinedev/antd": "^5.46.2",
+    "@refinedev/cli": "^2.16.21",
+    "@refinedev/core": "^4.47.1",
+    "@refinedev/devtools": "^1.1.32",
+    "@refinedev/kbar": "^1.3.6",
+    "@refinedev/nestjsx-crud": "^5.0.1",
+    "@refinedev/nextjs-router": "^6.0.0",
+    "@refinedev/react-hook-form": "^4.8.14",
+    "@refinedev/react-table": "^5.6.6",
+    "@tanstack/react-table": "^8.2.6",
+    "antd": "^5.26.7",
+    "js-cookie": "^3.0.5",
+    "next": "^14.1.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^7.7.1",
+    "zustand": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "^18.16.2",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@typescript-eslint/parser": "^6.21.0",
+    "autoprefixer": "^10.4.19",
+    "cross-env": "^7.0.3",
+    "eslint": "^8",
+    "eslint-config-next": "^14.1.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.2"
+  },
+  "refine": {
+    "projectId": "BIoCEW-Dc8fJS-bBWmi8"
+  }
+}
