@@ -23,9 +23,9 @@ export const Menu = () => {
   const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [currentWorkspace, setCurrentWorkspace] = useState("Beeps");
+  const [currentWorkspace, setCurrentWorkspace] = useState("Beeps Workspace");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([
-    { name: "Beeps", color: "bg-indigo-500" },
+    { name: "Beeps Workspace", color: "bg-indigo-500" },
   ]);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview", "content", "automations"]);
   const { theme } = useTheme();
@@ -46,7 +46,11 @@ export const Menu = () => {
       return;
     }
 
-    if (workspaces.some((w) => w.name === newWorkspaceName)) {
+    // Append "Workspace" to the new workspace name
+    const formattedWorkspaceName = `${newWorkspaceName.trim()} Workspace`;
+
+    // Check for uniqueness with "Workspace" appended
+    if (workspaces.some((w) => w.name === formattedWorkspaceName)) {
       alert("Workspace name must be unique");
       return;
     }
@@ -62,9 +66,9 @@ export const Menu = () => {
     ];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-    const newWorkspace = { name: newWorkspaceName, color: randomColor };
+    const newWorkspace = { name: formattedWorkspaceName, color: randomColor };
     setWorkspaces([...workspaces, newWorkspace]);
-    setCurrentWorkspace(newWorkspaceName);
+    setCurrentWorkspace(formattedWorkspaceName);
     setNewWorkspaceName("");
     setCreateWorkspaceModalOpen(false);
   };
@@ -84,7 +88,7 @@ export const Menu = () => {
     <div
       className={`
         h-screen sticky top-0 
-        ${theme === "dark" ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}
+        ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
         border-r flex flex-col transition-all duration-300
         ${collapsed ? "w-20" : "w-72"}
         relative

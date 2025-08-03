@@ -1,4 +1,3 @@
-// components/menu/WorkspaceHeader.tsx
 import { ChevronDown } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 
@@ -31,15 +30,15 @@ export const WorkspaceHeader = ({
   return (
     <div
       className={`p-4 border-b ${
-        theme === "dark" ? "border-gray-800" : "border-gray-200"
-      } relative`} // Added relative here
+        theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200"
+      } relative`}
     >
       {!collapsed ? (
         <div className="relative">
           <button
             onClick={() => setWorkspaceDropdownOpen(!workspaceDropdownOpen)}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
-              theme === "dark" ? "bg-gray-900 hover:bg-gray-800" : "bg-white hover:bg-gray-100"
+            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors border-none ${
+              theme === "dark" ? "bg-black hover:bg-gray-900" : "bg-white hover:bg-gray-100"
             }`}
           >
             <div
@@ -49,7 +48,7 @@ export const WorkspaceHeader = ({
             </div>
             <div className="flex-1 text-left min-w-0">
               <div
-                className={`font-semibold truncate ${
+                className={`font-semibold truncate text-sm ${
                   theme === "dark" ? "text-gray-100" : "text-gray-900"
                 }`}
               >
@@ -69,7 +68,11 @@ export const WorkspaceHeader = ({
           </button>
         </div>
       ) : (
-        <div className="flex justify-center">
+        <div
+          className={`flex justify-center ${
+            theme === "dark" ? "bg-black" : "bg-white"
+          }`}
+        >
           <div
             className={`w-10 h-10 rounded-xl ${getCurrentWorkspaceColor()} flex items-center justify-center text-white font-bold shadow-sm`}
           >
