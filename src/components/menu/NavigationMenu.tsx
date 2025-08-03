@@ -13,7 +13,9 @@ import {
   CalculatorIcon,
   PhoneIcon, 
 } from "@heroicons/react/24/outline";
-import {Workflow } from "lucide-react";
+import { Workflow } from "lucide-react";
+import { useState } from "react";
+
 interface MenuGroupConfig {
   id: string;
   label: string;
@@ -26,8 +28,6 @@ interface NavigationMenuProps {
   collapsed: boolean;
   menuItems: IMenuItem[];
   selectedKey: string;
-  expandedGroups: string[];
-  toggleGroup: (groupId: string) => void;
 }
 
 const menuGroups: MenuGroupConfig[] = [
@@ -35,10 +35,10 @@ const menuGroups: MenuGroupConfig[] = [
     id: "content",
     label: "Compliance",
     icon: <ShieldCheckIcon className="h-4 w-4" />,
-    items: ["Submissions", ""],
+    items: ["Submissions"],
   },
   {
-    id: "overview",
+    id: "overview",  // This is the Arbitrage group
     label: "Arbitrage",
     icon: <HomeIcon className="h-4 w-4" />,
     items: [
@@ -57,33 +57,23 @@ const menuGroups: MenuGroupConfig[] = [
     id: "automations",
     label: "Automations",
     icon: <Workflow className="h-4 w-4" />,
-    items: ["Automations", ""],
+    items: ["Automations"],
   },
 ];
-
-// // Optional: You can also add specific icons for each menu item
-// const menuItemIcons: Record<string, JSX.Element> = {
-//   "Niche_Researcher": <ChartBarIcon className="h-4 w-4" />,
-//   "Top_50_Niches": <TagIcon className="h-4 w-4" />,
-//   "Offer_Creator": <CubeIcon className="h-4 w-4" />,
-//   "Cold_Email_Writer": <EnvelopeIcon className="h-4 w-4" />,
-//   "Ad_Writer": <CurrencyDollarIcon className="h-4 w-4" />,
-//   "Growth_Plan_Creator": <ChartBarIcon className="h-4 w-4" />,
-//   "Pricing_Calculator": <CalculatorIcon className="h-4 w-4" />,
-//   "Sales_Call_Analyzer": <PhoneIcon className="h-4 w-4" />,
-//   "categories": <TagIcon className="h-4 w-4" />,
-//   "Submissions": <ShieldCheckIcon className="h-4 w-4" />
-// };
 
 export const NavigationMenu = ({
   isClient,
   collapsed,
   menuItems,
   selectedKey,
-  expandedGroups,
-  toggleGroup,
 }: NavigationMenuProps) => {
   const { theme } = useTheme();
+  // Set 'overview' (Arbitrage) as the default expanded group
+  const [expandedGroup, setExpandedGroup] = useState<string>("overview");
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroup(prev => prev === groupId ? null : groupId);
+  };
 
   const getMenuItemsByGroup = (groupItems: string[]) => {
     return menuItems.filter((item) => groupItems.includes(item.name));
@@ -95,18 +85,15 @@ export const NavigationMenu = ({
         {isClient &&
           menuGroups.map((group) => {
             const groupItems = getMenuItemsByGroup(group.items);
-            if (groupItems.length > 0 || expandedGroups.includes(group.id)) {
+            if (groupItems.length > 0) {
               return (
                 <MenuGroup
                   key={group.id}
                   group={group}
                   collapsed={collapsed}
-                  groupItems={groupItems.map(item => ({
-                    ...item,
-                    // Default icon
-                  }))}
+                  groupItems={groupItems}
                   selectedKey={selectedKey}
-                  isExpanded={expandedGroups.includes(group.id)}
+                  isExpanded={expandedGroup === group.id}
                   toggleGroup={toggleGroup}
                 />
               );
