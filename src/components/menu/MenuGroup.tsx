@@ -1,4 +1,3 @@
-// components/menu/MenuGroup.tsx
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -41,8 +40,10 @@ export const MenuGroup = ({
     <div>
       <button
         onClick={() => !collapsed && toggleGroup(group.id)}
-        className={`w-full flex items-center gap-3 py-2 px-3 rounded-lg ${
-          theme === "dark" ? "text-gray-300 hover:bg-gray-800" : "text-gray-700 hover:bg-gray-100"
+        className={`w-full flex items-center gap-3 py-2 px-3 border-none ${
+          theme === "dark"
+            ? "bg-black text-gray-300 hover:bg-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-100"
         } transition-colors ${collapsed ? "justify-center" : "justify-between"}`}
       >
         <div className="flex items-center gap-3">
@@ -71,11 +72,11 @@ export const MenuGroup = ({
             <Link
               key={item.key}
               href={item.route ?? "/"}
-              className={`flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm no-underline ${
+              className={`flex items-center gap-3 py-2.5 px-3 text-sm no-underline ${
                 selectedKey === item.key || pathname === item.route
                   ? theme === "dark"
-                    ? "bg-gray-800 text-indigo-300 font-medium border-r-2 border-indigo-500"
-                    : "bg-gray-100 text-indigo-600 font-medium border-r-2 border-indigo-500"
+                    ? "bg-black text-indigo-300 font-medium border-r-2 border-blue-500 animate-blink"
+                    : "bg-gray-100 text-indigo-600 font-medium border-r-2 border-blue-500 animate-blink"
                   : theme === "dark"
                   ? "hover:bg-gray-800 hover:text-gray-100"
                   : "hover:bg-gray-100 hover:text-gray-900"
@@ -93,8 +94,8 @@ export const MenuGroup = ({
         <div className="group relative">
           <div
             className={`absolute left-full top-0 ml-2 hidden group-hover:block z-50 ${
-              theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-            } border rounded-xl shadow-lg py-2 min-w-48 backdrop-blur-sm`}
+              theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"
+            } border shadow-lg py-2 min-w-48 backdrop-blur-sm`}
           >
             <div
               className={`px-3 py-2 border-b ${
@@ -116,10 +117,10 @@ export const MenuGroup = ({
                 className={`flex items-center gap-3 py-2.5 px-3 text-sm no-underline ${
                   selectedKey === item.key || pathname === item.route
                     ? theme === "dark"
-                      ? "bg-gray-700 text-indigo-300 font-medium"
+                      ? "bg-black text-indigo-300 font-medium"
                       : "bg-gray-100 text-indigo-600 font-medium"
                     : theme === "dark"
-                    ? "hover:bg-gray-700 text-gray-300"
+                    ? "hover:bg-gray-800 text-gray-300"
                     : "hover:bg-gray-50 text-gray-700"
                 }`}
               >

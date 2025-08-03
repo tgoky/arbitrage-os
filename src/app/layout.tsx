@@ -31,39 +31,101 @@ export default function RootLayout({
           <RefineKbarProvider>
             <ThemeProvider>
               <div className="min-h-screen flex">{/* ✅ Full height wrapper with flex layout */}
-                <Refine
-                  routerProvider={routerProvider}
-                  dataProvider={dataProvider}
-                  authProvider={authProviderClient}
-                  resources={[
-                    {
-                      name: "blog_posts",
-                      list: "/blog-posts",
-                      create: "/blog-posts/create",
-                      edit: "/blog-posts/edit/:id",
-                      show: "/blog-posts/show/:id",
-                      meta: {
-                        canDelete: true,
-                      },
-                    },
-                    {
-                      name: "categories",
-                      list: "/categories",
-                      create: "/categories/create",
-                      edit: "/categories/edit/:id",
-                      show: "/categories/show/:id",
-                      meta: {
-                        canDelete: true,
-                      },
-                    },
-                  ]}
-                  options={{
-                    syncWithLocation: true,
-                    warnWhenUnsavedChanges: true,
-                    useNewQueryKeys: true,
-                    projectId: "BIoCEW-Dc8fJS-bBWmi8",
-                  }}
-                >
+               <Refine
+  routerProvider={routerProvider}
+  dataProvider={dataProvider}
+  authProvider={authProviderClient}
+  resources={[
+     {
+      name: "Cold_Email_Writer",
+      list: "/cold-email-writer",
+      create: "/cold-email-writer/create",
+      edit: "/cold-email-writer/edit/:id",
+      show: "/cold-email-writer/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+    {
+      name: "Niche_Researcher",
+      list: "/niche-researcher",
+      create: "/niche-researcher/create",
+      edit: "/niche-researcher/edit/:id",
+      show: "/niche-researcher/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+    {
+      name: "Top_50_Niches",
+      list: "/top-50-niches",
+      create: "/top-50-niches/create",
+      edit: "/top-50-niches/edit/:id",
+      show: "/top-50-niches/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+    {
+      name: "Offer_Creator",
+      list: "/offer-creator",
+      create: "/offer-creator/create",
+      edit: "/offer-creator/edit/:id",
+      show: "/offer-creator/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+   
+    {
+      name: "Ad_Writer",
+      list: "/ad-writer",
+      create: "/ad-writer/create",
+      edit: "/ad-writer/edit/:id",
+      show: "/ad-writer/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+    {
+      name: "Growth_Plan_Creator",
+      list: "/growth-plan-creator",
+      create: "/growth-plan-creator/create",
+      edit: "/growth-plan-creator/edit/:id",
+      show: "/growth-plan-creator/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+    {
+      name: "Pricing_Calculator",
+      list: "/pricing-calculator",
+      create: "/pricing-calculator/create",
+      edit: "/pricing-calculator/edit/:id",
+      show: "/pricing-calculator/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+    {
+      name: "Sales_Call_Analyzer",
+      list: "/sales-call-analyzer",
+      create: "/sales-call-analyzer/create",
+      edit: "/sales-call-analyzer/edit/:id",
+      show: "/sales-call-analyzer/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+  ]}
+  options={{
+    syncWithLocation: true,
+    warnWhenUnsavedChanges: true,
+    useNewQueryKeys: true,
+    projectId: "BIoCEW-Dc8fJS-bBWmi8",
+  }}
+>
+
                   {children}
                   <RefineKbar />
                 </Refine>

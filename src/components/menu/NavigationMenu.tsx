@@ -26,7 +26,18 @@ const menuGroups: MenuGroupConfig[] = [
     icon: <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3M6 6h12" />
     </svg>,
-    items: ["blog_posts"],
+   items: [
+  "Niche_Researcher",
+  "Top_50_Niches",
+  "Offer_Creator",
+  "Cold_Email_Writer",
+  "Ad_Writer",
+  "Growth_Plan_Creator",
+  "Pricing_Calculator",
+  "Sales_Call_Analyzer",
+  "categories"
+]
+
   },
   {
     id: "content",
@@ -61,9 +72,9 @@ export const NavigationMenu = ({
   };
 
   return (
-    <nav className="flex-1 overflow-y-auto py-4">
+    <nav className="flex-1 overflow-y-auto py-4 ">
       <div
-        className={`px-4 space-y-6 ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}
+        className={`px-4 space-y-6 ${theme === "dark" ? "bg-black" : "bg-white"}`}
       >
         {isClient &&
           menuGroups.map((group) => (

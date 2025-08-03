@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 
 interface Workspace {
@@ -60,11 +60,19 @@ export const WorkspaceHeader = ({
                 Workspace
               </div>
             </div>
-            <ChevronDown
-              className={`w-4 h-4 transition-transform duration-200 ${
-                workspaceDropdownOpen ? "rotate-180" : ""
-              } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
-            />
+           <div className="flex flex-col items-center -space-y-2">
+  <ChevronUp
+    className={`w-5 h-5 transition-transform ${
+      theme === "dark" ? "text-gray-400" : "text-gray-500"
+    }`}
+  />
+  <ChevronDown
+    className={`w-5 h-5 transition-transform ${
+      theme === "dark" ? "text-gray-400" : "text-gray-500"
+    }`}
+  />
+</div>
+
           </button>
         </div>
       ) : (
