@@ -32,7 +32,7 @@ export const WorkspaceHeader = ({
     <div
       className={`p-4 border-b ${
         theme === "dark" ? "border-gray-800" : "border-gray-200"
-      }`}
+      } relative`} // Added relative here
     >
       {!collapsed ? (
         <div className="relative">

@@ -1,4 +1,3 @@
-// components/Menu.tsx
 "use client";
 
 import { useLogout, useMenu } from "@refinedev/core";
@@ -88,24 +87,29 @@ export const Menu = () => {
         ${theme === "dark" ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}
         border-r flex flex-col transition-all duration-300
         ${collapsed ? "w-20" : "w-72"}
+        relative
       `}
     >
-      <WorkspaceHeader
-        collapsed={collapsed}
-        currentWorkspace={currentWorkspace}
-        workspaceDropdownOpen={workspaceDropdownOpen}
-        setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-        workspaces={workspaces}
-      />
+      <div className="relative">
+        <WorkspaceHeader
+          collapsed={collapsed}
+          currentWorkspace={currentWorkspace}
+          workspaceDropdownOpen={workspaceDropdownOpen}
+          setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
+          workspaces={workspaces}
+        />
 
-      <WorkspaceDropdown
-        workspaceDropdownOpen={workspaceDropdownOpen}
-        workspaces={workspaces}
-        currentWorkspace={currentWorkspace}
-        switchWorkspace={switchWorkspace}
-        setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
-        setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-      />
+        {workspaceDropdownOpen && (
+          <WorkspaceDropdown
+            workspaceDropdownOpen={workspaceDropdownOpen}
+            workspaces={workspaces}
+            currentWorkspace={currentWorkspace}
+            switchWorkspace={switchWorkspace}
+            setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
+            setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
+          />
+        )}
+      </div>
 
       <Controls collapsed={collapsed} setCollapsed={setCollapsed} />
 
