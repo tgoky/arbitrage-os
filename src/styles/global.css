@@ -76,6 +76,31 @@
     list-style-type: "/ ";
   }
 
+  /* Style for Ant Design components in dark mode */
+.dark .ant-breadcrumb a {
+  color: #a78bfa !important; /* indigo-400 */
+}
+
+.dark .ant-breadcrumb a:hover {
+  color: #c4b5fd !important; /* indigo-300 */
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 17, 24, 39; /* gray-900 */
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+
   .breadcrumb a {
     @apply text-blue-700 no-underline;
   }

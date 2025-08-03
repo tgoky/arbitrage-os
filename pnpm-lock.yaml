@@ -50,6 +50,9 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
+      lucide-react:
+        specifier: ^0.535.0
+        version: 0.535.0(react@18.3.1)
       next:
         specifier: ^14.1.0
         version: 14.2.31(@babel/core@7.28.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2495,6 +2498,11 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
+
+  lucide-react@0.535.0:
+    resolution: {integrity: sha512-2E3+YWGLpjZ8ejIYrdqxVjWMSMiRQHmU6xZYE9xA2SC5j2m0NeB4/acjhRdhxbfniBKoNEukDDQnmShTxwOQ4g==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   make-dir@2.1.0:
     resolution: {integrity: sha512-LS9X+dc8KLxXCb8dni79fLIIUA5VyZoyjSMCwTluaXA0o27cCK0bhXkpgw+sTXVpPy/lSO57ilRixqk0vDmtRA==}
@@ -6927,6 +6935,10 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
+
+  lucide-react@0.535.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   make-dir@2.1.0:
     dependencies:
