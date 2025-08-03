@@ -117,6 +117,26 @@ export default function RootLayout({
         canDelete: true,
       },
     },
+     {
+      name: "Submissions",
+      list: "/submissions",
+      create: "/submissions/create",
+      edit: "/submissions/edit/:id",
+      show: "/submission/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
+     {
+      name: "Automations",
+      list: "/automations",
+      create: "/automations/create",
+      edit: "/automations/edit/:id",
+      show: "/automations/show/:id",
+      meta: {
+        canDelete: true,
+      },
+    },
   ]}
   options={{
     syncWithLocation: true,

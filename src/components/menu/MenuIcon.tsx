@@ -11,6 +11,9 @@ import {
   FolderSearch,
   PhoneCall,
   ListOrdered,
+  ShieldCheck,
+  Presentation,
+  Workflow
 } from "lucide-react";
 
 interface MenuIconProps {
@@ -28,6 +31,9 @@ export const MenuIcon = ({ name }: MenuIconProps) => {
     Growth_Plan_Creator: <BarChart2 className="h-4 w-4" />,
     Pricing_Calculator: <Calculator className="h-4 w-4" />,
     Sales_Call_Analyzer: <PhoneCall className="h-4 w-4" />,
+    Submissions: <FileText className="h-4 w-4" />,
+     Automations: <Workflow className="h-4 w-4" />,
+    
     default: (
       <svg
         className="h-4 w-4"
