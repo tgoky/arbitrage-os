@@ -4,13 +4,12 @@ import { useLogout, useMenu } from "@refinedev/core";
 import { useEffect, useState } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useSidebar } from "../../providers/sidebar-provider/sidebar-provider";
-import { WorkspaceHeader } from "../menu/WorkspaceHeader";
-import { WorkspaceDropdown } from "../menu/WorkspaceDropdown";
-import { Controls } from "../menu/Controls";
-import { NavigationMenu } from "../menu/NavigationMenu";
-import { CreateWorkspaceModal } from "../menu/CreateWorkspaceModal";
-import { UserSection } from "../menu/UserSection";
-
+import { WorkspaceHeader } from "./WorkspaceHeader";
+import { WorkspaceDropdown } from "./WorkspaceDropdown";
+import { Controls } from "./Controls";
+import { NavigationMenu } from "./NavigationMenu";
+import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
+import { UserSection } from "./UserSection";
 
 interface Workspace {
   name: string;
@@ -29,7 +28,7 @@ export const Menu = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([
     { name: "Beeps Workspace", color: "bg-indigo-500" },
   ]);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview", "content", "automations"]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]); // Initialize with only "overview" expanded
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -80,7 +79,7 @@ export const Menu = () => {
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
-      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
+      prev.includes(groupId) ? [] : [groupId] // Collapse all, expand only the clicked group
     );
   };
 
@@ -117,14 +116,14 @@ export const Menu = () => {
 
       <Controls collapsed={collapsed} setCollapsed={setCollapsed} />
 
-    <NavigationMenu
-  isClient={isClient}
-  collapsed={collapsed}
-  menuItems={menuItems}
-  selectedKey={selectedKey}
-  expandedGroups={expandedGroups}
-  toggleGroup={toggleGroup}
-/>
+      <NavigationMenu
+        isClient={isClient}
+        collapsed={collapsed}
+        menuItems={menuItems}
+        selectedKey={selectedKey}
+        expandedGroups={expandedGroups}
+        toggleGroup={toggleGroup}
+      />
 
       <UserSection collapsed={collapsed} handleLogout={handleLogout} />
 
