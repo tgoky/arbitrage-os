@@ -3,12 +3,14 @@
 import { useLogout, useMenu } from "@refinedev/core";
 import { useEffect, useState } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
+import { useSidebar } from "../../providers/sidebar-provider/sidebar-provider";
 import { WorkspaceHeader } from "../menu/WorkspaceHeader";
 import { WorkspaceDropdown } from "../menu/WorkspaceDropdown";
 import { Controls } from "../menu/Controls";
 import { NavigationMenu } from "../menu/NavigationMenu";
 import { CreateWorkspaceModal } from "../menu/CreateWorkspaceModal";
 import { UserSection } from "../menu/UserSection";
+
 
 interface Workspace {
   name: string;
@@ -19,7 +21,7 @@ export const Menu = () => {
   const { mutate: logout } = useLogout();
   const { menuItems, selectedKey } = useMenu();
   const [isClient, setIsClient] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed } = useSidebar();
   const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
@@ -46,10 +48,8 @@ export const Menu = () => {
       return;
     }
 
-    // Append "Workspace" to the new workspace name
     const formattedWorkspaceName = `${newWorkspaceName.trim()} Workspace`;
 
-    // Check for uniqueness with "Workspace" appended
     if (workspaces.some((w) => w.name === formattedWorkspaceName)) {
       alert("Workspace name must be unique");
       return;
@@ -87,11 +87,11 @@ export const Menu = () => {
   return (
     <div
       className={`
-        h-screen sticky top-0 
+        h-screen sticky top-0 z-10
         ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
         border-r flex flex-col transition-all duration-300
         ${collapsed ? "w-20" : "w-72"}
-        relative
+        relative flex-shrink-0
       `}
     >
       <div className="relative">
@@ -117,14 +117,14 @@ export const Menu = () => {
 
       <Controls collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      <NavigationMenu
-        isClient={isClient}
-        collapsed={collapsed}
-        menuItems={menuItems}
-        selectedKey={selectedKey}
-        expandedGroups={expandedGroups}
-        toggleGroup={toggleGroup}
-      />
+    <NavigationMenu
+  isClient={isClient}
+  collapsed={collapsed}
+  menuItems={menuItems}
+  selectedKey={selectedKey}
+  expandedGroups={expandedGroups}
+  toggleGroup={toggleGroup}
+/>
 
       <UserSection collapsed={collapsed} handleLogout={handleLogout} />
 

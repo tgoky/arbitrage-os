@@ -10,6 +10,7 @@ import { dataProvider } from "@providers/data-provider";
 import "@styles/global.css";
 
 import { ThemeProvider } from "../providers/ThemeProvider";
+import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider"; // Add this import
 
 export const metadata: Metadata = {
   title: "Refine",
@@ -18,138 +19,201 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
 };
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full"> {/* ✅ Full height on html */}
-      <body className="min-h-screen"> {/* ✅ Full height on body */}
-             <div id="modal-root" />
+    <html lang="en" className="h-full">
+      <body className="min-h-screen">
+        <div id="modal-root" />
         <Suspense>
           <RefineKbarProvider>
             <ThemeProvider>
-              <div className="min-h-screen flex">{/* ✅ Full height wrapper with flex layout */}
-               <Refine
-  routerProvider={routerProvider}
-  dataProvider={dataProvider}
-  authProvider={authProviderClient}
-  resources={[
-     {
-      name: "Cold_Email_Writer",
-      list: "/cold-email-writer",
-      create: "/cold-email-writer/create",
-      edit: "/cold-email-writer/edit/:id",
-      show: "/cold-email-writer/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-    {
-      name: "Niche_Researcher",
-      list: "/niche-researcher",
-      create: "/niche-researcher/create",
-      edit: "/niche-researcher/edit/:id",
-      show: "/niche-researcher/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-    {
-      name: "Top_50_Niches",
-      list: "/top-50-niches",
-      create: "/top-50-niches/create",
-      edit: "/top-50-niches/edit/:id",
-      show: "/top-50-niches/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-    {
-      name: "Offer_Creator",
-      list: "/offer-creator",
-      create: "/offer-creator/create",
-      edit: "/offer-creator/edit/:id",
-      show: "/offer-creator/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-   
-    {
-      name: "Ad_Writer",
-      list: "/ad-writer",
-      create: "/ad-writer/create",
-      edit: "/ad-writer/edit/:id",
-      show: "/ad-writer/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-    {
-      name: "Growth_Plan_Creator",
-      list: "/growth-plan-creator",
-      create: "/growth-plan-creator/create",
-      edit: "/growth-plan-creator/edit/:id",
-      show: "/growth-plan-creator/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-    {
-      name: "Pricing_Calculator",
-      list: "/pricing-calculator",
-      create: "/pricing-calculator/create",
-      edit: "/pricing-calculator/edit/:id",
-      show: "/pricing-calculator/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-    {
-      name: "Sales_Call_Analyzer",
-      list: "/sales-call-analyzer",
-      create: "/sales-call-analyzer/create",
-      edit: "/sales-call-analyzer/edit/:id",
-      show: "/sales-call-analyzer/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-     {
-      name: "Submissions",
-      list: "/submissions",
-      create: "/submissions/create",
-      edit: "/submissions/edit/:id",
-      show: "/submission/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-     {
-      name: "Automations",
-      list: "/automations",
-      create: "/automations/create",
-      edit: "/automations/edit/:id",
-      show: "/automations/show/:id",
-      meta: {
-        canDelete: true,
-      },
-    },
-  ]}
-  options={{
-    syncWithLocation: true,
-    warnWhenUnsavedChanges: true,
-    useNewQueryKeys: true,
-    projectId: "BIoCEW-Dc8fJS-bBWmi8",
-  }}
->
-
-                  {children}
-                  <RefineKbar />
-                </Refine>
-              </div>
+              <SidebarProvider> {/* ✅ Add SidebarProvider here */}
+                <div className="min-h-screen flex">
+                  <Refine
+                    routerProvider={routerProvider}
+                    dataProvider={dataProvider}
+                    authProvider={authProviderClient}
+                    resources={[
+                      {
+                        name: "Dashboard",
+                        list: "/dashboard",
+                        create: "/dashboard/create",
+                        edit: "/dashboard/edit/:id",
+                        show: "/dashboard/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Cold_Email_Writer",
+                        list: "/cold-email-writer",
+                        create: "/cold-email-writer/create",
+                        edit: "/cold-email-writer/edit/:id",
+                        show: "/cold-email-writer/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Niche_Researcher",
+                        list: "/niche-researcher",
+                        create: "/niche-researcher/create",
+                        edit: "/niche-researcher/edit/:id",
+                        show: "/niche-researcher/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Top_50_Niches",
+                        list: "/top-50-niches",
+                        create: "/top-50-niches/create",
+                        edit: "/top-50-niches/edit/:id",
+                        show: "/top-50-niches/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Offer_Creator",
+                        list: "/offer-creator",
+                        create: "/offer-creator/create",
+                        edit: "/offer-creator/edit/:id",
+                        show: "/offer-creator/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Ad_Writer",
+                        list: "/ad-writer",
+                        create: "/ad-writer/create",
+                        edit: "/ad-writer/edit/:id",
+                        show: "/ad-writer/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Growth_Plan_Creator",
+                        list: "/growth-plan-creator",
+                        create: "/growth-plan-creator/create",
+                        edit: "/growth-plan-creator/edit/:id",
+                        show: "/growth-plan-creator/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Pricing_Calculator",
+                        list: "/pricing-calculator",
+                        create: "/pricing-calculator/create",
+                        edit: "/pricing-calculator/edit/:id",
+                        show: "/pricing-calculator/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Sales_Call_Analyzer",
+                        list: "/sales-call-analyzer",
+                        create: "/sales-call-analyzer/create",
+                        edit: "/sales-call-analyzer/edit/:id",
+                        show: "/sales-call-analyzer/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      {
+                        name: "Submissions",
+                        list: "/submissions",
+                        create: "/submissions/create",
+                        edit: "/submissions/edit/:id",
+                        show: "/submissions/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                       {
+                        name: "AI_Tools",
+                        list: "/ai-tools",
+                        create: "/ai-tools/create",
+                        edit: "/ai-tools/edit/:id",
+                        show: "/ai-tools/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                       {
+                        name: "Tools_Playbook",
+                        list: "/tools-playbook",
+                        create: "/tools-playbook/create",
+                        edit: "/tools-playbook/edit/:id",
+                        show: "/tools-playbook/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                        {
+                        name: "Lead_Generation",
+                        list: "/lead-generation",
+                        create: "/lead-generation/create",
+                        edit: "/lead-generation/edit/:id",
+                        show: "/lead-generation/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                        {
+                        name: "Agents_Flow",
+                        list: "/agents-flow",
+                        create: "/agents-flow/create",
+                        edit: "/agents-flow/edit/:id",
+                        show: "/agents-flow/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                        {
+                        name: "Work_Flow",
+                        list: "/work-flow",
+                        create: "/work-flow/create",
+                        edit: "/work-flow/edit/:id",
+                        show: "/work-flow/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                      
+                      
+                      {
+                        name: "Automations",
+                        list: "/automations",
+                        create: "/automations/create",
+                        edit: "/automations/edit/:id",
+                        show: "/automations/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                    ]}
+                    options={{
+                      syncWithLocation: true,
+                      warnWhenUnsavedChanges: true,
+                      useNewQueryKeys: true,
+                      projectId: "BIoCEW-Dc8fJS-bBWmi8",
+                    }}
+                  >
+                    {children}
+                    <RefineKbar />
+                  </Refine>
+                </div>
+              </SidebarProvider> {/* ✅ Close SidebarProvider here */}
             </ThemeProvider>
           </RefineKbarProvider>
         </Suspense>

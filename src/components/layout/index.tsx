@@ -6,11 +6,13 @@ import { Menu } from "../menu";
 
 export const Layout: React.FC<PropsWithChildren> = ({ children }) => {
   return (
-    <div className="layout">
+    <div className="flex min-h-screen w-full">
       <Menu />
-      <div className="content">
+      <div className="flex-1 min-w-0 flex flex-col overflow-x-hidden">
         <Breadcrumb />
-        <div>{children}</div>
+        <div className="flex-1 w-full min-w-0 overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

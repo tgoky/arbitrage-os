@@ -6,14 +6,18 @@ import {
   BarChart2,
   ClipboardList,
   Calculator,
-  Brain,
   Megaphone,
   FolderSearch,
   PhoneCall,
   ListOrdered,
-  ShieldCheck,
   Presentation,
-  Workflow
+  Workflow,
+  Wand2,
+  BookOpen,
+  Users,
+  GitBranch,
+  Bot,
+  ShieldCheck
 } from "lucide-react";
 
 interface MenuIconProps {
@@ -22,18 +26,23 @@ interface MenuIconProps {
 
 export const MenuIcon = ({ name }: MenuIconProps) => {
   const iconMap: Record<string, JSX.Element> = {
+    Dashboard: <BarChart2 className="h-4 w-4" />,
     Cold_Email_Writer: <Mail className="h-4 w-4" />,
     categories: <Tag className="h-4 w-4" />,
     Niche_Researcher: <FolderSearch className="h-4 w-4" />,
     Top_50_Niches: <ListOrdered className="h-4 w-4" />,
     Offer_Creator: <ClipboardList className="h-4 w-4" />,
     Ad_Writer: <Megaphone className="h-4 w-4" />,
-    Growth_Plan_Creator: <BarChart2 className="h-4 w-4" />,
+    Growth_Plan_Creator: <Presentation className="h-4 w-4" />,
     Pricing_Calculator: <Calculator className="h-4 w-4" />,
     Sales_Call_Analyzer: <PhoneCall className="h-4 w-4" />,
     Submissions: <FileText className="h-4 w-4" />,
-     Automations: <Workflow className="h-4 w-4" />,
-    
+    AI_Tools: <Wand2 className="h-4 w-4" />,
+    Tools_Playbook: <BookOpen className="h-4 w-4" />,
+    Lead_Generation: <Users className="h-4 w-4" />,
+    Agents_Flow: <Bot className="h-4 w-4" />,
+    Work_Flow: <GitBranch className="h-4 w-4" />,
+    Automations: <Workflow className="h-4 w-4" />,
     default: (
       <svg
         className="h-4 w-4"

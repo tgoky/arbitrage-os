@@ -101,6 +101,42 @@ body {
   background: rgb(var(--background-rgb));
 }
 
+/* Add this to your global.css or create a separate layout.css file */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+.content {
+  flex: 1;
+  min-width: 0; /* Important: allows flex item to shrink below content size */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Ensure breadcrumb doesn't interfere with layout */
+.content > div:first-child {
+  flex-shrink: 0;
+}
+
+/* Make the main content area (where pages render) take remaining space */
+.content > div:last-child {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Optional: Add smooth transitions */
+.layout * {
+  transition: width 0.3s ease-in-out, margin 0.3s ease-in-out;
+}
+
 
   .breadcrumb a {
     @apply text-blue-700 no-underline;
