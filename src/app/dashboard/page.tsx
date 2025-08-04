@@ -9,7 +9,7 @@ import WelcomePanel from './components/welcomepanel';
 import QuickStartActions from './components/quickactions';
 import ActivityFeed from './components/activityfeed';
 import RecentDeliverables from './components/recentdeliveries';
-import RunningAutomations from './components/runningautomations';
+// import RunningAutomations from './components/runningautomations';
 import StatsOverview from './components/statsoverview';
 import { AutomationItem, ActivityItem, Deliverable, AgentRecord, WorkflowRecord, DeliverableRecord } from './components/types';
 
@@ -97,7 +97,7 @@ const DashboardPage = () => {
     <div 
       className="w-full h-full" // ✅ Simple and clean
       style={{
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+        backgroundColor: theme === 'dark' ? '#0d0d0d' : '#ffffff',
         padding: screens.xs ? '16px' : '24px',
         minHeight: '100vh',
       }}
@@ -119,7 +119,7 @@ const DashboardPage = () => {
         <ActivityFeed recentActivity={recentActivity} />
         <RecentDeliverables deliverables={recentDeliverables} />
       </div>
-      <RunningAutomations runningAutomations={runningAutomations} />
+      {/* <RunningAutomations runningAutomations={runningAutomations} /> */}
       <StatsOverview
         clientsLength={clients.length}
         agentsLength={agents.length}

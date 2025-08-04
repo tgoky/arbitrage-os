@@ -1,6 +1,6 @@
 // app/dashboard/components/StatsOverview.tsx
 import React from 'react';
-import { Card, Statistic, Grid } from 'antd';
+import { Card, Statistic, Grid, Space } from 'antd';
 import { TeamOutlined, SettingOutlined, BarChartOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 
@@ -22,57 +22,90 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
   const screens = useBreakpoint();
   const { theme } = useTheme();
 
-const getCardStyles = () => ({
-  body: {
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    padding: '24px',
-    borderRadius: '12px', // You can adjust the value
-  },
-  header: {
-    borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderTopLeftRadius: '12px',
-    borderTopRightRadius: '12px',
-  },
-});
+  const getCardStyles = () => ({
+    body: {
+      backgroundColor: theme === 'dark' ? '#1F2937' : '#F9FAFB',
+      padding: screens.xs ? '12px' : '16px',
+      borderRadius: '8px',
+    },
+    header: {
+      borderBottomColor: theme === 'dark' ? '#374151' : '#E5E7EB',
+      backgroundColor: theme === 'dark' ? '#1F2937' : '#F9FAFB',
+    },
+  });
+
+  const getParentCardStyles = () => ({
+    body: {
+      backgroundColor: theme === 'dark' ? '#111827' : '#FFFFFF',
+      padding: screens.xs ? '16px' : '24px',
+      borderRadius: '12px',
+    },
+  });
 
   return (
-    <div
+    <Card
+      styles={getParentCardStyles()}
       style={{
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24,
+        borderColor: theme === 'dark' ? '#374151' : '#E5E7EB',
       }}
     >
-      <Card styles={getCardStyles()}>
-        <Statistic
-          title="Total Clients"
-          value={clientsLength}
-          prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-        />
-      </Card>
-      <Card styles={getCardStyles()}>
-        <Statistic
-          title="Active Agents"
-          value={agentsLength}
-          prefix={<SettingOutlined style={{ color: '#52c41a' }} />}
-        />
-      </Card>
-      <Card styles={getCardStyles()}>
-        <Statistic
-          title="Workflows"
-          value={workflowsLength}
-          prefix={<BarChartOutlined style={{ color: '#722ed1' }} />}
-        />
-      </Card>
-      <Card styles={getCardStyles()}>
-        <Statistic
-          title="Deliverables"
-          value={deliverablesLength}
-          prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />}
-        />
-      </Card>
-    </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
+          gap: screens.xs ? '12px' : '16px',
+        }}
+      >
+        <Card styles={getCardStyles()} bordered={false}>
+          <Statistic
+            title={
+              <span style={{ color: theme === 'dark' ? '#9CA3AF' : '#6B7280', fontSize: '14px' }}>
+                Total Clients
+              </span>
+            }
+            value={clientsLength}
+            valueStyle={{ color: theme === 'dark' ? '#F9FAFB' : '#111827', fontSize: '20px' }}
+            prefix={<TeamOutlined style={{ color: '#3B82F6', fontSize: '18px' }} />}
+          />
+        </Card>
+        <Card styles={getCardStyles()} bordered={false}>
+          <Statistic
+            title={
+              <span style={{ color: theme === 'dark' ? '#9CA3AF' : '#6B7280', fontSize: '14px' }}>
+                Active Agents
+              </span>
+            }
+            value={agentsLength}
+            valueStyle={{ color: theme === 'dark' ? '#F9FAFB' : '#111827', fontSize: '20px' }}
+            prefix={<SettingOutlined style={{ color: '#10B981', fontSize: '18px' }} />}
+          />
+        </Card>
+        <Card styles={getCardStyles()} bordered={false}>
+          <Statistic
+            title={
+              <span style={{ color: theme === 'dark' ? '#9CA3AF' : '#6B7280', fontSize: '14px' }}>
+                Workflows
+              </span>
+            }
+            value={workflowsLength}
+            valueStyle={{ color: theme === 'dark' ? '#F9FAFB' : '#111827', fontSize: '20px' }}
+            prefix={<BarChartOutlined style={{ color: '#8B5CF6', fontSize: '18px' }} />}
+          />
+        </Card>
+        <Card styles={getCardStyles()} bordered={false}>
+          <Statistic
+            title={
+              <span style={{ color: theme === 'dark' ? '#9CA3AF' : '#6B7280', fontSize: '14px' }}>
+                Deliverables
+              </span>
+            }
+            value={deliverablesLength}
+            valueStyle={{ color: theme === 'dark' ? '#F9FAFB' : '#111827', fontSize: '20px' }}
+            prefix={<FileTextOutlined style={{ color: '#F59E0B', fontSize: '18px' }} />}
+          />
+        </Card>
+      </div>
+    </Card>
   );
 };
 

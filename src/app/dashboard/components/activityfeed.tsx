@@ -19,18 +19,19 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
   const getCardStyles = () => ({
     body: {
       backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px',
+      padding: screens.xs ? '8px' : '12px',
     },
     header: {
       borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
       backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+      padding: '8px 12px',
     },
   });
 
   const getStatusIcon = (status: string) => {
     const iconStyle = {
-      fontSize: 20,
-      padding: 8,
+      fontSize: 16,
+      padding: 6,
       borderRadius: 4,
       backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
     };
@@ -89,10 +90,12 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
       }}
       extra={
         <Button
-          type="link"
+          type="text"
+          size="small"
           style={{
             color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-            backgroundColor: 'transparent',
+            padding: 0,
+            height: 'auto',
           }}
         >
           View All
@@ -111,7 +114,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
             <List.Item
               style={{
                 borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-                padding: '12px 0',
+                padding: '8px 0',
                 backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
               }}
               actions={[
@@ -121,6 +124,8 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
                   style={{
                     marginRight: 0,
                     textTransform: 'capitalize',
+                    fontSize: 12,
+                    padding: '0 4px',
                   }}
                 >
                   {item.status}
@@ -134,7 +139,8 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
                     strong
                     style={{
                       color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                      marginBottom: 4,
+                      marginBottom: 2,
+                      fontSize: 13,
                     }}
                   >
                     {item.action}
@@ -144,7 +150,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
                   <Text
                     style={{
                       color: theme === 'dark' ? '#9ca3af' : '#666666',
-                      fontSize: 14,
+                      fontSize: 12,
                     }}
                   >
                     {item.client} • {formatTimeAgo(item.timestamp)}
@@ -158,32 +164,36 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
         <div
           style={{
             textAlign: 'center',
-            padding: '32px 0',
+            padding: '16px 0',
             backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
           }}
         >
           <ClockCircleOutlined
             style={{
-              fontSize: 48,
+              fontSize: 32,
               color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-              marginBottom: 16,
+              marginBottom: 8,
             }}
           />
           <Text
             style={{
               color: theme === 'dark' ? '#9ca3af' : '#666666',
               display: 'block',
-              marginBottom: 8,
+              marginBottom: 4,
+              fontSize: 12,
             }}
           >
             No recent activity
           </Text>
           <Button
-            type="link"
+            type="text"
+            size="small"
             onClick={() => console.log('View activity')}
             style={{
               color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-              padding: '0 8px',
+              padding: 0,
+              height: 'auto',
+              fontSize: 12,
             }}
           >
             View activity history
