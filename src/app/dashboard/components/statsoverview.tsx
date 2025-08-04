@@ -22,16 +22,19 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
   const screens = useBreakpoint();
   const { theme } = useTheme();
 
-  const getCardStyles = () => ({
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: '24px',
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    },
-  });
+const getCardStyles = () => ({
+  body: {
+    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+    padding: '24px',
+    borderRadius: '12px', // You can adjust the value
+  },
+  header: {
+    borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+    borderTopLeftRadius: '12px',
+    borderTopRightRadius: '12px',
+  },
+});
 
   return (
     <div
