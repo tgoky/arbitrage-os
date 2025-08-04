@@ -17,7 +17,8 @@ import {
   Users,
   GitBranch,
   Bot,
-  ShieldCheck
+  ShieldCheck,
+  User
 } from "lucide-react";
 
 interface MenuIconProps {
@@ -36,13 +37,15 @@ export const MenuIcon = ({ name }: MenuIconProps) => {
     Growth_Plan_Creator: <Presentation className="h-4 w-4" />,
     Pricing_Calculator: <Calculator className="h-4 w-4" />,
     Sales_Call_Analyzer: <PhoneCall className="h-4 w-4" />,
+      Client_Profiles:<User className="h-4 w-4" />,
     Submissions: <FileText className="h-4 w-4" />,
     AI_Tools: <Wand2 className="h-4 w-4" />,
-    Tools_Playbook: <BookOpen className="h-4 w-4" />,
+    Playbooks: <BookOpen className="h-4 w-4" />,
     Lead_Generation: <Users className="h-4 w-4" />,
     Agents_Flow: <Bot className="h-4 w-4" />,
     Work_Flow: <GitBranch className="h-4 w-4" />,
     Automations: <Workflow className="h-4 w-4" />,
+  
     default: (
       <svg
         className="h-4 w-4"

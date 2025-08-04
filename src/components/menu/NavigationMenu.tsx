@@ -47,13 +47,13 @@ const menuGroups: MenuGroupConfig[] = [
         id: "compliance",
         label: "Compliance",
         icon: <ShieldCheckIcon className="h-4 w-4" />,
-        items: ["Submissions"],
+        items: ["Client_Profiles", "Submissions"],
       },
       {
         id: "tools",
         label: "Tools",
         icon: <BoltIcon className="h-4 w-4" />,
-        items: ["AI_Tools", "Tools_Playbook", "Lead_Generation"],
+        items: [ "AI_Tools", "Playbooks", "Lead_Generation"],
       },
       {
         id: "agents",

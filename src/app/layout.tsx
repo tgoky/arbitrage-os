@@ -129,6 +129,16 @@ export default function RootLayout({
                           canDelete: true,
                         },
                       },
+                       {
+                        name: "Client_Profiles",
+                        list: "/client-profiles",
+                        create: "/client-profiles/create",
+                        edit: "/client-profiles/edit/:id",
+                        show: "/client-profiles/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
                       {
                         name: "Submissions",
                         list: "/submissions",
@@ -139,6 +149,7 @@ export default function RootLayout({
                           canDelete: true,
                         },
                       },
+                     
                        {
                         name: "AI_Tools",
                         list: "/ai-tools",
@@ -150,7 +161,7 @@ export default function RootLayout({
                         },
                       },
                        {
-                        name: "Tools_Playbook",
+                        name: "Playbooks",
                         list: "/tools-playbook",
                         create: "/tools-playbook/create",
                         edit: "/tools-playbook/edit/:id",
