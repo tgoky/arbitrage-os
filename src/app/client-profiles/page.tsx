@@ -29,7 +29,7 @@ const DashboardPage = () => {
   // Theme-aware style generators
   const getCardStyles = () => ({
     body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
       padding: screens.xs ? '16px' : '24px'
     },
     header: {
@@ -39,7 +39,7 @@ const DashboardPage = () => {
   });
 
   const getContainerStyles = () => ({
-    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
     padding: screens.xs ? '16px' : '24px',
     minHeight: '100vh'
   });
@@ -91,7 +91,7 @@ const DashboardPage = () => {
         styles={getCardStyles()}
         style={{ 
           marginBottom: 24,
-          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+          borderColor: theme === 'dark' ? '#191c1f' : '#f0f0f0'
         }}
         bodyStyle={{ padding: '16px 24px' }}
       >
@@ -105,7 +105,7 @@ const DashboardPage = () => {
             prefix={<SearchOutlined style={{ color: theme === 'dark' ? '#9ca3af' : '#d1d5db' }} />}
             style={{ 
               flex: 1,
-              backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+              backgroundColor: theme === 'dark' ? '#060e18' : '#ffffff',
               borderColor: theme === 'dark' ? '#374151' : '#d1d5db'
             }}
           />
@@ -132,7 +132,7 @@ const DashboardPage = () => {
         title={`Clients (${clients.length})`}
         styles={getCardStyles()}
         style={{ 
-          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+          borderColor: theme === 'dark' ? '#000000' : '#f0f0f0'
         }}
       >
         {clients.length > 0 ? (

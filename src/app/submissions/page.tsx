@@ -38,13 +38,13 @@ const DashboardPage = () => {
   // Theme-aware style generators
   const getCardStyles = () => ({
     body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
       padding: '12px 16px'
     }
   });
 
   const getContainerStyles = () => ({
-    backgroundColor: theme === 'dark' ? '#0d0d0d' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
     padding: screens.xs ? '16px' : '24px',
     minHeight: '100vh'
   });

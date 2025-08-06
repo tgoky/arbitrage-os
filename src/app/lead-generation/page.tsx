@@ -133,7 +133,7 @@ const LeadGenerationDashboard = () => {
 
   return (
     <div style={{
-      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
       padding: 24,
       minHeight: '100vh'
     }}>

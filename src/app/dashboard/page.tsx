@@ -97,7 +97,7 @@ const DashboardPage = () => {
     <div 
       className="w-full h-full" // ✅ Simple and clean
       style={{
-        backgroundColor: theme === 'dark' ? '#0d0d0d' : '#ffffff',
+        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
         padding: screens.xs ? '16px' : '24px',
         minHeight: '100vh',
       }}

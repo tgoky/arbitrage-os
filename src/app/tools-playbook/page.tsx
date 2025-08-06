@@ -89,7 +89,7 @@ const ToolsPage = () => {
 
   return (
     <div style={{ 
-      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
       padding: 24,
       minHeight: '100vh'
     }}>
@@ -117,7 +117,7 @@ const ToolsPage = () => {
       <Card
         style={{ 
           marginBottom: 24,
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
           borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
         }}
       >
@@ -147,7 +147,7 @@ const ToolsPage = () => {
       <Card
         style={{ 
           marginBottom: 24,
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
           borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
         }}
       >
@@ -206,7 +206,7 @@ const ToolsPage = () => {
           }
           style={{ 
             marginBottom: 24,
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+            backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
             borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
           }}
         >
@@ -225,7 +225,7 @@ const ToolsPage = () => {
                   key={tool.id}
                   hoverable
                   style={{ 
-                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                    backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
                     borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
                   }}
                 >

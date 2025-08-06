@@ -145,7 +145,7 @@ const filteredTools = aiTools.filter(tool => {
 
   return (
     <div style={{
-      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
       padding: 24,
       minHeight: '100vh'
     }}>
@@ -185,7 +185,7 @@ const filteredTools = aiTools.filter(tool => {
       <Card
         style={{
           marginBottom: 24,
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
           borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
         }}
       >
@@ -292,7 +292,7 @@ const filteredTools = aiTools.filter(tool => {
                   hoverable
                   style={{
                     height: '100%',
-                    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                    backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
                     borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
                     display: 'flex',
                     flexDirection: 'column'
@@ -352,8 +352,8 @@ const filteredTools = aiTools.filter(tool => {
       onClick={(e) => e.stopPropagation()}
       style={{
         width: 'calc(100% - 56px)', // 48px for star button + 8px gap
-        backgroundColor: '#052b24',
-        borderColor: '#1a237e'
+        backgroundColor: '#15140f',
+        borderColor: '#343436'
       }}
     >
       Try Tool
