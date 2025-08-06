@@ -1,621 +1,445 @@
-// app/dashboard/page.tsx
+// app/tools/page.tsx
 "use client";
 
-import React from 'react';
-import { useList, useOne } from '@refinedev/core';
+import React, { useState } from 'react';
+import { useList } from '@refinedev/core';
 import { 
-  PlusOutlined,
+  SearchOutlined,
   PlayCircleOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ArrowRightOutlined,
-  TeamOutlined,
-  SettingOutlined,
   FileTextOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  NotificationOutlined,
+  CopyOutlined,
+  ToolOutlined,
+  CloseOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
-import { Card, Table, Tag, Button, Statistic, Grid, Typography, Space, Avatar, List } from 'antd';
+import { 
+  Card, 
+  Input, 
+  Select, 
+  Button, 
+  Typography, 
+  Space, 
+  Tag, 
+  Divider, 
+  Empty, 
+  Modal, 
+  Form, 
+  Checkbox,
+  Upload,
+  Spin
+} from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
 
+import { toolCategories } from './toolsdata/tools'
+import { Tool } from './toolsdata/types';
+
 const { Title, Text } = Typography;
-const { useBreakpoint } = Grid;
+const { Option } = Select;
+const { TextArea } = Input;
 
-const DashboardPage = () => {
-  const screens = useBreakpoint();
+
+
+const ToolsPage = () => {
+  const { theme } = useTheme();
   const { data: clientsData } = useList({ resource: 'clients' });
-  const { data: agentsData } = useList({ resource: 'agents' });
-  const { data: workflowsData } = useList({ resource: 'workflows' });
-  const { data: deliverablesData } = useList({ resource: 'deliverables' });
-   const { theme } = useTheme();
-
-  // Theme-aware style generators
-  const getCardStyles = () => ({
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px'
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    }
-  });
-
-  const getContainerStyles = () => ({
-    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-    padding: screens.xs ? '16px' : '24px',
-    minHeight: '100vh'
-  });
-
-   // Helper function for theme-aware colors
-  const themeClass = (light: string, dark: string) => 
-    theme === 'dark' ? dark : light;
-  
   const clients = clientsData?.data || [];
-  const agents = agentsData?.data || [];
-  const workflows = workflowsData?.data || [];
-  const deliverables = deliverablesData?.data || [];
-
-  // Mock data for demonstration
-  const recentActivity = [
-    {
-      id: 1,
-      type: 'tool',
-      action: 'Clarity Wizard',
-      client: 'TechStart Inc',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      status: 'completed'
-    },
-    {
-      id: 2,
-      type: 'agent',
-      action: 'Lead Scorer Bot',
-      client: 'GrowthCo',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-      status: 'running'
-    },
-    {
-      id: 3,
-      type: 'workflow',
-      action: 'Weekly Report Generator',
-      client: 'ScaleUp Agency',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-      status: 'completed'
-    },
-    {
-      id: 4,
-      type: 'deliverable',
-      action: 'Market Analysis Report',
-      client: 'InnovateCorp',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-      status: 'created'
-    }
-  ];
-
-  const recentDeliverables = deliverables.slice(0, 4);
-
-  // Combine agents and workflows for running automations
-  type AutomationItem = (any & { type: 'agent' }) | (any & { type: 'workflow' });
   
-  const runningAutomations: AutomationItem[] = [
-    ...agents.slice(0, 2).map(agent => ({ ...agent, type: 'agent' as const })),
-    ...workflows.slice(0, 1).map(workflow => ({ ...workflow, type: 'workflow' as const }))
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedClient, setSelectedClient] = useState<string>();
+  const [activeTool, setActiveTool] = useState<Tool | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [output, setOutput] = useState('');
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case 'running':
-        return <ClockCircleOutlined style={{ color: '#1890ff' }} />;
-      case 'failed':
-        return <ExclamationCircleOutlined style={{ color: '#f5222d' }} />;
-      default:
-        return <ClockCircleOutlined style={{ color: '#d9d9d9' }} />;
-    }
+  
+
+  const filteredCategories = selectedCategory === 'all' 
+    ? toolCategories 
+    : toolCategories.filter(cat => cat.id === selectedCategory);
+
+  const handleToolRun = (tool: Tool) => {
+    setActiveTool(tool);
+    setIsModalVisible(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'green';
-      case 'running':
-        return 'blue';
-      case 'failed':
-        return 'red';
-      default:
-        return 'default';
-    }
+  const handleRunTool = async (values: any) => {
+    setIsRunning(true);
+    // Simulate API call
+    setTimeout(() => {
+      setOutput(`Generated output for ${activeTool?.name}:\n\nClient: ${selectedClient || 'None'}\n\nInputs:\n${JSON.stringify(values, null, 2)}`);
+      setIsRunning(false);
+    }, 2000);
+  };
+
+  const getCategoryColor = (color: string) => {
+    return theme === 'dark' ? 
+      {
+        bg: `bg-${color}-900`,
+        text: `text-${color}-300`,
+        border: `border-${color}-700`
+      } : {
+        bg: `bg-${color}-100`,
+        text: `text-${color}-600`,
+        border: `border-${color}-300`
+      };
   };
 
   return (
-  <div style={getContainerStyles()}>
-      {/* Welcome Panel */}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <div>
-    <Title 
-      level={3} 
-      style={{ 
-        margin: 0,
-        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
-      }}
-    >
-      Welcome to ArbitrageOS
-    </Title>
-    <Text 
-      style={{ 
-        color: theme === 'dark' ? '#9ca3af' : '#666666'
-      }}
-    >
-      {clients.length} clients • {agents.length} active agents • {workflows.length} workflows
-    </Text>
-  </div>
-  <Space>
-    <Button 
-      type="default"
-      style={{
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-        color: theme === 'dark' ? '#e5e7eb' : '#1a1a1a',
-        borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db'
-      }}
-    >
-      Clear Selection
-    </Button>
-  </Space>
-</div>
+    <div style={{ 
+      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+      padding: 24,
+      minHeight: '100vh'
+    }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <Title 
+          level={3} 
+          style={{ 
+            margin: 0,
+            color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
+          }}
+        >
+          Tools & Playbook
+        </Title>
+        <Text 
+          style={{ 
+            color: theme === 'dark' ? '#9ca3af' : '#666666'
+          }}
+        >
+          Generate high-leverage content and strategic deliverables
+        </Text>
+      </div>
 
-      {/* Quick Start Actions */}
-    <Card
-        title="Quick Start Actions"
-        styles={getCardStyles()}
-        style={{ marginBottom: 24 }}
-        extra={<Button type="link">View All</Button>}
+      {/* Client Selector */}
+      <Card
+        style={{ 
+          marginBottom: 24,
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+        }}
       >
-      
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-          gap: 16
-        }}>
-       <Card 
-  hoverable
-  onClick={() => console.log('Create New Client')}
-  styles={{
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: '16px'
-    }
-  }}
-  style={{ 
-    textAlign: 'left',
-    cursor: 'pointer',
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-  }}
->
-  <Space>
-    <Avatar 
-      icon={<PlusOutlined />} 
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#e6f7ff', 
-        color: theme === 'dark' ? '#a78bfa' : '#1890ff'
-      }} 
-    />
-    <div>
-      <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-        Create New Client
-      </Text>
-      <br />
-      <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-        Add a new client profile
-      </Text>
-    </div>
-  </Space>
-</Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Launch Tool')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Text strong style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
+              Selected Client
+            </Text>
+            <div style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+              {selectedClient ? clients.find(c => c.id === selectedClient)?.name : 'No client selected'}
+            </div>
+          </div>
+          <Select
+            placeholder="Select a client..."
+            style={{ width: 250 }}
+            value={selectedClient}
+            onChange={setSelectedClient}
           >
-            <Space>
-              <Avatar icon={<PlayCircleOutlined />} style={{ backgroundColor: '#f6ffed', color: '#52c41a' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Launch Tool</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Run content generation tools</Text>
-              </div>
-            </Space>
-          </Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Run Workflow')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<SettingOutlined />} style={{ backgroundColor: '#f9f0ff', color: '#722ed1' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Run Workflow</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Execute automation workflows</Text>
-              </div>
-            </Space>
-          </Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Deploy Agent')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<TeamOutlined />} style={{ backgroundColor: '#fff7e6', color: '#fa8c16' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Deploy Agent</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Deploy AI agents</Text>
-              </div>
-            </Space>
-          </Card>
+            {clients.map(client => (
+              <Option key={client.id} value={client.id}>{client.name}</Option>
+            ))}
+          </Select>
         </div>
       </Card>
 
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24,
-        marginBottom: 24
-      }}>
-        {/* Activity Feed */}
-        <Card
-        title="Activity Feed"
-        styles={getCardStyles()}
-        style={{ marginBottom: 24 }}
+      {/* Search and Filter */}
+      <Card
+        style={{ 
+          marginBottom: 24,
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+        }}
       >
-          <List
-           style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}
-            itemLayout="horizontal"
-            dataSource={recentActivity}
-            renderItem={(item) => (
-              <List.Item>
-                <List.Item.Meta
-                  avatar={getStatusIcon(item.status)}
-                  title={<Text strong>{item.action}</Text>}
-                  description={`${item.client} • ${item.timestamp.toLocaleTimeString()}`}
-                />
-                <div>
-                  <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
-                </div>
-              </List.Item>
-            )}
+        <div style={{ display: 'flex', gap: 16 }}>
+          <Input
+            placeholder="Search tools..."
+            prefix={<SearchOutlined />}
+            style={{ flex: 1 }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </Card>
+          <Select
+            placeholder="Filter by category"
+            style={{ width: 200 }}
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+          >
+            <Option value="all">All Categories</Option>
+            {toolCategories.map(category => (
+              <Option key={category.id} value={category.id}>{category.name}</Option>
+            ))}
+          </Select>
+        </div>
+      </Card>
 
-        {/* Recent Deliverables */}
-    <Card 
-  title="Recent Deliverables"
-  styles={{
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px'
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    }
-  }}
-  style={{
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-  }}
-  extra={
-    <Button 
-      type="link" 
-      style={{ 
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-        backgroundColor: 'transparent' 
-      }}
-    >
-      View All
-    </Button>
-  }
->
-  {recentDeliverables.length > 0 ? (
-    <List
-      itemLayout="horizontal"
-      dataSource={recentDeliverables}
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-        borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-      }}
-      renderItem={(item) => (
-        <List.Item
-          style={{ 
-            borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-            padding: '12px 0',
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-          }}
-          actions={[
-            <Button 
-              type="link" 
-              key="copy"
-              style={{ 
-                color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                padding: '0 8px'
-              }}
-            >
-              Copy
-            </Button>,
-            <Button 
-              type="link" 
-              key="export"
-              style={{ 
-                color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                padding: '0 8px'
-              }}
-            >
-              Export
-            </Button>
-          ]}
-        >
-          <List.Item.Meta
-            avatar={
-              <FileTextOutlined 
-                style={{ 
-                  color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                  fontSize: 20,
-                  backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-                  padding: 8,
-                  borderRadius: 4
-                }} 
-              />
-            }
-            title={
-              <Text 
-                strong 
-                style={{ 
-                  color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                  marginBottom: 4
-                }}
-              >
-                {item.title}
-              </Text>
-            }
-            description={
-              <Text 
-                style={{ 
-                  color: theme === 'dark' ? '#9ca3af' : '#666666',
-                  fontSize: 14
-                }}
-              >
-                {item.clientId}
-              </Text>
-            }
-          />
-        </List.Item>
-      )}
-    />
-  ) : (
-    <div style={{ 
-      textAlign: 'center', 
-      padding: '32px 0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-    }}>
-      <FileTextOutlined 
-        style={{ 
-          fontSize: 48, 
-          color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-          marginBottom: 16 
-        }} 
-      />
-      <Text 
-        style={{ 
-          color: theme === 'dark' ? '#9ca3af' : '#666666',
-          display: 'block',
-          marginBottom: 8
-        }}
-      >
-        No deliverables yet
-      </Text>
-      <Button 
-        type="link" 
-        onClick={() => console.log('Create deliverable')}
-        style={{ 
-          color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-          padding: '0 8px'
-        }}
-      >
-        Create your first deliverable
-      </Button>
-    </div>
-  )}
-</Card>
-</div>
-     {/* Running Automations */}
-<Card
-  title="Running Automations"
-  styles={getCardStyles()}
-  extra={
-    <Button 
-      type="link" 
-      style={{ 
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-        backgroundColor: 'transparent'
-      }}
-    >
-      View All
-    </Button>
-  }
-  style={{ marginBottom: 24 }}
->
-  <Table
-    columns={[
-      {
-        title: 'Name',
-        dataIndex: 'name',
-        render: (text, record) => (
-          <Space>
-            <Avatar 
-              icon={record.type === 'agent' ? <TeamOutlined /> : <SettingOutlined />} 
-              style={{ 
-                backgroundColor: theme === 'dark' ? '#1f2937' : '#f5f5f5',
-                color: theme === 'dark' ? '#a78bfa' : '#999'
-              }} 
-            />
-            <div>
+      {/* Tools List */}
+      {filteredCategories.map(category => (
+        <Card
+          key={category.id}
+          title={
+            <Space>
+              <div style={{ 
+                padding: 8, 
+                borderRadius: 6,
+                backgroundColor: theme === 'dark' ? 
+                  (category.color === 'blue' ? '#1e3a8a' : 
+                   category.color === 'green' ? '#14532d' : 
+                   '#581c87') : 
+                  (category.color === 'blue' ? '#dbeafe' : 
+                   category.color === 'green' ? '#dcfce7' : 
+                   '#f3e8ff'),
+                color: theme === 'dark' ? 
+                  (category.color === 'blue' ? '#93c5fd' : 
+                   category.color === 'green' ? '#86efac' : 
+                   '#c4b5fd') : 
+                  (category.color === 'blue' ? '#1d4ed8' : 
+                   category.color === 'green' ? '#15803d' : 
+                   '#7e22ce')
+              }}>
+                {category.icon}
+              </div>
               <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-                {text}
+                {category.name}
               </Text>
-              <br />
-              <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-                {record.description || 'Workflow'}
-              </Text>
-            </div>
-          </Space>
-        ),
-      },
-      {
-        title: 'Type',
-        dataIndex: 'type',
-        render: (type) => (
-          <Tag color={type === 'agent' ? 'blue' : 'purple'}>
-            {type}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Client',
-        dataIndex: 'assignedClient',
-        render: (client) => (
-          <Text style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
-            {client || 'No client'}
-          </Text>
-        ),
-      },
-      {
-        title: 'Status',
-        dataIndex: 'status',
-        render: () => <Tag color="green">Running</Tag>,
-      },
-      {
-        title: 'ETA',
-        dataIndex: 'eta',
-        render: (eta, record) => (
-          <Text style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
-            {eta || (record.type === 'workflow' ? '2 min' : '')}
-          </Text>
-        ),
-      },
-      {
-        title: 'Actions',
-        render: () => (
+            </Space>
+          }
+          style={{ 
+            marginBottom: 24,
+            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+            borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+          }}
+        >
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: 16
+          }}>
+            {category.tools
+              .filter(tool => 
+                tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                tool.description.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map(tool => (
+                <Card
+                  key={tool.id}
+                  hoverable
+                  style={{ 
+                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <Text strong style={{ 
+                      color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
+                      marginBottom: 8
+                    }}>
+                      {tool.name}
+                    </Text>
+                    <Text style={{ 
+                      color: theme === 'dark' ? '#9ca3af' : '#666666',
+                      marginBottom: 16
+                    }}>
+                      {tool.description}
+                    </Text>
+                    
+                    <div style={{ marginTop: 'auto' }}>
+                      <Divider style={{ 
+                        borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+                        margin: '12px 0'
+                      }} />
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Tag color={category.color}>{category.name}</Tag>
+                        <Button 
+                          type="primary" 
+                          icon={<PlayCircleOutlined />}
+                          onClick={() => handleToolRun(tool)}
+                        >
+                          Run Tool
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+          </div>
+        </Card>
+      ))}
+
+      {/* Tool Modal */}
+      <Modal
+        title={
           <Space>
-            <Button 
-              type="link" 
-              size="small"
-              style={{ color: theme === 'dark' ? '#a78bfa' : '#6d28d9' }}
-            >
-              Pause
-            </Button>
-            <Button 
-              type="link" 
-              size="small" 
-              danger
-              style={{ color: theme === 'dark' ? '#f87171' : '#dc2626' }}
-            >
-              Stop
-            </Button>
+           <ToolOutlined style={{ 
+  color: activeTool 
+    ? filteredCategories.find(cat => cat.tools.some(t => t.id === activeTool.id))?.color === 'blue' 
+      ? '#3b82f6' 
+      : filteredCategories.find(cat => cat.tools.some(t => t.id === activeTool.id))?.color === 'green' 
+        ? '#10b981' 
+        : '#8b5cf6' 
+    : '#9ca3af'
+}} />
+
+            <Text strong>{activeTool?.name || 'Tool'}</Text>
           </Space>
-        ),
-      },
-    ]}
-    dataSource={runningAutomations}
-    pagination={false}
-    rowKey="id"
-    style={{ 
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      color: theme === 'dark' ? '#e5e7eb' : '#333'
-    }}
-  />
-</Card>
-      {/* Stats Overview */}
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24
-      }}>
-          <Card
-        styles={getCardStyles()}
+        }
+        width={1000}
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setOutput('');
+        }}
+        footer={null}
+        closeIcon={<CloseOutlined />}
+        styles={{
+          body: {
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            padding: 24
+          },
+          header: {
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+          }
+        }}
       >
-          <Statistic
-            title="Total Clients"
-            value={clients.length}
-            prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-          />
-        </Card>
+        <div style={{ display: 'flex', gap: 24 }}>
+          {/* Input Panel */}
+          <div style={{ flex: 1 }}>
+            <Form
+              layout="vertical"
+              onFinish={handleRunTool}
+              initialValues={{}}
+            >
+              <Card
+                title="Inputs"
+                style={{ 
+                  marginBottom: 24,
+                  backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                  borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+                }}
+              >
+                <Form.Item
+                  label="Selected Client"
+                  name="client"
+                  initialValue={selectedClient}
+                >
+                  <Select
+                    placeholder="Select a client..."
+                    value={selectedClient}
+                    onChange={setSelectedClient}
+                  >
+                    {clients.map(client => (
+                      <Option key={client.id} value={client.id}>{client.name}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
 
-       <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Active Agents"
-            value={agents.length}
-            prefix={<SettingOutlined style={{ color: '#52c41a' }} />}
-          />
-        </Card>
+                {activeTool?.inputs.map(input => (
+                  <Form.Item
+                    key={input.name}
+                    label={input.label}
+                    name={input.name}
+                    rules={[{ required: input.required, message: 'This field is required' }]}
+                  >
+                    {input.type === 'textarea' ? (
+                      <TextArea rows={3} />
+                    ) : input.type === 'select' ? (
+                      <Select>
+                        {input.options?.map(option => (
+                          <Option key={option} value={option}>{option}</Option>
+                        ))}
+                      </Select>
+                    ) : input.type === 'checkbox' ? (
+                      <Checkbox.Group>
+                        {input.options?.map(option => (
+                          <Checkbox key={option} value={option}>{option}</Checkbox>
+                        ))}
+                      </Checkbox.Group>
+                    ) : input.type === 'file' ? (
+                      <Upload>
+                        <Button icon={<CopyOutlined />}>Upload File</Button>
+                      </Upload>
+                    ) : (
+                      <Input type={input.type} />
+                    )}
+                  </Form.Item>
+                ))}
 
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  loading={isRunning}
+                  icon={!isRunning ? <PlayCircleOutlined /> : undefined}
+                  style={{ width: '100%' }}
+                >
+                  {isRunning ? 'Running...' : 'Run Tool'}
+                </Button>
+              </Card>
+            </Form>
+          </div>
+
+          {/* Output Panel */}
+          <div style={{ flex: 1 }}>
             <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Workflows"
-            value={workflows.length}
-            prefix={<BarChartOutlined style={{ color: '#722ed1' }} />}
-          />
-        </Card>
-
-        <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Deliverables"
-            value={deliverables.length}
-            prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />}
-          />
-        </Card>
-      </div>
+              title="Output"
+              style={{ 
+                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+                height: '100%'
+              }}
+            >
+              {isRunning ? (
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center',
+                  height: 200
+                }}>
+                  <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                </div>
+              ) : output ? (
+                <>
+                  <div style={{ 
+                    backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+                    padding: 16,
+                    borderRadius: 6,
+                    marginBottom: 16,
+                    minHeight: 200
+                  }}>
+                    <pre style={{ 
+                      whiteSpace: 'pre-wrap',
+                      color: theme === 'dark' ? '#e5e7eb' : '#333',
+                      margin: 0
+                    }}>
+                      {output}
+                    </pre>
+                  </div>
+                  <Space>
+                    <Button icon={<CopyOutlined />}>Copy</Button>
+                    <Button icon={<CopyOutlined />}>Export</Button>
+                    <Button type="primary">Save to Client</Button>
+                  </Space>
+                </>
+              ) : (
+                <Empty
+                  description="Run the tool to see output here"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ 
+                    color: theme === 'dark' ? '#9ca3af' : '#666666',
+                    marginTop: 40
+                  }}
+                />
+              )}
+            </Card>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
 
-export default DashboardPage;
+export default ToolsPage;

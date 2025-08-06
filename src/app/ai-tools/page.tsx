@@ -1,621 +1,455 @@
-// app/dashboard/page.tsx
+// app/ai-tools/page.tsx
 "use client";
-
-import React from 'react';
-import { useList, useOne } from '@refinedev/core';
-import { 
-  PlusOutlined,
-  PlayCircleOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ArrowRightOutlined,
-  TeamOutlined,
-  SettingOutlined,
+import React, { useState } from 'react';
+import {
+  SearchOutlined,
+  StarOutlined,
+  DollarOutlined,
+  RocketOutlined,
+  ExperimentOutlined,
+  CodeOutlined,
+  VideoCameraOutlined,
+  AudioOutlined,
   FileTextOutlined,
-  BarChartOutlined
+  ToolOutlined,
+  FilterOutlined,
+  ThunderboltOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
-import { Card, Table, Tag, Button, Statistic, Grid, Typography, Space, Avatar, List } from 'antd';
+import {
+  Card,
+  Input,
+  Select,
+  Button,
+  Typography,
+  Space,
+  Tag,
+  Divider,
+  Empty,
+  Row,
+  Col,
+  Rate,
+  Avatar,
+  Image
+} from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
+import { AITool, aiTools } from './aitoolbank/aitoolbanks';
 
-const { Title, Text } = Typography;
-const { useBreakpoint } = Grid;
+const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
+const { Search } = Input;
 
-const DashboardPage = () => {
-  const screens = useBreakpoint();
-  const { data: clientsData } = useList({ resource: 'clients' });
-  const { data: agentsData } = useList({ resource: 'agents' });
-  const { data: workflowsData } = useList({ resource: 'workflows' });
-  const { data: deliverablesData } = useList({ resource: 'deliverables' });
-   const { theme } = useTheme();
+const AIToolsDashboard = () => {
+  const { theme } = useTheme();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('All');
+  const [selectedPricing, setSelectedPricing] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<'rating' | 'name'>('rating');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Theme-aware style generators
-  const getCardStyles = () => ({
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px'
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    }
+  // Fix for Set iteration (using filter approach for compatibility)
+  const categories = aiTools
+    .map(tool => tool.category)
+    .filter((value, index, self) => self.indexOf(value) === index);
+
+  const subcategories = aiTools
+    .map(tool => tool.subcategory)
+    .filter((value, index, self) => self.indexOf(value) === index);
+
+  
+// Modify your filteredTools logic to include favorites filter
+const filteredTools = aiTools.filter(tool => {
+  const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tool.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tool.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+  const matchesCategory = selectedCategory === 'All' || tool.category === selectedCategory;
+  const matchesSubcategory = selectedSubcategory === 'All' || tool.subcategory === selectedSubcategory;
+  const matchesPricing = selectedPricing === 'All' || tool.pricing === selectedPricing;
+  const matchesFavorites = !showFavoritesOnly || favorites.has(tool.id);
+  return matchesSearch && matchesCategory && matchesSubcategory && matchesPricing && matchesFavorites;
+});
+
+  const sortedTools = [...filteredTools].sort((a, b) => {
+    if (sortBy === 'rating') return b.rating - a.rating;
+    return a.name.localeCompare(b.name);
   });
 
-  const getContainerStyles = () => ({
-    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-    padding: screens.xs ? '16px' : '24px',
-    minHeight: '100vh'
-  });
-
-   // Helper function for theme-aware colors
-  const themeClass = (light: string, dark: string) => 
-    theme === 'dark' ? dark : light;
-  
-  const clients = clientsData?.data || [];
-  const agents = agentsData?.data || [];
-  const workflows = workflowsData?.data || [];
-  const deliverables = deliverablesData?.data || [];
-
-  // Mock data for demonstration
-  const recentActivity = [
-    {
-      id: 1,
-      type: 'tool',
-      action: 'Clarity Wizard',
-      client: 'TechStart Inc',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      status: 'completed'
-    },
-    {
-      id: 2,
-      type: 'agent',
-      action: 'Lead Scorer Bot',
-      client: 'GrowthCo',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-      status: 'running'
-    },
-    {
-      id: 3,
-      type: 'workflow',
-      action: 'Weekly Report Generator',
-      client: 'ScaleUp Agency',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-      status: 'completed'
-    },
-    {
-      id: 4,
-      type: 'deliverable',
-      action: 'Market Analysis Report',
-      client: 'InnovateCorp',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-      status: 'created'
-    }
-  ];
-
-  const recentDeliverables = deliverables.slice(0, 4);
-
-  // Combine agents and workflows for running automations
-  type AutomationItem = (any & { type: 'agent' }) | (any & { type: 'workflow' });
-  
-  const runningAutomations: AutomationItem[] = [
-    ...agents.slice(0, 2).map(agent => ({ ...agent, type: 'agent' as const })),
-    ...workflows.slice(0, 1).map(workflow => ({ ...workflow, type: 'workflow' as const }))
-  ];
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case 'running':
-        return <ClockCircleOutlined style={{ color: '#1890ff' }} />;
-      case 'failed':
-        return <ExclamationCircleOutlined style={{ color: '#f5222d' }} />;
-      default:
-        return <ClockCircleOutlined style={{ color: '#d9d9d9' }} />;
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Language Models': return <FileTextOutlined />;
+      case 'Content Generation': return <ExperimentOutlined />;
+      case 'Sales & Marketing': return <RocketOutlined />;
+      case 'Video & Visual': return <VideoCameraOutlined />;
+      case 'Audio & Voice': return <AudioOutlined />;
+      case 'Code & Development': return <CodeOutlined />;
+      default: return <ToolOutlined />;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'green';
-      case 'running':
-        return 'blue';
-      case 'failed':
-        return 'red';
-      default:
-        return 'default';
+  const getPricingColor = (pricing: string) => {
+    switch (pricing) {
+      case 'Free': return 'green';
+      case 'Freemium': return 'blue';
+      case 'Paid': return 'orange';
+      case 'Enterprise': return 'purple';
+      default: return 'default';
     }
+  };
+
+  const toggleFavorite = (toolId: string) => {
+  const newFavorites = new Set(favorites);
+  if (newFavorites.has(toolId)) {
+    newFavorites.delete(toolId);
+  } else {
+    newFavorites.add(toolId);
+  }
+  setFavorites(newFavorites);
+};
+
+  // Function to get a placeholder image URL based on category or a default one
+  // You might want to replace this with actual image URLs from your data source
+  const getToolImageUrl = (tool: AITool): string => {
+    // Example mapping - replace with your logic or actual image URLs
+    const categoryImageMap: Record<string, string> = {
+      'Language Models': 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png', // Placeholder AI Brain
+      'Video & Visual': 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', // Placeholder Video
+      'Audio & Voice': 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png', // Placeholder Audio
+      'Code & Development': 'https://gw.alipayobjects.com/zos/antfincdn/efFD%24IO%2402/ssdd.jpg', // Placeholder Code
+      // Add more mappings as needed
+    };
+
+    // Try to get image based on category first
+    const categoryImage = categoryImageMap[tool.category];
+    if (categoryImage) {
+      return categoryImage;
+    }
+
+    // Fallback: Try subcategory
+    const subcategoryImageMap: Record<string, string> = {
+        'AI Assistants': 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png', // Placeholder AI Brain
+        'Image Generation': 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', // Placeholder Video
+        'Voice Synthesis': 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png', // Placeholder Audio
+        'Code Generation': 'https://gw.alipayobjects.com/zos/antfincdn/efFD%24IO%2402/ssdd.jpg', // Placeholder Code
+         // Add more mappings as needed
+    };
+    const subcategoryImage = subcategoryImageMap[tool.subcategory];
+    if (subcategoryImage) {
+        return subcategoryImage;
+    }
+
+    // Default placeholder image if no specific one found
+    return 'https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png'; // Generic placeholder
   };
 
   return (
-  <div style={getContainerStyles()}>
-      {/* Welcome Panel */}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <div>
-    <Title 
-      level={3} 
-      style={{ 
+    <div style={{
+      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+      padding: 24,
+      minHeight: '100vh'
+    }}>
+      {/* Header */}
+    <div style={{ marginBottom: 24 }}>
+  <Space align="center" size="middle">
+    <ThunderboltOutlined
+      style={{
+        fontSize: 18,
+        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
+      }}
+    />
+    <Title
+      level={2}
+      style={{
         margin: 0,
-        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
+        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
       }}
     >
-      Welcome to ArbitrageOS
+      AI Tools Library
     </Title>
-    <Text 
-      style={{ 
-        color: theme === 'dark' ? '#9ca3af' : '#666666'
+  </Space>
+
+  <div style={{ marginTop: 8 }}>
+    <Text
+      style={{
+        color: theme === 'dark' ? '#9ca3af' : '#666666',
       }}
     >
-      {clients.length} clients • {agents.length} active agents • {workflows.length} workflows
+      Discover the best AI tools for every business need
     </Text>
   </div>
-  <Space>
-    <Button 
-      type="default"
-      style={{
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-        color: theme === 'dark' ? '#e5e7eb' : '#1a1a1a',
-        borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db'
-      }}
-    >
-      Clear Selection
-    </Button>
-  </Space>
 </div>
 
-      {/* Quick Start Actions */}
-    <Card
-        title="Quick Start Actions"
-        styles={getCardStyles()}
-        style={{ marginBottom: 24 }}
-        extra={<Button type="link">View All</Button>}
+
+      {/* Search and Filters */}
+      <Card
+        style={{
+          marginBottom: 24,
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+        }}
       >
-      
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-          gap: 16
-        }}>
-       <Card 
-  hoverable
-  onClick={() => console.log('Create New Client')}
-  styles={{
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: '16px'
-    }
-  }}
-  style={{ 
-    textAlign: 'left',
-    cursor: 'pointer',
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Search
+            placeholder="Search AI tools by name, description or tags..."
+            allowClear
+            enterButton={<Button type="primary">Search</Button>}
+            size="large"
+            prefix={<SearchOutlined />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Space wrap>
+            <Select
+              placeholder="Filter by category"
+              style={{ width: 200 }}
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              suffixIcon={<FilterOutlined />}
+            >
+              <Option value="All">All Categories</Option>
+              {categories.map(category => (
+                <Option key={category} value={category}>
+                  <Space>
+                    {getCategoryIcon(category)}
+                    {category}
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="Filter by subcategory"
+              style={{ width: 200 }}
+              value={selectedSubcategory}
+              onChange={setSelectedSubcategory}
+              disabled={selectedCategory === 'All'}
+            >
+              <Option value="All">All Subcategories</Option>
+              {subcategories
+                .filter(sub => selectedCategory === 'All' || aiTools.some(t => t.category === selectedCategory && t.subcategory === sub))
+                .map(subcategory => (
+                  <Option key={subcategory} value={subcategory}>{subcategory}</Option>
+                ))}
+            </Select>
+            <Button
+  type={showFavoritesOnly ? 'primary' : 'default'}
+  icon={<StarOutlined />}
+  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+  style={{
+    color: showFavoritesOnly ? '#ffc107' : undefined,
+    borderColor: showFavoritesOnly ? '#ffc107' : undefined,
+    backgroundColor: showFavoritesOnly ? 'rgba(255, 193, 7, 0.1)' : undefined
   }}
 >
-  <Space>
-    <Avatar 
-      icon={<PlusOutlined />} 
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#e6f7ff', 
-        color: theme === 'dark' ? '#a78bfa' : '#1890ff'
-      }} 
-    />
-    <div>
-      <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-        Create New Client
-      </Text>
-      <br />
-      <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-        Add a new client profile
-      </Text>
-    </div>
-  </Space>
-</Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Launch Tool')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<PlayCircleOutlined />} style={{ backgroundColor: '#f6ffed', color: '#52c41a' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Launch Tool</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Run content generation tools</Text>
-              </div>
-            </Space>
-          </Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Run Workflow')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<SettingOutlined />} style={{ backgroundColor: '#f9f0ff', color: '#722ed1' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Run Workflow</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Execute automation workflows</Text>
-              </div>
-            </Space>
-          </Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Deploy Agent')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<TeamOutlined />} style={{ backgroundColor: '#fff7e6', color: '#fa8c16' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Deploy Agent</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Deploy AI agents</Text>
-              </div>
-            </Space>
-          </Card>
-        </div>
+  Favorites
+</Button>
+            <Select
+              placeholder="Filter by pricing"
+              style={{ width: 200 }}
+              value={selectedPricing}
+              onChange={setSelectedPricing}
+              suffixIcon={<DollarOutlined />}
+            >
+              <Option value="All">All Pricing Models</Option>
+              <Option value="Free">Free</Option>
+              <Option value="Freemium">Freemium</Option>
+              <Option value="Paid">Paid</Option>
+              <Option value="Enterprise">Enterprise</Option>
+            </Select>
+            <Select
+              placeholder="Sort by"
+              style={{ width: 200 }}
+              value={sortBy}
+              onChange={setSortBy}
+            >
+              <Option value="rating">
+                <Space>
+                  <StarOutlined />
+                  Rating (High to Low)
+                </Space>
+              </Option>
+              <Option value="name">Name (A-Z)</Option>
+            </Select>
+          </Space>
+          <Text type="secondary">
+            Showing {sortedTools.length} of {aiTools.length} AI tools
+          </Text>
+        </Space>
+        
       </Card>
 
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24,
-        marginBottom: 24
-      }}>
-        {/* Activity Feed */}
-        <Card
-        title="Activity Feed"
-        styles={getCardStyles()}
-        style={{ marginBottom: 24 }}
-      >
-          <List
-           style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}
-            itemLayout="horizontal"
-            dataSource={recentActivity}
-            renderItem={(item) => (
-              <List.Item>
-                <List.Item.Meta
-                  avatar={getStatusIcon(item.status)}
-                  title={<Text strong>{item.action}</Text>}
-                  description={`${item.client} • ${item.timestamp.toLocaleTimeString()}`}
-                />
-                <div>
-                  <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
-                </div>
-              </List.Item>
-            )}
-          />
-        </Card>
+      
 
-        {/* Recent Deliverables */}
-    <Card 
-  title="Recent Deliverables"
-  styles={{
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px'
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    }
-  }}
-  style={{
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-  }}
-  extra={
-    <Button 
-      type="link" 
-      style={{ 
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-        backgroundColor: 'transparent' 
+      {/* Tools Grid - Changed to 3 per row (xl={8}) */}
+      {sortedTools.length > 0 ? (
+        <Row gutter={[24, 24]}> {/* Increased gutter for more spacing */}
+          {sortedTools.map(tool => {
+            const displayedFeatures = tool.features.slice(0, 3);
+            const remainingFeaturesCount = tool.features.length - 3;
+            return (
+              <Col key={tool.id} xs={24} sm={12} lg={8} xl={8}> {/* 3 per row on large screens */}
+                <Card
+                  hoverable
+                  style={{
+                    height: '100%',
+                    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                  bodyStyle={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}
+                  // Add image at the top using cover prop
+                  cover={
+                    <div style={{ height: 180, overflow: 'hidden', position: 'relative' }}>
+                      <Image
+                        alt={tool.name}
+                        src={getToolImageUrl(tool)} // Use the helper function
+                        fallback="https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png" // Fallback image
+                        preview={false} // Disable lightbox preview for simplicity
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      {/* Pricing Tag overlay */}
+                      <Tag
+                        color={getPricingColor(tool.pricing)}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          zIndex: 1
+                        }}
+                      >
+                        {tool.pricing}
+                      </Tag>
+                    </div>
+                  }
+                  // Action button at the bottom
+            actions={[
+  <div key={`actions-${tool.id}`} style={{ 
+    display: 'flex', 
+    justifyContent: 'center',
+    gap: 8,
+    padding: '0 8px'
+  }}>
+    <Button
+      icon={<StarOutlined />}
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleFavorite(tool.id);
       }}
-    >
-      View All
-    </Button>
-  }
->
-  {recentDeliverables.length > 0 ? (
-    <List
-      itemLayout="horizontal"
-      dataSource={recentDeliverables}
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-        borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+      type={favorites.has(tool.id) ? 'primary' : 'default'}
+      style={{
+        width: 48,
+        color: favorites.has(tool.id) ? '#ffc107' : undefined,
+        borderColor: favorites.has(tool.id) ? '#ffc107' : undefined,
+        backgroundColor: favorites.has(tool.id) ? 'rgba(255, 193, 7, 0.1)' : undefined
       }}
-      renderItem={(item) => (
-        <List.Item
-          style={{ 
-            borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-            padding: '12px 0',
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-          }}
-          actions={[
-            <Button 
-              type="link" 
-              key="copy"
-              style={{ 
-                color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                padding: '0 8px'
-              }}
-            >
-              Copy
-            </Button>,
-            <Button 
-              type="link" 
-              key="export"
-              style={{ 
-                color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                padding: '0 8px'
-              }}
-            >
-              Export
-            </Button>
-          ]}
-        >
-          <List.Item.Meta
-            avatar={
-              <FileTextOutlined 
-                style={{ 
-                  color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                  fontSize: 20,
-                  backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-                  padding: 8,
-                  borderRadius: 4
-                }} 
-              />
-            }
-            title={
-              <Text 
-                strong 
-                style={{ 
-                  color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                  marginBottom: 4
-                }}
-              >
-                {item.title}
-              </Text>
-            }
-            description={
-              <Text 
-                style={{ 
-                  color: theme === 'dark' ? '#9ca3af' : '#666666',
-                  fontSize: 14
-                }}
-              >
-                {item.clientId}
-              </Text>
-            }
-          />
-        </List.Item>
-      )}
     />
-  ) : (
-    <div style={{ 
-      textAlign: 'center', 
-      padding: '32px 0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-    }}>
-      <FileTextOutlined 
-        style={{ 
-          fontSize: 48, 
-          color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-          marginBottom: 16 
-        }} 
-      />
-      <Text 
-        style={{ 
-          color: theme === 'dark' ? '#9ca3af' : '#666666',
-          display: 'block',
-          marginBottom: 8
-        }}
-      >
-        No deliverables yet
-      </Text>
-      <Button 
-        type="link" 
-        onClick={() => console.log('Create deliverable')}
-        style={{ 
-          color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-          padding: '0 8px'
-        }}
-      >
-        Create your first deliverable
-      </Button>
-    </div>
-  )}
-</Card>
-</div>
-     {/* Running Automations */}
-<Card
-  title="Running Automations"
-  styles={getCardStyles()}
-  extra={
-    <Button 
-      type="link" 
-      style={{ 
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-        backgroundColor: 'transparent'
+    <Button
+      type="primary"
+      href={tool.url}
+      target="_blank"
+      icon={<RocketOutlined />}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: 'calc(100% - 56px)', // 48px for star button + 8px gap
+        backgroundColor: '#052b24',
+        borderColor: '#1a237e'
       }}
     >
-      View All
+      Try Tool
     </Button>
-  }
-  style={{ marginBottom: 24 }}
->
-  <Table
-    columns={[
-      {
-        title: 'Name',
-        dataIndex: 'name',
-        render: (text, record) => (
-          <Space>
-            <Avatar 
-              icon={record.type === 'agent' ? <TeamOutlined /> : <SettingOutlined />} 
-              style={{ 
-                backgroundColor: theme === 'dark' ? '#1f2937' : '#f5f5f5',
-                color: theme === 'dark' ? '#a78bfa' : '#999'
-              }} 
-            />
-            <div>
-              <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-                {text}
-              </Text>
-              <br />
-              <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-                {record.description || 'Workflow'}
-              </Text>
-            </div>
-          </Space>
-        ),
-      },
-      {
-        title: 'Type',
-        dataIndex: 'type',
-        render: (type) => (
-          <Tag color={type === 'agent' ? 'blue' : 'purple'}>
-            {type}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Client',
-        dataIndex: 'assignedClient',
-        render: (client) => (
-          <Text style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
-            {client || 'No client'}
-          </Text>
-        ),
-      },
-      {
-        title: 'Status',
-        dataIndex: 'status',
-        render: () => <Tag color="green">Running</Tag>,
-      },
-      {
-        title: 'ETA',
-        dataIndex: 'eta',
-        render: (eta, record) => (
-          <Text style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
-            {eta || (record.type === 'workflow' ? '2 min' : '')}
-          </Text>
-        ),
-      },
-      {
-        title: 'Actions',
-        render: () => (
-          <Space>
-            <Button 
-              type="link" 
-              size="small"
-              style={{ color: theme === 'dark' ? '#a78bfa' : '#6d28d9' }}
-            >
-              Pause
-            </Button>
-            <Button 
-              type="link" 
-              size="small" 
-              danger
-              style={{ color: theme === 'dark' ? '#f87171' : '#dc2626' }}
-            >
-              Stop
-            </Button>
-          </Space>
-        ),
-      },
-    ]}
-    dataSource={runningAutomations}
-    pagination={false}
-    rowKey="id"
-    style={{ 
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      color: theme === 'dark' ? '#e5e7eb' : '#333'
-    }}
-  />
-</Card>
-      {/* Stats Overview */}
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24
-      }}>
-          <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Total Clients"
-            value={clients.length}
-            prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-          />
-        </Card>
+  </div>
+]}
+                >
+                  <Card.Meta
+                   // Avatar removed as image is now on top
+                    title={
+                      <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a', fontSize: 18 }}>
+                        {tool.name}
+                      </Text>
+                    }
+                    description={
+                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        {/* Simplified description display */}
+                        <Paragraph
+                          type="secondary"
+                          ellipsis={{ rows: 2, expandable: false, symbol: 'more' }}
+                          style={{ marginBottom: 8 }}
+                        >
+                          {tool.description}
+                        </Paragraph>
+                        <Rate
+                          disabled
+                          defaultValue={tool.rating}
+                          allowHalf
+                          style={{ fontSize: 14 }}
+                          character={<StarOutlined />}
+                        />
 
-       <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Active Agents"
-            value={agents.length}
-            prefix={<SettingOutlined style={{ color: '#52c41a' }} />}
-          />
-        </Card>
+                        {/* Best For */}
+                        <div>
+                          <Text strong style={{ fontSize: 14 }}>Best For:</Text>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: 13 }}>{tool.useCase}</Text>
+                        </div>
 
-            <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Workflows"
-            value={workflows.length}
-            prefix={<BarChartOutlined style={{ color: '#722ed1' }} />}
-          />
-        </Card>
+                        {/* Key Features */}
+                        <div>
+                          <Text strong style={{ fontSize: 14 }}>Key Features:</Text>
+                          <br />
+                          <Space wrap size={[0, 4]} style={{ marginTop: 4 }}>
+                            {displayedFeatures.map((feature, index) => (
+                              <Tag key={index} style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>{feature}</Tag>
+                            ))}
+                            {remainingFeaturesCount > 0 && (
+                              <Tag icon={<PlusOutlined />} style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>
+                                {remainingFeaturesCount}
+                              </Tag>
+                            )}
+                          </Space>
+                        </div>
 
-        <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Deliverables"
-            value={deliverables.length}
-            prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />}
-          />
-        </Card>
-      </div>
+                        {/* Categories */}
+                        <div>
+                          <Text strong style={{ fontSize: 14 }}>Categories:</Text>
+                          <br />
+                          <Space wrap size={[0, 4]} style={{ marginTop: 4 }}>
+                            <Tag style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>{tool.category}</Tag>
+                            <Tag style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>{tool.subcategory}</Tag>
+                          </Space>
+                        </div>
+                      </Space>
+                    }
+                  />
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      ) : (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <Text type="secondary">
+              No AI tools found. Try adjusting your search or filters.
+            </Text>
+          }
+        >
+          <Button
+            type="primary"
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedCategory('All');
+              setSelectedSubcategory('All');
+              setSelectedPricing('All');
+            }}
+          >
+            Reset Filters
+          </Button>
+        </Empty>
+      )}
     </div>
   );
 };
 
-export default DashboardPage;
+export default AIToolsDashboard;
