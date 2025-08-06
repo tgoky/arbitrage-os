@@ -1,0 +1,133 @@
+// app/dashboard/page.tsx
+"use client";
+
+import React from 'react';
+import { useList } from '@refinedev/core';
+import { Grid } from 'antd';
+import { useTheme } from '../../providers/ThemeProvider';
+import WelcomePanel from './components/welcomepanel';
+import QuickStartActions from './components/quickactions';
+import ActivityFeed from './components/activityfeed';
+import RecentDeliverables from './components/recentdeliveries';
+// import RunningAutomations from './components/runningautomations';
+import StatsOverview from './components/statsoverview';
+import { AutomationItem, ActivityItem, Deliverable, AgentRecord, WorkflowRecord, DeliverableRecord } from './components/types';
+
+const { useBreakpoint } = Grid;
+
+const DashboardPage = () => {
+  const screens = useBreakpoint();
+  const { theme } = useTheme();
+  const { data: clientsData } = useList({ resource: 'clients' });
+  const { data: agentsData } = useList<AgentRecord>({ resource: 'agents' });
+  const { data: workflowsData } = useList<WorkflowRecord>({ resource: 'workflows' });
+  const { data: deliverablesData } = useList<DeliverableRecord>({ resource: 'deliverables' });
+
+  const clients = clientsData?.data || [];
+  const agents = agentsData?.data || [];
+  const workflows = workflowsData?.data || [];
+  const deliverables = deliverablesData?.data || [];
+
+  // Transform deliverables to match Deliverable type
+  const recentDeliverables: Deliverable[] = deliverables.slice(0, 4).map((item) => ({
+    id: item.id,
+    title: item.title || 'Untitled Deliverable',
+    clientId: item.clientId || 'Unknown Client',
+  }));
+
+  // Transform agents and workflows to match AutomationItem type
+  const runningAutomations: AutomationItem[] = [
+    ...agents.slice(0, 2).map((agent) => ({
+      id: agent.id,
+      name: agent.name || 'Unnamed Agent',
+      type: 'agent' as const,
+      description: agent.description,
+      assignedClient: agent.assignedClient,
+      status: agent.status,
+      eta: agent.eta,
+    })),
+    ...workflows.slice(0, 1).map((workflow) => ({
+      id: workflow.id,
+      name: workflow.name || 'Unnamed Workflow',
+      type: 'workflow' as const,
+      description: workflow.description,
+      assignedClient: workflow.assignedClient,
+      status: workflow.status,
+      eta: workflow.eta || '2 min',
+    })),
+  ];
+
+  // Mock data for demonstration
+  const recentActivity: ActivityItem[] = [
+    {
+      id: 1,
+      type: 'tool',
+      action: 'Clarity Wizard',
+      client: 'TechStart Inc',
+      timestamp: new Date(Date.now() - 1000 * 60 * 30),
+      status: 'completed',
+    },
+    {
+      id: 2,
+      type: 'agent',
+      action: 'Lead Scorer Bot',
+      client: 'GrowthCo',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
+      status: 'running',
+    },
+    {
+      id: 3,
+      type: 'workflow',
+      action: 'Weekly Report Generator',
+      client: 'ScaleUp Agency',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
+      status: 'completed',
+    },
+    {
+      id: 4,
+      type: 'deliverable',
+      action: 'Market Analysis Report',
+      client: 'InnovateCorp',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
+      status: 'created',
+    },
+  ];
+
+  return (
+    <div 
+      className="w-full h-full" // ✅ Simple and clean
+      style={{
+        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        padding: screens.xs ? '16px' : '24px',
+        minHeight: '100vh',
+      }}
+    >
+      <WelcomePanel
+        clientsLength={clients.length}
+        agentsLength={agents.length}
+        workflowsLength={workflows.length}
+      />
+      <QuickStartActions />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: screens.lg ? 'repeat(2, 1fr)' : '1fr',
+          gap: 24,
+          marginBottom: 24,
+        }}
+      >
+        <ActivityFeed recentActivity={recentActivity} />
+        <RecentDeliverables deliverables={recentDeliverables} />
+      </div>
+      {/* <RunningAutomations runningAutomations={runningAutomations} /> */}
+      <StatsOverview
+        clientsLength={clients.length}
+        agentsLength={agents.length}
+        workflowsLength={workflows.length}
+        deliverablesLength={deliverables.length}
+      />
+    </div>
+  );
+};
+
+export default DashboardPage;

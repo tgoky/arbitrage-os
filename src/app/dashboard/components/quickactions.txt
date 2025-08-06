@@ -1,10 +1,8 @@
 // app/dashboard/components/QuickStartActions.tsx
-"use client"; // Ensure it's a client component for useRouter
 import React from 'react';
 import { Card, Avatar, Space, Typography, Grid, Button } from 'antd';
 import { PlusOutlined, PlayCircleOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { useRouter } from 'next/navigation'; // Import useRouter from next/navigation for App Router
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -12,7 +10,6 @@ const { useBreakpoint } = Grid;
 const QuickStartActions: React.FC = () => {
   const screens = useBreakpoint();
   const { theme } = useTheme();
-  const router = useRouter(); // Initialize the router
 
   const getMainCardStyles = () => ({
     header: {
@@ -20,7 +17,7 @@ const QuickStartActions: React.FC = () => {
       borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
     },
     body: {
-      backgroundColor: theme === 'dark' ? '#073c59' : '#ffffff', // Kept the blue body for the main card
+      backgroundColor: theme === 'dark' ? '#073c59' : '#ffffff',
       padding: '16px',
     },
   });
@@ -29,10 +26,11 @@ const QuickStartActions: React.FC = () => {
     const baseBorderColor = theme === 'dark' ? '#374151' : '#e5e7eb';
     const hoverBorderColor = theme === 'dark' ? '#4b5563' : '#d1d5db';
     const hoverBgColor = theme === 'dark' ? '#1f2937' : '#f3f4f6';
+    
     return {
       body: {
         padding: '16px',
-        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff', // Card background
+        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
         borderRadius: '8px',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         border: `1px solid ${baseBorderColor}`,
@@ -52,39 +50,6 @@ const QuickStartActions: React.FC = () => {
     { bg: theme === 'dark' ? '#1f2937' : '#fff7e6', color: theme === 'dark' ? '#fdba74' : '#fa8c16' },
   ];
 
-  // Define the actions with their navigation paths
-  const actions = [
-    { 
-      icon: <PlusOutlined />, 
-      title: 'Create New Client', 
-      description: 'Add a new client profile',
-      path: '/client-profiles' // <-- Adjust this path to your actual client profile route
-    },
-    { 
-      icon: <PlayCircleOutlined />, 
-      title: 'Launch Tool', 
-      description: 'Run gen tools',
-      path: '/tools-playbook' // <-- Example path, adjust as needed
-    },
-    { 
-      icon: <SettingOutlined />, 
-      title: 'Run Workflow', 
-      description: 'Execute auto workflows',
-      path: '/workflows' // <-- Example path, adjust as needed
-    },
-    { 
-      icon: <TeamOutlined />, 
-      title: 'Deploy Agent', 
-      description: 'Deploy AI agents',
-      path: '/agents' // <-- Example path, adjust as needed
-    },
-  ];
-
-  const handleCardClick = (path: string) => {
-    // Use router.push to navigate to the specified path
-    router.push(path);
-  };
-
   return (
     <Card
       title={
@@ -99,11 +64,7 @@ const QuickStartActions: React.FC = () => {
         borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
       }}
       extra={
-        <Button 
-          type="link" 
-          style={{ color: theme === 'dark' ? '#a78bfa' : '#1890ff', fontWeight: 500 }}
-          onClick={() => router.push('/dashboard')} // Example: View All could go to main dashboard or actions list
-        >
+        <Button type="link" style={{ color: theme === 'dark' ? '#a78bfa' : '#1890ff', fontWeight: 500 }}>
           View All
         </Button>
       }
@@ -115,15 +76,20 @@ const QuickStartActions: React.FC = () => {
           gap: '16px',
         }}
       >
-        {actions.map((action, index) => (
+        {[
+          { icon: <PlusOutlined />, title: 'Create New Client', description: 'Add a new client profile' },
+          { icon: <PlayCircleOutlined />, title: 'Launch Tool', description: 'Run gen tools' },
+          { icon: <SettingOutlined />, title: 'Run Workflow', description: 'Execute auto workflows' },
+          { icon: <TeamOutlined />, title: 'Deploy Agent', description: 'Deploy AI agents' },
+        ].map((action, index) => (
           <Card
             key={index}
-            hoverable // Optional: keep hoverable for visual feedback
-            onClick={() => handleCardClick(action.path)} // <-- Updated onClick handler
+            hoverable
+            onClick={() => console.log(action.title)}
             styles={getActionCardStyles()}
             style={{
               borderRadius: '8px',
-              cursor: 'pointer', // Ensure cursor indicates it's clickable
+              cursor: 'pointer',
             }}
           >
             <Space size="middle" align="start">
