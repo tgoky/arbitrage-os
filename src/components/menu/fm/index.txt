@@ -1,7 +1,7 @@
 "use client";
 
 import { useLogout, useMenu } from "@refinedev/core";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useSidebar } from "../../providers/sidebar-provider/sidebar-provider";
 import { WorkspaceHeader } from "./WorkspaceHeader";
@@ -16,27 +16,6 @@ interface Workspace {
   color: string;
 }
 
-// Simple flat mapping of menu items to their groups based on your NavigationMenu
-const getGroupForMenuItem = (itemKey: string): string | null => {
-  // Remove leading slash and convert to the format used in NavigationMenu
-  const itemName = itemKey.startsWith('/') ? itemKey.substring(1) : itemKey;
-  
-  // Items in the "content" group (WorkFlows)
-  const contentItems = ["Client_Profiles", "Submissions", "AI_Tools", "Playbooks", "Lead_Generation", "Agents_Flow", "Work_Flow"];
-  
-  // Items in the "overview" group (Arbitrage) 
-  const overviewItems = ["Niche_Researcher", "Top_50_Niches", "Offer_Creator", "Cold_Email_Writer", "Ad_Writer", "Growth_Plan_Creator", "Pricing_Calculator", "Sales_Call_Analyzer", "categories"];
-  
-  // Items in the "automations" group
-  const automationItems = ["Automations"];
-  
-  if (contentItems.includes(itemName)) return "content";
-  if (overviewItems.includes(itemName)) return "overview";
-  if (automationItems.includes(itemName)) return "automations";
-  
-  return null;
-};
-
 export const Menu = () => {
   const { mutate: logout } = useLogout();
   const { menuItems, selectedKey } = useMenu();
@@ -49,36 +28,12 @@ export const Menu = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([
     { name: "Beeps Workspace", color: "bg-indigo-500" },
   ]);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]); 
-  const userHasInteractedRef = useRef(false); // Use ref to persist across re-renders
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]); // Initialize with only "overview" expanded
   const { theme } = useTheme();
-
-  // Find which group contains the currently selected item
-  const selectedItemGroup = useMemo(() => {
-    console.log(`Current selectedKey: "${selectedKey}"`);
-    if (!selectedKey) return null;
-    const group = getGroupForMenuItem(selectedKey);
-    console.log(`Selected key: ${selectedKey}, belongs to group: ${group}`);
-    return group;
-  }, [selectedKey]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Auto-expand the group containing the selected item only if user hasn't manually interacted
-  // and only when navigating to a completely different group
-  useEffect(() => {
-    console.log(`useEffect triggered - selectedItemGroup: ${selectedItemGroup}, userHasInteracted: ${userHasInteractedRef.current}, expandedGroups: ${expandedGroups.join(', ')}`);
-    
-    if (!userHasInteractedRef.current && selectedItemGroup) {
-      // Only auto-expand on initial load or when no groups are expanded
-      if (expandedGroups.length === 0 || (expandedGroups.includes("overview") && selectedItemGroup !== "overview")) {
-        console.log(`Auto-expanding group: ${selectedItemGroup}`);
-        setExpandedGroups([selectedItemGroup]);
-      }
-    }
-  }, [selectedItemGroup]);
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -122,24 +77,19 @@ export const Menu = () => {
     setWorkspaceDropdownOpen(false);
   };
 
-  const toggleGroup = (groupId: string) => {
-    console.log(`User manually toggled group: ${groupId}`);
-    // Mark that user has manually interacted with groups
-    userHasInteractedRef.current = true;
-    
-    setExpandedGroups((prev) => {
-      // If clicking the currently expanded group, collapse it
-      if (prev.includes(groupId)) {
-        console.log(`Collapsing group: ${groupId}`);
-        return [];
-      } 
-      // Otherwise, expand the clicked group and collapse others
-      else {
-        console.log(`Expanding group: ${groupId}`);
-        return [groupId];
-      }
-    });
-  };
+const toggleGroup = (groupId: string) => {
+  setExpandedGroups((prev) => {
+    // If clicking the currently expanded group, collapse it
+    if (prev.includes(groupId)) {
+      return [];
+    } 
+    // Otherwise, expand the clicked group and collapse others
+    else {
+      return [groupId];
+    }
+  });
+};
+
 
   return (
     <div
