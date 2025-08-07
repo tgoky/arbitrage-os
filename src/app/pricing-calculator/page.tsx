@@ -1,621 +1,314 @@
-// app/dashboard/page.tsx
 "use client";
 
-import React from 'react';
-import { useList, useOne } from '@refinedev/core';
-import { 
-  PlusOutlined,
-  PlayCircleOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ArrowRightOutlined,
-  TeamOutlined,
-  SettingOutlined,
-  FileTextOutlined,
-  BarChartOutlined
+import React, { useState } from 'react';
+import {
+  DollarOutlined,
+  CalculatorOutlined,
+  PieChartOutlined,
+  ShareAltOutlined,
+  ReloadOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
-import { Card, Table, Tag, Button, Statistic, Grid, Typography, Space, Avatar, List } from 'antd';
-import { useTheme } from '../../providers/ThemeProvider';
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Slider,
+  Typography,
+  Divider,
+  Space,
+  Tag,
+  Alert,
+  Row,
+  Col,
+  Statistic,
+  Tooltip,
+  Popover
+} from 'antd';
 
 const { Title, Text } = Typography;
-const { useBreakpoint } = Grid;
 
-const DashboardPage = () => {
-  const screens = useBreakpoint();
-  const { data: clientsData } = useList({ resource: 'clients' });
-  const { data: agentsData } = useList({ resource: 'agents' });
-  const { data: workflowsData } = useList({ resource: 'workflows' });
-  const { data: deliverablesData } = useList({ resource: 'deliverables' });
-   const { theme } = useTheme();
-
-  // Theme-aware style generators
-  const getCardStyles = () => ({
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px'
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    }
+const PricingCalculator = () => {
+  const [form] = Form.useForm();
+  const [results, setResults] = useState({
+    monthlySavings: 0,
+    recommendedRetainer: 0,
+    netSavings: 0,
+    roiPercentage: 0
   });
 
-  const getContainerStyles = () => ({
-    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-    padding: screens.xs ? '16px' : '24px',
-    minHeight: '100vh'
-  });
+  const onFinish = (values: any) => {
+    const { annualSavings, hoursPerWeek, roiMultiple } = values;
+    const monthlySavings = annualSavings / 12;
+    const recommendedRetainer = (monthlySavings * hoursPerWeek) / 160 * roiMultiple;
+    const netSavings = monthlySavings - recommendedRetainer;
+    const roiPercentage = (netSavings / recommendedRetainer) * 100;
 
-   // Helper function for theme-aware colors
-  const themeClass = (light: string, dark: string) => 
-    theme === 'dark' ? dark : light;
-  
-  const clients = clientsData?.data || [];
-  const agents = agentsData?.data || [];
-  const workflows = workflowsData?.data || [];
-  const deliverables = deliverablesData?.data || [];
-
-  // Mock data for demonstration
-  const recentActivity = [
-    {
-      id: 1,
-      type: 'tool',
-      action: 'Clarity Wizard',
-      client: 'TechStart Inc',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      status: 'completed'
-    },
-    {
-      id: 2,
-      type: 'agent',
-      action: 'Lead Scorer Bot',
-      client: 'GrowthCo',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-      status: 'running'
-    },
-    {
-      id: 3,
-      type: 'workflow',
-      action: 'Weekly Report Generator',
-      client: 'ScaleUp Agency',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-      status: 'completed'
-    },
-    {
-      id: 4,
-      type: 'deliverable',
-      action: 'Market Analysis Report',
-      client: 'InnovateCorp',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-      status: 'created'
-    }
-  ];
-
-  const recentDeliverables = deliverables.slice(0, 4);
-
-  // Combine agents and workflows for running automations
-  type AutomationItem = (any & { type: 'agent' }) | (any & { type: 'workflow' });
-  
-  const runningAutomations: AutomationItem[] = [
-    ...agents.slice(0, 2).map(agent => ({ ...agent, type: 'agent' as const })),
-    ...workflows.slice(0, 1).map(workflow => ({ ...workflow, type: 'workflow' as const }))
-  ];
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case 'running':
-        return <ClockCircleOutlined style={{ color: '#1890ff' }} />;
-      case 'failed':
-        return <ExclamationCircleOutlined style={{ color: '#f5222d' }} />;
-      default:
-        return <ClockCircleOutlined style={{ color: '#d9d9d9' }} />;
-    }
+    setResults({
+      monthlySavings,
+      recommendedRetainer,
+      netSavings,
+      roiPercentage
+    });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'green';
-      case 'running':
-        return 'blue';
-      case 'failed':
-        return 'red';
-      default:
-        return 'default';
-    }
+  const resetForm = () => {
+    form.resetFields();
+    setResults({
+      monthlySavings: 0,
+      recommendedRetainer: 0,
+      netSavings: 0,
+      roiPercentage: 0
+    });
   };
 
   return (
-  <div style={getContainerStyles()}>
-      {/* Welcome Panel */}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <div>
-    <Title 
-      level={3} 
-      style={{ 
-        margin: 0,
-        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
-      }}
-    >
-      Welcome to ArbitrageOS
-    </Title>
-    <Text 
-      style={{ 
-        color: theme === 'dark' ? '#9ca3af' : '#666666'
-      }}
-    >
-      {clients.length} clients • {agents.length} active agents • {workflows.length} workflows
-    </Text>
-  </div>
-  <Space>
-    <Button 
-      type="default"
-      style={{
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-        color: theme === 'dark' ? '#e5e7eb' : '#1a1a1a',
-        borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db'
-      }}
-    >
-      Clear Selection
-    </Button>
-  </Space>
-</div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="text-center mb-8">
+        <Title level={2} className="flex items-center justify-center">
+          <CalculatorOutlined className="mr-2 text-blue-600" />
+          AI Services Pricing Calculator
+        </Title>
+        <Text type="secondary" className="text-lg">
+          Set data-driven pricing based on the ROI you deliver to clients
+        </Text>
+      </div>
 
-      {/* Quick Start Actions */}
-    <Card
-        title="Quick Start Actions"
-        styles={getCardStyles()}
-        style={{ marginBottom: 24 }}
-        extra={<Button type="link">View All</Button>}
-      >
-      
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-          gap: 16
-        }}>
-       <Card 
-  hoverable
-  onClick={() => console.log('Create New Client')}
-  styles={{
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: '16px'
-    }
-  }}
-  style={{ 
-    textAlign: 'left',
-    cursor: 'pointer',
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-  }}
->
-  <Space>
-    <Avatar 
-      icon={<PlusOutlined />} 
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#e6f7ff', 
-        color: theme === 'dark' ? '#a78bfa' : '#1890ff'
-      }} 
-    />
-    <div>
-      <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-        Create New Client
-      </Text>
-      <br />
-      <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-        Add a new client profile
-      </Text>
-    </div>
-  </Space>
-</Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <Title level={4} className="flex items-center mb-4">
+            <DollarOutlined className="mr-2" />
+            Custom Offer Inputs
+          </Title>
+          <Text type="secondary" className="block mb-4">
+            Estimate how much you help your client save, pick the ROI multiple, and see your recommended monthly retainer
+          </Text>
 
-          <Card 
-            hoverable 
-            onClick={() => console.log('Launch Tool')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            initialValues={{
+              annualSavings: 80000,
+              hoursPerWeek: 20,
+              roiMultiple: 5
             }}
           >
-            <Space>
-              <Avatar icon={<PlayCircleOutlined />} style={{ backgroundColor: '#f6ffed', color: '#52c41a' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Launch Tool</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Run content generation tools</Text>
-              </div>
-            </Space>
-          </Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Run Workflow')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
+            <Form.Item
+              name="annualSavings"
+              label={
+                <span>
+                  Estimated Annual Savings for Client{' '}
+                  <Tooltip title="How much money will your services save/make the client per year?">
+                    <InfoCircleOutlined />
+                  </Tooltip>
+                </span>
               }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<SettingOutlined />} style={{ backgroundColor: '#f9f0ff', color: '#722ed1' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Run Workflow</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Execute automation workflows</Text>
-              </div>
-            </Space>
-          </Card>
-
-          <Card 
-            hoverable 
-            onClick={() => console.log('Deploy Agent')}
-            styles={{
-              body: {
-                backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                padding: '16px'
-              }
-            }}
-            style={{ 
-              textAlign: 'left',
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-            }}
-          >
-            <Space>
-              <Avatar icon={<TeamOutlined />} style={{ backgroundColor: '#fff7e6', color: '#fa8c16' }} />
-              <div>
-                <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>Deploy Agent</Text>
-                <br />
-                <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>Deploy AI agents</Text>
-              </div>
-            </Space>
-          </Card>
-        </div>
-      </Card>
-
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24,
-        marginBottom: 24
-      }}>
-        {/* Activity Feed */}
-        <Card
-        title="Activity Feed"
-        styles={getCardStyles()}
-        style={{ marginBottom: 24 }}
-      >
-          <List
-           style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}
-            itemLayout="horizontal"
-            dataSource={recentActivity}
-            renderItem={(item) => (
-              <List.Item>
-                <List.Item.Meta
-                  avatar={getStatusIcon(item.status)}
-                  title={<Text strong>{item.action}</Text>}
-                  description={`${item.client} • ${item.timestamp.toLocaleTimeString()}`}
-                />
-                <div>
-                  <Tag color={getStatusColor(item.status)}>{item.status}</Tag>
-                </div>
-              </List.Item>
-            )}
-          />
-        </Card>
-
-        {/* Recent Deliverables */}
-    <Card 
-  title="Recent Deliverables"
-  styles={{
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '16px' : '24px'
-    },
-    header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    }
-  }}
-  style={{
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-  }}
-  extra={
-    <Button 
-      type="link" 
-      style={{ 
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-        backgroundColor: 'transparent' 
-      }}
-    >
-      View All
-    </Button>
-  }
->
-  {recentDeliverables.length > 0 ? (
-    <List
-      itemLayout="horizontal"
-      dataSource={recentDeliverables}
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-        borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
-      }}
-      renderItem={(item) => (
-        <List.Item
-          style={{ 
-            borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-            padding: '12px 0',
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-          }}
-          actions={[
-            <Button 
-              type="link" 
-              key="copy"
-              style={{ 
-                color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                padding: '0 8px'
-              }}
+              rules={[{ required: true, message: 'Please input estimated savings!' }]}
             >
-              Copy
-            </Button>,
-            <Button 
-              type="link" 
-              key="export"
-              style={{ 
-                color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                padding: '0 8px'
-              }}
-            >
-              Export
-            </Button>
-          ]}
-        >
-          <List.Item.Meta
-            avatar={
-              <FileTextOutlined 
-                style={{ 
-                  color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                  fontSize: 20,
-                  backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-                  padding: 8,
-                  borderRadius: 4
-                }} 
+              <InputNumber
+                style={{ width: '100%' }}
+                formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                min={0}
               />
-            }
-            title={
-              <Text 
-                strong 
-                style={{ 
-                  color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                  marginBottom: 4
+            </Form.Item>
+
+            <Form.Item
+              name="hoursPerWeek"
+              label="Hours Worked Per Week"
+              rules={[{ required: true, message: 'Please input hours!' }]}
+            >
+              <Slider
+                min={5}
+                max={40}
+                marks={{
+                  5: '5h',
+                  20: '20h',
+                  40: '40h'
                 }}
-              >
-                {item.title}
-              </Text>
-            }
-            description={
-              <Text 
-                style={{ 
-                  color: theme === 'dark' ? '#9ca3af' : '#666666',
-                  fontSize: 14
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="roiMultiple"
+              label={
+                <span>
+                  ROI Multiple{' '}
+                  <Tooltip title="How much of the value created should you capture? Typical range is 3-10x">
+                    <InfoCircleOutlined />
+                  </Tooltip>
+                </span>
+              }
+              rules={[{ required: true, message: 'Please select ROI multiple!' }]}
+            >
+              <Slider
+                min={1}
+                max={10}
+                marks={{
+                  1: '1x',
+                  5: '5x',
+                  10: '10x'
                 }}
+              />
+            </Form.Item>
+
+            <div className="flex justify-between mt-8">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={resetForm}
               >
-                {item.clientId}
-              </Text>
-            }
-          />
-        </List.Item>
-      )}
-    />
-  ) : (
-    <div style={{ 
-      textAlign: 'center', 
-      padding: '32px 0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-    }}>
-      <FileTextOutlined 
-        style={{ 
-          fontSize: 48, 
-          color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-          marginBottom: 16 
-        }} 
-      />
-      <Text 
-        style={{ 
-          color: theme === 'dark' ? '#9ca3af' : '#666666',
-          display: 'block',
-          marginBottom: 8
-        }}
-      >
-        No deliverables yet
-      </Text>
-      <Button 
-        type="link" 
-        onClick={() => console.log('Create deliverable')}
-        style={{ 
-          color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-          padding: '0 8px'
-        }}
-      >
-        Create your first deliverable
-      </Button>
-    </div>
-  )}
-</Card>
-</div>
-     {/* Running Automations */}
-<Card
-  title="Running Automations"
-  styles={getCardStyles()}
-  extra={
-    <Button 
-      type="link" 
-      style={{ 
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-        backgroundColor: 'transparent'
-      }}
-    >
-      View All
-    </Button>
-  }
-  style={{ marginBottom: 24 }}
->
-  <Table
-    columns={[
-      {
-        title: 'Name',
-        dataIndex: 'name',
-        render: (text, record) => (
-          <Space>
-            <Avatar 
-              icon={record.type === 'agent' ? <TeamOutlined /> : <SettingOutlined />} 
-              style={{ 
-                backgroundColor: theme === 'dark' ? '#1f2937' : '#f5f5f5',
-                color: theme === 'dark' ? '#a78bfa' : '#999'
-              }} 
-            />
-            <div>
-              <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-                {text}
-              </Text>
-              <br />
-              <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-                {record.description || 'Workflow'}
-              </Text>
+                Reset to Defaults
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+              >
+                Calculate Pricing
+              </Button>
             </div>
-          </Space>
-        ),
-      },
-      {
-        title: 'Type',
-        dataIndex: 'type',
-        render: (type) => (
-          <Tag color={type === 'agent' ? 'blue' : 'purple'}>
-            {type}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Client',
-        dataIndex: 'assignedClient',
-        render: (client) => (
-          <Text style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
-            {client || 'No client'}
+          </Form>
+        </Card>
+
+        <Card>
+          <Title level={4} className="flex items-center mb-4">
+            <PieChartOutlined className="mr-2" />
+            Your Custom Offer Pricing
+          </Title>
+          <Text type="secondary" className="block mb-4">
+            Here's the recommended fee to maintain the desired ROI for your client
           </Text>
-        ),
-      },
-      {
-        title: 'Status',
-        dataIndex: 'status',
-        render: () => <Tag color="green">Running</Tag>,
-      },
-      {
-        title: 'ETA',
-        dataIndex: 'eta',
-        render: (eta, record) => (
-          <Text style={{ color: theme === 'dark' ? '#e5e7eb' : '#333' }}>
-            {eta || (record.type === 'workflow' ? '2 min' : '')}
-          </Text>
-        ),
-      },
-      {
-        title: 'Actions',
-        render: () => (
-          <Space>
-            <Button 
-              type="link" 
-              size="small"
-              style={{ color: theme === 'dark' ? '#a78bfa' : '#6d28d9' }}
-            >
-              Pause
-            </Button>
-            <Button 
-              type="link" 
-              size="small" 
-              danger
-              style={{ color: theme === 'dark' ? '#f87171' : '#dc2626' }}
-            >
-              Stop
-            </Button>
-          </Space>
-        ),
-      },
-    ]}
-    dataSource={runningAutomations}
-    pagination={false}
-    rowKey="id"
-    style={{ 
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      color: theme === 'dark' ? '#e5e7eb' : '#333'
-    }}
-  />
-</Card>
-      {/* Stats Overview */}
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-        gap: 24
-      }}>
-          <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Total Clients"
-            value={clients.length}
-            prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-          />
-        </Card>
 
-       <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Active Agents"
-            value={agents.length}
-            prefix={<SettingOutlined style={{ color: '#52c41a' }} />}
-          />
-        </Card>
+          <div className="space-y-6">
+            <Statistic
+              title="Monthly Cost Savings"
+              value={results.monthlySavings}
+              precision={2}
+              prefix="$"
+              className="mb-4"
+            />
 
-            <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Workflows"
-            value={workflows.length}
-            prefix={<BarChartOutlined style={{ color: '#722ed1' }} />}
-          />
-        </Card>
+            <Divider />
 
-        <Card
-        styles={getCardStyles()}
-      >
-          <Statistic
-            title="Deliverables"
-            value={deliverables.length}
-            prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />}
-          />
+            <Statistic
+              title="Recommended Monthly Retainer"
+              value={results.recommendedRetainer}
+              precision={2}
+              prefix="$"
+              valueStyle={{ color: '#3f8600' }}
+              className="mb-4"
+            />
+
+            <Statistic
+              title="Client's Net Savings (After Your Fee)"
+              value={results.netSavings}
+              precision={2}
+              prefix="$"
+              className="mb-4"
+            />
+
+            <Statistic
+              title="Final ROI Percentage"
+              value={results.roiPercentage}
+              precision={0}
+              suffix="%"
+              valueStyle={{
+                color: results.roiPercentage >= 100 ? '#3f8600' : '#cf1322'
+              }}
+            />
+
+            {results.roiPercentage > 0 && results.roiPercentage < 100 && (
+              <Alert
+                message="Pricing Consideration"
+                description="If ROI% is below 100%, you might need to raise your ROI multiple or reduce your fee."
+                type="warning"
+                showIcon
+                className="mt-4"
+              />
+            )}
+
+            {results.roiPercentage > 0 && (
+              <div className="mt-6">
+                <Popover
+                  content={
+                    <div className="p-2">
+                      <Text strong>Pricing Breakdown:</Text>
+                      <div className="mt-2">
+                        <Text>
+                          <strong>Monthly Savings:</strong> ${results.monthlySavings.toFixed(2)}
+                        </Text>
+                      </div>
+                      <div>
+                        <Text>
+                          <strong>Your Fee:</strong> ${results.recommendedRetainer.toFixed(2)}
+                        </Text>
+                      </div>
+                      <div>
+                        <Text>
+                          <strong>Client Net:</strong> ${results.netSavings.toFixed(2)}
+                        </Text>
+                      </div>
+                      <Divider className="my-2" />
+                      <Text>
+                        ROI = (Net Savings / Your Fee) × 100 = {results.roiPercentage.toFixed(0)}%
+                      </Text>
+                    </div>
+                  }
+                  title="Calculation Details"
+                  trigger="click"
+                >
+                  <Button type="dashed" block>
+                    Show Calculation Details
+                  </Button>
+                </Popover>
+
+                <Button
+                  icon={<ShareAltOutlined />}
+                  type="primary"
+                  block
+                  className="mt-2"
+                >
+                  Share Results with Client
+                </Button>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <Title level={4} className="mb-4">Pricing Strategy Guidance</Title>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Text strong>Value-Based Pricing</Text>
+            <ul className="list-disc pl-5 mt-2">
+              <li>Charge based on results delivered</li>
+              <li>Higher ROI multiples for proven systems</li>
+              <li>Ideal for measurable outcomes</li>
+            </ul>
+          </div>
+          <div>
+            <Text strong>Hourly Considerations</Text>
+            <ul className="list-disc pl-5 mt-2">
+              <li>20 hrs/week = ~80 hrs/month</li>
+              <li>Adjust for your effective hourly rate</li>
+              <li>Scale back hours as efficiency improves</li>
+            </ul>
+          </div>
+          <div>
+            <Text strong>ROI Multiples</Text>
+            <ul className="list-disc pl-5 mt-2">
+              <li>3-5x: Standard services</li>
+              <li>5-7x: Specialized expertise</li>
+              <li>7-10x: Guaranteed results</li>
+            </ul>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };
 
-export default DashboardPage;
+export default PricingCalculator;

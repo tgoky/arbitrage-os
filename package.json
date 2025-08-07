@@ -26,6 +26,7 @@
     "@refinedev/react-table": "^5.6.6",
     "@tanstack/react-table": "^8.2.6",
     "antd": "^5.26.7",
+    "framer-motion": "^12.23.12",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.535.0",
     "next": "^14.1.0",
@@ -33,6 +34,7 @@
     "react-dom": "^18.0.0",
     "react-router-dom": "^7.7.1",
     "react-syntax-highlighter": "^15.6.1",
+    "recharts": "^3.1.2",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
