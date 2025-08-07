@@ -29,6 +29,7 @@ import {
   Badge,
   Avatar
 } from 'antd';
+import { useGo } from "@refinedev/core";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -37,6 +38,8 @@ const { Search } = Input;
 export const SalesCallsAnalyzer = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchText, setSearchText] = useState('');
+     const go = useGo();
+
   const [filters, setFilters] = useState({
     type: '',
     status: ''
@@ -218,7 +221,14 @@ export const SalesCallsAnalyzer = () => {
           <Text type="secondary">View and manage your AI-analyzed sales calls</Text>
         </div>
         <Space>
-          <Button icon={<SettingOutlined />}>Settings</Button>
+          <Button 
+            icon={<SettingOutlined />}
+            onClick={() => go({ to: "/sales-call-analyzer/settings" })}
+            // OR using the meta route:
+            // onClick={() => go({ to: "settings", type: "path" })}
+          >
+            Settings
+          </Button>
           <Button type="primary" icon={<PlusOutlined />}>New Call</Button>
         </Space>
       </div>

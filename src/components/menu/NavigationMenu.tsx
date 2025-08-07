@@ -45,9 +45,9 @@ const menuGroups: MenuGroupConfig[] = [
     subGroups: [
       {
         id: "compliance",
-        label: "Compliance",
+        label: "Client",
         icon: <ShieldCheckIcon className="h-4 w-4" />,
-        items: ["Client_Profiles", "Submissions"],
+        items: ["Client_Profiles", "Submissions", "Hiring_Portal"],
       },
       {
         id: "tools",

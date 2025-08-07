@@ -99,109 +99,178 @@ const categories = [
 ];
 
 
+
+
+
+import { useTheme } from '../../providers/ThemeProvider';
+import { color } from 'framer-motion';
+
+
+
 const PromptCard = ({ prompt }) => {
   const [showFullSystem, setShowFullSystem] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
+  const { theme } = useTheme(); // Access current theme
+
+  // Determine dynamic classes based on theme
+  const isDark = theme === 'dark';
+
   return (
     <Card
       hoverable
-      className="h-full flex flex-col border border-solid border-gray-200 hover:border-blue-300"
+      className={`h-full flex flex-col border border-solid ${
+        isDark ? 'border-gray-700 bg-zinc-900' : 'border-gray-200 bg-white'
+      } ${isDark ? 'hover:border-blue-500' : 'hover:border-blue-300'}`}
+      bodyStyle={{ 
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%'
+      }}
       actions={[
+        <div key="actions" className="flex justify-center space-x-6 py-2">
         <Button 
-          type="text" 
-          icon={<CopyOutlined />}
-          className="flex items-center justify-center"
-          key="copy"
-        >
-          Copy Prompt
-        </Button>,
-        <Button 
-          type="text" 
-          icon={<DownloadOutlined />}
-          className="flex items-center justify-center"
-          key="download"
-        >
-          Download
-        </Button>
+  type="text" 
+  icon={<CopyOutlined />}
+  className={`flex items-center justify-center border ${
+    isDark 
+      ? 'bg-black text-white hover:border-blue-400' 
+      : 'bg-white text-black hover:border-blue-300'
+  }`}
+  key="copy"
+>
+  Copy Prompt
+</Button>
+
+<Button 
+  type="text" 
+  icon={<DownloadOutlined />}
+  className={`flex items-center justify-center border ${
+    isDark 
+      ? 'bg-black text-white hover:border-blue-400' 
+      : 'bg-white text-black hover:border-blue-300'
+  }`}
+  key="download"
+>
+  Download
+</Button>
+
+        </div>
       ]}
     >
-      <div className="flex-grow">
-        <Title level={4} className="mb-3 font-semibold">
-          {prompt.title}
-        </Title>
+      {/* Content container that grows to fill available space */}
+      <div className="flex flex-col h-full">
         
-        {/* System Prompt Preview */}
-        <div className="bg-gray-50 p-4 rounded-md mb-3 border border-solid border-gray-100">
-          <Text className="font-mono text-sm">
-            {showFullSystem ? prompt.shortDescription : `${prompt.shortDescription.substring(0, 100)}...`}
-          </Text>
-          <Button 
-            type="text" 
-            size="small"
-            icon={showFullSystem ? <UpOutlined /> : <DownOutlined />}
-            onClick={() => setShowFullSystem(!showFullSystem)}
-            className="text-blue-500 p-0 ml-2"
+        {/* Fixed height title section */}
+        <div className="min-h-[3rem] mb-3">
+          <Title 
+            level={4} 
+            className={`mb-0 font-semibold leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
           >
-            {showFullSystem ? 'Show less' : 'Show more'}
-          </Button>
+            {prompt.title}
+          </Title>
+        </div>
+        
+        {/* System Prompt Preview - fixed height container */}
+        <div 
+          className={`p-4 rounded-md mb-3 border border-solid min-h-[6rem] ${
+            isDark ? 'bg-black border-gray-700' : 'bg-gray-50 border-gray-100'
+          }`}
+        >
+          <div className="flex flex-col h-full">
+            <Text 
+              className={`font-mono text-sm flex-grow ${isDark ? 'text-gray-200' : 'text-gray-800'}`}
+            >
+              {showFullSystem 
+                ? prompt.shortDescription 
+                : `${prompt.shortDescription.substring(0, 100)}...`}
+            </Text>
+            <Button 
+              type="text" 
+              size="small"
+              icon={showFullSystem ? <UpOutlined /> : <DownOutlined />}
+              onClick={() => setShowFullSystem(!showFullSystem)}
+              className={`p-0 self-start mt-2 ${isDark ? 'text-blue-400' : 'text-blue-500'}`}
+            >
+              {showFullSystem ? 'Show less' : 'Show more'}
+            </Button>
+          </div>
         </div>
 
-        {/* Description with expand toggle */}
-        <div className="mb-4">
-          <Text type="secondary" className={`${expanded ? '' : 'line-clamp-2'}`}>
-            {prompt.description}
-          </Text>
+        {/* Description with expand toggle - flexible height but contained */}
+        <div className="flex-grow mb-4">
+          <div className="mb-2">
+            <Text 
+              type={isDark ? undefined : "secondary"} 
+              className={`${expanded ? '' : 'line-clamp-3'} ${isDark ? 'text-gray-300' : ''}`}
+            >
+              {prompt.description}
+            </Text>
+          </div>
           <Button 
             type="text" 
             size="small"
             onClick={() => setExpanded(!expanded)}
-            className="text-blue-500 p-0"
+            className={`p-0 ${isDark ? 'text-blue-400' : 'text-blue-500'}`}
           >
             {expanded ? 'Show less' : 'Show more'}
           </Button>
         </div>
 
-        {/* Tags */}
+        {/* Tags - fixed position from bottom */}
         <div className="mb-4">
           <Space size={[0, 8]} wrap>
             {prompt.tags.map(tag => (
-              <Tag key={tag} className="cursor-pointer">
+              <Tag 
+                key={tag} 
+                className={`cursor-pointer ${isDark ? '!bg-gray-700 !text-gray-200' : ''}`}
+              >
                 {tag}
               </Tag>
             ))}
           </Space>
         </div>
 
-        {/* Stats Bar - Now properly aligned */}
-        <div className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-md border border-solid border-gray-100">
+        {/* Stats Bar - always at bottom of card content */}
+        <div 
+          className={`flex justify-between items-center px-4 py-3 rounded-md border border-solid mt-auto ${
+            isDark ? 'bg-black border-gray-700' : 'bg-gray-50 border-gray-100'
+          }`}
+        >
           <div className="flex space-x-4">
             <Tooltip title="Downloads">
               <div className="flex items-center">
-                <DownloadOutlined className="text-gray-500 mr-1" />
-                <Text className="text-sm">{prompt.downloads}</Text>
+                <DownloadOutlined className={`mr-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Text className={`text-sm ${isDark ? 'text-gray-300' : ''}`}>
+                  {prompt.downloads}
+                </Text>
               </div>
             </Tooltip>
             <Tooltip title="Copies">
               <div className="flex items-center">
-                <CopyOutlined className="text-gray-500 mr-1" />
-                <Text className="text-sm">{prompt.copyCount}</Text>
+                <CopyOutlined className={`mr-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Text className={`text-sm ${isDark ? 'text-gray-300' : ''}`}>
+                  {prompt.copyCount}
+                </Text>
               </div>
             </Tooltip>
           </div>
           
-          <Button 
-            type="primary" 
-            size="small"
-            icon={<CopyOutlined />}
-          >
-            Use Prompt
-          </Button>
+         <Button 
+  type="primary" 
+  size="small"
+  icon={<CopyOutlined />}
+  className={isDark ? 'bg-blue-600 hover:bg-blue-500 border-blue-500' : ''}
+>
+  Use Prompt
+</Button>
         </div>
       </div>
     </Card>
   );
 };
+
 
 
 const PromptDirectory = () => {

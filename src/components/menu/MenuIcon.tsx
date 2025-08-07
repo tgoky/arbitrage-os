@@ -50,6 +50,7 @@ export const MenuIcon = ({ name }: MenuIconProps) => {
     N8n_Builder: <Workflow className="h-4 w-4" />,
     N8n_Library: <Library className="h-4 w-4" />,
     Prompt_Directory: <Notebook className="h-4 w-4" />,
+    Hiring_Portal: <PhoneCall className="h-4 w-4" />,
     default: (
       <svg
         className="h-4 w-4"
