@@ -1,20 +1,18 @@
+// components/menu/Menu.tsx
 "use client";
 
 import { useLogout, useMenu } from "@refinedev/core";
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useSidebar } from "../../providers/sidebar-provider/sidebar-provider";
+import { useWorkspace } from "../../app/hooks/useWorkspace";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { Controls } from "./Controls";
 import { NavigationMenu } from "./NavigationMenu";
 import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
 import { UserSection } from "./UserSection";
-
-interface Workspace {
-  name: string;
-  color: string;
-}
 
 // Simple flat mapping of menu items to their groups based on your NavigationMenu
 const getGroupForMenuItem = (itemKey: string): string | null => {
@@ -28,7 +26,7 @@ const getGroupForMenuItem = (itemKey: string): string | null => {
   const overviewItems = ["Niche_Researcher", "Top_50_Niches", "Offer_Creator", "Cold_Email_Writer", "Ad_Writer", "Growth_Plan_Creator", "Pricing_Calculator", "Sales_Call_Analyzer", "categories"];
   
   // Items in the "automations" group
-  const automationItems = ["Automations"];
+  const automationItems = ["Automations", "N8n_Builder", "N8n_Library"];
   
   if (contentItems.includes(itemName)) return "content";
   if (overviewItems.includes(itemName)) return "overview";
@@ -40,18 +38,25 @@ const getGroupForMenuItem = (itemKey: string): string | null => {
 export const Menu = () => {
   const { mutate: logout } = useLogout();
   const { menuItems, selectedKey } = useMenu();
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const { collapsed, setCollapsed } = useSidebar();
   const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [currentWorkspace, setCurrentWorkspace] = useState("Beeps Workspace");
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([
-    { name: "Beeps Workspace", color: "bg-indigo-500" },
-  ]);
+  const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]); 
-  const userHasInteractedRef = useRef(false); // Use ref to persist across re-renders
+  const userHasInteractedRef = useRef(false);
   const { theme } = useTheme();
+  
+  // Workspace integration
+  const { 
+    currentWorkspace, 
+    workspaces, 
+    createWorkspace, 
+    switchWorkspace, 
+    isLoading: workspaceLoading 
+  } = useWorkspace();
 
   // Find which group contains the currently selected item
   const selectedItemGroup = useMemo(() => {
@@ -86,39 +91,26 @@ export const Menu = () => {
     }
   };
 
-  const handleCreateWorkspace = () => {
+  const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
       alert("Workspace name cannot be empty");
       return;
     }
 
-    const formattedWorkspaceName = `${newWorkspaceName.trim()} Workspace`;
-
-    if (workspaces.some((w) => w.name === formattedWorkspaceName)) {
-      alert("Workspace name must be unique");
-      return;
+    try {
+      const newWorkspace = await createWorkspace(newWorkspaceName, newWorkspaceDescription);
+      setNewWorkspaceName("");
+      setNewWorkspaceDescription("");
+      setCreateWorkspaceModalOpen(false);
+      // Navigate to the new workspace
+      router.push(`/dashboard/${newWorkspace.slug}`);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to create workspace");
     }
-
-    const colors = [
-      "bg-blue-500",
-      "bg-red-500",
-      "bg-yellow-500",
-      "bg-pink-500",
-      "bg-cyan-500",
-      "bg-purple-500",
-      "bg-green-500",
-    ];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-    const newWorkspace = { name: formattedWorkspaceName, color: randomColor };
-    setWorkspaces([...workspaces, newWorkspace]);
-    setCurrentWorkspace(formattedWorkspaceName);
-    setNewWorkspaceName("");
-    setCreateWorkspaceModalOpen(false);
   };
 
-  const switchWorkspace = (workspaceName: string) => {
-    setCurrentWorkspace(workspaceName);
+  const handleSwitchWorkspace = (workspaceSlug: string) => {
+    switchWorkspace(workspaceSlug);
     setWorkspaceDropdownOpen(false);
   };
 
@@ -141,6 +133,21 @@ export const Menu = () => {
     });
   };
 
+  // Show loading state while workspace is loading
+  if (workspaceLoading) {
+    return (
+      <div
+        className={`
+          h-screen sticky top-0 z-10 w-72
+          ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
+          border-r flex items-center justify-center
+        `}
+      >
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`
@@ -154,18 +161,27 @@ export const Menu = () => {
       <div className="relative">
         <WorkspaceHeader
           collapsed={collapsed}
-          currentWorkspace={currentWorkspace}
+          currentWorkspace={currentWorkspace?.name || "No Workspace"}
           workspaceDropdownOpen={workspaceDropdownOpen}
           setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-          workspaces={workspaces}
+          workspaces={workspaces.map(ws => ({ name: ws.name, color: ws.color }))}
         />
 
         {workspaceDropdownOpen && (
           <WorkspaceDropdown
             workspaceDropdownOpen={workspaceDropdownOpen}
-            workspaces={workspaces}
-            currentWorkspace={currentWorkspace}
-            switchWorkspace={switchWorkspace}
+            workspaces={workspaces.map(ws => ({ 
+              name: ws.name, 
+              color: ws.color,
+              slug: ws.slug 
+            }))}
+            currentWorkspace={currentWorkspace?.name || ""}
+            switchWorkspace={(workspaceName) => {
+              const workspace = workspaces.find(ws => ws.name === workspaceName);
+              if (workspace) {
+                handleSwitchWorkspace(workspace.slug);
+              }
+            }}
             setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
             setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
           />
@@ -190,6 +206,8 @@ export const Menu = () => {
         setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
         newWorkspaceName={newWorkspaceName}
         setNewWorkspaceName={setNewWorkspaceName}
+        newWorkspaceDescription={newWorkspaceDescription}
+        setNewWorkspaceDescription={setNewWorkspaceDescription}
         handleCreateWorkspace={handleCreateWorkspace}
       />
     </div>

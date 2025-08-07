@@ -9,12 +9,14 @@ interface WelcomePanelProps {
   clientsLength: number;
   agentsLength: number;
   workflowsLength: number;
+    workspaceName: string; // 👈 Add this line
 }
 
 const WelcomePanel: React.FC<WelcomePanelProps> = ({
   clientsLength,
   agentsLength,
   workflowsLength,
+  workspaceName
 }) => {
   const { theme } = useTheme();
 
@@ -50,7 +52,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
             fontSize: '24px',
           }}
         >
-          Welcome to ArbitrageOS
+          Welcome to {workspaceName} Arbitrage-OS !{/* 👈 Use it here */}
         </Title>
         <Space>
           <Button

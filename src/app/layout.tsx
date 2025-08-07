@@ -10,9 +10,8 @@ import { dataProvider } from "@providers/data-provider";
 import "@styles/global.css";
 
 import { ThemeProvider } from "../providers/ThemeProvider";
-import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider"; // Add this import
-
-// import {SettingsOutlined} from 'antd'
+import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
+import { WorkspaceProvider } from "../app/hooks/useWorkspace"; // Add this import
 
 export const metadata: Metadata = {
   title: "Arbitrage-OS",
@@ -34,255 +33,266 @@ export default function RootLayout({
         <Suspense>
           <RefineKbarProvider>
             <ThemeProvider>
-              <SidebarProvider> {/* ✅ Add SidebarProvider here */}
-                <div className="min-h-screen flex">
-                  <Refine
-                    routerProvider={routerProvider}
-                    dataProvider={dataProvider}
-                    authProvider={authProviderClient}
-                    resources={[
-                      {
-                        name: "Dashboard",
-                        list: "/dashboard",
-                        create: "/dashboard/create",
-                        edit: "/dashboard/edit/:id",
-                        show: "/dashboard/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Cold_Email_Writer",
-                        list: "/cold-email-writer",
-                        create: "/cold-email-writer/create",
-                        edit: "/cold-email-writer/edit/:id",
-                        show: "/cold-email-writer/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Niche_Researcher",
-                        list: "/niche-researcher",
-                        create: "/niche-researcher/create",
-                        edit: "/niche-researcher/edit/:id",
-                        show: "/niche-researcher/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Top_50_Niches",
-                        list: "/top-50-niches",
-                        create: "/top-50-niches/create",
-                        edit: "/top-50-niches/edit/:id",
-                        show: "/top-50-niches/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Offer_Creator",
-                        list: "/offer-creator",
-                        create: "/offer-creator/create",
-                        edit: "/offer-creator/edit/:id",
-                        show: "/offer-creator/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Ad_Writer",
-                        list: "/ad-writer",
-                        create: "/ad-writer/create",
-                        edit: "/ad-writer/edit/:id",
-                        show: "/ad-writer/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Growth_Plan_Creator",
-                        list: "/growth-plan-creator",
-                        create: "/growth-plan-creator/create",
-                        edit: "/growth-plan-creator/edit/:id",
-                        show: "/growth-plan-creator/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Pricing_Calculator",
-                        list: "/pricing-calculator",
-                        create: "/pricing-calculator/create",
-                        edit: "/pricing-calculator/edit/:id",
-                        show: "/pricing-calculator/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
+              <WorkspaceProvider> {/* ✅ Add WorkspaceProvider */}
+                <SidebarProvider>
+                  <div className="min-h-screen flex">
+                    <Refine
+                      routerProvider={routerProvider}
+                      dataProvider={dataProvider}
+                      authProvider={authProviderClient}
+                      resources={[
                         {
-                        name: "Sales_Call_Analyzer",
-                         list: "/sales-call-analyzer", // ✅ This should be the main list page
-                        create: "/sales-call-analyzer/create",
-                          edit: "/sales-call-analyzer/edit/:id",
-                        show: "/sales-call-analyzer/show/:id",
-                      meta: {
-                       canDelete: true,
+                          name: "Home",
+                          list: "/home", // This will be the fallback for old routes
+                          create: "/home/create",
+                          edit: "/home/edit/:id",
+                          show: "/home/show/:id",
+                          meta: {
+                            canDelete: true,
                           },
-                       },
+                        },
                         {
-                       name: "Sales_Call_Settings",
-                     list: "/sales-call-analyzer/settings", // ✅ This is the settings page
-                     meta: {
-                     parent: "Sales_Call_Analyzer",
-                    label: "Settings",
-                     hide: true, // This hides it from the main menu but keeps it accessible
+                          name: "Dashboard",
+                          list: "/dashboard", // This will be the fallback for old routes
+                          create: "/dashboard/create",
+                          edit: "/dashboard/edit/:id",
+                          show: "/dashboard/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                        },
-                         {
-                       name: "Review_Recording",
-                     list: "/sales-call-analyzer/review-recording", // ✅ This is the settings page
-                     meta: {
-                     parent: "Sales_Call_Analyzer",
-                    label: "Review_Recording",
-                     hide: true, // This hides it from the main menu but keeps it accessible
-                        },
-                        },
-                      {
-                        name: "Client_Profiles",
-                        list: "/client-profiles",
-                        create: "/client-profiles/create",
-                        edit: "/client-profiles/edit/:id",
-                        show: "/client-profiles/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                      {
-                        name: "Submissions",
-                        list: "/submissions",
-                        create: "/submissions/create",
-                        edit: "/submissions/edit/:id",
-                        show: "/submissions/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                     
-                       {
-                        name: "AI_Tools",
-                        list: "/ai-tools",
-                        create: "/ai-tools/create",
-                        edit: "/ai-tools/edit/:id",
-                        show: "/ai-tools/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                       {
-                        name: "Playbooks",
-                        list: "/tools-playbook",
-                        create: "/tools-playbook/create",
-                        edit: "/tools-playbook/edit/:id",
-                        show: "/tools-playbook/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
                         {
-                        name: "Lead_Generation",
-                        list: "/lead-generation",
-                        create: "/lead-generation/create",
-                        edit: "/lead-generation/edit/:id",
-                        show: "/lead-generation/show/:id",
-                        meta: {
-                          canDelete: true,
+                          name: "Cold_Email_Writer",
+                          list: "/cold-email-writer",
+                          create: "/cold-email-writer/create",
+                          edit: "/cold-email-writer/edit/:id",
+                          show: "/cold-email-writer/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                      },
                         {
-                        name: "Agents_Flow",
-                        list: "/agents-flow",
-                        create: "/agents-flow/create",
-                        edit: "/agents-flow/edit/:id",
-                        show: "/agents-flow/show/:id",
-                        meta: {
-                          canDelete: true,
+                          name: "Niche_Researcher",
+                          list: "/niche-researcher",
+                          create: "/niche-researcher/create",
+                          edit: "/niche-researcher/edit/:id",
+                          show: "/niche-researcher/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                      },
                         {
-                        name: "Work_Flow",
-                        list: "/work-flow",
-                        create: "/work-flow/create",
-                        edit: "/work-flow/edit/:id",
-                        show: "/work-flow/show/:id",
-                        meta: {
-                          canDelete: true,
+                          name: "Top_50_Niches",
+                          list: "/top-50-niches",
+                          create: "/top-50-niches/create",
+                          edit: "/top-50-niches/edit/:id",
+                          show: "/top-50-niches/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                      },
-                      {
-                        name: "Automations",
-                        list: "/automations",
-                        create: "/automations/create",
-                        edit: "/automations/edit/:id",
-                        show: "/automations/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
-                       {
-                        name: "N8n_Builder",
-                        list: "/n8n-builder",
-                        create: "/n8n-builder/create",
-                        edit: "/n8n-builder/edit/:id",
-                        show: "/n8n-builder/show/:id",
-                        meta: {
-                          canDelete: true,
-                        },
-                      },
                         {
-                        name: "N8n_Library",
-                        list: "/n8n-library",
-                        create: "/n8n-library/create",
-                        edit: "/n8n-library/edit/:id",
-                        show: "/n8n-library/show/:id",
-                        meta: {
-                          canDelete: true,
+                          name: "Offer_Creator",
+                          list: "/offer-creator",
+                          create: "/offer-creator/create",
+                          edit: "/offer-creator/edit/:id",
+                          show: "/offer-creator/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                      },
-                            {
-                        name: "Prompt_Directory",
-                        list: "/prompt-directory",
-                        create: "/prompt-directory/create",
-                        edit: "/prompt-directory/edit/:id",
-                        show: "/prompt-directory/show/:id",
-                        meta: {
-                          canDelete: true,
+                        {
+                          name: "Ad_Writer",
+                          list: "/ad-writer",
+                          create: "/ad-writer/create",
+                          edit: "/ad-writer/edit/:id",
+                          show: "/ad-writer/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                      },
-                       {
-                        name: "Hiring_Portal",
-                        list: "/hiring-portal",
-                        create: "/hiring-portal/create",
-                        edit: "/hiring-portal/edit/:id",
-                        show: "/hiring-portal/show/:id",
-                        meta: {
-                          canDelete: true,
+                        {
+                          name: "Growth_Plan_Creator",
+                          list: "/growth-plan-creator",
+                          create: "/growth-plan-creator/create",
+                          edit: "/growth-plan-creator/edit/:id",
+                          show: "/growth-plan-creator/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
                         },
-                      },
-                    ]}
-                    options={{
-                      syncWithLocation: true,
-                      warnWhenUnsavedChanges: true,
-                      useNewQueryKeys: true,
-                      projectId: "BIoCEW-Dc8fJS-bBWmi8",
-                    }}
-                  >
-                    {children}
-                    <RefineKbar />
-                  </Refine>
-                </div>
-              </SidebarProvider> {/* ✅ Close SidebarProvider here */}
+                        {
+                          name: "Pricing_Calculator",
+                          list: "/pricing-calculator",
+                          create: "/pricing-calculator/create",
+                          edit: "/pricing-calculator/edit/:id",
+                          show: "/pricing-calculator/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Sales_Call_Analyzer",
+                          list: "/sales-call-analyzer",
+                          create: "/sales-call-analyzer/create",
+                          edit: "/sales-call-analyzer/edit/:id",
+                          show: "/sales-call-analyzer/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Sales_Call_Settings",
+                          list: "/sales-call-analyzer/settings",
+                          meta: {
+                            parent: "Sales_Call_Analyzer",
+                            label: "Settings",
+                            hide: true,
+                          },
+                        },
+                        {
+                          name: "Review_Recording",
+                          list: "/sales-call-analyzer/review-recording",
+                          meta: {
+                            parent: "Sales_Call_Analyzer",
+                            label: "Review_Recording",
+                            hide: true,
+                          },
+                        },
+                        {
+                          name: "Client_Profiles",
+                          list: "/client-profiles",
+                          create: "/client-profiles/create",
+                          edit: "/client-profiles/edit/:id",
+                          show: "/client-profiles/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Submissions",
+                          list: "/submissions",
+                          create: "/submissions/create",
+                          edit: "/submissions/edit/:id",
+                          show: "/submissions/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "AI_Tools",
+                          list: "/ai-tools",
+                          create: "/ai-tools/create",
+                          edit: "/ai-tools/edit/:id",
+                          show: "/ai-tools/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Playbooks",
+                          list: "/tools-playbook",
+                          create: "/tools-playbook/create",
+                          edit: "/tools-playbook/edit/:id",
+                          show: "/tools-playbook/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Lead_Generation",
+                          list: "/lead-generation",
+                          create: "/lead-generation/create",
+                          edit: "/lead-generation/edit/:id",
+                          show: "/lead-generation/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Agents_Flow",
+                          list: "/agents-flow",
+                          create: "/agents-flow/create",
+                          edit: "/agents-flow/edit/:id",
+                          show: "/agents-flow/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Work_Flow",
+                          list: "/work-flow",
+                          create: "/work-flow/create",
+                          edit: "/work-flow/edit/:id",
+                          show: "/work-flow/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Automations",
+                          list: "/automations",
+                          create: "/automations/create",
+                          edit: "/automations/edit/:id",
+                          show: "/automations/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "N8n_Builder",
+                          list: "/n8n-builder",
+                          create: "/n8n-builder/create",
+                          edit: "/n8n-builder/edit/:id",
+                          show: "/n8n-builder/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "N8n_Library",
+                          list: "/n8n-library",
+                          create: "/n8n-library/create",
+                          edit: "/n8n-library/edit/:id",
+                          show: "/n8n-library/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Prompt_Directory",
+                          list: "/prompt-directory",
+                          create: "/prompt-directory/create",
+                          edit: "/prompt-directory/edit/:id",
+                          show: "/prompt-directory/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                        {
+                          name: "Hiring_Portal",
+                          list: "/hiring-portal",
+                          create: "/hiring-portal/create",
+                          edit: "/hiring-portal/edit/:id",
+                          show: "/hiring-portal/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                      ]}
+                      options={{
+                        syncWithLocation: true,
+                        warnWhenUnsavedChanges: true,
+                        useNewQueryKeys: true,
+                        projectId: "BIoCEW-Dc8fJS-bBWmi8",
+                      }}
+                    >
+                      {children}
+                      <RefineKbar />
+                    </Refine>
+                  </div>
+                </SidebarProvider>
+              </WorkspaceProvider> {/* ✅ Close WorkspaceProvider */}
             </ThemeProvider>
           </RefineKbarProvider>
         </Suspense>
