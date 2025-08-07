@@ -30,6 +30,7 @@ import {
   Avatar
 } from 'antd';
 import { useGo } from "@refinedev/core";
+import { NewCallModal } from './callmodel';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -37,6 +38,7 @@ const { Search } = Input;
 
 export const SalesCallsAnalyzer = () => {
   const [activeTab, setActiveTab] = useState('all');
+    const [isModalVisible, setIsModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
      const go = useGo();
 
@@ -220,7 +222,7 @@ export const SalesCallsAnalyzer = () => {
           <Title level={3} className="mb-1">Sales Calls</Title>
           <Text type="secondary">View and manage your AI-analyzed sales calls</Text>
         </div>
-        <Space>
+        <Space>PlusOutlined
           <Button 
             icon={<SettingOutlined />}
             onClick={() => go({ to: "/sales-call-analyzer/settings" })}
@@ -229,7 +231,17 @@ export const SalesCallsAnalyzer = () => {
           >
             Settings
           </Button>
-          <Button type="primary" icon={<PlusOutlined />}>New Call</Button>
+          <Button 
+        type="primary" 
+        icon={<PlusOutlined />}
+        onClick={() => setIsModalVisible(true)}
+      >
+        New Call
+      </Button>
+        <NewCallModal 
+        visible={isModalVisible} 
+        onClose={() => setIsModalVisible(false)} 
+      />
         </Space>
       </div>
 

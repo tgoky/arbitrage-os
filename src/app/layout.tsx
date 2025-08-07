@@ -121,19 +121,35 @@ export default function RootLayout({
                           canDelete: true,
                         },
                       },
-   {
-  name: "Sales_Call_Settings", 
-   create: "/client-profiles/create",
-                        edit: "/client-profiles/edit/:id",
-                        show: "/client-profiles/show/:id",
-  list: "/sales-call-analyzer/settings",
-  meta: {
-    parent: "sales_call_analyzer",
-    label: "Settings",
-    hide: true, // Optional: hide from sidebar menu
-  },
-},
-                       {
+                        {
+                        name: "Sales_Call_Analyzer",
+                         list: "/sales-call-analyzer", // ✅ This should be the main list page
+                        create: "/sales-call-analyzer/create",
+                          edit: "/sales-call-analyzer/edit/:id",
+                        show: "/sales-call-analyzer/show/:id",
+                      meta: {
+                       canDelete: true,
+                          },
+                       },
+                        {
+                       name: "Sales_Call_Settings",
+                     list: "/sales-call-analyzer/settings", // ✅ This is the settings page
+                     meta: {
+                     parent: "Sales_Call_Analyzer",
+                    label: "Settings",
+                     hide: true, // This hides it from the main menu but keeps it accessible
+                        },
+                        },
+                         {
+                       name: "Review_Recording",
+                     list: "/sales-call-analyzer/review-recording", // ✅ This is the settings page
+                     meta: {
+                     parent: "Sales_Call_Analyzer",
+                    label: "Review_Recording",
+                     hide: true, // This hides it from the main menu but keeps it accessible
+                        },
+                        },
+                      {
                         name: "Client_Profiles",
                         list: "/client-profiles",
                         create: "/client-profiles/create",
