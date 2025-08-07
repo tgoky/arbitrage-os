@@ -260,47 +260,54 @@ export const SalesCallsAnalyzer = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <Space size="large">
-          <div>
-            <Text strong className="block mb-1">Type</Text>
-            <Select
-              placeholder="All Types"
-              style={{ width: 150 }}
-              onChange={value => setFilters({ ...filters, type: value })}
-              allowClear
-            >
-              <Option value="discovery">Discovery</Option>
-              <Option value="interview">Interview</Option>
-              <Option value="sales">Sales</Option>
-              <Option value="podcast">Podcast</Option>
-            </Select>
-          </div>
-          <div>
-            <Text strong className="block mb-1">Status</Text>
-            <Select
-              placeholder="All Statuses"
-              style={{ width: 150 }}
-              onChange={value => setFilters({ ...filters, status: value })}
-              allowClear
-            >
-              {statusOptions.map(status => (
-                <Option key={status.value} value={status.value}>
-                  {status.label}
-                </Option>
-              ))}
-            </Select>
-          </div>
-        </Space>
-        <Search
-          placeholder="Search by name or company..."
+      {/* Filters and Search */}
+<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+  <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
+    <div className="flex flex-col md:flex-row gap-4 flex-grow">
+      <div>
+        <Text strong className="block mb-1">Type</Text>
+        <Select
+          placeholder="All Types"
+          style={{ width: 150 }}
+          onChange={value => setFilters({ ...filters, type: value })}
           allowClear
-          enterButton
-          style={{ width: 300 }}
-          onChange={e => setSearchText(e.target.value)}
-          className="w-full md:w-auto"
-        />
+        >
+          <Option value="discovery">Discovery</Option>
+          <Option value="interview">Interview</Option>
+          <Option value="sales">Sales</Option>
+          <Option value="podcast">Podcast</Option>
+        </Select>
       </div>
+      <div>
+        <Text strong className="block mb-1">Status</Text>
+        <Select
+          placeholder="All Statuses"
+          style={{ width: 150 }}
+          onChange={value => setFilters({ ...filters, status: value })}
+          allowClear
+        >
+          {statusOptions.map(status => (
+            <Option key={status.value} value={status.value}>
+              {status.label}
+            </Option>
+          ))}
+        </Select>
+      </div>
+    </div>
+
+    {/* Search Box aligned right */}
+    <div className="mt-[6px] md:mt-6 md:ml-auto">
+      <Search
+        placeholder="Search by name or company..."
+        allowClear
+        enterButton
+        onChange={e => setSearchText(e.target.value)}
+        className="min-w-[250px]"
+      />
+    </div>
+  </div>
+</div>
+
 
       {/* Calls Table */}
       <Card>

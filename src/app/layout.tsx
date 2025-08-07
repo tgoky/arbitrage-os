@@ -200,14 +200,42 @@ export default function RootLayout({
                           canDelete: true,
                         },
                       },
-                      
-                      
                       {
                         name: "Automations",
                         list: "/automations",
                         create: "/automations/create",
                         edit: "/automations/edit/:id",
                         show: "/automations/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                       {
+                        name: "N8n_Builder",
+                        list: "/n8n-builder",
+                        create: "/n8n-builder/create",
+                        edit: "/n8n-builder/edit/:id",
+                        show: "/n8n-builder/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                        {
+                        name: "N8n_Library",
+                        list: "/n8n-library",
+                        create: "/n8n-library/create",
+                        edit: "/n8n-library/edit/:id",
+                        show: "/n8n-library/show/:id",
+                        meta: {
+                          canDelete: true,
+                        },
+                      },
+                            {
+                        name: "Prompt_Directory",
+                        list: "/prompt-directory",
+                        create: "/prompt-directory/create",
+                        edit: "/prompt-directory/edit/:id",
+                        show: "/prompt-directory/show/:id",
                         meta: {
                           canDelete: true,
                         },

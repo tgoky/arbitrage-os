@@ -17,8 +17,10 @@ import {
   Users,
   GitBranch,
   Bot,
+  Library,
   ShieldCheck,
-  User
+  User,
+  Notebook
 } from "lucide-react";
 
 interface MenuIconProps {
@@ -45,7 +47,9 @@ export const MenuIcon = ({ name }: MenuIconProps) => {
     Agents_Flow: <Bot className="h-4 w-4" />,
     Work_Flow: <GitBranch className="h-4 w-4" />,
     Automations: <Workflow className="h-4 w-4" />,
-  
+    N8n_Builder: <Workflow className="h-4 w-4" />,
+    N8n_Library: <Library className="h-4 w-4" />,
+    Prompt_Directory: <Notebook className="h-4 w-4" />,
     default: (
       <svg
         className="h-4 w-4"

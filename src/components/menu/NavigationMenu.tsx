@@ -83,7 +83,7 @@ const menuGroups: MenuGroupConfig[] = [
     id: "automations",
     label: "Automations",
     icon: <Workflow className="h-4 w-4" />,
-    items: ["Automations"],
+    items: ["Automations", "N8n_Builder", "N8n_Library", "Prompt_Directory"],
   },
 ];
 
