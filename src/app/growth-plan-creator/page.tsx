@@ -73,7 +73,8 @@ const { TabPane } = Tabs;
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-const GrowthPlanCreator = () => {
+// Remove the named export and make this the default component
+export default function GrowthPlanCreatorPage() {
   const [form] = Form.useForm();
   const [planGenerated, setPlanGenerated] = useState(false);
   const [activeTab, setActiveTab] = useState('strategy');
@@ -642,7 +643,8 @@ const GrowthPlanCreator = () => {
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        // Fixed the TypeScript error here:
+                        label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : '0'}%`}
                       >
                         {channelData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -778,6 +780,4 @@ const GrowthPlanCreator = () => {
       )}
     </div>
   );
-};
-
-export default GrowthPlanCreator;
+}
