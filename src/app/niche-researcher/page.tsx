@@ -404,7 +404,8 @@ const NicheResearcher = () => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
-        className="bg-zinc-900 rounded-lg"
+       className="dark:bg-white-900 rounded-lg"
+
       >
         {renderStepContent()}
         

@@ -142,7 +142,7 @@ const GrowthPlanCreator = () => {
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <RocketOutlined className="mr-2 text-purple-600" />
-          <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
+          <span className=" bg-clip-text ">
             AI Growth Plan Creator
           </span>
         </Title>

@@ -278,7 +278,7 @@ const PricingCalculator = () => {
         </Card>
       </div>
 
-      <Card className="mt-6">
+      <Card className="mt-6 ">
         <Title level={4} className="mb-4">Pricing Strategy Guidance</Title>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
