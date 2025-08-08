@@ -20,6 +20,8 @@ import {
   EnvironmentOutlined
 } from '@ant-design/icons';
 import { useGo } from "@refinedev/core";
+import type { UploadChangeParam } from 'antd/es/upload';
+import type { UploadFile } from 'antd/es/upload/interface';
 
 import { useState } from 'react';
 
@@ -29,20 +31,19 @@ const { Option } = Select;
 
 export default function ReviewRecordingPage() {
   const go = useGo();
-  const [fileList, setFileList] = useState([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  const handleUpload = (info) => {
-    let fileList = [...info.fileList];
-    fileList = fileList.slice(-1); // Limit to 1 file
-    setFileList(fileList);
-    
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} file uploaded successfully`);
-    } else if (info.file.status === 'error') {
-      message.error(`${info.file.name} file upload failed.`);
-    }
-  };
-
+ const handleUpload = (info: UploadChangeParam<UploadFile>) => {
+  let fileList = [...info.fileList];
+  fileList = fileList.slice(-1); // Limit to 1 file
+  setFileList(fileList);
+  
+  if (info.file.status === 'done') {
+    message.success(`${info.file.name} file uploaded successfully`);
+  } else if (info.file.status === 'error') {
+    message.error(`${info.file.name} file upload failed.`);
+  }
+};
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
