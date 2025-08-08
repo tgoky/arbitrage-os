@@ -1,7 +1,7 @@
 "use client";
-import React from 'react'
 
-import { Card, Table, Tag, Button, Space, Avatar } from 'antd';
+import React from 'react';
+import { Card, Table, TableProps, Tag, Button, Space, Avatar } from 'antd';
 import { TeamOutlined, SettingOutlined } from '@ant-design/icons';
 import { useTheme } from '../../providers/ThemeProvider';
 
@@ -16,18 +16,34 @@ interface Automation {
   eta?: string;
 }
 
-// Define props interface
-interface RunningAutomationsProps {
-  runningAutomations: Automation[];
-}
-
-export const RunningAutomations = ({ runningAutomations }: RunningAutomationsProps) => {
+// Remove the separate component and make this the default page component
+export default function AutomationsPage() {
   const { theme } = useTheme(); // Use theme from ThemeProvider
 
+  // Mock data - replace with actual data fetching
+  const runningAutomations: Automation[] = [
+    {
+      id: 1,
+      name: 'Customer Onboarding',
+      type: 'workflow',
+      description: 'Automated client setup process',
+      assignedClient: 'Auto Corp',
+      status: 'running',
+      eta: '2 min',
+    },
+    {
+      id: 2,
+      name: 'Support Agent',
+      type: 'agent',
+      description: '24/7 customer support',
+      assignedClient: 'Globex Inc',
+      status: 'running',
+    },
+    // Add more mock data as needed
+  ];
+
   return (
-    <div
-      className={`p-6 rounded-lg ${theme === 'dark' ? 'bg-zinc-900' : 'bg-white'}`}
-    >
+    <div className={`p-6 rounded-lg ${theme === 'dark' ? 'bg-zinc-900' : 'bg-white'}`}>
       <Card
         title={<span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>Running Automations</span>}
         extra={
@@ -40,12 +56,12 @@ export const RunningAutomations = ({ runningAutomations }: RunningAutomationsPro
         }
         styles={{
           body: {
-            backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', // bg-zinc-900 (dark) or bg-white (light)
+            backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff',
             padding: '16px',
           },
           header: {
-            backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', // bg-zinc-900 (dark) or bg-white (light)
-            borderBottomColor: theme === 'dark' ? '#27272a' : '#e5e7eb', // border-zinc-700 (dark) or border-gray-200 (light)
+            backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff',
+            borderBottomColor: theme === 'dark' ? '#27272a' : '#e5e7eb',
           },
         }}
         className={`border ${theme === 'dark' ? 'border-zinc-700 bg-zinc-900' : 'border-gray-200 bg-white'}`}
@@ -134,6 +150,4 @@ export const RunningAutomations = ({ runningAutomations }: RunningAutomationsPro
       </Card>
     </div>
   );
-};
-
-export default RunningAutomations;
+}
