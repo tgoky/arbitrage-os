@@ -303,18 +303,14 @@ export default function OfferCreatorPage() {
                 <Form.Item
                   name="discountValue"
                   label="Discount Percentage"
-                  rules={[{ required: true }]}
+                  rules={[
+                    { required: true, message: 'Please enter discount percentage!' },
+                    { pattern: /^[1-9][0-9]?$|^100$/, message: 'Enter a number between 1-100!' }
+                  ]}
                 >
-                  <InputNumber 
-                    min={1}
-                    max={100}
-                    formatter={value => `${value}%`}
-                    parser={(value) => {
-                      if (!value) return 1;
-                      const parsed = parseInt(value.replace('%', ''), 10);
-                      if (isNaN(parsed)) return 1;
-                      return Math.max(1, Math.min(100, parsed));
-                    }}
+                  <Input 
+                    suffix="%"
+                    placeholder="e.g., 25"
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
@@ -358,10 +354,13 @@ export default function OfferCreatorPage() {
               <Form.Item
                 name="trialPeriod"
                 label="Trial Period (Days)"
-                rules={[{ required: true }]}
+                rules={[
+                  { required: true, message: 'Please enter trial period!' },
+                  { pattern: /^[1-9]\d*$/, message: 'Enter a positive number!' }
+                ]}
               >
-                <InputNumber 
-                  min={1}
+                <Input 
+                  placeholder="e.g., 14"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -371,10 +370,13 @@ export default function OfferCreatorPage() {
               <Form.Item
                 name="guaranteePeriod"
                 label="Guarantee Period (Days)"
-                rules={[{ required: true }]}
+                rules={[
+                  { required: true, message: 'Please enter guarantee period!' },
+                  { pattern: /^[1-9]\d*$/, message: 'Enter a positive number!' }
+                ]}
               >
-                <InputNumber 
-                  min={1}
+                <Input 
+                  placeholder="e.g., 30"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
