@@ -29,10 +29,25 @@ import {
 } from 'antd';
 import { useGo } from "@refinedev/core";
 import { NewCallModal } from '../callmodel';
+import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Search } = Input;
+
+
+interface CallRecord {
+  key: string;
+  type: string;
+  title: string;
+  status: string;
+  date: string;
+  duration: string;
+  insights: string;
+  progress: number;
+  participants: string[];
+}
+
 
 // Remove the named export and make this the default component
 export default function SalesCallAnalyzerPage() {
@@ -128,91 +143,97 @@ export default function SalesCallAnalyzerPage() {
     }
   };
 
-  const columns = [
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type: string) => {
-        const callType = callTypes.find(t => t.value === type);
-        return (
-          <Tag icon={callType?.icon} color={callType?.color}>
-            {callType?.label}
-          </Tag>
-        );
-      },
-      filters: callTypes.map(type => ({
-        text: type.label,
-        value: type.value
-      })),
-      onFilter: (value: string, record: any) => record.type === value,
+const columns: ColumnsType<CallRecord> = [
+  {
+    title: 'Type',
+    dataIndex: 'type',
+    key: 'type',
+    render: (type: string) => {
+      const callType = callTypes.find(t => t.value === type);
+      return (
+        <Tag icon={callType?.icon} color={callType?.color}>
+          {callType?.label}
+        </Tag>
+      );
     },
-    {
-      title: 'Meeting/Call',
-      dataIndex: 'title',
-      key: 'title',
-      render: (text: string, record: any) => (
-        <div>
-          <div className="font-medium">{text}</div>
-          <div className="text-xs text-gray-500">
-            {record.participants.join(', ')}
-          </div>
+    filters: callTypes.map(type => ({
+      text: type.label,
+      value: type.value
+    })),
+    onFilter: (value: boolean | React.Key, record: CallRecord) => {
+      // Convert value to string for comparison since your data uses strings
+      return record.type === String(value);
+    },
+  },
+  {
+    title: 'Meeting/Call',
+    dataIndex: 'title',
+    key: 'title',
+    render: (text: string, record: CallRecord) => (
+      <div>
+        <div className="font-medium">{text}</div>
+        <div className="text-xs text-gray-500">
+          {record.participants.join(', ')}
         </div>
-      )
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const statusObj = statusOptions.find(s => s.value === status);
-        return (
-          <Tag icon={getStatusIcon(status)} color={statusObj?.color}>
-            {statusObj?.label}
-          </Tag>
-        );
-      },
-      filters: statusOptions.map(status => ({
-        text: status.label,
-        value: status.value
-      })),
-      onFilter: (value: string, record: any) => record.status === value,
-    },
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      sorter: (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    },
-    {
-      title: 'Duration',
-      dataIndex: 'duration',
-      key: 'duration',
-      render: (duration: string) => duration || '-'
-    },
-    {
-      title: 'Insights',
-      dataIndex: 'insights',
-      key: 'insights',
-      render: (text: string) => (
-        <div className="max-w-xs truncate">
-          {text}
-        </div>
-      )
-    },
-    {
-      title: 'Progress',
-      dataIndex: 'progress',
-      key: 'progress',
-      render: (progress: number) => (
-        <Progress
-          percent={progress}
-          size="small"
-          status={progress === 100 ? 'success' : 'active'}
-        />
-      )
-    }
-  ];
+      </div>
+    )
+  },
+{
+  title: 'Status',
+  dataIndex: 'status',
+  key: 'status',
+  render: (status: string) => {
+    const statusObj = statusOptions.find(s => s.value === status);
+    return (
+      <Tag icon={getStatusIcon(status)} color={statusObj?.color}>
+        {statusObj?.label}
+      </Tag>
+    );
+  },
+  filters: statusOptions.map(status => ({
+    text: status.label,
+    value: status.value
+  })),
+  onFilter: (value: boolean | React.Key, record: CallRecord) => {
+    return record.status === String(value);
+  },
+},
+  {
+    title: 'Date',
+    dataIndex: 'date',
+    key: 'date',
+    sorter: (a: CallRecord, b: CallRecord) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  },
+  {
+    title: 'Duration',
+    dataIndex: 'duration',
+    key: 'duration',
+    render: (duration: string) => duration || '-'
+  },
+  {
+    title: 'Insights',
+    dataIndex: 'insights',
+    key: 'insights',
+    render: (text: string) => (
+      <div className="max-w-xs truncate">
+        {text}
+      </div>
+    )
+  },
+  {
+    title: 'Progress',
+    dataIndex: 'progress',
+    key: 'progress',
+    render: (progress: number) => (
+      <Progress
+        percent={progress}
+        size="small"
+        status={progress === 100 ? 'success' : 'active'}
+      />
+    )
+  }
+];
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
