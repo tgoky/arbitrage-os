@@ -15,7 +15,7 @@ import { Workflow } from "lucide-react";
 export interface IMenuItem extends Omit<RefineMenuItem, 'route'> {
   key: string;
   name: string;
-  label: string;
+  label?: string;
   route?: string;
 }
 

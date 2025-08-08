@@ -103,6 +103,7 @@ export const Menu = () => {
     isLoading: workspaceLoading 
   } = useWorkspace();
 
+  
   const selectedItemGroup = useMemo(() => {
     console.log(`Current selectedKey: "${selectedKey}"`);
     if (!selectedKey) return null;
