@@ -28,6 +28,9 @@ const WorkspaceHomePage = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeWindow, setActiveWindow] = useState('workspaces');
   const [showShutdown, setShowShutdown] = useState(false);
+  const [navigating, setNavigating] = useState(false);
+  const [navigationProgress, setNavigationProgress] = useState(0);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
 
   // Update time every second
   useEffect(() => {
@@ -128,7 +131,27 @@ const WorkspaceHomePage = () => {
   };
 
   const handleWorkspaceClick = (workspace: Workspace) => {
-    router.push(`/dashboard/${workspace.slug}`);
+    setSelectedWorkspace(workspace.name);
+    setNavigating(true);
+    setNavigationProgress(0);
+    
+    // Simulate loading progress
+    const interval = setInterval(() => {
+      setNavigationProgress(prev => {
+        const increment = Math.random() > 0.8 ? 0 : (Math.random() > 0.6 ? 4 : 2);
+        return Math.min(prev + increment, 100);
+      });
+    }, 100);
+    
+    // Complete after random delay (simulating actual navigation)
+    const delay = 500 + Math.random() * 1000;
+    setTimeout(() => {
+      clearInterval(interval);
+      setNavigationProgress(100);
+      setTimeout(() => {
+        router.push(`/dashboard/${workspace.slug}`);
+      }, 300);
+    }, delay);
   };
 
   const formatTime = (date: Date) => {
@@ -181,130 +204,154 @@ const WorkspaceHomePage = () => {
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
+      {/* Navigation Loading Overlay */}
+      {navigating && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="bg-gray-300 border-2 border-gray-400 p-6 w-96">
+            <div className="mb-4">
+              <h3 className="font-bold text-lg mb-1">Opening {selectedWorkspace}</h3>
+              <p className="text-sm">Loading workspace contents...</p>
+            </div>
+            
+            {/* Windows 98 style progress bar */}
+            <div className="w-full h-4 bg-gray-200 border border-gray-400">
+              <div 
+                className="h-full bg-blue-700 transition-all duration-300"
+                style={{ width: `${navigationProgress}%` }}
+              ></div>
+            </div>
+            
+            <div className="mt-2 text-xs text-right">
+              {navigationProgress}% complete
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Desktop Background */}
       <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
         {/* Desktop Icons */}
-            {/* Desktop Icons Container - Added padding and gap */}
-<div className="absolute left-0 top-0 p-6 space-y-8 flex flex-col">
-  {/* My Computer Icon */}
-  <div 
-    className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-    onDoubleClick={() => setActiveWindow('my-computer')}
-  >
-    <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-      <svg 
-        width="56" 
-        height="56" 
-        viewBox="0 0 56 56" 
-        className="transition-transform group-hover:scale-110"
-      >
-        {/* Monitor Base */}
-        <rect x="8" y="12" width="40" height="30" rx="2" fill="#1084D0" />
-        {/* Screen */}
-        <rect x="12" y="16" width="32" height="22" fill="#000" />
-        {/* Screen Glare */}
-        <path d="M12 16 L44 16 L36 24 Z" fill="white" fillOpacity="0.2" />
-        {/* Monitor Stand */}
-        <rect x="24" y="42" width="8" height="4" fill="#595959" />
-        <rect x="20" y="46" width="16" height="4" fill="#808080" />
-      </svg>
-    </div>
-    <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-      My Computer
-    </span>
-  </div>
+        <div className="absolute left-0 top-0 p-6 space-y-8 flex flex-col">
+          {/* My Computer Icon */}
+          <div 
+            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+            onDoubleClick={() => setActiveWindow('my-computer')}
+          >
+            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+              <svg 
+                width="56" 
+                height="56" 
+                viewBox="0 0 56 56" 
+                className="transition-transform group-hover:scale-110"
+              >
+                {/* Monitor Base */}
+                <rect x="8" y="12" width="40" height="30" rx="2" fill="#1084D0" />
+                {/* Screen */}
+                <rect x="12" y="16" width="32" height="22" fill="#000" />
+                {/* Screen Glare */}
+                <path d="M12 16 L44 16 L36 24 Z" fill="white" fillOpacity="0.2" />
+                {/* Monitor Stand */}
+                <rect x="24" y="42" width="8" height="4" fill="#595959" />
+                <rect x="20" y="46" width="16" height="4" fill="#808080" />
+              </svg>
+            </div>
+            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+              My Computer
+            </span>
+          </div>
 
-  {/* Documents Icon */}
-  <div 
-    className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-    onDoubleClick={() => setActiveWindow('documents')}
-  >
-    <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-      <svg 
-        width="56" 
-        height="56" 
-        viewBox="0 0 56 56" 
-        className="transition-transform group-hover:scale-110"
-      >
-        {/* Folder Body */}
-        <path 
-          d="M10 16H46V46H10V16Z" 
-          fill="#FFCC00" 
-          stroke="#000" 
-          strokeWidth="1.5"
-        />
-        {/* Folder Tab */}
-        <path 
-          d="M10 16L20 8H36L46 16" 
-          fill="#FFCC00" 
-          stroke="#000" 
-          strokeWidth="1.5"
-        />
-        {/* Document Lines */}
-        <rect x="16" y="24" width="24" height="2" fill="#000" />
-        <rect x="16" y="28" width="20" height="2" fill="#000" />
-        <rect x="16" y="32" width="24" height="2" fill="#000" />
-        <rect x="16" y="36" width="18" height="2" fill="#000" />
-        {/* Fold Corner */}
-        <path 
-          d="M42 20L50 28V20H42Z" 
-          fill="#FFCC00" 
-          stroke="#000" 
-          strokeWidth="1.5"
-        />
-      </svg>
-    </div>
-    <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-      My Documents
-    </span>
-  </div>
+          {/* Documents Icon */}
+          <div 
+            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+            onDoubleClick={() => setActiveWindow('documents')}
+          >
+            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+              <svg 
+                width="56" 
+                height="56" 
+                viewBox="0 0 56 56" 
+                className="transition-transform group-hover:scale-110"
+              >
+                {/* Folder Body */}
+                <path 
+                  d="M10 16H46V46H10V16Z" 
+                  fill="#FFCC00" 
+                  stroke="#000" 
+                  strokeWidth="1.5"
+                />
+                {/* Folder Tab */}
+                <path 
+                  d="M10 16L20 8H36L46 16" 
+                  fill="#FFCC00" 
+                  stroke="#000" 
+                  strokeWidth="1.5"
+                />
+                {/* Document Lines */}
+                <rect x="16" y="24" width="24" height="2" fill="#000" />
+                <rect x="16" y="28" width="20" height="2" fill="#000" />
+                <rect x="16" y="32" width="24" height="2" fill="#000" />
+                <rect x="16" y="36" width="18" height="2" fill="#000" />
+                {/* Fold Corner */}
+                <path 
+                  d="M42 20L50 28V20H42Z" 
+                  fill="#FFCC00" 
+                  stroke="#000" 
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </div>
+            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+              My Documents
+            </span>
+          </div>
 
-  {/* Recycle Bin Icon */}
-  <div 
-    className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-    onDoubleClick={() => setActiveWindow('recycle-bin')}
-  >
-    <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-      <svg 
-        width="56" 
-        height="56" 
-        viewBox="0 0 56 56" 
-        className="transition-transform group-hover:scale-110"
-      >
-        {/* Bin Body */}
-        <path 
-          d="M14 20H42V44H14V20Z" 
-          fill="#C0C0C0" 
-          stroke="#000" 
-          strokeWidth="1.5"
-        />
-        {/* Bin Top */}
-        <path 
-          d="M18 16H38V20H18V16Z" 
-          fill="#808080" 
-          stroke="#000" 
-          strokeWidth="1.5"
-        />
-        {/* Bin Lid Handle */}
-        <rect x="26" y="12" width="4" height="4" fill="#000" />
-        {/* Paper */}
-        <rect x="20" y="24" width="16" height="12" fill="#FFFFFF" stroke="#000" />
-        <rect x="24" y="28" width="8" height="1" fill="#000" />
-        <rect x="24" y="32" width="8" height="1" fill="#000" />
-        {/* Recycle Arrows */}
-        <path 
-          d="M28 16L32 12L36 16" 
-          stroke="#000" 
-          strokeWidth="1.5" 
-          fill="none"
-        />
-      </svg>
-    </div>
-    <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-      Recycle Bin
-    </span>
-  </div>
-</div>
+          {/* Recycle Bin Icon */}
+          <div 
+            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+            onDoubleClick={() => setActiveWindow('recycle-bin')}
+          >
+            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+              <svg 
+                width="56" 
+                height="56" 
+                viewBox="0 0 56 56" 
+                className="transition-transform group-hover:scale-110"
+              >
+                {/* Bin Body */}
+                <path 
+                  d="M14 20H42V44H14V20Z" 
+                  fill="#C0C0C0" 
+                  stroke="#000" 
+                  strokeWidth="1.5"
+                />
+                {/* Bin Top */}
+                <path 
+                  d="M18 16H38V20H18V16Z" 
+                  fill="#808080" 
+                  stroke="#000" 
+                  strokeWidth="1.5"
+                />
+                {/* Bin Lid Handle */}
+                <rect x="26" y="12" width="4" height="4" fill="#000" />
+                {/* Paper */}
+                <rect x="20" y="24" width="16" height="12" fill="#FFFFFF" stroke="#000" />
+                <rect x="24" y="28" width="8" height="1" fill="#000" />
+                <rect x="24" y="32" width="8" height="1" fill="#000" />
+                {/* Recycle Arrows */}
+                <path 
+                  d="M28 16L32 12L36 16" 
+                  stroke="#000" 
+                  strokeWidth="1.5" 
+                  fill="none"
+                />
+              </svg>
+            </div>
+            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+              Recycle Bin
+            </span>
+          </div>
+        </div>
+
         {/* Main Workspace Window */}
         {activeWindow === 'workspaces' && (
           <div className="ml-28 h-full overflow-y-auto">
@@ -354,7 +401,7 @@ const WorkspaceHomePage = () => {
                     {workspaces.map((workspace) => (
                       <div
                         key={workspace.id}
-                         onClick={() => handleWorkspaceClick(workspace)} 
+                        onClick={() => handleWorkspaceClick(workspace)} 
                         className="border-2 border-gray-400 bg-gray-100 p-4 cursor-pointer hover:border-blue-500 hover:shadow-md"
                       >
                         <div className="flex items-start mb-2">

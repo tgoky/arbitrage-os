@@ -554,7 +554,7 @@ const OfferCreator = () => {
                   Complementary Product
                 </Title>
                 <Text className="block mb-2">During checkout</Text>
-                <Text type="secondary">"Customers who bought this also purchased..."</Text>
+                <Text type="secondary">Customers who bought this also purchased...</Text>
               </Card>
             </div>
           </Card>
