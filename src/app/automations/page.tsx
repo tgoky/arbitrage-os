@@ -1,4 +1,5 @@
 "use client";
+import React from 'react'
 
 import { Card, Table, Tag, Button, Space, Avatar } from 'antd';
 import { TeamOutlined, SettingOutlined } from '@ant-design/icons';
@@ -20,7 +21,7 @@ interface RunningAutomationsProps {
   runningAutomations: Automation[];
 }
 
-const RunningAutomations: React.FC<RunningAutomationsProps> = ({ runningAutomations }) => {
+const RunningAutomations = ({ runningAutomations }: RunningAutomationsProps) => {
   const { theme } = useTheme(); // Use theme from ThemeProvider
 
   return (
