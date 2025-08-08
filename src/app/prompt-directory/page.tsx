@@ -33,6 +33,13 @@ import {
   Popover
 } from 'antd';
 
+
+import { useTheme } from '../../providers/ThemeProvider';
+import { color } from 'framer-motion';
+
+
+
+
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
@@ -102,12 +109,20 @@ const categories = [
 
 
 
-import { useTheme } from '../../providers/ThemeProvider';
-import { color } from 'framer-motion';
+interface Prompt {
+  id: number;
+  title: string;
+  description: string;
+  shortDescription: string;
+  tags: string[];
+  category: string;
+  downloads: number;
+  copyCount: number;
+  integrations: string[];
+}
 
 
-
-const PromptCard = ({ prompt }) => {
+const PromptCard = ({ prompt }: { prompt: Prompt }) => {
   const [showFullSystem, setShowFullSystem] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
