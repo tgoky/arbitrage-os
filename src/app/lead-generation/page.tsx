@@ -110,6 +110,14 @@ const LeadGenerationDashboard = () => {
     return matchesSearch && matchesStatus && matchesIndustry && matchesCompanySize;
   });
 
+
+  const handleSelectPackage = (packageType: string) => {
+  // Handle package selection logic here
+  console.log('Selected package:', packageType);
+  // ... your implementation
+};
+
+
   const items = getItems({
     campaigns,
     leads,
@@ -120,6 +128,7 @@ const LeadGenerationDashboard = () => {
     credits,
     setIsModalVisible,
     setIsCreditsModalVisible,
+      onSelectPackage: handleSelectPackage, 
     searchTerm,
     setSearchTerm,
     selectedStatus,
