@@ -85,6 +85,24 @@
   color: #c4b5fd !important; /* indigo-300 */
 }
 
+.tour-popover {
+  z-index: 9999 !important;
+}
+
+.tour-mask {
+  z-index: 9998 !important;
+}
+
+.tour-highlight {
+  z-index: 9997 !important;
+}
+
+[data-tour] {
+  position: relative;
+  z-index: 1;
+}
+
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 255, 255, 255;

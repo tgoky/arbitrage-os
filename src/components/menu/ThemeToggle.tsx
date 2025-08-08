@@ -8,6 +8,7 @@ export const ThemeToggle = () => {
 
   return (
     <div 
+    data-tour="sidebar-toggle" 
       onClick={toggleTheme}
       className="cursor-pointer text-gray-500 dark:text-gray-400"
     >

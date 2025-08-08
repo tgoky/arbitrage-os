@@ -129,7 +129,7 @@ export const NavigationMenu = ({
   };
 
   return (
-    <nav className="flex-1 overflow-y-auto py-4">
+    <nav  data-tour="navigation-menu"  className="flex-1 overflow-y-auto py-4">
       <div className={`px-4 space-y-6 ${theme === "dark" ? "bg-black" : "bg-white"}`}>
         {isClient &&
           menuGroups.map((group) => {

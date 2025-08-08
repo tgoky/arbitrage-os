@@ -29,6 +29,7 @@ export const WorkspaceHeader = ({
 
   return (
     <div
+     data-tour="workspace-header"
       className={`p-1 border-b ${
         theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200"
       } relative`}

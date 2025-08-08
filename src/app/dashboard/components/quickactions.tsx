@@ -87,6 +87,7 @@ const QuickStartActions: React.FC = () => {
 
   return (
     <Card
+    data-tour="quick-actions"
       title={
         <Text strong style={{ fontSize: '18px', color: theme === 'dark' ? '#f9fafb' : '#111827' }}>
           Quick Start Actions

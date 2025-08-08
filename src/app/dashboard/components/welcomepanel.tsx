@@ -41,7 +41,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div   data-tour="welcome-panel" style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title
           level={2}

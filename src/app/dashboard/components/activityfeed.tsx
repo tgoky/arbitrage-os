@@ -82,6 +82,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ recentActivity }) => {
 
   return (
     <Card
+     data-tour="activity-feed"
       title="Activity Feed"
       styles={getCardStyles()}
       style={{

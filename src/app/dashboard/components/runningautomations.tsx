@@ -27,6 +27,7 @@ const RunningAutomations: React.FC<RunningAutomationsProps> = ({ runningAutomati
 
   return (
     <Card
+    data-tour="running-automations" 
       title="Running Automations"
       styles={getCardStyles()}
       extra={

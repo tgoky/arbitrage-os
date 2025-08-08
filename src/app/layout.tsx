@@ -11,7 +11,8 @@ import "@styles/global.css";
 
 import { ThemeProvider } from "../providers/ThemeProvider";
 import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
-import { WorkspaceProvider } from "../app/hooks/useWorkspace"; // Add this import
+import { WorkspaceProvider } from "../app/hooks/useWorkspace";
+import { TutorialProvider } from "@providers/tutorial-provider/TutorialProvider";
 
 export const metadata: Metadata = {
   title: "Arbitrage-OS",
@@ -33,8 +34,10 @@ export default function RootLayout({
         <Suspense>
           <RefineKbarProvider>
             <ThemeProvider>
-              <WorkspaceProvider> {/* ✅ Add WorkspaceProvider */}
+            
+              <WorkspaceProvider> 
                 <SidebarProvider>
+                        <TutorialProvider>
                   <div className="min-h-screen flex">
                     <Refine
                       routerProvider={routerProvider}
@@ -291,6 +294,7 @@ export default function RootLayout({
                       <RefineKbar />
                     </Refine>
                   </div>
+                      </TutorialProvider>
                 </SidebarProvider>
               </WorkspaceProvider> {/* ✅ Close WorkspaceProvider */}
             </ThemeProvider>

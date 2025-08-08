@@ -30,6 +30,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({ deliverables })
 
   return (
     <Card
+     data-tour="recent-deliverables" 
       title="Recent Deliverables"
       styles={getCardStyles()}
       style={{
