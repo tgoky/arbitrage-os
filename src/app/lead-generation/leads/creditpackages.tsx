@@ -12,8 +12,8 @@ interface CreditPackage {
   features: string[];
 }
 
-export interface CreditPackagesProps {
-  onSelectPackage: (credits: number) => void;
+interface CreditPackagesProps {
+  onSelectPackage?: (credits: number) => void;
 }
 
 export const CreditPackages: React.FC<CreditPackagesProps> = ({ onSelectPackage }) => {
@@ -90,7 +90,7 @@ export const CreditPackages: React.FC<CreditPackagesProps> = ({ onSelectPackage 
                 <Button 
                   block 
                   type={pkg.popular ? 'primary' : 'default'}
-                  onClick={() => onSelectPackage(pkg.credits)}
+                  onClick={() => onSelectPackage?.(pkg.credits)}
                 >
                   Choose Plan
                 </Button>

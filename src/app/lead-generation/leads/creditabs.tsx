@@ -8,7 +8,7 @@ import { CreditPackages } from './creditpackages';
 interface CreditsTabProps {
   credits: number;
   setIsCreditsModalVisible: (visible: boolean) => void;
-  onSelectPackage: (credits: number) => void;
+  onSelectPackage?: (credits: number) => void;
 }
 
 const { Title, Text } = Typography;

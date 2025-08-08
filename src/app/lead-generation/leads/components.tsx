@@ -16,7 +16,6 @@ interface ComponentsProps {
   credits: number;
   setIsModalVisible: (visible: boolean) => void;
   setIsCreditsModalVisible: (visible: boolean) => void;
-  onSelectPackage: (packageType: string) => void; // Add this prop
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedStatus: string;
@@ -38,7 +37,6 @@ export const getItems = ({
   credits,
   setIsModalVisible,
   setIsCreditsModalVisible,
-  onSelectPackage, // Add this parameter
   searchTerm,
   setSearchTerm,
   selectedStatus,
@@ -104,7 +102,6 @@ export const getItems = ({
       <CreditsTab
         credits={credits}
         setIsCreditsModalVisible={setIsCreditsModalVisible}
-        onSelectPackage={onSelectPackage} // Pass the missing prop
       />
     ),
   },
