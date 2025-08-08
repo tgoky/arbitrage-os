@@ -21,7 +21,7 @@ interface RunningAutomationsProps {
   runningAutomations: Automation[];
 }
 
-const RunningAutomations = ({ runningAutomations }: RunningAutomationsProps) => {
+export const RunningAutomations = ({ runningAutomations }: RunningAutomationsProps) => {
   const { theme } = useTheme(); // Use theme from ThemeProvider
 
   return (
