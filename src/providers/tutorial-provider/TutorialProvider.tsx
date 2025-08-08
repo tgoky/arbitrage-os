@@ -40,7 +40,7 @@ const tutorialSteps: StepType[] = [
     content: (
       <div className="p-4">
         <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Navigation Menu</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-gray-900 dark:text-gray-300">
           Access all your tools, automations, and content from this sidebar. Click on any item to get started.
         </p>
       </div>

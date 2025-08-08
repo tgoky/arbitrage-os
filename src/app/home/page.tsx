@@ -1,10 +1,9 @@
-// app/page.tsx (or app/home/page.tsx)
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
-import { PlusIcon, FolderIcon, ArrowRightIcon } from 'lucide-react';
+import { PlusIcon, FolderIcon, ArrowRightIcon, Clock, HardDrive, File, Trash2, Menu, Power } from 'lucide-react';
 
 interface Workspace {
   id: string;
@@ -23,32 +22,55 @@ const WorkspaceHomePage = () => {
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [showStartMenu, setShowStartMenu] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeWindow, setActiveWindow] = useState('workspaces');
+  const [showShutdown, setShowShutdown] = useState(false);
 
-  // Simulate loading existing workspaces (replace with actual API call)
- useEffect(() => {
-  const loadWorkspaces = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const savedWorkspaces = localStorage.getItem('userWorkspaces');
-      if (savedWorkspaces) {
-        const parsedWorkspaces = JSON.parse(savedWorkspaces);
-        // Convert string dates back to Date objects
-        const workspacesWithDates = parsedWorkspaces.map((w: any) => ({
-          ...w,
-          createdAt: new Date(w.createdAt)
-        }));
-        setWorkspaces(workspacesWithDates);
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Load workspaces with Windows 98 style loading
+  useEffect(() => {
+    const loadWorkspaces = async () => {
+      try {
+        // Simulate Windows 98 boot sequence
+        const interval = setInterval(() => {
+          setProgress(prev => {
+            // Random progress increments with occasional pauses
+            const increment = Math.random() > 0.85 ? 0 : (Math.random() > 0.7 ? 2 : 1);
+            return Math.min(prev + increment, 100);
+          });
+        }, 200); // Slower progress
+
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const savedWorkspaces = localStorage.getItem('userWorkspaces');
+        if (savedWorkspaces) {
+          const parsedWorkspaces = JSON.parse(savedWorkspaces);
+          const workspacesWithDates = parsedWorkspaces.map((w: any) => ({
+            ...w,
+            createdAt: new Date(w.createdAt)
+          }));
+          setWorkspaces(workspacesWithDates);
+        }
+
+        clearInterval(interval);
+        setProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } catch (error) {
+        console.error('Error loading workspaces:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading workspaces:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  loadWorkspaces();
-}, []);
+    loadWorkspaces();
+  }, []);
 
   const createWorkspaceSlug = (name: string): string => {
     return name
@@ -61,29 +83,27 @@ const WorkspaceHomePage = () => {
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
+      // Windows 98 style alert
       alert("Workspace name is required");
       return;
     }
 
     const slug = createWorkspaceSlug(newWorkspaceName);
     
-    // Check if slug already exists
     if (workspaces.some(w => w.slug === slug)) {
       alert("A workspace with this name already exists");
       return;
     }
 
     const colors = [
-      "bg-blue-500",
-      "bg-indigo-500", 
-      "bg-purple-500",
-      "bg-pink-500",
-      "bg-red-500",
-      "bg-orange-500",
-      "bg-yellow-500",
-      "bg-green-500",
-      "bg-teal-500",
-      "bg-cyan-500"
+      "bg-blue-700",
+      "bg-red-700", 
+      "bg-green-700",
+      "bg-yellow-600",
+      "bg-purple-700",
+      "bg-teal-700",
+      "bg-pink-700",
+      "bg-indigo-700"
     ];
 
     const newWorkspace: Workspace = {
@@ -97,11 +117,12 @@ const WorkspaceHomePage = () => {
 
     const updatedWorkspaces = [...workspaces, newWorkspace];
     setWorkspaces(updatedWorkspaces);
-    
-    // Save to localStorage (replace with actual API call)
     localStorage.setItem('userWorkspaces', JSON.stringify(updatedWorkspaces));
 
-    // Navigate to the new workspace dashboard
+    setShowCreateModal(false);
+    setNewWorkspaceName("");
+    setNewWorkspaceDescription("");
+    
     router.push(`/dashboard/${slug}`);
   };
 
@@ -109,180 +130,410 @@ const WorkspaceHomePage = () => {
     router.push(`/dashboard/${workspace.slug}`);
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        theme === 'dark' ? 'bg-black' : 'bg-gray-50'
-      }`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+      <div className="fixed inset-0 bg-teal-900 flex flex-col items-center justify-center text-white font-sans">
+        {/* Windows 98 Boot Screen */}
+        <div className="w-full max-w-2xl border-4 border-gray-400 bg-gray-800 p-6">
+          <div className="border-2 border-gray-500 p-4 bg-black">
+            {/* Title */}
+            <div className="flex justify-center mb-6">
+              <h1 className="text-3xl font-bold text-yellow-400 text-center">
+                Arbitrage-OS
+              </h1>
+            </div>
+            
+            {/* Segmented Progress Bar */}
+            <div className="border-2 border-gray-500 bg-gray-700 h-8 mb-4 overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-600 to-blue-400 flex"
+                style={{ width: `${progress}%` }}
+              >
+                {Array.from({ length: 20 }).map((_, i) => (
+                  <div 
+                    key={i}
+                    className="h-full border-r border-blue-300 w-1/20 last:border-r-0"
+                  ></div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Loading Messages */}
+            <div className="font-mono text-sm space-y-1">
+              <p className={`flex items-center ${progress > 15 ? 'text-gray-300' : 'text-gray-500'}`}>
+                <span className="w-4">{progress > 15 ? '✓' : '>'}</span>
+                <span>Loading system files...</span>
+              </p>
+              <p className={`flex items-center ${progress > 35 ? 'text-gray-300' : 'text-gray-500'}`}>
+                <span className="w-4">{progress > 35 ? '✓' : '>'}</span>
+                <span>Initializing workspace manager...</span>
+              </p>
+              <p className={`flex items-center ${progress > 65 ? 'text-gray-300' : 'text-gray-500'}`}>
+                <span className="w-4">{progress > 65 ? '✓' : '>'}</span>
+                <span>Connecting to data stores...</span>
+              </p>
+              <p className={`flex items-center ${progress > 85 ? 'text-gray-300' : 'text-gray-500'}`}>
+                <span className="w-4">{progress > 85 ? '✓' : '>'}</span>
+                <span>Preparing desktop environment...</span>
+              </p>
+              {progress >= 100 && (
+                <p className="text-green-400 font-bold mt-4 animate-pulse">
+                  System ready. Loading desktop...
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${
-      theme === 'dark' ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">
-            Welcome to <span className="text-indigo-500">Arbitrage-OS</span>
-          </h1>
-          <p className={`text-xl ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            {workspaces.length === 0 
-              ? "Create your first workspace to get started"
-              : "Choose a workspace or create a new one"
-            }
-          </p>
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700 bg-opacity-50">
+      {/* Desktop Background */}
+      <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
+        {/* Desktop Icons */}
+        <div 
+          className="absolute left-4 top-4 flex flex-col items-center w-20 text-center text-white cursor-pointer"
+          onDoubleClick={() => setActiveWindow('my-computer')}
+        >
+          <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
+            <HardDrive className="w-8 h-8" />
+          </div>
+          <span className="text-xs bg-blue-700 px-1 hover:bg-blue-800">My Computer</span>
+        </div>
+        
+        <div 
+          className="absolute left-4 top-24 flex flex-col items-center w-20 text-center text-white cursor-pointer"
+          onDoubleClick={() => setActiveWindow('documents')}
+        >
+          <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
+            <FolderIcon className="w-8 h-8" />
+          </div>
+          <span className="text-xs bg-blue-700 px-1 hover:bg-blue-800">My Documents</span>
+        </div>
+        
+        <div 
+          className="absolute left-4 top-44 flex flex-col items-center w-20 text-center text-white cursor-pointer"
+          onDoubleClick={() => setActiveWindow('recycle-bin')}
+        >
+          <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
+            <Trash2 className="w-8 h-8" />
+          </div>
+          <span className="text-xs bg-blue-700 px-1 hover:bg-blue-800">Recycle Bin</span>
         </div>
 
-        {/* Workspaces Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {/* Create New Workspace Card */}
-          <div
-            onClick={() => setShowCreateModal(true)}
-            className={`
-              ${theme === 'dark' 
-                ? 'bg-gray-900 border-gray-700 hover:bg-gray-800' 
-                : 'bg-white border-gray-200 hover:bg-gray-50'
-              }
-              border-2 border-dashed rounded-lg p-8 cursor-pointer
-              transition-all duration-200 hover:border-indigo-500
-              flex flex-col items-center justify-center min-h-[200px]
-              group
-            `}
-          >
-            <PlusIcon className="w-12 h-12 text-indigo-500 mb-4 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-semibold mb-2">Create Workspace</h3>
-            <p className={`text-sm text-center ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              Start a new workspace for your projects
-            </p>
-          </div>
+        {/* Main Workspace Window */}
+        {activeWindow === 'workspaces' && (
+          <div className="ml-28 h-full overflow-y-auto">
+            <div className="max-w-6xl mx-auto py-8">
+              <div className="border-2 border-gray-400 bg-gray-300 mb-4 shadow-lg">
+                {/* Window Title Bar */}
+                <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <FolderIcon className="w-4 h-4 mr-2" />
+                    <span className="font-bold">Your Workspaces</span>
+                  </div>
+                  <div className="flex space-x-1">
+                    <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                      <span className="text-xs">_</span>
+                    </div>
+                    <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                      <span className="text-xs">□</span>
+                    </div>
+                    <div 
+                      className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                      onClick={() => setActiveWindow('')}
+                    >
+                      <span className="text-xs">×</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Window Content */}
+                <div className="p-4 bg-gray-200">
+                  {/* Workspaces Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {/* Create New Workspace Card */}
+                    <div
+                      onClick={() => setShowCreateModal(true)}
+                      className="border-2 border-gray-400 bg-gray-100 p-4 cursor-pointer hover:border-blue-500 hover:shadow-md"
+                    >
+                      <div className="w-16 h-16 bg-blue-700 flex items-center justify-center mx-auto mb-2 hover:bg-blue-800">
+                        <PlusIcon className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="font-bold text-center mb-1">New Workspace</h3>
+                      <p className="text-xs text-center text-gray-700">
+                        Create a new workspace
+                      </p>
+                    </div>
 
-          {/* Existing Workspaces */}
-          {workspaces.map((workspace) => (
-            <div
-              key={workspace.id}
-              onClick={() => handleWorkspaceClick(workspace)}
-              className={`
-                ${theme === 'dark' 
-                  ? 'bg-gray-900 border-gray-700 hover:bg-gray-800' 
-                  : 'bg-white border-gray-200 hover:bg-gray-50'
-                }
-                border rounded-lg p-6 cursor-pointer
-                transition-all duration-200 hover:shadow-lg hover:scale-105
-                flex flex-col min-h-[200px] group
-              `}
-            >
-              <div className="flex items-center mb-4">
-                <div className={`w-12 h-12 ${workspace.color} rounded-lg flex items-center justify-center mr-3`}>
-                  <FolderIcon className="w-6 h-6 text-white" />
+                    {/* Existing Workspaces */}
+                    {workspaces.map((workspace) => (
+                      <div
+                        key={workspace.id}
+                        onDoubleClick={() => handleWorkspaceClick(workspace)}
+                        className="border-2 border-gray-400 bg-gray-100 p-4 cursor-pointer hover:border-blue-500 hover:shadow-md"
+                      >
+                        <div className="flex items-start mb-2">
+                          <div className={`w-10 h-10 ${workspace.color} flex items-center justify-center mr-2`}>
+                            <FolderIcon className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sm">{workspace.name}</h3>
+                            <p className="text-xs text-gray-600">
+                              Created {workspace.createdAt.toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        {workspace.description && (
+                          <p className="text-xs text-gray-700 mt-1">
+                            {workspace.description}
+                          </p>
+                        )}
+                        <div className="mt-2 text-xs text-blue-700 font-bold">
+                          Double-click to open
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg">{workspace.name}</h3>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Created {workspace.createdAt.toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              
-              {workspace.description && (
-                <p className={`text-sm mb-4 flex-1 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  {workspace.description}
-                </p>
-              )}
-              
-              <div className="flex items-center text-indigo-500 text-sm font-medium group-hover:text-indigo-600">
-                Open workspace
-                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
-          ))}
+          </div>
+        )}
+
+        {/* My Computer Window */}
+        {activeWindow === 'my-computer' && (
+          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
+            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+              <div className="flex items-center">
+                <HardDrive className="w-4 h-4 mr-2" />
+                <span className="font-bold">My Computer</span>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
+                <div 
+                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                  onClick={() => setActiveWindow('')}
+                >
+                  <span className="text-xs">×</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-200 grid grid-cols-3 gap-4">
+              {['Local Disk (C:)', 'Local Disk (D:)', 'CD-ROM (E:)', 'Network', 'Control Panel', 'Printers'].map((item) => (
+                <div key={item} className="flex flex-col items-center cursor-pointer">
+                  <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
+                    <HardDrive className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xs text-center">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Shutdown Dialog */}
+        {showShutdown && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="border-2 border-gray-400 bg-gray-300 w-80">
+              <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+                <div className="flex items-center">
+                  <Power className="w-4 h-4 mr-2" />
+                  <span className="font-bold">Shut Down</span>
+                </div>
+                <div className="flex space-x-1">
+                  <div 
+                    className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                    onClick={() => setShowShutdown(false)}
+                  >
+                    <span className="text-xs">×</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-gray-200">
+                <p className="mb-4">Are you sure you want to shut down your computer?</p>
+                <div className="flex justify-end space-x-2">
+                  <button 
+                    className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
+                    onClick={() => setShowShutdown(false)}
+                  >
+                    No
+                  </button>
+                  <button 
+                    className="px-4 py-1 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800"
+                    onClick={() => {
+                      // In a real app, this would log the user out
+                      alert("System shutting down...");
+                      setShowShutdown(false);
+                    }}
+                  >
+                    Yes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Taskbar */}
+      <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
+        <button 
+          onClick={() => setShowStartMenu(!showStartMenu)}
+          className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600"
+        >
+          <Menu className="w-4 h-4 mr-1" />
+          Start
+        </button>
+        
+        {/* Taskbar Programs */}
+        <div className="flex-1 flex space-x-1 mx-2">
+          {activeWindow === 'workspaces' && (
+            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
+              <FolderIcon className="w-4 h-4 mr-1" />
+              Your Workspaces
+            </button>
+          )}
+        </div>
+        
+        {/* System Tray */}
+        <div className="flex items-center space-x-1">
+          <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
+            <Clock className="w-4 h-4 mr-1" />
+            <span className="text-xs">
+              {formatTime(currentTime)}
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* Start Menu */}
+      {showStartMenu && (
+        <div className="absolute bottom-10 left-0 w-64 bg-gray-300 border-2 border-gray-400 shadow-lg z-50">
+          <div className="bg-blue-700 text-white p-2 font-bold flex items-center">
+            <Menu className="w-4 h-4 mr-2" />
+            <span>Arbitrage-OS</span>
+          </div>
+          <div className="p-1">
+            <div className="hover:bg-blue-700 hover:text-white p-1 flex items-center cursor-pointer">
+              <FolderIcon className="w-4 h-4 mr-2" />
+              <span>Programs</span>
+              <span className="ml-auto">▶</span>
+            </div>
+            <div 
+              className="hover:bg-blue-700 hover:text-white p-1 flex items-center cursor-pointer"
+              onClick={() => {
+                setActiveWindow('documents');
+                setShowStartMenu(false);
+              }}
+            >
+              <File className="w-4 h-4 mr-2" />
+              <span>Documents</span>
+            </div>
+            <div 
+              className="hover:bg-blue-700 hover:text-white p-1 flex items-center cursor-pointer"
+              onClick={() => {
+                setActiveWindow('my-computer');
+                setShowStartMenu(false);
+              }}
+            >
+              <HardDrive className="w-4 h-4 mr-2" />
+              <span>My Computer</span>
+            </div>
+            <div className="border-t border-gray-400 mt-1 pt-1">
+              <div 
+                className="hover:bg-blue-700 hover:text-white p-1 flex items-center cursor-pointer"
+                onClick={() => {
+                  setShowShutdown(true);
+                  setShowStartMenu(false);
+                }}
+              >
+                <Power className="w-4 h-4 mr-2" />
+                <span>Shut Down...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Workspace Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`
-            ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}
-            border rounded-lg max-w-md w-full p-6
-          `}>
-            <h2 className="text-xl font-bold mb-4">Create New Workspace</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md">
+            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+              <div className="flex items-center">
+                <FolderIcon className="w-4 h-4 mr-2" />
+                <span className="font-bold">Create New Workspace</span>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
+                <div 
+                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  <span className="text-xs">×</span>
+                </div>
+              </div>
+            </div>
             
-            <div className="mb-4">
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Workspace Name *
-              </label>
-              <input
-                type="text"
-                value={newWorkspaceName}
-                onChange={(e) => setNewWorkspaceName(e.target.value)}
-                className={`
-                  w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500
-                  ${theme === 'dark' 
-                    ? 'bg-gray-800 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                  }
-                `}
-                placeholder="Enter workspace name"
-                autoFocus
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Description (optional)
-              </label>
-              <textarea
-                value={newWorkspaceDescription}
-                onChange={(e) => setNewWorkspaceDescription(e.target.value)}
-                className={`
-                  w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none
-                  ${theme === 'dark' 
-                    ? 'bg-gray-800 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                  }
-                `}
-                rows={3}
-                placeholder="Describe what this workspace is for"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setNewWorkspaceName("");
-                  setNewWorkspaceDescription("");
-                }}
-                className={`
-                  flex-1 px-4 py-2 border rounded-md font-medium
-                  ${theme === 'dark' 
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-800' 
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }
-                  transition-colors
-                `}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateWorkspace}
-                disabled={!newWorkspaceName.trim()}
-                className="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-md font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Create Workspace
-              </button>
+            <div className="p-4 bg-gray-200">
+              <div className="mb-4">
+                <label className="block text-sm font-bold mb-1">
+                  Workspace Name:
+                </label>
+                <input
+                  type="text"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  className="w-full px-2 py-1 border-2 border-gray-400 bg-white focus:outline-none focus:border-blue-500"
+                  placeholder="My Workspace"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-bold mb-1">
+                  Description (optional):
+                </label>
+                <textarea
+                  value={newWorkspaceDescription}
+                  onChange={(e) => setNewWorkspaceDescription(e.target.value)}
+                  className="w-full px-2 py-1 border-2 border-gray-400 bg-white h-20 focus:outline-none focus:border-blue-500"
+                  placeholder="What's this workspace for?"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 active:border-gray-500 active:bg-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateWorkspace}
+                  disabled={!newWorkspaceName.trim()}
+                  className="px-4 py-1 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Create
+                </button>
+              </div>
             </div>
           </div>
         </div>
