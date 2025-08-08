@@ -13,9 +13,12 @@ export const Layout: React.FC<PropsWithChildren> = ({ children }) => {
       <Menu />
       <div className="flex-1 min-w-0 flex flex-col overflow-x-hidden">
         <div className="flex items-center justify-between p-4">
-              <TutorialButton />
-          <Breadcrumb />
-      
+          <div className="flex-shrink-0">
+            <TutorialButton />
+          </div>
+          <div className="flex-grow ml-4">
+            <Breadcrumb />
+          </div>
         </div>
         <div className="flex-1 w-full min-w-0 overflow-y-auto">
           {children}

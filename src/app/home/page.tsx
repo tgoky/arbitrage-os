@@ -352,7 +352,7 @@ const WorkspaceHomePage = () => {
                     {workspaces.map((workspace) => (
                       <div
                         key={workspace.id}
-                        onDoubleClick={() => handleWorkspaceClick(workspace)}
+                         onClick={() => handleWorkspaceClick(workspace)} 
                         className="border-2 border-gray-400 bg-gray-100 p-4 cursor-pointer hover:border-blue-500 hover:shadow-md"
                       >
                         <div className="flex items-start mb-2">
