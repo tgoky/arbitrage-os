@@ -1,3 +1,5 @@
+"use client";
+
 // app/offer-creator/page.tsx
 import React, { useState } from 'react';
 import { 
