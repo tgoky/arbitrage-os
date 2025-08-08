@@ -309,7 +309,12 @@ export default function OfferCreatorPage() {
                     min={1}
                     max={100}
                     formatter={value => `${value}%`}
-                    parser={value => parseInt(value!.replace('%', ''), 10) || 0}
+                    parser={(value) => {
+                      if (!value) return 1;
+                      const parsed = parseInt(value.replace('%', ''), 10);
+                      if (isNaN(parsed)) return 1;
+                      return Math.max(1, Math.min(100, parsed));
+                    }}
                     style={{ width: '100%' }}
                   />
                 </Form.Item>

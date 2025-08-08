@@ -106,13 +106,20 @@ const PricingCalculator = () => {
                   </Tooltip>
                 </span>
               }
-              rules={[{ required: true, message: 'Please input estimated savings!' }]}
+              rules={[
+                { required: true, message: 'Please input estimated savings!' },
+                { type: 'number', min: 0, message: 'Savings must be a positive number!' }
+              ]}
             >
               <InputNumber
                 style={{ width: '100%' }}
                 formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={value => value!.replace(/\$\s?|(,*)/g, '')}
-                min={0}
+                parser={(value) => {
+                  if (!value) return undefined;
+                  const cleaned = value.replace(/\$\s?|(,*)/g, '');
+                  const parsed = parseFloat(cleaned);
+                  return isNaN(parsed) ? undefined : parsed;
+                }}
               />
             </Form.Item>
 
