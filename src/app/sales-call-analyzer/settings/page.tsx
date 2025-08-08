@@ -18,13 +18,15 @@ import {
   Space,
   Divider,
   Alert,
-  Switch
+  Switch,
+  message
 } from 'antd';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-export const SalesCallSettings = () => {
+// Remove the named export and make this the default component
+export default function SalesCallSettingsPage() {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('organization');
@@ -53,7 +55,7 @@ export const SalesCallSettings = () => {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      Alert.success('Settings saved successfully');
+      message.success('Settings saved successfully');
     }, 1500);
   };
 
@@ -113,7 +115,7 @@ export const SalesCallSettings = () => {
                   <Button
                     type="text"
                     icon={<EditOutlined />}
-                    onClick={() => Alert.info(`Edit ${framework.name} clicked`)}
+                    onClick={() => message.info(`Edit ${framework.name} clicked`)}
                   >
                     Edit
                   </Button>
@@ -223,6 +225,4 @@ export const SalesCallSettings = () => {
       </div>
     </div>
   );
-};
-
-export default SalesCallSettings;
+}
