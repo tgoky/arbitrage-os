@@ -1,6 +1,5 @@
 "use client";
 
-// app/offer-creator/page.tsx
 import React, { useState } from 'react';
 import { 
   ThunderboltOutlined,
@@ -41,7 +40,8 @@ const { Panel } = Collapse;
 const { Option } = Select;
 const { TextArea } = Input;
 
-const OfferCreator = () => {
+// Remove the named export and make this the default component
+export default function OfferCreatorPage() {
   const [form] = Form.useForm();
   const [generatedOffer, setGeneratedOffer] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -309,7 +309,7 @@ const OfferCreator = () => {
                     min={1}
                     max={100}
                     formatter={value => `${value}%`}
-                    parser={value => value!.replace('%', '')}
+                    parser={value => parseInt(value!.replace('%', ''), 10) || 0}
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
@@ -562,6 +562,4 @@ const OfferCreator = () => {
       )}
     </div>
   );
-};
-
-export default OfferCreator;
+}
