@@ -80,7 +80,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                   theme === "dark" ? "text-gray-200" : "text-gray-700"
                 }`}
               >
-                John Doe
+                username here
               </p>
               <p
                 className={`text-[0.75rem] ${

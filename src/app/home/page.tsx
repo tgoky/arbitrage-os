@@ -145,9 +145,11 @@ const WorkspaceHomePage = () => {
             <div className={`w-4 h-4 rounded-full mr-2 ${
               progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
             }`}></div>
-            <h2 className="text-xl font-mono font-medium">
-              {progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
-            </h2>
+              <h2 className={`text-xl font-mono font-medium ${
+        theme === 'dark' ? 'text-white' : 'text-gray-900'
+      }`}>
+        {progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
+      </h2>
           </div>
           
           <div className={`w-full h-2 rounded-full overflow-hidden ${
