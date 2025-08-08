@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
 import { PlusIcon, FolderIcon, ArrowRightIcon, Clock, HardDrive, File, Trash2, Menu, Power } from 'lucide-react';
+import Image from 'next/image';
 
 interface Workspace {
   id: string;
@@ -136,56 +137,40 @@ const WorkspaceHomePage = () => {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-teal-900 flex flex-col items-center justify-center text-white font-sans">
-        {/* Windows 98 Boot Screen */}
-        <div className="w-full max-w-2xl border-4 border-gray-400 bg-gray-800 p-6">
-          <div className="border-2 border-gray-500 p-4 bg-black">
-            {/* Title */}
-            <div className="flex justify-center mb-6">
-              <h1 className="text-3xl font-bold text-yellow-400 text-center">
-                Arbitrage-OS
-              </h1>
-            </div>
-            
-            {/* Segmented Progress Bar */}
-            <div className="border-2 border-gray-500 bg-gray-700 h-8 mb-4 overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-blue-600 to-blue-400 flex"
-                style={{ width: `${progress}%` }}
-              >
-                {Array.from({ length: 20 }).map((_, i) => (
-                  <div 
-                    key={i}
-                    className="h-full border-r border-blue-300 w-1/20 last:border-r-0"
-                  ></div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Loading Messages */}
-            <div className="font-mono text-sm space-y-1">
-              <p className={`flex items-center ${progress > 15 ? 'text-gray-300' : 'text-gray-500'}`}>
-                <span className="w-4">{progress > 15 ? '✓' : '>'}</span>
-                <span>Loading system files...</span>
-              </p>
-              <p className={`flex items-center ${progress > 35 ? 'text-gray-300' : 'text-gray-500'}`}>
-                <span className="w-4">{progress > 35 ? '✓' : '>'}</span>
-                <span>Initializing workspace manager...</span>
-              </p>
-              <p className={`flex items-center ${progress > 65 ? 'text-gray-300' : 'text-gray-500'}`}>
-                <span className="w-4">{progress > 65 ? '✓' : '>'}</span>
-                <span>Connecting to data stores...</span>
-              </p>
-              <p className={`flex items-center ${progress > 85 ? 'text-gray-300' : 'text-gray-500'}`}>
-                <span className="w-4">{progress > 85 ? '✓' : '>'}</span>
-                <span>Preparing desktop environment...</span>
-              </p>
-              {progress >= 100 && (
-                <p className="text-green-400 font-bold mt-4 animate-pulse">
-                  System ready. Loading desktop...
-                </p>
-              )}
-            </div>
+      <div className={`fixed inset-0 flex flex-col items-center justify-center ${
+        theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className="w-full max-w-md px-8">
+          <div className="flex items-center mb-2">
+            <div className={`w-4 h-4 rounded-full mr-2 ${
+              progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
+            }`}></div>
+            <h2 className="text-xl font-mono font-medium">
+              {progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
+            </h2>
+          </div>
+          
+          <div className={`w-full h-2 rounded-full overflow-hidden ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          }`}>
+            <div 
+              className={`h-full transition-all duration-300 ease-out ${
+                progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
+              }`}
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          
+          <div className="mt-4 font-mono text-sm space-y-1">
+            <p className={progress > 20 ? 'text-gray-400' : 'text-gray-500'}>
+              {progress > 20 ? '✓' : '⌛'} Initializing system...
+            </p>
+            <p className={progress > 50 ? 'text-gray-400' : 'text-gray-500'}>
+              {progress > 50 ? '✓' : '⌛'} Loading workspaces...
+            </p>
+            <p className={progress > 80 ? 'text-gray-400' : 'text-gray-500'}>
+              {progress > 80 ? '✓' : '⌛'} Preparing dashboard...
+            </p>
           </div>
         </div>
       </div>
@@ -193,40 +178,131 @@ const WorkspaceHomePage = () => {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700 bg-opacity-50">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
       {/* Desktop Background */}
       <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
         {/* Desktop Icons */}
-        <div 
-          className="absolute left-4 top-4 flex flex-col items-center w-20 text-center text-white cursor-pointer"
-          onDoubleClick={() => setActiveWindow('my-computer')}
-        >
-          <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
-            <HardDrive className="w-8 h-8" />
-          </div>
-          <span className="text-xs bg-blue-700 px-1 hover:bg-blue-800">My Computer</span>
-        </div>
-        
-        <div 
-          className="absolute left-4 top-24 flex flex-col items-center w-20 text-center text-white cursor-pointer"
-          onDoubleClick={() => setActiveWindow('documents')}
-        >
-          <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
-            <FolderIcon className="w-8 h-8" />
-          </div>
-          <span className="text-xs bg-blue-700 px-1 hover:bg-blue-800">My Documents</span>
-        </div>
-        
-        <div 
-          className="absolute left-4 top-44 flex flex-col items-center w-20 text-center text-white cursor-pointer"
-          onDoubleClick={() => setActiveWindow('recycle-bin')}
-        >
-          <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
-            <Trash2 className="w-8 h-8" />
-          </div>
-          <span className="text-xs bg-blue-700 px-1 hover:bg-blue-800">Recycle Bin</span>
-        </div>
+            {/* Desktop Icons Container - Added padding and gap */}
+<div className="absolute left-0 top-0 p-6 space-y-8 flex flex-col">
+  {/* My Computer Icon */}
+  <div 
+    className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+    onDoubleClick={() => setActiveWindow('my-computer')}
+  >
+    <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+      <svg 
+        width="56" 
+        height="56" 
+        viewBox="0 0 56 56" 
+        className="transition-transform group-hover:scale-110"
+      >
+        {/* Monitor Base */}
+        <rect x="8" y="12" width="40" height="30" rx="2" fill="#1084D0" />
+        {/* Screen */}
+        <rect x="12" y="16" width="32" height="22" fill="#000" />
+        {/* Screen Glare */}
+        <path d="M12 16 L44 16 L36 24 Z" fill="white" fillOpacity="0.2" />
+        {/* Monitor Stand */}
+        <rect x="24" y="42" width="8" height="4" fill="#595959" />
+        <rect x="20" y="46" width="16" height="4" fill="#808080" />
+      </svg>
+    </div>
+    <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+      My Computer
+    </span>
+  </div>
 
+  {/* Documents Icon */}
+  <div 
+    className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+    onDoubleClick={() => setActiveWindow('documents')}
+  >
+    <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+      <svg 
+        width="56" 
+        height="56" 
+        viewBox="0 0 56 56" 
+        className="transition-transform group-hover:scale-110"
+      >
+        {/* Folder Body */}
+        <path 
+          d="M10 16H46V46H10V16Z" 
+          fill="#FFCC00" 
+          stroke="#000" 
+          strokeWidth="1.5"
+        />
+        {/* Folder Tab */}
+        <path 
+          d="M10 16L20 8H36L46 16" 
+          fill="#FFCC00" 
+          stroke="#000" 
+          strokeWidth="1.5"
+        />
+        {/* Document Lines */}
+        <rect x="16" y="24" width="24" height="2" fill="#000" />
+        <rect x="16" y="28" width="20" height="2" fill="#000" />
+        <rect x="16" y="32" width="24" height="2" fill="#000" />
+        <rect x="16" y="36" width="18" height="2" fill="#000" />
+        {/* Fold Corner */}
+        <path 
+          d="M42 20L50 28V20H42Z" 
+          fill="#FFCC00" 
+          stroke="#000" 
+          strokeWidth="1.5"
+        />
+      </svg>
+    </div>
+    <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+      My Documents
+    </span>
+  </div>
+
+  {/* Recycle Bin Icon */}
+  <div 
+    className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+    onDoubleClick={() => setActiveWindow('recycle-bin')}
+  >
+    <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+      <svg 
+        width="56" 
+        height="56" 
+        viewBox="0 0 56 56" 
+        className="transition-transform group-hover:scale-110"
+      >
+        {/* Bin Body */}
+        <path 
+          d="M14 20H42V44H14V20Z" 
+          fill="#C0C0C0" 
+          stroke="#000" 
+          strokeWidth="1.5"
+        />
+        {/* Bin Top */}
+        <path 
+          d="M18 16H38V20H18V16Z" 
+          fill="#808080" 
+          stroke="#000" 
+          strokeWidth="1.5"
+        />
+        {/* Bin Lid Handle */}
+        <rect x="26" y="12" width="4" height="4" fill="#000" />
+        {/* Paper */}
+        <rect x="20" y="24" width="16" height="12" fill="#FFFFFF" stroke="#000" />
+        <rect x="24" y="28" width="8" height="1" fill="#000" />
+        <rect x="24" y="32" width="8" height="1" fill="#000" />
+        {/* Recycle Arrows */}
+        <path 
+          d="M28 16L32 12L36 16" 
+          stroke="#000" 
+          strokeWidth="1.5" 
+          fill="none"
+        />
+      </svg>
+    </div>
+    <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+      Recycle Bin
+    </span>
+  </div>
+</div>
         {/* Main Workspace Window */}
         {activeWindow === 'workspaces' && (
           <div className="ml-28 h-full overflow-y-auto">
