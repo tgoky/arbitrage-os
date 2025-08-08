@@ -178,7 +178,7 @@ const PricingCalculator = () => {
             Your Custom Offer Pricing
           </Title>
           <Text type="secondary" className="block mb-4">
-            Here's the recommended fee to maintain the desired ROI for your client
+            Here is the recommended fee to maintain the desired ROI for your client
           </Text>
 
           <div className="space-y-6">
