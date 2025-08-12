@@ -3,21 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
-import { useWorkspace } from '../hooks/useWorkspace';
 import { PlusIcon, FolderIcon, ArrowRightIcon, Clock, HardDrive, File, Trash2, Menu, Power } from 'lucide-react';
 import Image from 'next/image';
+
+interface Workspace {
+  id: string;
+  name: string;
+  color: string;
+  slug: string;
+  createdAt: Date;
+  description?: string;
+}
 
 const WorkspaceHomePage = () => {
   const router = useRouter();
   const { theme } = useTheme();
-  
-  // Use the workspace hook instead of localStorage
-  const { 
-    workspaces, 
-    isLoading: workspaceLoading, 
-    createWorkspace 
-  } = useWorkspace();
-  
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
@@ -30,7 +31,6 @@ const WorkspaceHomePage = () => {
   const [navigating, setNavigating] = useState(false);
   const [navigationProgress, setNavigationProgress] = useState(0);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
 
   // Update time every second
   useEffect(() => {
@@ -38,61 +38,99 @@ const WorkspaceHomePage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Boot sequence effect - wait for workspace loading to complete
+  // Load workspaces with Windows 98 style loading
   useEffect(() => {
-    const runBootSequence = async () => {
-      // Simulate Windows 98 boot sequence
-      const interval = setInterval(() => {
-        setProgress(prev => {
-          // Random progress increments with occasional pauses
-          const increment = Math.random() > 0.85 ? 0 : (Math.random() > 0.7 ? 2 : 1);
-          return Math.min(prev + increment, 100);
-        });
-      }, 200);
+    const loadWorkspaces = async () => {
+      try {
+        // Simulate Windows 98 boot sequence
+        const interval = setInterval(() => {
+          setProgress(prev => {
+            // Random progress increments with occasional pauses
+            const increment = Math.random() > 0.85 ? 0 : (Math.random() > 0.7 ? 2 : 1);
+            return Math.min(prev + increment, 100);
+          });
+        }, 200); // Slower progress
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      clearInterval(interval);
-      setProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setIsLoading(false);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const savedWorkspaces = localStorage.getItem('userWorkspaces');
+        if (savedWorkspaces) {
+          const parsedWorkspaces = JSON.parse(savedWorkspaces);
+          const workspacesWithDates = parsedWorkspaces.map((w: any) => ({
+            ...w,
+            createdAt: new Date(w.createdAt)
+          }));
+          setWorkspaces(workspacesWithDates);
+        }
+
+        clearInterval(interval);
+        setProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } catch (error) {
+        console.error('Error loading workspaces:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // Only start boot sequence after workspace loading is done
-    if (!workspaceLoading) {
-      runBootSequence();
-    }
-  }, [workspaceLoading]);
+    loadWorkspaces();
+  }, []);
+
+  const createWorkspaceSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  };
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
+      // Windows 98 style alert
       alert("Workspace name is required");
       return;
     }
 
-    setIsCreating(true);
+    const slug = createWorkspaceSlug(newWorkspaceName);
     
-    try {
-      const newWorkspace = await createWorkspace(
-        newWorkspaceName.trim(),
-        newWorkspaceDescription.trim() || undefined
-      );
-
-      setShowCreateModal(false);
-      setNewWorkspaceName("");
-      setNewWorkspaceDescription("");
-      
-      // Navigate to the new workspace
-      router.push(`/dashboard/${newWorkspace.slug}`);
-    } catch (error) {
-      console.error('Error creating workspace:', error);
-      alert(`Error creating workspace: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsCreating(false);
+    if (workspaces.some(w => w.slug === slug)) {
+      alert("A workspace with this name already exists");
+      return;
     }
+
+    const colors = [
+      "bg-blue-700",
+      "bg-red-700", 
+      "bg-green-700",
+      "bg-yellow-600",
+      "bg-purple-700",
+      "bg-teal-700",
+      "bg-pink-700",
+      "bg-indigo-700"
+    ];
+
+    const newWorkspace: Workspace = {
+      id: Date.now().toString(),
+      name: newWorkspaceName.trim(),
+      slug,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      description: newWorkspaceDescription.trim() || undefined,
+      createdAt: new Date()
+    };
+
+    const updatedWorkspaces = [...workspaces, newWorkspace];
+    setWorkspaces(updatedWorkspaces);
+    localStorage.setItem('userWorkspaces', JSON.stringify(updatedWorkspaces));
+
+    setShowCreateModal(false);
+    setNewWorkspaceName("");
+    setNewWorkspaceDescription("");
+    
+    router.push(`/dashboard/${slug}`);
   };
 
-  const handleWorkspaceClick = (workspace: any) => {
+  const handleWorkspaceClick = (workspace: Workspace) => {
     setSelectedWorkspace(workspace.name);
     setNavigating(true);
     setNavigationProgress(0);
@@ -120,8 +158,7 @@ const WorkspaceHomePage = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Show loading during boot sequence OR workspace loading
-  if (isLoading || workspaceLoading) {
+  if (isLoading) {
     return (
       <div className={`fixed inset-0 flex flex-col items-center justify-center ${
         theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
@@ -134,7 +171,7 @@ const WorkspaceHomePage = () => {
               <h2 className={`text-xl font-mono font-medium ${
         theme === 'dark' ? 'text-white' : 'text-gray-900'
       }`}>
-        {workspaceLoading ? 'Loading Workspaces' : progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
+        {progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
       </h2>
           </div>
           
@@ -145,19 +182,19 @@ const WorkspaceHomePage = () => {
               className={`h-full transition-all duration-300 ease-out ${
                 progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
               }`}
-              style={{ width: workspaceLoading ? '100%' : `${progress}%` }}
+              style={{ width: `${progress}%` }}
             ></div>
           </div>
           
           <div className="mt-4 font-mono text-sm space-y-1">
-            <p className={progress > 20 || workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
-              {progress > 20 || workspaceLoading ? '✓' : '⌛'} Initializing system...
+            <p className={progress > 20 ? 'text-gray-400' : 'text-gray-500'}>
+              {progress > 20 ? '✓' : '⌛'} Initializing system...
             </p>
-            <p className={progress > 50 || workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
-              {progress > 50 || workspaceLoading ? '✓' : '⌛'} Loading workspaces...
+            <p className={progress > 50 ? 'text-gray-400' : 'text-gray-500'}>
+              {progress > 50 ? '✓' : '⌛'} Loading workspaces...
             </p>
-            <p className={progress > 80 && !workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
-              {progress > 80 && !workspaceLoading ? '✓' : '⌛'} Preparing dashboard...
+            <p className={progress > 80 ? 'text-gray-400' : 'text-gray-500'}>
+              {progress > 80 ? '✓' : '⌛'} Preparing dashboard...
             </p>
           </div>
         </div>
@@ -360,7 +397,7 @@ const WorkspaceHomePage = () => {
                       </p>
                     </div>
 
-                    {/* Existing Workspaces from Supabase */}
+                    {/* Existing Workspaces */}
                     {workspaces.map((workspace) => (
                       <div
                         key={workspace.id}
@@ -374,7 +411,7 @@ const WorkspaceHomePage = () => {
                           <div>
                             <h3 className="font-bold text-sm">{workspace.name}</h3>
                             <p className="text-xs text-gray-600">
-                              Created {new Date(workspace.created_at).toLocaleDateString()}
+                              Created {workspace.createdAt.toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -388,13 +425,6 @@ const WorkspaceHomePage = () => {
                         </div>
                       </div>
                     ))}
-
-                    {/* Show message if no workspaces */}
-                    {workspaces.length === 0 && (
-                      <div className="col-span-full text-center py-8">
-                        <p className="text-gray-600 mb-4">No workspaces found. Create your first workspace to get started!</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -468,6 +498,7 @@ const WorkspaceHomePage = () => {
                   <button 
                     className="px-4 py-1 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800"
                     onClick={() => {
+                      // In a real app, this would log the user out
                       alert("System shutting down...");
                       setShowShutdown(false);
                     }}
@@ -616,17 +647,16 @@ const WorkspaceHomePage = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  disabled={isCreating}
-                  className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 active:border-gray-500 active:bg-gray-500 disabled:opacity-50"
+                  className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 active:border-gray-500 active:bg-gray-500"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateWorkspace}
-                  disabled={!newWorkspaceName.trim() || isCreating}
+                  disabled={!newWorkspaceName.trim()}
                   className="px-4 py-1 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCreating ? 'Creating...' : 'Create'}
+                  Create
                 </button>
               </div>
             </div>

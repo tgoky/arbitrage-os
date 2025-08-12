@@ -4,6 +4,7 @@ import { AuthPage as AuthPageBase } from "@refinedev/core";
 import type { AuthPageProps } from "@refinedev/core";
 import { useState, useEffect } from "react";
 import { HardDrive, File, Trash2, Edit, Brush, Clock } from "lucide-react";
+import Link from "next/link";
 
 export const AuthPage = (props: AuthPageProps) => {
   const [showCreds, setShowCreds] = useState(false);
@@ -18,6 +19,15 @@ export const AuthPage = (props: AuthPageProps) => {
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Override the AuthPageBase props to handle navigation properly
+  const authProps = {
+    ...props,
+    registerLink: props.type === "login" ? "/register" : undefined,
+    loginLink: props.type === "register" ? "/login" : undefined,
+    // Add forgotPasswordLink if you have a forgot password page
+    // forgotPasswordLink: "/forgot-password",
   };
 
   return (
@@ -196,10 +206,10 @@ export const AuthPage = (props: AuthPageProps) => {
             <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
               <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
                 <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="current polygons">
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
                   </svg>
-                  <span className="font-bold">Arbitrage-OS Login</span>
+                  <span className="font-bold">Arbitrage-OS {props.type === "login" ? "Login" : "Register"}</span>
                 </div>
                 <div className="flex space-x-1">
                   <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
@@ -217,23 +227,49 @@ export const AuthPage = (props: AuthPageProps) => {
                 </div>
               </div>
               <div className="p-4 bg-gray-200">
-                <button
-                  onClick={() => setShowCreds(!showCreds)}
-                  className="w-full mb-4 px-4 py-2 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900"
-                >
-                  {showCreds ? "Hide Demo Credentials" : "Show Demo Credentials"}
-                </button>
-                {showCreds && (
-                  <div className="mb-4 p-3 bg-blue-100 border-2 border-blue-300 text-blue-800">
-                    <p className="font-bold">Demo Account:</p>
-                    <p>Username: demo@refine.dev</p>
-                    <p>Password: demodemo</p>
-                  </div>
+                {props.type === "login" && (
+                  <>
+                    <button
+                      onClick={() => setShowCreds(!showCreds)}
+                      className="w-full mb-4 px-4 py-2 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900"
+                    >
+                      {showCreds ? "Hide Demo Credentials" : "Show Demo Credentials"}
+                    </button>
+                    {showCreds && (
+                      <div className="mb-4 p-3 bg-blue-100 border-2 border-blue-300 text-blue-800">
+                        <p className="font-bold">Demo Account:</p>
+                        <p>Username: demo@refine.dev</p>
+                        <p>Password: demodemo</p>
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-               <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-  <AuthPageBase {...props} />
-</div>
+                  <style jsx global>{`
+                    /* Hide Refine's default auth links if they're not working */
+                    .ant-card-actions {
+                      display: none !important;
+                    }
+                  `}</style>
+                  <AuthPageBase {...authProps} />
+                  {/* Add manual navigation links */}
+                  <div className="text-center mt-4">
+                    {props.type === "login" ? (
+                      <p className="text-sm">
+                        Dont have an account?{" "}
+                        <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                          Sign up
+                        </Link>
+                      </p>
+                    ) : (
+                      <p className="text-sm">
+                        Already have an account?{" "}
+                        <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                          Sign in
+                        </Link>
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-4 flex justify-between items-center">
                   <button className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400">
@@ -425,7 +461,7 @@ export const AuthPage = (props: AuthPageProps) => {
               <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
               </svg>
-              Arbitrage-OS Login
+              Arbitrage-OS {props.type === "login" ? "Login" : "Register"}
             </button>
           )}
           {activeWindow === "my-computer" && (

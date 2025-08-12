@@ -1,12 +1,11 @@
 // app/dashboard/[workspace]/page.tsx
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useList } from '@refinedev/core';
 import { Grid } from 'antd';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { useWorkspace } from '../../hooks/useWorkspace';
 import WelcomePanel from '../components/welcomepanel';
 import QuickStartActions from '../components/quickactions';
 import ActivityFeed from '../components/activityfeed';
@@ -16,6 +15,15 @@ import { AutomationItem, ActivityItem, Deliverable, AgentRecord, WorkflowRecord,
 
 const { useBreakpoint } = Grid;
 
+interface Workspace {
+  id: string;
+  name: string;
+  color: string;
+  slug: string;
+  createdAt: Date;
+  description?: string;
+}
+
 const WorkspaceDashboard = () => {
   const params = useParams();
   const router = useRouter();
@@ -23,58 +31,58 @@ const WorkspaceDashboard = () => {
   const { theme } = useTheme();
   const workspaceSlug = params?.workspace as string;
   
-  // Use the workspace hook instead of local state
-  const { 
-    currentWorkspace, 
-    workspaces, 
-    isLoading, 
-    switchWorkspace 
-  } = useWorkspace();
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Ensure we're on the right workspace
+  // Load workspace data
   useEffect(() => {
-    if (!isLoading && workspaceSlug && workspaces.length > 0) {
-      const workspace = workspaces.find(w => w.slug === workspaceSlug);
-      if (workspace && (!currentWorkspace || currentWorkspace.slug !== workspaceSlug)) {
-        switchWorkspace(workspaceSlug);
-      } else if (!workspace) {
-        // Workspace not found, redirect to first available workspace or home
-        if (workspaces.length > 0) {
-          router.push(`/dashboard/${workspaces[0].slug}`);
+    const loadWorkspace = async () => {
+      try {
+        // This would typically be an API call
+        const savedWorkspaces = localStorage.getItem('userWorkspaces');
+        if (savedWorkspaces) {
+          const workspaces: Workspace[] = JSON.parse(savedWorkspaces);
+          const workspace = workspaces.find(w => w.slug === workspaceSlug);
+          
+          if (workspace) {
+            setCurrentWorkspace(workspace);
+          } else {
+            setError('Workspace not found');
+          }
         } else {
-          router.push('/');
+          setError('No workspaces found');
         }
+      } catch (err) {
+        console.error('Error loading workspace:', err);
+        setError('Failed to load workspace');
+      } finally {
+        setIsLoading(false);
       }
+    };
+
+    if (workspaceSlug) {
+      loadWorkspace();
     }
-  }, [workspaceSlug, workspaces, currentWorkspace, isLoading, switchWorkspace, router]);
+  }, [workspaceSlug]);
 
   // Fetch data with workspace context
   const { data: clientsData } = useList({ 
     resource: 'clients',
-    filters: currentWorkspace ? [
-      { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
-    ] : []
+    // Add workspace filter here when implementing API
+    // filters: [{ field: 'workspaceId', operator: 'eq', value: currentWorkspace?.id }]
   });
-  
   const { data: agentsData } = useList<AgentRecord>({ 
     resource: 'agents',
-    filters: currentWorkspace ? [
-      { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
-    ] : []
+    // filters: [{ field: 'workspaceId', operator: 'eq', value: currentWorkspace?.id }]
   });
-  
   const { data: workflowsData } = useList<WorkflowRecord>({ 
     resource: 'workflows',
-    filters: currentWorkspace ? [
-      { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
-    ] : []
+    // filters: [{ field: 'workspaceId', operator: 'eq', value: currentWorkspace?.id }]
   });
-  
   const { data: deliverablesData } = useList<DeliverableRecord>({ 
     resource: 'deliverables',
-    filters: currentWorkspace ? [
-      { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
-    ] : []
+    // filters: [{ field: 'workspaceId', operator: 'eq', value: currentWorkspace?.id }]
   });
 
   const clients = clientsData?.data || [];
@@ -149,7 +157,7 @@ const WorkspaceDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
+      <div className={`min-h-screen flex items-center justify-center  ${
         theme === 'dark' ? 'bg-black' : 'bg-white'
       }`}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
@@ -157,7 +165,7 @@ const WorkspaceDashboard = () => {
     );
   }
 
-  if (!currentWorkspace) {
+  if (error || !currentWorkspace) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${
         theme === 'dark' ? 'bg-black text-white' : 'bg-white text-gray-900'
@@ -188,8 +196,8 @@ const WorkspaceDashboard = () => {
       }}
     >
       {/* Workspace Header */}
-      {/* <div className="mb-6">
-        <div className="flex items-center mb-2">
+      <div className="mb-6">
+        {/* <div className="flex items-center mb-2">
           <div className={`w-8 h-8 ${currentWorkspace.color} rounded-lg flex items-center justify-center mr-3`}>
             <span className="text-white font-semibold text-sm">
               {currentWorkspace.name.charAt(0).toUpperCase()}
@@ -203,8 +211,8 @@ const WorkspaceDashboard = () => {
               </p>
             )}
           </div>
-        </div>
-      </div> */}
+        </div> */}
+      </div>
 
       {/* Dashboard Content */}
       <WelcomePanel

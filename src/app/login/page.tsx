@@ -1,5 +1,6 @@
-import { AuthPage } from "@components/auth-page";
-import { authProviderServer } from "@providers/auth-provider/auth-provider.server";
+// src/app/(auth)/login/page.tsx
+import { AuthPage } from "@/components/auth-page";
+import { authProviderServer } from "@/providers/auth-provider/auth-provider.server";
 import { redirect } from "next/navigation";
 
 export default async function Login() {

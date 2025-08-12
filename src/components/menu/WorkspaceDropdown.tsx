@@ -5,13 +5,14 @@ import { useEffect, useRef } from "react";
 interface Workspace {
   name: string;
   color: string;
+  slug: string; // Add slug to interface
 }
 
 interface WorkspaceDropdownProps {
   workspaceDropdownOpen: boolean;
   workspaces: Workspace[];
   currentWorkspace: string;
-  switchWorkspace: (name: string) => void;
+  switchWorkspace: (slug: string) => void; // Switch by slug instead of name
   setCreateWorkspaceModalOpen: (open: boolean) => void;
   setWorkspaceDropdownOpen: (open: boolean) => void;
 }
@@ -51,7 +52,7 @@ export const WorkspaceDropdown = ({
       ref={dropdownRef}
       className={`absolute left-1/2 -translate-x-1/2 top-full mt-1 rounded-lg shadow-lg z-50 w-64 ${
         theme === "dark" ? "bg-zinc-900" : "bg-white"
-      }`} // Removed border from container
+      }`}
     >
       {/* Search Bar */}
       <div className="p-2">
@@ -60,13 +61,13 @@ export const WorkspaceDropdown = ({
             theme === "dark" ? "bg-zinc-900" : "bg-white"
           }`}
         >
-          <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" /> {/* Increased icon size */}
+          <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           <input
             type="text"
             placeholder="Search..."
             className={`w-full bg-transparent text-sm outline-none border-none ${
               theme === "dark" ? "text-gray-200 placeholder-gray-500" : "text-gray-700 placeholder-gray-400"
-            }`} // Increased font size, removed border
+            }`}
           />
         </div>
       </div>
@@ -116,9 +117,9 @@ export const WorkspaceDropdown = ({
       <div className="py-0.5 max-h-48 overflow-y-auto">
         {workspaces.map((workspace) => (
           <button
-            key={workspace.name}
+            key={workspace.slug} // Use slug as key
             onClick={() => {
-              switchWorkspace(workspace.name);
+              switchWorkspace(workspace.slug); // Pass slug instead of name
               setWorkspaceDropdownOpen(false);
             }}
             className={`w-full flex items-center gap-2 px-2 py-1.5 border-none ${

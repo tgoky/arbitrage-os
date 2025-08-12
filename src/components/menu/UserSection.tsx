@@ -1,12 +1,34 @@
+// components/menu/UserSection.tsx
 import { useTheme } from "../../providers/ThemeProvider";
+import { useGetIdentity } from "@refinedev/core";
+import { useState, useEffect } from "react";
 
 interface UserSectionProps {
   collapsed: boolean;
   handleLogout: () => void;
 }
 
+interface UserIdentity {
+  id: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+}
+
 export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   const { theme } = useTheme();
+  const { data: identity, isLoading } = useGetIdentity<UserIdentity>();
+  const [userInitial, setUserInitial] = useState("U");
+
+  useEffect(() => {
+    if (identity) {
+      // Get initial from name or email
+      const initial = identity.name?.charAt(0).toUpperCase() || 
+                     identity.email?.charAt(0).toUpperCase() || 
+                     "U";
+      setUserInitial(initial);
+    }
+  }, [identity]);
 
   return (
     <div
@@ -41,7 +63,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
           className={`w-full flex items-center gap-1.5 mb-2 p-2 rounded-md ${
             theme === "dark"
               ? "bg-black text-gray-400 hover:bg-gray-800 hover:text-gray-300 border-none"
-              : "bg-white ext-gray-500 hover:bg-gray-100 hover:text-gray-600 border-none"
+              : "bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-600 border-none"
           } transition-colors`}
           aria-label="Workspace Settings"
           title="Workspace Settings"
@@ -71,30 +93,47 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
       <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed ? (
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-              U
-            </div>
+            {identity?.avatar ? (
+              <img 
+                src={identity.avatar} 
+                alt={identity.name || identity.email || "User"}
+                className="h-8 w-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                {isLoading ? "..." : userInitial}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p
                 className={`text-xs font-medium truncate ${
                   theme === "dark" ? "text-gray-200" : "text-gray-700"
                 }`}
               >
-                username here
+                {isLoading ? "Loading..." : (identity?.name || "User")}
               </p>
               <p
-                className={`text-[0.75rem] ${
+                className={`text-[0.75rem] truncate ${
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 }`}
+                title={identity?.email}
               >
-                admin@julsmedia.com
+                {isLoading ? "..." : (identity?.email || "No email")}
               </p>
             </div>
           </div>
         ) : (
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-            U
-          </div>
+          identity?.avatar ? (
+            <img 
+              src={identity.avatar} 
+              alt={identity.name || identity.email || "User"}
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+              {isLoading ? "..." : userInitial}
+            </div>
+          )
         )}
         <button
           onClick={handleLogout}
