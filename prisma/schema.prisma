@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["public"]
+}
+
+// Only keep your application models, remove all auth schema models
+model Workspace {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String?   @map("user_id") @db.Uuid
+  name        String    @db.VarChar(255)
+  slug        String    @db.VarChar(255)
+  description String?
+  color       String?   @default("bg-blue-700") @db.VarChar(50)
+  created_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
+  updated_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  deliverables Deliverable[] 
+
+  @@unique([user_id, slug])
+  @@index([slug], map: "idx_workspaces_slug")
+  @@index([user_id], map: "idx_workspaces_user_id")
+  @@map("workspaces")
+  @@schema("public")
+}
+
+model Deliverable {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String   @db.VarChar(255)
+  content     String   @db.Text
+  type        String   @db.VarChar(100)
+  user_id     String   @db.Uuid
+  workspace_id String  @db.Uuid
+  client_id   String?  @db.Uuid
+  metadata    Json?
+  tags        String[]
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
+
+  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_deliverables_user_id")
+  @@index([workspace_id], map: "idx_deliverables_workspace_id")
+  @@map("deliverables")
+  @@schema("public")
+}

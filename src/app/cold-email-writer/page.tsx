@@ -12,7 +12,11 @@ import {
   DownloadOutlined,
   InfoCircleOutlined,
   BulbOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  TeamOutlined,
+  WarningOutlined,
+  EyeOutlined,
+  SelectOutlined
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -27,9 +31,15 @@ import {
   Tag,
   Alert,
   Collapse,
-  Popover,
   Tooltip,
-  Badge
+  Badge,
+  message,
+  Slider,
+  Segmented,
+  Switch,
+  List,
+  Modal,
+  Table
 } from 'antd';
 
 const { Title, Text } = Typography;
@@ -37,12 +47,45 @@ const { Panel } = Collapse;
 const { Option } = Select;
 const { TextArea } = Input;
 
+interface GeneratedEmail {
+  subject: string;
+  body: string;
+  signature: string;
+  method: string;
+  followUpSequence?: GeneratedEmail[];
+  metadata?: {
+    targetIndustry: string;
+    targetRole: string;
+    generatedAt: string;
+    variationIndex?: number;
+    dayInterval?: number;
+    sequenceNumber?: number;
+  };
+}
+
+interface EmailTemplate {
+  id: string;
+  userId: string;
+  name: string;
+  subject: string;
+  body: string;
+  method: string;
+  metadata?: {
+    targetIndustry: string;
+    targetRole: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 const ColdEmailWriter = () => {
   const [form] = Form.useForm();
   const [emailMethod, setEmailMethod] = useState('direct');
-  const [generatedEmail, setGeneratedEmail] = useState('');
+  const [generatedEmails, setGeneratedEmails] = useState<GeneratedEmail[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4']);
+  const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
+  const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
 
   const emailMethods = [
     {
@@ -76,6 +119,22 @@ const ColdEmailWriter = () => {
       icon: <BulbOutlined />,
       effectiveness: 'High (38% response rate)',
       bestFor: 'Lead generation with high intent'
+    },
+    {
+      value: 'referral',
+      label: 'Referral Method',
+      description: 'Leverage warm introductions for trust',
+      icon: <TeamOutlined />,
+      effectiveness: 'High (45% response rate)',
+      bestFor: 'Warm leads with mutual connections'
+    },
+    {
+      value: 'problem',
+      label: 'Problem-Solution Method',
+      description: 'Address specific pain points with solutions',
+      icon: <WarningOutlined />,
+      effectiveness: 'High (40% response rate)',
+      bestFor: 'Targeted problem-solving'
     }
   ];
 
@@ -100,58 +159,189 @@ const ColdEmailWriter = () => {
     'Product Manager'
   ];
 
-  const onFinish = (values: any) => {
+  const painPoints = [
+    'Low Conversion Rates',
+    'High Customer Acquisition Costs',
+    'Inefficient Processes',
+    'Low Engagement',
+    'High Churn Rates',
+    'Poor ROI on Marketing'
+  ];
+
+  const onFinish = async (values: any) => {
     setIsGenerating(true);
     
-    // Simulate AI generation
-    setTimeout(() => {
-      const email = generateEmailScript(values, emailMethod);
-      setGeneratedEmail(email);
+    try {
+      const requestData = {
+        ...values,
+        method: emailMethod,
+        userId: 'user-id-placeholder', // Replace with actual user ID from auth
+        variations: values.variations || 1,
+        generateFollowUps: values.generateFollowUps || false,
+        followUpCount: values.followUpCount || 3
+      };
+
+      const response = await fetch('/api/cold-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate email');
+      }
+
+      const data = await response.json();
+      setGeneratedEmails(data.data);
+      message.success('Emails generated successfully!');
+      
+    } catch (error) {
+      console.error('Error generating email:', error);
+      message.error(error instanceof Error ? error.message : 'Failed to generate email. Please try again.');
+    } finally {
       setIsGenerating(false);
-    }, 1500);
-  };
-
-  const generateEmailScript = (data: any, method: string) => {
-    let email = '';
-    
-    const subjectLines: Record<string, string> = {
-      interview: `Quick question about ${data.targetIndustry}`,
-      podcast: `An idea for your ${data.targetIndustry} audience`,
-      direct: `How we helped similar ${data.targetRole}s in ${data.targetIndustry}`,
-      masterclass: `Exclusive ${data.targetIndustry} insights you might find valuable`
-    };
-
-    email += `Subject: ${subjectLines[method]}\n\n`;
-    email += `Hi ${data.targetFirstName || 'there'},\n\n`;
-
-    switch(method) {
-      case 'interview':
-        email += `I'm ${data.firstName} from ${data.companyName}, and I've been researching how ${data.targetIndustry} companies are handling [specific challenge].\n\n`;
-        email += `I'd love to get your perspective as a ${data.targetRole} - would you be open to a quick 15-minute interview? I'm happy to share my findings afterward which might help with [specific pain point].\n\n`;
-        break;
-      case 'podcast':
-        email += `I recently hosted a podcast episode about [topic relevant to target industry] and thought you might find it valuable given your role as a ${data.targetRole} at [their company].\n\n`;
-        email += `We discussed [specific insight] that's helping similar ${data.targetIndustry} companies [achieve result]. Would you like me to send you the link?\n\n`;
-        break;
-      case 'direct':
-        email += `I noticed ${data.companyName} helps ${data.targetIndustry} companies with [value proposition]. We've helped [similar company] achieve [specific result].\n\n`;
-        email += `Would you be open to a quick call to explore if we could do the same for you? I'm available [time options].\n\n`;
-        break;
-      case 'masterclass':
-        email += `I'm putting together an exclusive masterclass on [topic] specifically for ${data.targetIndustry} ${data.targetRole}s like yourself.\n\n`;
-        email += `Early participants are seeing [specific result]. Would you like me to save you a spot?\n\n`;
-        break;
     }
-
-    email += `Best regards,\n`;
-    email += `${data.firstName} ${data.lastName}\n`;
-    email += `${data.jobTitle}, ${data.companyName}\n`;
-    email += `${data.workEmail} | ${data.phone || ''}\n`;
-    email += `${data.companyAddress || ''}\n`;
-    email += `${data.linkedIn ? `LinkedIn: ${data.linkedIn}` : ''}`;
-
-    return email;
   };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success('Email copied to clipboard!');
+    } catch (error) {
+      message.error('Failed to copy to clipboard');
+    }
+  };
+
+  const downloadEmail = (email: GeneratedEmail) => {
+    try {
+      const content = `Subject: ${email.subject}\n\n${email.body}\n\n${email.signature}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cold-email-${email.metadata?.variationIndex || 0}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      message.success('Email downloaded successfully!');
+    } catch (error) {
+      message.error('Failed to download email');
+    }
+  };
+
+  const optimizeEmail = async (emailContent: string, optimizationType: string) => {
+    try {
+      const response = await fetch('/api/cold-email/optimize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emailContent, optimizationType }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to optimize email');
+      }
+
+      const data = await response.json();
+      message.success('Email optimized successfully!');
+      return data.data;
+    } catch (error) {
+      message.error('Failed to optimize email');
+      return emailContent;
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch('/api/cold-email/templates');
+      if (!response.ok) throw new Error('Failed to fetch templates');
+      const data = await response.json();
+      setTemplates(data.data);
+      setIsTemplateModalVisible(true);
+      message.success(`Loaded ${data.data.length} templates`);
+    } catch (error) {
+      message.error('Failed to load templates');
+    }
+  };
+
+  const handleApplyTemplate = (template: EmailTemplate) => {
+    setEmailMethod(template.method);
+    form.setFieldsValue({
+      method: template.method,
+      targetIndustry: template.metadata?.targetIndustry,
+      targetRole: template.metadata?.targetRole,
+      // Add more fields as needed based on template metadata
+    });
+    setGeneratedEmails([{
+      subject: template.subject,
+      body: template.body,
+      signature: '', // Signature would need to be reconstructed or stored
+      method: template.method,
+      metadata: {
+        targetIndustry: template.metadata?.targetIndustry || '',
+        targetRole: template.metadata?.targetRole || '',
+        generatedAt: template.createdAt,
+      }
+    }]);
+    setIsTemplateModalVisible(false);
+    message.success(`Applied template: ${template.name}`);
+  };
+
+  const columns = [
+    {
+      title: 'Template Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Subject',
+      dataIndex: 'subject',
+      key: 'subject',
+    },
+    {
+      title: 'Method',
+      dataIndex: 'method',
+      key: 'method',
+      render: (method: string) => (
+        <Tag color="blue">
+          {emailMethods.find(m => m.value === method)?.label || method}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date: string) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, template: EmailTemplate) => (
+        <Space>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => copyToClipboard(`Subject: ${template.subject}\n\n${template.body}`)}
+          >
+            Preview
+          </Button>
+          <Button
+            type="primary"
+            icon={<SelectOutlined />}
+            onClick={() => handleApplyTemplate(template)}
+          >
+            Apply
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -234,6 +424,13 @@ const ColdEmailWriter = () => {
               >
                 <Input placeholder="you@company.com" />
               </Form.Item>
+              <Form.Item
+                name="companyWebsite"
+                label="Company Website"
+                rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+              >
+                <Input prefix={<LinkOutlined />} placeholder="https://yourcompany.com" />
+              </Form.Item>
             </div>
           </Form>
         </Panel>
@@ -264,7 +461,7 @@ const ColdEmailWriter = () => {
                   key={method.value}
                   hoverable
                   onClick={() => setEmailMethod(method.value)}
-                  className={`cursor-pointer ${emailMethod === method.value ? 'border-blue-500 border-2' : ''}`}
+                  className={`cursor-pointer transition-all ${emailMethod === method.value ? 'border-blue-500 border-2 shadow-md' : 'hover:shadow-sm'}`}
                 >
                   <div className="flex items-start">
                     <div className="p-2 bg-blue-50 rounded-full mr-3">
@@ -283,6 +480,93 @@ const ColdEmailWriter = () => {
               ))}
             </div>
           </Form.Item>
+
+          <Divider />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="tone"
+              label="Email Tone"
+              initialValue="professional"
+            >
+              <Segmented 
+                options={[
+                  { label: 'Professional', value: 'professional' },
+                  { label: 'Friendly', value: 'friendly' },
+                  { label: 'Casual', value: 'casual' },
+                  { label: 'Formal', value: 'formal' }
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="emailLength"
+              label="Email Length"
+              initialValue="medium"
+            >
+              <Select>
+                <Option value="short">Short (~100 words)</Option>
+                <Option value="medium">Medium (~150-200 words)</Option>
+                <Option value="long">Long (~250-300 words)</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="quality"
+              label="Generation Quality"
+              initialValue="balanced"
+            >
+              <Radio.Group>
+                <Radio value="fast">Fast</Radio>
+                <Radio value="balanced">Balanced</Radio>
+                <Radio value="high">High Quality</Radio>
+              </Radio.Group>
+            </Form.Item>
+
+            <Form.Item
+              name="creativity"
+              label="Creativity Level"
+              initialValue="moderate"
+            >
+              <Radio.Group>
+                <Radio value="low">Low</Radio>
+                <Radio value="moderate">Moderate</Radio>
+                <Radio value="high">High</Radio>
+              </Radio.Group>
+            </Form.Item>
+
+            <Form.Item
+              name="variations"
+              label="Number of Variations"
+              initialValue={1}
+            >
+              <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
+            </Form.Item>
+
+            <Form.Item
+              name="generateFollowUps"
+              valuePropName="checked"
+              label="Generate Follow-up Sequence"
+            >
+              <Switch checkedChildren="Generate Follow-ups" unCheckedChildren="No Follow-ups" />
+            </Form.Item>
+
+            <Form.Item
+              name="followUpCount"
+              label="Number of Follow-ups"
+              initialValue={3}
+            >
+              <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
+            </Form.Item>
+
+            <Form.Item
+              name="saveAsTemplate"
+              valuePropName="checked"
+              label="Save as Template"
+            >
+              <Switch checkedChildren="Save Template" unCheckedChildren="Don't Save" />
+            </Form.Item>
+          </div>
 
           <Divider />
 
@@ -317,6 +601,22 @@ const ColdEmailWriter = () => {
                 <Alert
                   message="Masterclass Method Tips"
                   description="Position this as truly exclusive (limited seats). Include social proof of past participants' results."
+                  type="info"
+                  showIcon
+                />
+              )}
+              {emailMethod === 'referral' && (
+                <Alert
+                  message="Referral Method Tips"
+                  description="Mention the mutual connection early and explain the context of your relationship. Be specific about why the referral was made."
+                  type="info"
+                  showIcon
+                />
+              )}
+              {emailMethod === 'problem' && (
+                <Alert
+                  message="Problem-Solution Method Tips"
+                  description="Clearly articulate a specific pain point and position your solution as the answer. Use data to back up your claims."
                   type="info"
                   showIcon
                 />
@@ -385,6 +685,44 @@ const ColdEmailWriter = () => {
             >
               <Input placeholder="Company name if known" />
             </Form.Item>
+            <Form.Item
+              name="targetCompanySize"
+              label="Target Company Size"
+            >
+              <Select placeholder="Select company size">
+                <Option value="1-10">1-10 employees</Option>
+                <Option value="11-50">11-50 employees</Option>
+                <Option value="51-200">51-200 employees</Option>
+                <Option value="201-1000">201-1000 employees</Option>
+                <Option value="1000+">1000+ employees</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="targetPainPoints"
+              label="Target Pain Points"
+            >
+              <Select 
+                mode="tags" 
+                placeholder="Add pain points..."
+                options={painPoints.map(point => ({ value: point, label: point }))}
+              />
+            </Form.Item>
+            <Form.Item
+              name="targetGoals"
+              label="Target Goals"
+            >
+              <Select 
+                mode="tags" 
+                placeholder="Add goals..."
+                options={[
+                  'Increase Revenue',
+                  'Reduce Costs',
+                  'Improve Efficiency',
+                  'Boost Engagement',
+                  'Scale Operations'
+                ].map(goal => ({ value: goal, label: goal }))}
+              />
+            </Form.Item>
           </div>
 
           <Divider />
@@ -399,10 +737,33 @@ const ColdEmailWriter = () => {
                 </Tooltip>
               </span>
             }
+            rules={[{ required: true, message: 'Please input your value proposition!' }]}
           >
             <TextArea 
               rows={3} 
               placeholder="e.g., We help [target role] in [industry] achieve [specific outcome] by [your unique approach]"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="uniqueDifferentiator"
+            label="Unique Differentiator"
+            tooltip="What makes your offering stand out?"
+          >
+            <TextArea 
+              rows={2} 
+              placeholder="e.g., Our proprietary AI technology delivers 3x faster results"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="socialProof"
+            label="Social Proof"
+            tooltip="Add credibility with results or testimonials"
+          >
+            <TextArea 
+              rows={2} 
+              placeholder="e.g., Helped 50+ SaaS companies increase conversion rates by 30%"
             />
           </Form.Item>
         </Panel>
@@ -442,13 +803,53 @@ const ColdEmailWriter = () => {
             <Form.Item
               name="callToAction"
               label="Desired Next Step"
+              initialValue="call"
             >
               <Select placeholder="Select preferred action">
                 <Option value="call">Schedule a call</Option>
                 <Option value="demo">Book a demo</Option>
+                <Option value="coffee">Coffee meeting</Option>
+                <Option value="lunch">Lunch meeting</Option>
                 <Option value="reply">Just get a reply</Option>
-                <Option value="meeting">Set up meeting</Option>
               </Select>
+            </Form.Item>
+            <Form.Item
+              name="meetingType"
+              label="Meeting Type"
+            >
+              <Select placeholder="Select meeting type">
+                <Option value="call">Phone Call</Option>
+                <Option value="demo">Demo</Option>
+                <Option value="coffee">Coffee Meeting</Option>
+                <Option value="lunch">Lunch Meeting</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="urgencyFactor"
+              label="Urgency Factor"
+            >
+              <Input placeholder="e.g., Limited spots available this month" />
+            </Form.Item>
+            <Form.Item
+              name="subjectLineStyle"
+              label="Subject Line Style"
+            >
+              <Select placeholder="Select style">
+                <Option value="intriguing">Intriguing</Option>
+                <Option value="direct">Direct</Option>
+                <Option value="personal">Personalized</Option>
+                <Option value="benefit">Benefit-focused</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="personalizedElement"
+              label="Personalization Element"
+              tooltip="Add specific details about the recipient"
+            >
+              <TextArea 
+                rows={2} 
+                placeholder="e.g., I noticed your recent blog post about X"
+              />
             </Form.Item>
           </div>
 
@@ -483,9 +884,47 @@ const ColdEmailWriter = () => {
             >
               <Input placeholder="referrer@company.com" />
             </Form.Item>
+            <Form.Item
+              name="referrerRelationship"
+              label="Referrer Relationship"
+            >
+              <Input placeholder="e.g., Former colleague" />
+            </Form.Item>
           </div>
         </Panel>
+
+        <Panel 
+          header={
+            <div className="flex items-center">
+              <SolutionOutlined className="mr-2" />
+              <span className="font-medium">Templates</span>
+            </div>
+          } 
+          key="5"
+        >
+          <Button
+            type="primary"
+            onClick={fetchTemplates}
+          >
+            Load Saved Templates
+          </Button>
+        </Panel>
       </Collapse>
+
+      <Modal
+        title="Saved Templates"
+        open={isTemplateModalVisible}
+        onCancel={() => setIsTemplateModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        <Table
+          dataSource={templates}
+          columns={columns}
+          rowKey="id"
+          pagination={{ pageSize: 5 }}
+        />
+      </Modal>
 
       <div className="text-center mt-6">
         <Button 
@@ -497,89 +936,94 @@ const ColdEmailWriter = () => {
           onClick={() => form.submit()}
           className="min-w-48"
         >
-          {isGenerating ? 'Generating...' : 'Generate Email'}
+          {isGenerating ? 'Generating AI Email...' : 'Generate AI Email'}
         </Button>
       </div>
 
-      {generatedEmail && (
+      {generatedEmails.length > 0 && (
         <div className="mt-8">
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Your Custom Cold Email</Title>
-              <Space>
-                <Button 
-                  icon={<DownloadOutlined />}
-                  onClick={() => {
-                    const blob = new Blob([generatedEmail], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'cold-email-script.txt';
-                    a.click();
-                  }}
-                >
-                  Download
-                </Button>
-                <Button 
-                  type="primary" 
-                  onClick={() => navigator.clipboard.writeText(generatedEmail)}
-                >
-                  Copy to Clipboard
-                </Button>
-              </Space>
-            </div>
-            
-            <Alert 
-              message="Pro Tip" 
-              description={
-                <div>
-                  <p>Personalize this further by:</p>
-                  <ul className="list-disc pl-5">
-                    <li>Adding specific details about the recipient company</li>
-                    <li>Referencing recent news about their industry</li>
-                    <li>Including a personalized compliment</li>
-                  </ul>
-                </div>
-              } 
-              type="info" 
-              showIcon 
-              className="mb-4"
-            />
-            
-            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <pre className="whitespace-pre-wrap font-sans text-gray-800">{generatedEmail}</pre>
-            </div>
-            
-            <Divider />
-            
-            <Title level={5} className="mb-2">Follow-Up Sequence Recommendations</Title>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <Title level={5} className="flex items-center">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">1</span>
-                  First Follow-Up
-                </Title>
-                <Text className="block mb-2">Send 3-4 days later</Text>
-                <Text type="secondary">Just circling back on this - would love to get your thoughts</Text>
-              </Card>
-              <Card>
-                <Title level={5} className="flex items-center">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">2</span>
-                  Second Follow-Up
-                </Title>
-                <Text className="block mb-2">Send 7 days after first</Text>
-                <Text type="secondary">I noticed [recent company news] - this relates to what we discussed about [topic]</Text>
-              </Card>
-              <Card>
-                <Title level={5} className="flex items-center">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">3</span>
-                  Breakup Email
-                </Title>
-                <Text className="block mb-2">Send 14 days after second</Text>
-                <Text type="secondary">I will assume this isnt a priority now - will circle back in time</Text>
-              </Card>
-            </div>
-          </Card>
+          {generatedEmails.map((email, index) => (
+            <Card key={index} className="mb-4">
+              <div className="flex justify-between items-center mb-4">
+                <Title level={4}>Generated Email {index + 1}</Title>
+                <Space>
+                  <Button 
+                    onClick={() => optimizeEmail(`${email.subject}\n\n${email.body}\n\n${email.signature}`, 'subject')}
+                  >
+                    Optimize Subject
+                  </Button>
+                  <Button 
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadEmail(email)}
+                  >
+                    Download
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    onClick={() => copyToClipboard(`${email.subject}\n\n${email.body}\n\n${email.signature}`)}
+                  >
+                    Copy to Clipboard
+                  </Button>
+                </Space>
+              </div>
+              
+              <Alert 
+                message="Pro Tip" 
+                description={
+                  <div>
+                    <p>Personalize this further by:</p>
+                    <ul className="list-disc pl-5">
+                      <li>Adding specific details about the recipient company</li>
+                      <li>Referencing recent news about their industry</li>
+                      <li>Including a personalized compliment</li>
+                      <li>Mentioning mutual connections if any</li>
+                    </ul>
+                  </div>
+                } 
+                type="info" 
+                showIcon 
+                className="mb-4"
+              />
+              
+              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                  Subject: {email.subject}
+                  {'\n\n'}
+                  {email.body}
+                  {'\n\n'}
+                  {email.signature}
+                </pre>
+              </div>
+              
+              {email.followUpSequence && (
+                <>
+                  <Divider />
+                  <Title level={5} className="mb-2">Follow-Up Sequence</Title>
+                  <List
+                    grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
+                    dataSource={email.followUpSequence}
+                    renderItem={(followUp: GeneratedEmail) => (
+                      <List.Item>
+                        <Card>
+                          <Title level={5} className="flex items-center">
+                            <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">{followUp.metadata?.sequenceNumber}</span>
+                            Follow-Up (Day {followUp.metadata?.dayInterval})
+                          </Title>
+                          <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                            Subject: {followUp.subject}
+                            {'\n\n'}
+                            {followUp.body}
+                            {'\n\n'}
+                            {followUp.signature}
+                          </pre>
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                </>
+              )}
+            </Card>
+          ))}
         </div>
       )}
     </div>

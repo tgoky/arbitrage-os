@@ -1,3 +1,4 @@
+// Updated AdWriter.tsx with backend integration
 "use client";
 
 import React, { useState } from 'react';
@@ -13,7 +14,8 @@ import {
   DownloadOutlined,
   CopyOutlined,
   InfoCircleOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -34,7 +36,8 @@ import {
   Tabs,
   Popover,
   Switch,
-  message
+  message,
+  notification
 } from 'antd';
 
 const { Title, Text } = Typography;
@@ -49,7 +52,9 @@ const AdWriter = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activePlatforms, setActivePlatforms] = useState<string[]>(['facebook', 'google']);
   const [activeTab, setActiveTab] = useState('1');
+  const [error, setError] = useState<string | null>(null);
 
+  // Platform configurations
   const platforms = [
     {
       value: 'facebook',
@@ -115,46 +120,155 @@ const AdWriter = () => {
     'Generate Ads'
   ];
 
-  const onFinish = (values: any) => {
+  // Main function to call backend API
+  const onFinish = async (values: any) => {
     setIsGenerating(true);
+    setError(null);
     
-    // Simulate AI generation
-    setTimeout(() => {
-      const mockAds = generateAdScripts(values);
-      setGeneratedAds(mockAds);
+    try {
+      // Prepare data for API
+      const requestData = {
+        ...values,
+        activePlatforms, // Include selected platforms
+      };
+
+      // Call backend API
+      const response = await fetch('/api/ad-writer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate ads');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setGeneratedAds(result.data);
+        setCurrentStep(3);
+        
+        // Show success notification with token usage
+        notification.success({
+          message: 'Ads Generated Successfully!',
+          description: `Generated ${result.data.length} platform variations in ${(result.meta.generationTime / 1000).toFixed(1)}s`,
+          placement: 'topRight',
+        });
+      } else {
+        throw new Error(result.error || 'Generation failed');
+      }
+    } catch (error: any) {
+      console.error('Error generating ads:', error);
+      setError(error.message);
+      
+      notification.error({
+        message: 'Generation Failed',
+        description: error.message || 'Please try again later',
+        placement: 'topRight',
+      });
+    } finally {
       setIsGenerating(false);
-      setCurrentStep(3);
-      message.success('Ads generated successfully!');
-    }, 2000);
+    }
   };
 
-  const generateAdScripts = (data: any) => {
-    return activePlatforms.map(platform => ({
-      platform,
-      headlines: [
-        `Stop Wasting Money on ${data.primaryPainPoint.split(' ')[0]} - Try ${data.businessName} Today!`,
-        `${data.businessName}: The Solution to Your ${data.primaryPainPoint}`,
-        `How ${data.businessName} Helped [Industry] Achieve ${data.coreResult}`
-      ],
-      descriptions: [
-        `Struggling with ${data.primaryPainPoint}? ${data.businessName}'s ${data.uniqueMechanism} delivers ${data.coreResult}. Limited time offer!`,
-        `${data.secondaryBenefits[0]}. ${data.secondaryBenefits[1]}. See results in ${data.timeline}. Book your ${data.cta.toLowerCase()} now!`,
-        `Unlike other solutions, we ${data.uniqueMechanism}. ${data.caseStudy1.split('.')[0]}. Act now - ${data.urgency || 'offer ends soon'}!`
-      ],
-      ctas: [
-        `👉 ${data.cta}`,
-        `Get Started →`,
-        `Claim Your Spot Now`
-      ]
-    }));
+  // Optimize existing ad copy
+  const optimizeAd = async (adCopy: string, optimizationType: string) => {
+    try {
+      const response = await fetch('/api/ad-writer/optimize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ adCopy, optimizationType }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Optimization failed');
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('Optimization error:', error);
+      message.error('Failed to optimize ad copy');
+      return null;
+    }
+  };
+
+  // Regenerate specific platform ads
+  const regeneratePlatform = async (platform: string) => {
+    const values = form.getFieldsValue();
+    
+    try {
+      const response = await fetch('/api/ad-writer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...values,
+          activePlatforms: [platform],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Regeneration failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data.length > 0) {
+        // Update only the regenerated platform
+        setGeneratedAds(prev => {
+          const filtered = prev.filter(ad => ad.platform !== platform);
+          return [...filtered, result.data[0]];
+        });
+        
+        message.success(`${platform} ads regenerated!`);
+      }
+    } catch (error) {
+      message.error('Failed to regenerate ads');
+    }
   };
 
   const nextStep = () => {
-    setCurrentStep(currentStep + 1);
+    form.validateFields().then(() => {
+      setCurrentStep(currentStep + 1);
+    }).catch(() => {
+      message.error('Please fill in all required fields');
+    });
   };
 
   const prevStep = () => {
     setCurrentStep(currentStep - 1);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    message.success('Copied to clipboard!');
+  };
+
+  const downloadAds = () => {
+    const content = generatedAds.map(ad => 
+      `=== ${ad.platform.toUpperCase()} ===\n\n` +
+      `Headlines:\n${ad.headlines.map((h: string) => `- ${h}`).join('\n')}\n\n` +
+      `Descriptions:\n${ad.descriptions.map((d: string) => `- ${d}`).join('\n')}\n\n` +
+      `CTAs:\n${ad.ctas.map((c: string) => `- ${c}`).join('\n')}\n\n` +
+      (ad.hooks ? `Hooks:\n${ad.hooks.map((h: string) => `- ${h}`).join('\n')}\n\n` : '') +
+      (ad.visualSuggestions ? `Visual Suggestions:\n${ad.visualSuggestions.map((v: string) => `- ${v}`).join('\n')}\n\n` : '')
+    ).join('\n');
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ad-copy-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const renderStepContent = () => {
@@ -166,6 +280,17 @@ const AdWriter = () => {
               <UserOutlined className="mr-2" />
               Business Information
             </Title>
+            
+            {error && (
+              <Alert
+                message="Error"
+                description={error}
+                type="error"
+                closable
+                onClose={() => setError(null)}
+                className="mb-4"
+              />
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
@@ -193,6 +318,8 @@ const AdWriter = () => {
               <TextArea 
                 rows={3} 
                 placeholder="We help [target audience] achieve [core benefit] through [unique approach]" 
+                showCount
+                 maxLength={500}
               />
             </Form.Item>
             
@@ -219,6 +346,8 @@ const AdWriter = () => {
               <TextArea 
                 rows={3} 
                 placeholder="An intensive program that helps [target] achieve [result] in [timeframe]" 
+                showCount
+                maxLength={500}
               />
             </Form.Item>
             
@@ -248,12 +377,14 @@ const AdWriter = () => {
                 name="uniqueMechanism"
                 label="Unique Mechanism"
                 rules={[{ required: true, message: 'What makes you different?' }]}
+                tooltip="Your proprietary method or unique approach"
               >
                 <Input placeholder="Our proprietary [system] that [benefit]" />
               </Form.Item>
             </div>
           </Card>
         );
+        
       case 1:
         return (
           <Card className="mb-6">
@@ -271,6 +402,8 @@ const AdWriter = () => {
               <TextArea 
                 rows={3} 
                 placeholder="e.g., Marketing managers at B2B SaaS companies with 50-200 employees..." 
+                showCount
+                maxLength={500}
               />
             </Form.Item>
             
@@ -282,6 +415,8 @@ const AdWriter = () => {
               <TextArea 
                 rows={2} 
                 placeholder="e.g., Wasting money on ads that don't convert..." 
+                showCount
+                maxLength={300}
               />
             </Form.Item>
             
@@ -330,6 +465,7 @@ const AdWriter = () => {
             </Form.Item>
           </Card>
         );
+        
       case 2:
         return (
           <Card className="mb-6">
@@ -339,9 +475,8 @@ const AdWriter = () => {
             </Title>
             
             <Form.Item
-              name="platforms"
               label="Select Platforms"
-              rules={[{ required: true, message: 'Select at least one platform!' }]}
+              required
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {platforms.map(platform => (
@@ -355,10 +490,10 @@ const AdWriter = () => {
                         setActivePlatforms([...activePlatforms, platform.value]);
                       }
                     }}
-                    className={`cursor-pointer text-center ${
+                    className={`cursor-pointer text-center transition-all ${
                       activePlatforms.includes(platform.value) 
-                        ? 'border-blue-500 border-2' 
-                        : ''
+                        ? 'border-blue-500 border-2 shadow-lg' 
+                        : 'hover:border-gray-400'
                     }`}
                   >
                     <div className="text-2xl mb-2">{platform.icon}</div>
@@ -366,6 +501,9 @@ const AdWriter = () => {
                     <div className="text-gray-500 text-sm">
                       {platform.description}
                     </div>
+                    {activePlatforms.includes(platform.value) && (
+                      <CheckCircleOutlined className="text-blue-500 mt-2" />
+                    )}
                   </Card>
                 ))}
               </div>
@@ -378,14 +516,17 @@ const AdWriter = () => {
                 name="adType"
                 label="Campaign Objective"
                 initialValue="conversion"
+                rules={[{ required: true }]}
               >
                 <Radio.Group>
                   <Space direction="vertical">
                     {adTypes.map(type => (
                       <Radio key={type.value} value={type.value}>
-                        <div className="font-medium">{type.label}</div>
-                        <div className="text-gray-500 text-sm">
-                          {type.description}
+                        <div>
+                          <div className="font-medium">{type.label}</div>
+                          <div className="text-gray-500 text-sm">
+                            {type.description}
+                          </div>
                         </div>
                       </Radio>
                     ))}
@@ -397,6 +538,7 @@ const AdWriter = () => {
                 name="tone"
                 label="Brand Tone"
                 initialValue="professional"
+                rules={[{ required: true }]}
               >
                 <Select>
                   {toneOptions.map(tone => (
@@ -415,6 +557,7 @@ const AdWriter = () => {
             <Form.Item
               name="caseStudy1"
               label="Case Study #1 (Client + Results)"
+              tooltip="Include specific numbers and outcomes"
             >
               <TextArea 
                 rows={3} 
@@ -448,7 +591,10 @@ const AdWriter = () => {
               <Form.Item
                 name="url"
                 label="Destination URL"
-                rules={[{ required: true, message: 'Enter your URL!' }]}
+                rules={[
+                  { required: true, message: 'Enter your URL!' },
+                  { type: 'url', message: 'Please enter a valid URL!' }
+                ]}
               >
                 <Input placeholder="https://example.com/offer" />
               </Form.Item>
@@ -469,6 +615,7 @@ const AdWriter = () => {
             </div>
           </Card>
         );
+        
       case 3:
         return (
           <div className="space-y-6">
@@ -479,15 +626,13 @@ const AdWriter = () => {
                   <Button 
                     icon={<CopyOutlined />}
                     onClick={() => {
-                      navigator.clipboard.writeText(
-                        generatedAds.map(ad => 
-                          `=== ${ad.platform.toUpperCase()} ===\n\n` +
-                          `Headlines:\n- ${ad.headlines.join('\n- ')}\n\n` +
-                          `Descriptions:\n- ${ad.descriptions.join('\n- ')}\n\n` +
-                          `CTAs:\n- ${ad.ctas.join('\n- ')}\n\n`
-                        ).join('\n')
-                      );
-                      message.success('Copied to clipboard!');
+                      const allText = generatedAds.map(ad => 
+                        `=== ${ad.platform.toUpperCase()} ===\n\n` +
+                        `Headlines:\n${ad.headlines.map((h: string) => `- ${h}`).join('\n')}\n\n` +
+                        `Descriptions:\n${ad.descriptions.map((d: string) => `- ${d}`).join('\n')}\n\n` +
+                        `CTAs:\n${ad.ctas.map((c: string) => `- ${c}`).join('\n')}`
+                      ).join('\n\n');
+                      copyToClipboard(allText);
                     }}
                   >
                     Copy All
@@ -495,21 +640,7 @@ const AdWriter = () => {
                   <Button 
                     type="primary" 
                     icon={<DownloadOutlined />}
-                    onClick={() => {
-                      const blob = new Blob([
-                        generatedAds.map(ad => 
-                          `=== ${ad.platform.toUpperCase()} ===\n\n` +
-                          `Headlines:\n- ${ad.headlines.join('\n- ')}\n\n` +
-                          `Descriptions:\n- ${ad.descriptions.join('\n- ')}\n\n` +
-                          `CTAs:\n- ${ad.ctas.join('\n- ')}\n\n`
-                        ).join('\n')
-                      ], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'ad-copy.txt';
-                      a.click();
-                    }}
+                    onClick={downloadAds}
                   >
                     Download
                   </Button>
@@ -540,6 +671,36 @@ const AdWriter = () => {
                     }
                   >
                     <div className="space-y-6">
+                      <div className="flex justify-end mb-2">
+                        <Button
+                          icon={<ReloadOutlined />}
+                          onClick={() => regeneratePlatform(ad.platform)}
+                          size="small"
+                        >
+                          Regenerate {ad.platform}
+                        </Button>
+                      </div>
+                      
+                      {ad.hooks && ad.hooks.length > 0 && (
+                        <div>
+                          <Title level={5} className="mb-2">Hooks</Title>
+                          <div className="space-y-2">
+                            {ad.hooks.map((hook: string, i: number) => (
+                              <Card key={i} hoverable className="cursor-pointer">
+                                <div className="flex justify-between items-center">
+                                  <Text>{hook}</Text>
+                                  <Button 
+                                    type="text" 
+                                    icon={<CopyOutlined />} 
+                                    onClick={() => copyToClipboard(hook)}
+                                  />
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div>
                         <Title level={5} className="mb-2">Headlines</Title>
                         <div className="space-y-2">
@@ -547,14 +708,25 @@ const AdWriter = () => {
                             <Card key={i} hoverable className="cursor-pointer">
                               <div className="flex justify-between items-center">
                                 <Text>{headline}</Text>
-                                <Button 
-                                  type="text" 
-                                  icon={<CopyOutlined />} 
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(headline);
-                                    message.success('Copied!');
-                                  }}
-                                />
+                                <Space>
+                                  <Tooltip title="Optimize for emotion">
+                                    <Button 
+                                      type="text" 
+                                      size="small"
+                                      onClick={async () => {
+                                        const optimized = await optimizeAd(headline, 'emotional');
+                                        if (optimized) message.success('Optimized!');
+                                      }}
+                                    >
+                                      ✨
+                                    </Button>
+                                  </Tooltip>
+                                  <Button 
+                                    type="text" 
+                                    icon={<CopyOutlined />} 
+                                    onClick={() => copyToClipboard(headline)}
+                                  />
+                                </Space>
                               </div>
                             </Card>
                           ))}
@@ -566,15 +738,12 @@ const AdWriter = () => {
                         <div className="space-y-2">
                           {ad.descriptions.map((desc: string, i: number) => (
                             <Card key={i} hoverable className="cursor-pointer">
-                              <div className="flex justify-between items-center">
-                                <Text>{desc}</Text>
+                              <div className="flex justify-between items-start">
+                                <Text className="flex-1">{desc}</Text>
                                 <Button 
                                   type="text" 
                                   icon={<CopyOutlined />} 
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(desc);
-                                    message.success('Copied!');
-                                  }}
+                                  onClick={() => copyToClipboard(desc)}
                                 />
                               </div>
                             </Card>
@@ -592,16 +761,26 @@ const AdWriter = () => {
                                 <Button 
                                   type="text" 
                                   icon={<CopyOutlined />} 
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(cta);
-                                    message.success('Copied!');
-                                  }}
+                                  onClick={() => copyToClipboard(cta)}
                                 />
                               </div>
                             </Card>
                           ))}
                         </div>
                       </div>
+                      
+                      {ad.visualSuggestions && ad.visualSuggestions.length > 0 && (
+                        <div>
+                          <Title level={5} className="mb-2">Visual Suggestions</Title>
+                          <div className="space-y-2">
+                            {ad.visualSuggestions.map((suggestion: string, i: number) => (
+                              <Card key={i} className="bg-gray-50">
+                                <Text>{suggestion}</Text>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </TabPane>
                 ))}
@@ -621,6 +800,7 @@ const AdWriter = () => {
                     <li>Add numbers to headlines (e.g., Increase Conversions by 47%)</li>
                     <li>Include power words like Proven, Guaranteed, Instant</li>
                     <li>Test emoji vs no-emoji versions</li>
+                    <li>Use customer language from reviews/testimonials</li>
                   </ul>
                 </Card>
                 
@@ -633,12 +813,14 @@ const AdWriter = () => {
                     <li>Add customer testimonials to ad copy</li>
                     <li>Include a surprising statistic or fact</li>
                     <li>Create a sense of exclusivity</li>
+                    <li>Use pattern interrupts in your hooks</li>
                   </ul>
                 </Card>
               </div>
             </Card>
           </div>
         );
+        
       default:
         return null;
     }
@@ -682,26 +864,52 @@ const AdWriter = () => {
         {renderStepContent()}
         
         <div className="flex justify-between mt-8">
-          {currentStep > 0 && (
+          {currentStep > 0 && currentStep < 3 && (
             <Button onClick={prevStep}>
               Back
             </Button>
           )}
           
-          {currentStep < steps.length - 1 ? (
-            <Button type="primary" onClick={nextStep}>
+          {currentStep < 2 && (
+            <Button 
+              type="primary" 
+              onClick={nextStep}
+              className="ml-auto"
+            >
               Continue
             </Button>
-          ) : currentStep === steps.length - 1 && !generatedAds.length ? (
+          )}
+          
+          {currentStep === 2 && (
             <Button 
               type="primary" 
               loading={isGenerating}
-              onClick={() => form.submit()}
+              onClick={() => {
+                if (activePlatforms.length === 0) {
+                  message.error('Please select at least one platform!');
+                  return;
+                }
+                form.submit();
+              }}
               icon={<ArrowRightOutlined />}
+              className="ml-auto"
             >
               Generate Ad Copy
             </Button>
-          ) : null}
+          )}
+          
+          {currentStep === 3 && (
+            <Button 
+              type="primary"
+              onClick={() => {
+                setCurrentStep(0);
+                setGeneratedAds([]);
+                form.resetFields();
+              }}
+            >
+              Create New Campaign
+            </Button>
+          )}
         </div>
       </Form>
     </div>
