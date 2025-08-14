@@ -39,3 +39,5 @@ src/app/.env
 src/utils/.env
 
 /src/generated/prisma
+
+.env.env

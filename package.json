@@ -33,6 +33,7 @@
     "@tanstack/react-table": "^8.2.6",
     "@upstash/redis": "^1.35.3",
     "antd": "^5.26.7",
+    "dayjs": "^1.11.13",
     "dotenv": "^17.2.1",
     "framer-motion": "^12.23.12",
     "js-cookie": "^3.0.5",

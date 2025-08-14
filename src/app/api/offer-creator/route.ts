@@ -4,19 +4,23 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { OfferCreatorService } from '../../../services/offerCreator.service';
 import { validateOfferCreatorInput } from '../../validators/offerCreator.validator';
-import { rateLimit } from '@lib/rateLimit';
+import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
-import { RATE_LIMITS } from '@/utils/offerCreator.utils';
+
+const RATE_LIMITS = {
+  OFFER_GENERATION: {
+    limit: 5,
+    window: 3600 // 1 hour
+  }
+};
 
 export async function POST(req: NextRequest) {
   try {
-    // Create Supabase client for server-side auth
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ 
       cookies: () => cookieStore 
     });
     
-    // Get the authenticated user
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limiting using utility constants
     const rateLimitResult = await rateLimit(
-      user.id, 
+      `offer_generation:${user.id}`, 
       RATE_LIMITS.OFFER_GENERATION.limit, 
       RATE_LIMITS.OFFER_GENERATION.window
     );
@@ -114,7 +118,7 @@ export async function POST(req: NextRequest) {
       meta: {
         tokensUsed: generatedOffer.tokensUsed,
         generationTime: generatedOffer.generationTime,
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.remaining
       }
     });
 
@@ -129,13 +133,11 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Create Supabase client for server-side auth
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ 
       cookies: () => cookieStore 
     });
     
-    // Get the authenticated user
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {

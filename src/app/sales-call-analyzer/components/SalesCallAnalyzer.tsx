@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SearchOutlined,
   SettingOutlined,
@@ -12,7 +12,10 @@ import {
   SyncOutlined,
   UserOutlined,
   PhoneOutlined,
-  FileSearchOutlined
+  FileSearchOutlined,
+  EyeOutlined,
+  DownloadOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import {
   Button,
@@ -25,36 +28,51 @@ import {
   Space,
   Progress,
   Badge,
-  Avatar
+  Avatar,
+  message,
+  Popconfirm,
+  Tooltip
 } from 'antd';
 import { useGo } from "@refinedev/core";
 import { NewCallModal } from '../callmodel';
+import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Search } = Input;
 
-
 interface CallRecord {
   key: string;
+  id: string;
   type: string;
   title: string;
   status: string;
   date: string;
-  duration: string;
+  duration: number;
   insights: string;
   progress: number;
   participants: string[];
+  overallScore?: number;
+  sentiment?: string;
+  companyName?: string;
+  prospectName?: string;
 }
 
-
-// Remove the named export and make this the default component
 export default function SalesCallAnalyzerPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [analyses, setAnalyses] = useState<CallRecord[]>([]);
   const go = useGo();
+
+  const {
+    getUserAnalyses,
+    deleteAnalysis,
+    exportAnalysis,
+    loading,
+    error
+  } = useSalesCallAnalyzer();
 
   const [filters, setFilters] = useState({
     type: '',
@@ -69,171 +87,244 @@ export default function SalesCallAnalyzerPage() {
   ];
 
   const statusOptions = [
-    { value: 'active', label: 'Active', color: 'processing' },
     { value: 'completed', label: 'Completed', color: 'success' },
+    { value: 'processing', label: 'Processing', color: 'processing' },
     { value: 'failed', label: 'Failed', color: 'error' },
-    { value: 'joining', label: 'Joining', color: 'warning' },
-    { value: 'pending', label: 'Pending', color: 'default' },
-    { value: 'processing', label: 'Processing', color: 'processing' }
+    { value: 'pending', label: 'Pending', color: 'default' }
   ];
 
-  const callData = [
-    {
-      key: '1',
-      type: 'discovery',
-      title: 'Discovery call with Acme Corp',
-      status: 'completed',
-      date: '2023-05-15',
-      duration: '32:45',
-      insights: 'High interest in solution, budget confirmed',
-      progress: 100,
-      participants: ['Jane Smith', 'John Doe']
-    },
-    {
-      key: '2',
-      type: 'sales',
-      title: 'Product demo for TechStart',
-      status: 'active',
-      date: '2023-05-18',
-      duration: '45:12',
-      insights: 'Technical concerns raised, needs follow-up',
-      progress: 65,
-      participants: ['Mike Johnson']
-    },
-    {
-      key: '3',
-      type: 'interview',
-      title: 'Customer interview - SaaS pain points',
-      status: 'processing',
-      date: '2023-05-20',
-      duration: '28:33',
-      insights: 'Analyzing transcript...',
-      progress: 40,
-      participants: ['Sarah Williams']
-    },
-    {
-      key: '4',
-      type: 'podcast',
-      title: 'Growth strategies podcast recording',
-      status: 'pending',
-      date: '2023-05-22',
-      duration: '',
-      insights: 'Scheduled for next week',
-      progress: 0,
-      participants: ['Alex Turner', 'Host']
+  // Load analyses on component mount
+  useEffect(() => {
+    loadAnalyses();
+  }, []);
+
+  const loadAnalyses = async () => {
+    try {
+      const data = await getUserAnalyses();
+      const formattedData = data.map((analysis: any) => ({
+        key: analysis.id,
+        id: analysis.id,
+        type: analysis.callType || 'discovery',
+        title: analysis.title || 'Untitled Call',
+        status: analysis.analysisStatus || 'completed',
+        date: new Date(analysis.createdAt).toLocaleDateString(),
+        duration: analysis.duration || 0,
+        insights: `Score: ${analysis.overallScore || 'N/A'}/100 • ${analysis.sentiment || 'neutral'} sentiment`,
+        progress: analysis.analysisStatus === 'completed' ? 100 : 
+                 analysis.analysisStatus === 'processing' ? 50 : 0,
+        participants: [analysis.prospectName, analysis.companyName].filter(Boolean),
+        overallScore: analysis.overallScore,
+        sentiment: analysis.sentiment,
+        companyName: analysis.companyName,
+        prospectName: analysis.prospectName
+      }));
+      setAnalyses(formattedData);
+    } catch (err) {
+      console.error('Failed to load analyses:', err);
+      message.error('Failed to load call analyses');
     }
-  ];
+  };
 
-  const filteredData = callData.filter(call => {
+  const handleDelete = async (analysisId: string) => {
+    try {
+      await deleteAnalysis(analysisId);
+      message.success('Analysis deleted successfully');
+      loadAnalyses(); // Refresh the list
+    } catch (err) {
+      message.error('Failed to delete analysis');
+    }
+  };
+
+  const handleExport = async (analysisId: string, format: 'summary' | 'detailed' | 'presentation' | 'follow-up' = 'summary') => {
+    try {
+      await exportAnalysis(analysisId, format);
+      message.success('Analysis exported successfully');
+    } catch (err) {
+      message.error('Failed to export analysis');
+    }
+  };
+
+  const handleViewAnalysis = (analysisId: string) => {
+    go({ to: `/sales-call-analyzer/analysis/${analysisId}` });
+  };
+
+  const filteredData = analyses.filter(call => {
     const matchesSearch = call.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      call.participants.some(p => p.toLowerCase().includes(searchText.toLowerCase()));
+      call.participants.some(p => p?.toLowerCase().includes(searchText.toLowerCase()));
     const matchesType = !filters.type || call.type === filters.type;
     const matchesStatus = !filters.status || call.status === filters.status;
-    return matchesSearch && matchesType && matchesStatus;
+    const matchesTab = activeTab === 'all' || call.type === activeTab;
+    return matchesSearch && matchesType && matchesStatus && matchesTab;
   });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return <PlayCircleOutlined />;
       case 'completed': return <CheckCircleOutlined />;
-      case 'failed': return <CloseCircleOutlined />;
-      case 'joining': return <ClockCircleOutlined />;
       case 'processing': return <SyncOutlined spin />;
+      case 'failed': return <CloseCircleOutlined />;
       default: return <ClockCircleOutlined />;
     }
   };
 
-const columns: ColumnsType<CallRecord> = [
-  {
-    title: 'Type',
-    dataIndex: 'type',
-    key: 'type',
-    render: (type: string) => {
-      const callType = callTypes.find(t => t.value === type);
-      return (
-        <Tag icon={callType?.icon} color={callType?.color}>
-          {callType?.label}
-        </Tag>
-      );
-    },
-    filters: callTypes.map(type => ({
-      text: type.label,
-      value: type.value
-    })),
-    onFilter: (value: boolean | React.Key, record: CallRecord) => {
-      // Convert value to string for comparison since your data uses strings
-      return record.type === String(value);
-    },
-  },
-  {
-    title: 'Meeting/Call',
-    dataIndex: 'title',
-    key: 'title',
-    render: (text: string, record: CallRecord) => (
-      <div>
-        <div className="font-medium">{text}</div>
-        <div className="text-xs text-gray-500">
-          {record.participants.join(', ')}
-        </div>
-      </div>
-    )
-  },
-{
-  title: 'Status',
-  dataIndex: 'status',
-  key: 'status',
-  render: (status: string) => {
-    const statusObj = statusOptions.find(s => s.value === status);
-    return (
-      <Tag icon={getStatusIcon(status)} color={statusObj?.color}>
-        {statusObj?.label}
-      </Tag>
-    );
-  },
-  filters: statusOptions.map(status => ({
-    text: status.label,
-    value: status.value
-  })),
-  onFilter: (value: boolean | React.Key, record: CallRecord) => {
-    return record.status === String(value);
-  },
-},
-  {
-    title: 'Date',
-    dataIndex: 'date',
-    key: 'date',
-    sorter: (a: CallRecord, b: CallRecord) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  },
-  {
-    title: 'Duration',
-    dataIndex: 'duration',
-    key: 'duration',
-    render: (duration: string) => duration || '-'
-  },
-  {
-    title: 'Insights',
-    dataIndex: 'insights',
-    key: 'insights',
-    render: (text: string) => (
-      <div className="max-w-xs truncate">
-        {text}
-      </div>
-    )
-  },
-  {
-    title: 'Progress',
-    dataIndex: 'progress',
-    key: 'progress',
-    render: (progress: number) => (
-      <Progress
-        percent={progress}
-        size="small"
-        status={progress === 100 ? 'success' : 'active'}
-      />
-    )
-  }
-];
+  const getSentimentColor = (sentiment?: string) => {
+    switch (sentiment) {
+      case 'positive': return 'green';
+      case 'negative': return 'red';
+      case 'mixed': return 'orange';
+      default: return 'blue';
+    }
+  };
 
+  const columns: ColumnsType<CallRecord> = [
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type: string) => {
+        const callType = callTypes.find(t => t.value === type);
+        return (
+          <Tag icon={callType?.icon} color={callType?.color}>
+            {callType?.label}
+          </Tag>
+        );
+      },
+      filters: callTypes.map(type => ({
+        text: type.label,
+        value: type.value
+      })),
+      onFilter: (value: boolean | React.Key, record: CallRecord) => {
+        return record.type === String(value);
+      },
+    },
+    {
+      title: 'Meeting/Call',
+      dataIndex: 'title',
+      key: 'title',
+      render: (text: string, record: CallRecord) => (
+        <div>
+          <div className="font-medium">{text}</div>
+          <div className="text-xs text-gray-500">
+            {record.participants.join(', ') || 'No participants'}
+          </div>
+          {record.companyName && (
+            <div className="text-xs text-blue-600">{record.companyName}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => {
+        const statusObj = statusOptions.find(s => s.value === status);
+        return (
+          <Tag icon={getStatusIcon(status)} color={statusObj?.color}>
+            {statusObj?.label || status}
+          </Tag>
+        );
+      },
+      filters: statusOptions.map(status => ({
+        text: status.label,
+        value: status.value
+      })),
+      onFilter: (value: boolean | React.Key, record: CallRecord) => {
+        return record.status === String(value);
+      },
+    },
+    {
+      title: 'Score & Sentiment',
+      key: 'scoreAndSentiment',
+      render: (_, record: CallRecord) => (
+        <div>
+          {record.overallScore && (
+            <div className="flex items-center mb-1">
+              <Progress
+                percent={record.overallScore}
+                size="small"
+                showInfo={false}
+                className="w-16 mr-2"
+              />
+              <Text className="text-xs">{record.overallScore}/100</Text>
+            </div>
+          )}
+          {record.sentiment && (
+           <Tag color={getSentimentColor(record.sentiment)}>
+  {record.sentiment}
+</Tag>
+          )}
+        </div>
+      )
+    },
+    {
+      title: 'Date',
+      dataIndex: 'date',
+      key: 'date',
+      sorter: (a: CallRecord, b: CallRecord) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    },
+    {
+      title: 'Duration',
+      dataIndex: 'duration',
+      key: 'duration',
+      render: (duration: number) => {
+        if (!duration) return '-';
+        const minutes = Math.floor(duration / 60);
+        const seconds = duration % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record: CallRecord) => (
+        <Space>
+          <Tooltip title="View Analysis">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleViewAnalysis(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title="Export Summary">
+            <Button
+              type="text"
+              size="small"
+              icon={<DownloadOutlined />}
+              onClick={() => handleExport(record.id, 'summary')}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Delete Analysis"
+            description="Are you sure you want to delete this analysis?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Tooltip title="Delete">
+              <Button
+                type="text"
+                size="small"
+                icon={<DeleteOutlined />}
+                danger
+              />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      )
+    }
+  ];
+
+  // Calculate stats for call type cards
+  const getTypeStats = (type: string) => {
+    const typeAnalyses = analyses.filter(a => a.type === type);
+    const completed = typeAnalyses.filter(a => a.status === 'completed').length;
+    return { total: typeAnalyses.length, completed };
+  };
+
+  if (error) {
+    message.error(error);
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -258,45 +349,65 @@ const columns: ColumnsType<CallRecord> = [
           </Button>
           <NewCallModal 
             visible={isModalVisible} 
-            onClose={() => setIsModalVisible(false)} 
+            onClose={() => {
+              setIsModalVisible(false);
+              loadAnalyses(); // Refresh after new call
+            }}
           />
         </Space>
       </div>
 
       {/* Call Type Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {callTypes.map(type => (
-          <Card
-            key={type.value}
-            bordered
-            hoverable
-            className={`border border-${type.color}-200 hover:border-${type.color}-300`}
-            onClick={() => setActiveTab(type.value)}
-          >
-            <div className="flex items-center">
-              <Avatar
-                icon={type.icon}
-                style={{ backgroundColor: `var(--ant-color-${type.color}-1)` }}
-                className="mr-3"
-              />
-              <div>
-                <Text strong className="block capitalize">{type.label} Calls</Text>
-                <Text type="secondary">
-                  {activeTab === type.value ? (
-                    `${callData.filter(c => c.type === type.value).length} calls`
-                  ) : (
-                    'No progress data yet'
-                  )}
-                </Text>
-                {activeTab !== type.value && (
-                  <Text type="secondary" className="block text-xs mt-1">
-                    Complete at least 2 calls
-                  </Text>
-                )}
-              </div>
+        <Card
+          bordered
+          hoverable
+          className={`border border-gray-200 hover:border-blue-300 ${activeTab === 'all' ? 'border-blue-500' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          <div className="flex items-center">
+            <Avatar
+              icon={<PhoneOutlined />}
+              style={{ backgroundColor: 'var(--ant-color-blue-1)' }}
+              className="mr-3"
+            />
+            <div>
+              <Text strong className="block">All Calls</Text>
+              <Text type="secondary">{analyses.length} total</Text>
             </div>
-          </Card>
-        ))}
+          </div>
+        </Card>
+        
+        {callTypes.map(type => {
+          const stats = getTypeStats(type.value);
+          return (
+            <Card
+              key={type.value}
+              bordered
+              hoverable
+              className={`border border-${type.color}-200 hover:border-${type.color}-300 ${activeTab === type.value ? `border-${type.color}-500` : ''}`}
+              onClick={() => setActiveTab(type.value)}
+            >
+              <div className="flex items-center">
+                <Avatar
+                  icon={type.icon}
+                  style={{ backgroundColor: `var(--ant-color-${type.color}-1)` }}
+                  className="mr-3"
+                />
+                <div>
+                  <Text strong className="block capitalize">{type.label} Calls</Text>
+                  <Text type="secondary">
+                    {stats.total > 0 ? (
+                      `${stats.completed}/${stats.total} analyzed`
+                    ) : (
+                      'No calls yet'
+                    )}
+                  </Text>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Filters and Search */}
@@ -353,11 +464,21 @@ const columns: ColumnsType<CallRecord> = [
           columns={columns}
           dataSource={filteredData}
           rowKey="key"
+          loading={loading}
           locale={{
             emptyText: (
               <div className="py-12 text-center">
                 <FileSearchOutlined className="text-3xl mb-2 text-gray-400" />
                 <Text type="secondary">No sales calls found</Text>
+                <div className="mt-2">
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={() => setIsModalVisible(true)}
+                  >
+                    Create Your First Analysis
+                  </Button>
+                </div>
               </div>
             )
           }}
