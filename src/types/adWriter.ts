@@ -36,3 +36,10 @@ export interface GeneratedAd {
   hooks: string[];
   visualSuggestions: string[];
 }
+
+export type AdOptimizationType = 
+  | 'emotional' 
+  | 'urgency' 
+  | 'benefits' 
+  | 'social-proof' 
+  | 'simplify';

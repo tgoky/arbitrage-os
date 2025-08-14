@@ -1,7 +1,7 @@
 // services/adWriter.service.ts
 import { OpenRouterClient } from '@/lib/openrouter';
 import { AdGenerationInput, GeneratedAd, Platform } from '@/types/adWriter';
-import { AdOptimizationType } from '@/types/coldEmail';
+import { AdOptimizationType } from '@/types/adWriter';
 import { Redis } from '@upstash/redis';
 
 export class AdWriterService {

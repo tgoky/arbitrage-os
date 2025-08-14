@@ -1,38 +1,55 @@
 // types/coldEmail.ts
 export interface ColdEmailGenerationInput {
-  // Business Information
-  businessName: string;
-  industry: string;
-  valueProposition: string;
-  
-  // Target Information
-  prospectName: string;
-  prospectCompany: string;
-  prospectTitle: string;
-  prospectIndustry?: string;
-  prospectPainPoint: string;
+  // Your Information (from frontend form)
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle: string;
+  companyName: string;
+  workEmail: string;
+  companyWebsite?: string;
   
   // Email Strategy
-  method: 'cold' | 'warm' | 'follow_up' | 'introduction';
-  tone: 'professional' | 'friendly' | 'casual' | 'formal' | 'conversational';
-  purpose: 'meeting' | 'demo' | 'sale' | 'partnership' | 'introduction';
+  method: 'interview' | 'podcast' | 'direct' | 'masterclass' | 'referral' | 'problem';
+  tone: 'professional' | 'friendly' | 'casual' | 'formal';
+  emailLength: 'short' | 'medium' | 'long';
+  quality: 'fast' | 'balanced' | 'high';
+  creativity: 'low' | 'moderate' | 'high';
   
-  // Offer/CTA
-  offer: string;
-  cta: string;
-  
-  // Social Proof (optional)
+  // Target Details
+  targetIndustry: string;
+  targetRole: string;
+  targetFirstName?: string;
+  targetCompany?: string;
+  targetCompanySize?: string;
+  targetPainPoints?: string[];
+  targetGoals?: string[];
+  valueProposition: string;
+  uniqueDifferentiator?: string;
   socialProof?: string;
-  caseStudy?: string;
-  mutualConnection?: string;
   
-  // Email Settings
-  subject?: string;
-  numberOfVariations: number;
+  // Advanced Options
+  phone?: string;
+  linkedIn?: string;
+  companyAddress?: string;
+  callToAction?: string;
+  meetingType?: string;
+  urgencyFactor?: string;
+  subjectLineStyle?: string;
+  personalizedElement?: string;
   
-  // Follow-up settings
-  includeFollowUp: boolean;
-  followUpDays?: number;
+  // Referral Information (optional)
+  referrerFirstName?: string;
+  referrerLastName?: string;
+  referrerJobTitle?: string;
+  referrerEmail?: string;
+  referrerRelationship?: string;
+  
+  // Generation Settings
+  variations: number;
+  generateFollowUps: boolean;
+  followUpCount: number;
+  saveAsTemplate: boolean;
   
   // System field
   userId: string;
@@ -41,9 +58,17 @@ export interface ColdEmailGenerationInput {
 export interface GeneratedEmail {
   subject: string;
   body: string;
-  variation: number;
-  tone: string;
-  purpose: string;
+  signature: string;
+  method: string;
+  followUpSequence?: GeneratedEmail[];
+  metadata?: {
+    targetIndustry: string;
+    targetRole: string;
+    generatedAt: string;
+    variationIndex?: number;
+    dayInterval?: number;
+    sequenceNumber?: number;
+  };
 }
 
 export interface ColdEmailResponse {
@@ -52,6 +77,37 @@ export interface ColdEmailResponse {
   generationTime: number;
 }
 
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  method: string;
+  category: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
+  description?: string;
+  variables?: string[];
+  tags: string[];
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: {
+    targetIndustry?: string;
+    targetRole?: string;
+  };
+}
+
 // Optimization types
-export type ColdEmailOptimizationType = 'personalization' | 'value' | 'urgency' | 'social-proof' | 'clarity' | 'cta';
-export type AdOptimizationType = 'emotional' | 'urgency' | 'benefits' | 'social-proof' | 'simplify';
+export type ColdEmailOptimizationType = 
+  | 'personalization' 
+  | 'value' 
+  | 'urgency' 
+  | 'social-proof' 
+  | 'clarity' 
+  | 'cta';
+
+export type AdOptimizationType = 
+  | 'emotional' 
+  | 'urgency' 
+  | 'benefits' 
+  | 'social-proof' 
+  | 'simplify';

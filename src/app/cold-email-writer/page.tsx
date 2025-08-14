@@ -1,6 +1,5 @@
 "use client";
 
-// app/cold-email-writer/page.tsx
 import React, { useState } from 'react';
 import { 
   MailOutlined, 
@@ -39,53 +38,34 @@ import {
   Switch,
   List,
   Modal,
-  Table
+  Table,
+  notification
 } from 'antd';
+import { useColdEmail } from '../hooks/useColdEmail';
+import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput } from '@/types/coldEmail';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 const { Option } = Select;
 const { TextArea } = Input;
 
-interface GeneratedEmail {
-  subject: string;
-  body: string;
-  signature: string;
-  method: string;
-  followUpSequence?: GeneratedEmail[];
-  metadata?: {
-    targetIndustry: string;
-    targetRole: string;
-    generatedAt: string;
-    variationIndex?: number;
-    dayInterval?: number;
-    sequenceNumber?: number;
-  };
-}
-
-interface EmailTemplate {
-  id: string;
-  userId: string;
-  name: string;
-  subject: string;
-  body: string;
-  method: string;
-  metadata?: {
-    targetIndustry: string;
-    targetRole: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
 const ColdEmailWriter = () => {
   const [form] = Form.useForm();
   const [emailMethod, setEmailMethod] = useState('direct');
   const [generatedEmails, setGeneratedEmails] = useState<GeneratedEmail[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+
+  const {
+    generateEmails,
+    optimizeEmail,
+    getTemplates,
+    createTemplate,
+    loading,
+    error,
+    setError
+  } = useColdEmail();
 
   const emailMethods = [
     {
@@ -169,40 +149,54 @@ const ColdEmailWriter = () => {
   ];
 
   const onFinish = async (values: any) => {
-    setIsGenerating(true);
-    
     try {
-      const requestData = {
+      // Prepare data for API using the hook
+      const requestData: ColdEmailGenerationInput = {
         ...values,
         method: emailMethod,
-        userId: 'user-id-placeholder', // Replace with actual user ID from auth
         variations: values.variations || 1,
         generateFollowUps: values.generateFollowUps || false,
-        followUpCount: values.followUpCount || 3
+        followUpCount: values.followUpCount || 3,
+        saveAsTemplate: values.saveAsTemplate || false
       };
 
-      const response = await fetch('/api/cold-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
+      // Call backend API using hook
+      const result = await generateEmails(requestData);
+      
+      setGeneratedEmails(result);
+      
+      // Show success notification
+      notification.success({
+        message: 'Emails Generated Successfully!',
+        description: `Generated ${result.length} email variations`,
+        placement: 'topRight',
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate email');
+      // If user wanted to save as template, create it
+      if (values.saveAsTemplate && result.length > 0) {
+        try {
+          await createTemplate({
+            name: `${emailMethod} - ${values.targetIndustry} - ${new Date().toLocaleDateString()}`,
+            subject: result[0].subject,
+            body: result[0].body,
+            category: 'outreach',
+            tags: [emailMethod, values.targetIndustry, values.targetRole],
+            isPublic: false
+          });
+          message.success('Template saved successfully!');
+        } catch (templateError) {
+          console.error('Failed to save template:', templateError);
+        }
       }
-
-      const data = await response.json();
-      setGeneratedEmails(data.data);
-      message.success('Emails generated successfully!');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating email:', error);
-      message.error(error instanceof Error ? error.message : 'Failed to generate email. Please try again.');
-    } finally {
-      setIsGenerating(false);
+      
+      notification.error({
+        message: 'Generation Failed',
+        description: error.message || 'Please try again later',
+        placement: 'topRight',
+      });
     }
   };
 
@@ -233,40 +227,38 @@ const ColdEmailWriter = () => {
     }
   };
 
-  const optimizeEmail = async (emailContent: string, optimizationType: string) => {
+  const handleOptimizeEmail = async (emailContent: string, optimizationType: string) => {
     try {
-      const response = await fetch('/api/cold-email/optimize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ emailContent, optimizationType }),
+      const optimizedContent = await optimizeEmail(
+        emailContent, 
+        optimizationType as any
+      );
+      
+      notification.success({
+        message: 'Email Optimized!',
+        description: 'Check the new optimized version',
+        placement: 'topRight',
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to optimize email');
-      }
-
-      const data = await response.json();
+      
+      // Here you could update the email in place or show in a modal
+      // For now, just show success message
       message.success('Email optimized successfully!');
-      return data.data;
+      
+      return optimizedContent;
     } catch (error) {
-      message.error('Failed to optimize email');
+      // Error is already handled in the hook
       return emailContent;
     }
   };
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch('/api/cold-email/templates');
-      if (!response.ok) throw new Error('Failed to fetch templates');
-      const data = await response.json();
-      setTemplates(data.data);
+      const fetchedTemplates = await getTemplates({ includePublic: true });
+      setTemplates(fetchedTemplates);
       setIsTemplateModalVisible(true);
-      message.success(`Loaded ${data.data.length} templates`);
+      message.success(`Loaded ${fetchedTemplates.length} templates`);
     } catch (error) {
-      message.error('Failed to load templates');
+      // Error is already handled in the hook
     }
   };
 
@@ -276,12 +268,12 @@ const ColdEmailWriter = () => {
       method: template.method,
       targetIndustry: template.metadata?.targetIndustry,
       targetRole: template.metadata?.targetRole,
-      // Add more fields as needed based on template metadata
     });
+    
     setGeneratedEmails([{
       subject: template.subject,
       body: template.body,
-      signature: '', // Signature would need to be reconstructed or stored
+      signature: '',
       method: template.method,
       metadata: {
         targetIndustry: template.metadata?.targetIndustry || '',
@@ -289,6 +281,7 @@ const ColdEmailWriter = () => {
         generatedAt: template.createdAt,
       }
     }]);
+    
     setIsTemplateModalVisible(false);
     message.success(`Applied template: ${template.name}`);
   };
@@ -376,6 +369,17 @@ const ColdEmailWriter = () => {
             layout="vertical"
             onFinish={onFinish}
           >
+            {error && (
+              <Alert
+                message="Error"
+                description={error}
+                type="error"
+                closable
+                onClose={() => setError(null)}
+                className="mb-4"
+              />
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
                 name="firstName"
@@ -905,6 +909,7 @@ const ColdEmailWriter = () => {
           <Button
             type="primary"
             onClick={fetchTemplates}
+            loading={loading}
           >
             Load Saved Templates
           </Button>
@@ -931,12 +936,12 @@ const ColdEmailWriter = () => {
           type="primary" 
           size="large" 
           htmlType="submit"
-          loading={isGenerating}
+          loading={loading}
           icon={<ArrowRightOutlined />}
           onClick={() => form.submit()}
           className="min-w-48"
         >
-          {isGenerating ? 'Generating AI Email...' : 'Generate AI Email'}
+          {loading ? 'Generating AI Email...' : 'Generate AI Email'}
         </Button>
       </div>
 
@@ -948,9 +953,14 @@ const ColdEmailWriter = () => {
                 <Title level={4}>Generated Email {index + 1}</Title>
                 <Space>
                   <Button 
-                    onClick={() => optimizeEmail(`${email.subject}\n\n${email.body}\n\n${email.signature}`, 'subject')}
+                    onClick={() => handleOptimizeEmail(`${email.subject}\n\n${email.body}\n\n${email.signature}`, 'personalization')}
                   >
-                    Optimize Subject
+                    Optimize Personalization
+                  </Button>
+                  <Button 
+                    onClick={() => handleOptimizeEmail(`${email.subject}\n\n${email.body}\n\n${email.signature}`, 'value')}
+                  >
+                    Optimize Value
                   </Button>
                   <Button 
                     icon={<DownloadOutlined />}

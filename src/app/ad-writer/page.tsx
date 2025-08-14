@@ -39,6 +39,7 @@ import {
   message,
   notification
 } from 'antd';
+import { useAdWriter, type AdWriterInput, type GeneratedAd } from '../hooks/useAdWriter';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -48,11 +49,12 @@ const { TabPane } = Tabs;
 const AdWriter = () => {
   const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(0);
-  const [generatedAds, setGeneratedAds] = useState<any[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedAds, setGeneratedAds] = useState<GeneratedAd[]>([]);
   const [activePlatforms, setActivePlatforms] = useState<string[]>(['facebook', 'google']);
   const [activeTab, setActiveTab] = useState('1');
-  const [error, setError] = useState<string | null>(null);
+  const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
+
+  const { generateAds, optimizeAd, regeneratePlatformAds, loading, error, setError } = useAdWriter();
 
   // Platform configurations
   const platforms = [
@@ -122,116 +124,81 @@ const AdWriter = () => {
 
   // Main function to call backend API
   const onFinish = async (values: any) => {
-    setIsGenerating(true);
-    setError(null);
-    
     try {
       // Prepare data for API
-      const requestData = {
+      const requestData: AdWriterInput = {
         ...values,
-        activePlatforms, // Include selected platforms
+        activePlatforms,
       };
 
-      // Call backend API
-      const response = await fetch('/api/ad-writer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
+      // Store form data for regeneration
+      setOriginalFormData(requestData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate ads');
-      }
-
-      const result = await response.json();
+      // Call backend API using hook
+      const result = await generateAds(requestData);
       
-      if (result.success) {
-        setGeneratedAds(result.data);
-        setCurrentStep(3);
-        
-        // Show success notification with token usage
-        notification.success({
-          message: 'Ads Generated Successfully!',
-          description: `Generated ${result.data.length} platform variations in ${(result.meta.generationTime / 1000).toFixed(1)}s`,
-          placement: 'topRight',
-        });
-      } else {
-        throw new Error(result.error || 'Generation failed');
-      }
+      setGeneratedAds(result);
+      setCurrentStep(3);
+      
+      // Show success notification
+      notification.success({
+        message: 'Ads Generated Successfully!',
+        description: `Generated ${result.length} platform variations`,
+        placement: 'topRight',
+      });
+      
     } catch (error: any) {
       console.error('Error generating ads:', error);
-      setError(error.message);
       
       notification.error({
         message: 'Generation Failed',
         description: error.message || 'Please try again later',
         placement: 'topRight',
       });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
   // Optimize existing ad copy
-  const optimizeAd = async (adCopy: string, optimizationType: string) => {
+  const handleOptimizeAd = async (adCopy: string, optimizationType: string) => {
     try {
-      const response = await fetch('/api/ad-writer/optimize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ adCopy, optimizationType }),
+      const optimizedContent = await optimizeAd(adCopy, optimizationType);
+      
+      // You could show the optimized content in a modal or replace the original
+      notification.success({
+        message: 'Ad Optimized!',
+        description: 'Check the new version',
+        placement: 'topRight',
       });
-
-      if (!response.ok) {
-        throw new Error('Optimization failed');
-      }
-
-      const result = await response.json();
-      return result.data;
+      
+      // For now, just show in a message
+      message.success('Ad optimized successfully!');
+      
+      return optimizedContent;
     } catch (error) {
-      console.error('Optimization error:', error);
-      message.error('Failed to optimize ad copy');
+      // Error is already handled in the hook
       return null;
     }
   };
 
   // Regenerate specific platform ads
-  const regeneratePlatform = async (platform: string) => {
-    const values = form.getFieldsValue();
+  const handleRegeneratePlatform = async (platform: string) => {
+    if (!originalFormData) {
+      message.error('No original data found for regeneration');
+      return;
+    }
     
     try {
-      const response = await fetch('/api/ad-writer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...values,
-          activePlatforms: [platform],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Regeneration failed');
-      }
-
-      const result = await response.json();
+      const newAd = await regeneratePlatformAds(originalFormData, platform);
       
-      if (result.success && result.data.length > 0) {
-        // Update only the regenerated platform
-        setGeneratedAds(prev => {
-          const filtered = prev.filter(ad => ad.platform !== platform);
-          return [...filtered, result.data[0]];
-        });
-        
-        message.success(`${platform} ads regenerated!`);
-      }
+      // Update only the regenerated platform
+      setGeneratedAds(prev => {
+        const filtered = prev.filter(ad => ad.platform !== platform);
+        return [...filtered, newAd];
+      });
+      
+      message.success(`${platform} ads regenerated!`);
     } catch (error) {
-      message.error('Failed to regenerate ads');
+      // Error is already handled in the hook
     }
   };
 
@@ -319,7 +286,7 @@ const AdWriter = () => {
                 rows={3} 
                 placeholder="We help [target audience] achieve [core benefit] through [unique approach]" 
                 showCount
-                 maxLength={500}
+                maxLength={500}
               />
             </Form.Item>
             
@@ -674,8 +641,9 @@ const AdWriter = () => {
                       <div className="flex justify-end mb-2">
                         <Button
                           icon={<ReloadOutlined />}
-                          onClick={() => regeneratePlatform(ad.platform)}
+                          onClick={() => handleRegeneratePlatform(ad.platform)}
                           size="small"
+                          loading={loading}
                         >
                           Regenerate {ad.platform}
                         </Button>
@@ -713,10 +681,7 @@ const AdWriter = () => {
                                     <Button 
                                       type="text" 
                                       size="small"
-                                      onClick={async () => {
-                                        const optimized = await optimizeAd(headline, 'emotional');
-                                        if (optimized) message.success('Optimized!');
-                                      }}
+                                      onClick={() => handleOptimizeAd(headline, 'emotional')}
                                     >
                                       ✨
                                     </Button>
@@ -883,7 +848,7 @@ const AdWriter = () => {
           {currentStep === 2 && (
             <Button 
               type="primary" 
-              loading={isGenerating}
+              loading={loading}
               onClick={() => {
                 if (activePlatforms.length === 0) {
                   message.error('Please select at least one platform!');
@@ -904,6 +869,7 @@ const AdWriter = () => {
               onClick={() => {
                 setCurrentStep(0);
                 setGeneratedAds([]);
+                setOriginalFormData(null);
                 form.resetFields();
               }}
             >
