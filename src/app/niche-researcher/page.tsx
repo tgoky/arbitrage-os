@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Button, 
   Card, 
@@ -16,7 +16,8 @@ import {
   Modal,
   Table,
   Space,
-  Tooltip
+  Tooltip,
+  message
 } from 'antd';
 import { 
   UserOutlined, 
@@ -36,6 +37,21 @@ import {
 } from '@ant-design/icons';
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
+
+interface FormValues {
+  roles: string;
+  skills: string[];
+  competencies: string;
+  interests: string;
+  connections: string;
+  audienceAccess?: string;
+  problems: string;
+  trends: string;
+  time: '5-10' | '10-20' | '20-30' | '30+';
+  budget: '0-1k' | '1k-5k' | '5k-10k' | '10k+';
+  location: 'remote-only' | 'local-focused' | 'hybrid';
+  otherConstraints?: string;
+}
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -70,19 +86,63 @@ const NicheResearcher = () => {
     'Generate Report'
   ];
 
+   // 5. Safe array rendering with proper null checks
+  const renderReasons = (reasons?: string[]) => {
+    if (!reasons || !Array.isArray(reasons) || reasons.length === 0) {
+      return <li className="text-sm text-gray-500">No reasons available</li>;
+    }
+
+    return reasons.map((reason: string, i: number) => (
+      <li key={i} className="text-sm">
+        {typeof reason === 'string' ? reason : 'Invalid reason'}
+      </li>
+    ));
+  };
+
+  const renderTargetCustomers = (customers?: string[]) => {
+    if (!customers || !Array.isArray(customers) || customers.length === 0) {
+      return <Tag>No customers defined</Tag>;
+    }
+
+    return customers.slice(0, 3).map((customer: string, i: number) => (
+      <Tag key={i}>
+        {typeof customer === 'string' ? customer : 'Invalid customer'}
+      </Tag>
+    ));
+  };
+
+  const renderNextSteps = (steps?: string[]) => {
+    if (!steps || !Array.isArray(steps) || steps.length === 0) {
+      return <li className="text-sm text-gray-500">No steps available</li>;
+    }
+
+    return steps.slice(0, 3).map((step: string, i: number) => (
+      <li key={i} className="text-sm">
+        {typeof step === 'string' ? step : 'Invalid step'}
+      </li>
+    ));
+  };
+  
   // Load skills suggestions on component mount
   useEffect(() => {
     loadSkillsSuggestions();
   }, []);
 
-  const loadSkillsSuggestions = async () => {
+   const loadSkillsSuggestions = useCallback(async () => {
     try {
       const suggestions = await getSkillsSuggestions();
       setSkillsSuggestions(suggestions);
     } catch (error) {
       console.error('Failed to load skills suggestions:', error);
+      // Optional: Show user-friendly error
+      message.error('Failed to load skills suggestions');
     }
-  };
+  }, [getSkillsSuggestions]);
+
+  // Fixed useEffect with proper dependencies
+  useEffect(() => {
+    loadSkillsSuggestions();
+  }, [loadSkillsSuggestions]);
 
   const loadPreviousReports = async () => {
     try {
@@ -107,16 +167,34 @@ const NicheResearcher = () => {
     }
   };
 
-  const handleDeleteReport = async (reportId: string) => {
+    const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+
+    
+
+  const handleDeleteReport = useCallback(async (reportId: string) => {
+    setDeletingReportId(reportId);
     try {
       await deleteNicheReport(reportId);
-      // Refresh the reports list
-      const reports = await getUserReports();
-      setPreviousReports(reports);
+      
+      // Optimistically update UI first
+      setPreviousReports(prev => prev.filter(report => report.id !== reportId));
+      
+      // Then refresh from server to ensure consistency
+      try {
+        const reports = await getUserReports();
+        setPreviousReports(reports);
+      } catch (refreshError) {
+        // If refresh fails, log but don't revert optimistic update
+        console.error('Failed to refresh reports after delete:', refreshError);
+      }
     } catch (error) {
       console.error('Failed to delete report:', error);
+      message.error('Failed to delete report');
+    } finally {
+      setDeletingReportId(null);
     }
-  };
+  }, [deleteNicheReport, getUserReports]);
+
 
   const handleExportReport = async (reportId: string, format: 'html' | 'json' = 'html') => {
     try {
@@ -126,14 +204,12 @@ const NicheResearcher = () => {
     }
   };
 
-  const onFinish = async (values: any) => {
+   // Updated onFinish function with proper typing
+  const onFinish = async (values: FormValues) => {
     try {
-      // Prepare data for API using the hook
-      const requestData: NicheResearchInput = {
-        ...values,
-      };
-
-      // Call backend API using hook
+      // ✅ Now you get TypeScript autocomplete and type checking
+      const requestData = values; // Backend handles userId
+      
       const result = await generateNicheReport(requestData);
       
       setReportData(result.report);
@@ -141,7 +217,6 @@ const NicheResearcher = () => {
       setReportGenerated(true);
       setCurrentStep(3);
       
-      // Show success notification
       notification.success({
         message: 'Niche Research Report Generated!',
         description: `Found ${result.report.recommendedNiches.length} personalized niche opportunities`,
@@ -527,9 +602,7 @@ const NicheResearcher = () => {
                           <div>
                             <Text strong>Why This Fits You:</Text>
                             <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {niche.reasons.map((reason: string, i: number) => (
-                                <li key={i} className="text-sm">{reason}</li>
-                              ))}
+                             {renderReasons(niche.reasons)}
                             </ul>
                           </div>
                           
@@ -554,18 +627,14 @@ const NicheResearcher = () => {
                           <div>
                             <Text strong>Target Customers:</Text>
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {niche.targetCustomers.slice(0, 3).map((customer: string, i: number) => (
-                             <Tag key={i}>{customer}</Tag>
-                              ))}
+                             {renderTargetCustomers(niche.targetCustomers)}
                             </div>
                           </div>
                           
                           <div>
                             <Text strong>Next Steps:</Text>
                             <ol className="list-decimal pl-5 mt-2 space-y-1">
-                              {niche.nextSteps.slice(0, 3).map((step: string, i: number) => (
-                                <li key={i} className="text-sm">{step}</li>
-                              ))}
+                              {renderNextSteps(niche.nextSteps)}
                             </ol>
                           </div>
                         </div>

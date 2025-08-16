@@ -1,13 +1,23 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DollarOutlined,
   CalculatorOutlined,
   PieChartOutlined,
   ShareAltOutlined,
   ReloadOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  SaveOutlined,
+  DownloadOutlined,
+  CompareArrowsOutlined,
+  BulbOutlined,
+  TrophyOutlined,
+  BookOutlined,
+  FileTextOutlined,
+  PresentationChartLineOutlined,
+  ContainerOutlined,
+  BankOutlined
 } from '@ant-design/icons';
 import {
   Button,
@@ -24,300 +34,866 @@ import {
   Col,
   Statistic,
   Tooltip,
-  Popover
+  Popover,
+  Select,
+  Switch,
+  Tabs,
+  Modal,
+  Table,
+  Progress,
+  Spin,
+  notification,
+  Collapse,
+  List,
+  Badge
 } from 'antd';
 
-const { Title, Text } = Typography;
+// Import our custom hooks
+import {
+  usePricingCalculator,
+  useSavedCalculations,
+  useScenarioComparison,
+  usePricingBenchmarks,
+  useCalculationExport,
+  usePricingValidation,
+  type PricingCalculatorInput,
+  type GeneratedPricingPackage
+} from '../hooks/usePricingCalculator';
+
+const { Title, Text, Paragraph } = Typography;
+const { TabPane } = Tabs;
+const { Panel } = Collapse;
+const { Option } = Select;
 
 const PricingCalculator = () => {
   const [form] = Form.useForm();
-  const [results, setResults] = useState({
+  const [activeTab, setActiveTab] = useState('calculator');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currentPackage, setCurrentPackage] = useState<GeneratedPricingPackage | null>(null);
+  const [savedCalculationId, setSavedCalculationId] = useState<string | null>(null);
+  
+  // Hooks
+  const { generatePricing, quickCalculate, generating } = usePricingCalculator();
+  const { calculations, fetchCalculations } = useSavedCalculations();
+  const { benchmarks, fetchBenchmarks } = usePricingBenchmarks();
+  const { exportCalculation } = useCalculationExport();
+  const { validateInput, getBusinessInsights } = usePricingValidation();
+
+  // Quick calculation results (real-time)
+  const [quickResults, setQuickResults] = useState({
     monthlySavings: 0,
     recommendedRetainer: 0,
     netSavings: 0,
-    roiPercentage: 0
+    roiPercentage: 0,
+    hourlyRate: 0,
+    monthlyHours: 0
   });
 
-  const onFinish = (values: any) => {
-    const { annualSavings, hoursPerWeek, roiMultiple } = values;
-    const monthlySavings = annualSavings / 12;
-    const recommendedRetainer = (monthlySavings * hoursPerWeek) / 160 * roiMultiple;
-    const netSavings = monthlySavings - recommendedRetainer;
-    const roiPercentage = (netSavings / recommendedRetainer) * 100;
+  useEffect(() => {
+    fetchCalculations();
+    fetchBenchmarks();
+  }, [fetchCalculations, fetchBenchmarks]);
 
-    setResults({
-      monthlySavings,
-      recommendedRetainer,
-      netSavings,
-      roiPercentage
-    });
+  // Real-time calculation updates
+  const handleFormChange = () => {
+    const values = form.getFieldsValue();
+    if (values.annualSavings && values.hoursPerWeek && values.roiMultiple) {
+      const results = quickCalculate({
+        annualSavings: values.annualSavings,
+        hoursPerWeek: values.hoursPerWeek,
+        roiMultiple: values.roiMultiple
+      });
+      setQuickResults(results);
+    }
+  };
+
+  const onFinish = async (values: any) => {
+    const validation = validateInput(values);
+    
+    if (!validation.isValid) {
+      Object.entries(validation.errors).forEach(([field, error]) => {
+        notification.error({
+          message: 'Validation Error',
+          description: `${field}: ${error}`,
+        });
+      });
+      return;
+    }
+
+    const result = await generatePricing(values);
+    
+    if (result) {
+      setCurrentPackage(result.package);
+      setSavedCalculationId(result.calculationId);
+      setActiveTab('results');
+      
+      notification.success({
+        message: 'Pricing Package Generated!',
+        description: 'Your comprehensive pricing strategy is ready.',
+        duration: 4
+      });
+    }
   };
 
   const resetForm = () => {
     form.resetFields();
-    setResults({
+    setQuickResults({
       monthlySavings: 0,
       recommendedRetainer: 0,
       netSavings: 0,
-      roiPercentage: 0
+      roiPercentage: 0,
+      hourlyRate: 0,
+      monthlyHours: 0
     });
+    setCurrentPackage(null);
+    setSavedCalculationId(null);
   };
 
+  const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | 'complete') => {
+    if (!savedCalculationId) {
+      notification.error({
+        message: 'No Calculation to Export',
+        description: 'Please generate a pricing calculation first.'
+      });
+      return;
+    }
+    
+    await exportCalculation(savedCalculationId, format);
+  };
+
+  const getBusinessInsightsForCurrent = () => {
+    const values = form.getFieldsValue();
+    if (values.annualSavings && values.hoursPerWeek && values.roiMultiple) {
+      return getBusinessInsights(values);
+    }
+    return null;
+  };
+
+  const insights = getBusinessInsightsForCurrent();
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <CalculatorOutlined className="mr-2 text-blue-600" />
-          AI Services Pricing Calculator
+          AI-Powered Pricing Calculator
         </Title>
         <Text type="secondary" className="text-lg">
-          Set data-driven pricing based on the ROI you deliver to clients
+          Generate comprehensive pricing strategies with AI-powered insights and industry benchmarks
         </Text>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <Title level={4} className="flex items-center mb-4">
-            <DollarOutlined className="mr-2" />
-            Custom Offer Inputs
-          </Title>
-          <Text type="secondary" className="block mb-4">
-            Estimate how much you help your client save, pick the ROI multiple, and see your recommended monthly retainer
-          </Text>
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab}
+        type="card"
+        size="large"
+      >
+        <TabPane 
+          tab={
+            <span>
+              <CalculatorOutlined />
+              Calculator
+            </span>
+          } 
+          key="calculator"
+        >
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <Card>
+                <div className="flex justify-between items-center mb-4">
+                  <Title level={4} className="flex items-center mb-0">
+                    <DollarOutlined className="mr-2" />
+                    Pricing Inputs
+                  </Title>
+                  <Switch
+                    checkedChildren="Advanced"
+                    unCheckedChildren="Basic"
+                    checked={showAdvanced}
+                    onChange={setShowAdvanced}
+                  />
+                </div>
 
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            initialValues={{
-              annualSavings: 80000,
-              hoursPerWeek: 20,
-              roiMultiple: 5
-            }}
-          >
-            <Form.Item
-              name="annualSavings"
-              label={
-                <span>
-                  Estimated Annual Savings for Client{' '}
-                  <Tooltip title="How much money will your services save/make the client per year?">
-                    <InfoCircleOutlined />
-                  </Tooltip>
-                </span>
-              }
-              rules={[
-                { required: true, message: 'Please input estimated savings!' },
-                { 
-                  pattern: /^\d+(\.\d{1,2})?$/,
-                  message: 'Please enter a valid number!'
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={onFinish}
+                  onValuesChange={handleFormChange}
+                  initialValues={{
+                    annualSavings: 100000,
+                    hoursPerWeek: 20,
+                    roiMultiple: 5,
+                    experienceLevel: 'intermediate',
+                    deliveryRisk: 'medium',
+                    clientUrgency: 'medium',
+                    relationshipType: 'new',
+                    paymentTerms: 'monthly',
+                    marketDemand: 'medium',
+                    competitionLevel: 'medium'
+                  }}
+                >
+                  {/* Basic Fields */}
+                  <Form.Item
+                    name="annualSavings"
+                    label={
+                      <span>
+                        Annual Client Savings{' '}
+                        <Tooltip title="How much money will your services save/make the client per year?">
+                          <InfoCircleOutlined />
+                        </Tooltip>
+                      </span>
+                    }
+                    rules={[
+                      { required: true, message: 'Please input estimated savings!' },
+                      { type: 'number', min: 1000, message: 'Minimum $1,000' }
+                    ]}
+                  >
+                    <Input
+                      prefix="$"
+                      type="number"
+                      placeholder="100000"
+                      size="large"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="hoursPerWeek"
+                    label="Hours Worked Per Week"
+                    rules={[{ required: true, message: 'Please input hours!' }]}
+                  >
+                    <Slider
+                      min={5}
+                      max={40}
+                      marks={{
+                        5: '5h',
+                        20: '20h',
+                        40: '40h'
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="roiMultiple"
+                    label={
+                      <span>
+                        ROI Multiple{' '}
+                        <Tooltip title="How much of the value created should you capture? Higher multiples for specialized expertise.">
+                          <InfoCircleOutlined />
+                        </Tooltip>
+                      </span>
+                    }
+                    rules={[{ required: true, message: 'Please select ROI multiple!' }]}
+                  >
+                    <Slider
+                      min={2}
+                      max={15}
+                      step={0.5}
+                      marks={{
+                        2: '2x',
+                        5: '5x',
+                        10: '10x',
+                        15: '15x'
+                      }}
+                    />
+                  </Form.Item>
+
+                  {/* Advanced Fields */}
+                  {showAdvanced && (
+                    <>
+                      <Divider>Project Context</Divider>
+                      
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item name="clientName" label="Client Name">
+                            <Input placeholder="Client name" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item name="projectName" label="Project Name">
+                            <Input placeholder="Project name" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item name="industry" label="Industry">
+                            <Select placeholder="Select industry">
+                              <Option value="Technology">Technology</Option>
+                              <Option value="Healthcare">Healthcare</Option>
+                              <Option value="Finance">Finance</Option>
+                              <Option value="Manufacturing">Manufacturing</Option>
+                              <Option value="Retail">Retail</Option>
+                              <Option value="Education">Education</Option>
+                              <Option value="Real Estate">Real Estate</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item name="serviceType" label="Service Type">
+                            <Select placeholder="Select service type">
+                              <Option value="AI Consulting">AI Consulting</Option>
+                              <Option value="Process Automation">Process Automation</Option>
+                              <Option value="Data Analytics">Data Analytics</Option>
+                              <Option value="Digital Transformation">Digital Transformation</Option>
+                              <Option value="Custom Development">Custom Development</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Divider>Pricing Factors</Divider>
+
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item name="experienceLevel" label="Experience Level">
+                            <Select>
+                              <Option value="beginner">Beginner</Option>
+                              <Option value="intermediate">Intermediate</Option>
+                              <Option value="expert">Expert</Option>
+                              <Option value="premium">Premium</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item name="deliveryRisk" label="Delivery Risk">
+                            <Select>
+                              <Option value="low">Low Risk</Option>
+                              <Option value="medium">Medium Risk</Option>
+                              <Option value="high">High Risk</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item name="clientUrgency" label="Client Urgency">
+                            <Select>
+                              <Option value="low">Low Urgency</Option>
+                              <Option value="medium">Medium Urgency</Option>
+                              <Option value="high">High Urgency</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item name="relationshipType" label="Relationship Type">
+                            <Select>
+                              <Option value="new">New Client</Option>
+                              <Option value="existing">Existing Client</Option>
+                              <Option value="referral">Referral</Option>
+                              <Option value="strategic">Strategic Partner</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item name="paymentTerms" label="Payment Terms">
+                            <Select>
+                              <Option value="upfront">Upfront</Option>
+                              <Option value="monthly">Monthly</Option>
+                              <Option value="milestone">Milestone</Option>
+                              <Option value="success-based">Success-based</Option>
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item name="projectDuration" label="Project Duration (months)">
+                            <Input type="number" min={1} max={60} placeholder="6" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      <Form.Item name="guaranteeOffered" valuePropName="checked">
+                        <Switch /> <span className="ml-2">Offer Performance Guarantee</span>
+                      </Form.Item>
+                    </>
+                  )}
+
+                  <div className="flex justify-between mt-8">
+                    <Button
+                      icon={<ReloadOutlined />}
+                      onClick={resetForm}
+                      size="large"
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      icon={<BulbOutlined />}
+                      loading={generating}
+                      size="large"
+                    >
+                      {generating ? 'Generating AI Insights...' : 'Generate Pricing Strategy'}
+                    </Button>
+                  </div>
+                </Form>
+              </Card>
+            </Col>
+
+            <Col xs={24} lg={12}>
+              <Card>
+                <Title level={4} className="flex items-center mb-4">
+                  <PieChartOutlined className="mr-2" />
+                  Live Preview
+                </Title>
+
+                <div className="space-y-4">
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Statistic
+                        title="Monthly Savings"
+                        value={quickResults.monthlySavings}
+                        precision={0}
+                        prefix="$"
+                        suffix="/mo"
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="Monthly Hours"
+                        value={quickResults.monthlyHours}
+                        precision={0}
+                        suffix="hrs"
+                      />
+                    </Col>
+                  </Row>
+
+                  <Divider />
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Statistic
+                        title="Recommended Retainer"
+                        value={quickResults.recommendedRetainer}
+                        precision={0}
+                        prefix="$"
+                        valueStyle={{ color: '#3f8600', fontSize: '1.2em', fontWeight: 'bold' }}
+                        suffix="/mo"
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="Hourly Rate"
+                        value={quickResults.hourlyRate}
+                        precision={0}
+                        prefix="$"
+                        suffix="/hr"
+                      />
+                    </Col>
+                  </Row>
+
+                  <Divider />
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Statistic
+                        title="Client Net Savings"
+                        value={quickResults.netSavings}
+                        precision={0}
+                        prefix="$"
+                        suffix="/mo"
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="Client ROI"
+                        value={quickResults.roiPercentage}
+                        precision={0}
+                        suffix="%"
+                        valueStyle={{
+                          color: quickResults.roiPercentage >= 100 ? '#3f8600' : '#cf1322'
+                        }}
+                      />
+                    </Col>
+                  </Row>
+
+                  {quickResults.roiPercentage > 0 && quickResults.roiPercentage < 100 && (
+                    <Alert
+                      message="Low Client ROI"
+                      description="Consider adjusting your ROI multiple or scope to improve client value."
+                      type="warning"
+                      showIcon
+                    />
+                  )}
+
+                  {insights && (
+                    <div className="mt-6">
+                      <Title level={5}>Business Insights</Title>
+                      <Space direction="vertical" className="w-full">
+                        <Tag color={insights.hourlyRateCategory === 'premium' ? 'gold' : 'blue'}>
+                          {insights.hourlyRateCategory.toUpperCase()} Pricing
+                        </Tag>
+                        <Tag color={insights.clientROICategory === 'excellent' ? 'green' : 'orange'}>
+                          {insights.clientROICategory.toUpperCase()} Client ROI
+                        </Tag>
+                        
+                        {insights.recommendations.length > 0 && (
+                          <div>
+                            <Text strong>Recommendations:</Text>
+                            <ul className="mt-2">
+                              {insights.recommendations.map((rec, idx) => (
+                                <li key={idx} className="text-sm">{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </Space>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Benchmarks Card */}
+           {benchmarks?.industrySpecific?.hourlyRates && (
+  <Card className="mt-6">
+    <Title level={5} className="flex items-center">
+      <TrophyOutlined className="mr-2" />
+      Industry Benchmarks
+    </Title>
+    
+    <div>
+      <Text strong>Hourly Rate Ranges:</Text>
+      <Row gutter={8} className="mt-2">
+        <Col span={6}>
+          <Statistic 
+            title="Junior" 
+            value={benchmarks.industrySpecific.hourlyRates.junior ?? 0} 
+            prefix="$" 
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic 
+            title="Mid" 
+            value={benchmarks.industrySpecific.hourlyRates.mid ?? 0} 
+            prefix="$" 
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic 
+            title="Senior" 
+            value={benchmarks.industrySpecific.hourlyRates.senior ?? 0} 
+            prefix="$" 
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic 
+            title="Expert" 
+            value={benchmarks.industrySpecific.hourlyRates.expert ?? 0} 
+            prefix="$" 
+          />
+        </Col>
+      </Row>
+    </div>
+  </Card>
+)}
+
+            </Col>
+          </Row>
+        </TabPane>
+
+        <TabPane 
+          tab={
+            <span>
+              <BookOutlined />
+              Results
+              {currentPackage && <Badge dot style={{ marginLeft: 8 }} />}
+            </span>
+          } 
+          key="results"
+          disabled={!currentPackage}
+        >
+          {currentPackage ? (
+            <div className="space-y-6">
+              {/* Export Actions */}
+              <Card>
+                <div className="flex justify-between items-center">
+                  <Title level={4}>Export Your Pricing Package</Title>
+                  <Space>
+                    <Button 
+                      icon={<FileTextOutlined />} 
+                      onClick={() => handleExport('proposal')}
+                    >
+                      Proposal
+                    </Button>
+                    <Button 
+                      icon={<PresentationChartLineOutlined />} 
+                      onClick={() => handleExport('presentation')}
+                    >
+                      Presentation
+                    </Button>
+                    <Button 
+                      icon={<ContainerOutlined />} 
+                      onClick={() => handleExport('contract')}
+                    >
+                      Contract
+                    </Button>
+                    <Button 
+                      type="primary"
+                      icon={<DownloadOutlined />} 
+                      onClick={() => handleExport('complete')}
+                    >
+                      Complete Package
+                    </Button>
+                  </Space>
+                </div>
+              </Card>
+
+              {/* Pricing Summary */}
+              <Card title="Pricing Summary">
+                <Row gutter={24}>
+                  <Col span={6}>
+                    <Statistic
+                      title="Monthly Retainer"
+                      value={currentPackage.calculations.recommendedRetainer}
+                      precision={0}
+                      prefix="$"
+                      valueStyle={{ color: '#3f8600', fontSize: '1.5em' }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Hourly Rate"
+                      value={currentPackage.calculations.hourlyRate}
+                      precision={0}
+                      prefix="$"
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Client ROI"
+                      value={currentPackage.calculations.roiPercentage}
+                      precision={0}
+                      suffix="%"
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Project Value"
+                      value={currentPackage.calculations.totalProjectValue}
+                      precision={0}
+                      prefix="$"
+                    />
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* Pricing Options */}
+              <Card title="Pricing Model Options">
+                <List
+                  dataSource={currentPackage.calculations.pricingOptions}
+                  renderItem={(option) => (
+                    <List.Item>
+                      <Card size="small" className="w-full">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <Title level={5} className="mb-2">
+                              {option.model.charAt(0).toUpperCase() + option.model.slice(1)} Model
+                            </Title>
+                            <Text className="text-lg font-semibold text-green-600">
+                              ${option.price?.toLocaleString()}
+                            </Text>
+                            <Paragraph className="mt-2 mb-2">{option.description}</Paragraph>
+                            <div>
+                              <Text strong className="text-green-600">Pros: </Text>
+                              <Text>{option.pros?.join(', ')}</Text>
+                            </div>
+                            <div>
+                              <Text strong className="text-red-600">Cons: </Text>
+                              <Text>{option.cons?.join(', ')}</Text>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <Progress
+                              type="circle"
+                              size={60}
+                              percent={option.recommendationScore}
+                              format={(percent) => `${percent}`}
+                            />
+                            <div className="text-center mt-1">
+                              <Text type="secondary" style={{ fontSize: '12px' }}>Score</Text>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    </List.Item>
+                  )}
+                />
+              </Card>
+
+              {/* Strategy Details */}
+              <Collapse defaultActiveKey={['strategy']}>
+                <Panel header="Pricing Strategy" key="strategy">
+                  <div className="space-y-4">
+                    <div>
+                      <Title level={5}>Recommended Approach</Title>
+                      <Paragraph>{currentPackage.strategy.recommendedApproach}</Paragraph>
+                    </div>
+                    
+                    <div>
+                      <Title level={5}>Value Proposition</Title>
+                      <Paragraph>{currentPackage.strategy.valueProposition}</Paragraph>
+                    </div>
+
+                    <div>
+                      <Title level={5}>Negotiation Tactics</Title>
+                      <ul>
+                        {currentPackage.strategy.negotiationTactics.map((tactic, idx) => (
+                          <li key={idx}>{tactic}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </Panel>
+
+                <Panel header="Implementation Phases" key="phases">
+                  <List
+                    dataSource={currentPackage.strategy.phases}
+                    renderItem={(phase, index) => (
+                      <List.Item>
+                        <Card size="small" className="w-full">
+                          <Title level={5}>Phase {index + 1}: {phase.phase}</Title>
+                          <Row gutter={16}>
+                            <Col span={8}>
+                              <Statistic title="Duration" value={phase.duration} />
+                            </Col>
+                            <Col span={8}>
+                              <Statistic 
+                                title="Payment" 
+                                value={phase.payment} 
+                                prefix="$" 
+                                precision={0}
+                              />
+                            </Col>
+                            <Col span={8}>
+                              <Text strong>Deliverables:</Text>
+                              <ul className="mt-1">
+                                {phase.deliverables.map((deliverable, idx) => (
+                                  <li key={idx} className="text-sm">{deliverable}</li>
+                                ))}
+                              </ul>
+                            </Col>
+                          </Row>
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+
+                <Panel header="Objection Handling" key="objections">
+                  <List
+                    dataSource={currentPackage.objectionHandling}
+                    renderItem={(objection) => (
+                      <List.Item>
+                        <Card size="small" className="w-full">
+                          <Title level={5} className="text-orange-600">
+                            {objection.objection}
+                          </Title>
+                          <div className="mt-2">
+                            <Text strong>Response: </Text>
+                            <Paragraph>{objection.response}</Paragraph>
+                          </div>
+                          <div>
+                            <Text strong>Alternatives: </Text>
+                            <Text>{objection.alternatives.join(', ')}</Text>
+                          </div>
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+              </Collapse>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <BulbOutlined style={{ fontSize: '48px', color: '#ccc' }} />
+              <Title level={3} type="secondary">No Pricing Package Generated</Title>
+              <Text type="secondary">
+                Generate a pricing calculation first to see detailed results and AI insights.
+              </Text>
+            </div>
+          )}
+        </TabPane>
+
+        <TabPane 
+          tab={
+            <span>
+              <BankOutlined />
+              Saved Calculations
+            </span>
+          } 
+          key="history"
+        >
+          <Card title="Your Pricing Calculations">
+            <Table
+              dataSource={calculations}
+              rowKey="id"
+              columns={[
+                {
+                  title: 'Client',
+                  dataIndex: 'clientName',
+                  key: 'clientName',
+                  render: (text) => text || 'Unnamed Client'
+                },
+                {
+                  title: 'Project',
+                  dataIndex: 'projectName',
+                  key: 'projectName',
+                  render: (text) => text || 'Unnamed Project'
+                },
+                {
+                  title: 'Industry',
+                  dataIndex: 'industry',
+                  key: 'industry',
+                  render: (text) => text ? <Tag>{text}</Tag> : '-'
+                },
+                {
+                  title: 'Annual Savings',
+                  dataIndex: 'annualSavings',
+                  key: 'annualSavings',
+                  render: (value) => value ? `$${value.toLocaleString()}` : '-'
+                },
+                {
+                  title: 'Monthly Retainer',
+                  dataIndex: 'recommendedRetainer',
+                  key: 'recommendedRetainer',
+                  render: (value) => value ? `$${value.toLocaleString()}` : '-'
+                },
+                {
+                  title: 'ROI',
+                  dataIndex: 'roiPercentage',
+                  key: 'roiPercentage',
+                  render: (value) => value ? `${value.toFixed(0)}%` : '-'
+                },
+                {
+                  title: 'Created',
+                  dataIndex: 'createdAt',
+                  key: 'createdAt',
+                  render: (date) => new Date(date).toLocaleDateString()
+                },
+                {
+                  title: 'Actions',
+                  key: 'actions',
+                  render: (_, record) => (
+                    <Space>
+                      <Button size="small" type="link">
+                        View
+                      </Button>
+                      <Button size="small" type="link">
+                        Export
+                      </Button>
+                    </Space>
+                  )
                 }
               ]}
-            >
-              <Input
-                prefix="$"
-                placeholder="80000"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // Allow only valid dollar amount formats
-                  const regex = /^\d*\.?\d{0,2}$/;
-                  if (value !== '' && !regex.test(value)) {
-                    e.preventDefault();
-                  }
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="hoursPerWeek"
-              label="Hours Worked Per Week"
-              rules={[{ required: true, message: 'Please input hours!' }]}
-            >
-              <Slider
-                min={5}
-                max={40}
-                marks={{
-                  5: '5h',
-                  20: '20h',
-                  40: '40h'
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="roiMultiple"
-              label={
-                <span>
-                  ROI Multiple{' '}
-                  <Tooltip title="How much of the value created should you capture? Typical range is 3-10x">
-                    <InfoCircleOutlined />
-                  </Tooltip>
-                </span>
-              }
-              rules={[{ required: true, message: 'Please select ROI multiple!' }]}
-            >
-              <Slider
-                min={1}
-                max={10}
-                marks={{
-                  1: '1x',
-                  5: '5x',
-                  10: '10x'
-                }}
-              />
-            </Form.Item>
-
-            <div className="flex justify-between mt-8">
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={resetForm}
-              >
-                Reset to Defaults
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-              >
-                Calculate Pricing
-              </Button>
-            </div>
-          </Form>
-        </Card>
-
-        <Card>
-          <Title level={4} className="flex items-center mb-4">
-            <PieChartOutlined className="mr-2" />
-            Your Custom Offer Pricing
-          </Title>
-          <Text type="secondary" className="block mb-4">
-            Here is the recommended fee to maintain the desired ROI for your client
-          </Text>
-
-          <div className="space-y-6">
-            <Statistic
-              title="Monthly Cost Savings"
-              value={results.monthlySavings}
-              precision={2}
-              prefix="$"
-              className="mb-4"
+              pagination={{ pageSize: 10 }}
             />
-
-            <Divider />
-
-            <Statistic
-              title="Recommended Monthly Retainer"
-              value={results.recommendedRetainer}
-              precision={2}
-              prefix="$"
-              valueStyle={{ color: '#3f8600' }}
-              className="mb-4"
-            />
-
-            <Statistic
-              title="Client's Net Savings (After Your Fee)"
-              value={results.netSavings}
-              precision={2}
-              prefix="$"
-              className="mb-4"
-            />
-
-            <Statistic
-              title="Final ROI Percentage"
-              value={results.roiPercentage}
-              precision={0}
-              suffix="%"
-              valueStyle={{
-                color: results.roiPercentage >= 100 ? '#3f8600' : '#cf1322'
-              }}
-            />
-
-            {results.roiPercentage > 0 && results.roiPercentage < 100 && (
-              <Alert
-                message="Pricing Consideration"
-                description="If ROI% is below 100%, you might need to raise your ROI multiple or reduce your fee."
-                type="warning"
-                showIcon
-                className="mt-4"
-              />
-            )}
-
-            {results.roiPercentage > 0 && (
-              <div className="mt-6">
-                <Popover
-                  content={
-                    <div className="p-2">
-                      <Text strong>Pricing Breakdown:</Text>
-                      <div className="mt-2">
-                        <Text>
-                          <strong>Monthly Savings:</strong> ${results.monthlySavings.toFixed(2)}
-                        </Text>
-                      </div>
-                      <div>
-                        <Text>
-                          <strong>Your Fee:</strong> ${results.recommendedRetainer.toFixed(2)}
-                        </Text>
-                      </div>
-                      <div>
-                        <Text>
-                          <strong>Client Net:</strong> ${results.netSavings.toFixed(2)}
-                        </Text>
-                      </div>
-                      <Divider className="my-2" />
-                      <Text>
-                        ROI = (Net Savings / Your Fee) × 100 = {results.roiPercentage.toFixed(0)}%
-                      </Text>
-                    </div>
-                  }
-                  title="Calculation Details"
-                  trigger="click"
-                >
-                  <Button type="dashed" block>
-                    Show Calculation Details
-                  </Button>
-                </Popover>
-
-                <Button
-                  icon={<ShareAltOutlined />}
-                  type="primary"
-                  block
-                  className="mt-2"
-                >
-                  Share Results with Client
-                </Button>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <Card className="mt-6 ">
-        <Title level={4} className="mb-4">Pricing Strategy Guidance</Title>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Text strong>Value-Based Pricing</Text>
-            <ul className="list-disc pl-5 mt-2">
-              <li>Charge based on results delivered</li>
-              <li>Higher ROI multiples for proven systems</li>
-              <li>Ideal for measurable outcomes</li>
-            </ul>
-          </div>
-          <div>
-            <Text strong>Hourly Considerations</Text>
-            <ul className="list-disc pl-5 mt-2">
-              <li>20 hrs/week = ~80 hrs/month</li>
-              <li>Adjust for your effective hourly rate</li>
-              <li>Scale back hours as efficiency improves</li>
-            </ul>
-          </div>
-          <div>
-            <Text strong>ROI Multiples</Text>
-            <ul className="list-disc pl-5 mt-2">
-              <li>3-5x: Standard services</li>
-              <li>5-7x: Specialized expertise</li>
-              <li>7-10x: Guaranteed results</li>
-            </ul>
-          </div>
-        </div>
-      </Card>
+          </Card>
+        </TabPane>
+      </Tabs>
     </div>
   );
 };

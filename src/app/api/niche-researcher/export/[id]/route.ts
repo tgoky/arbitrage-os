@@ -1,8 +1,10 @@
-// app/api/niche-research/export/[id]/route.ts
+// app/api/niche-research/export/[id]/route.ts - FIXED WITH RATE LIMITING & USAGE
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NicheResearcherService } from '../../../../../services/nicheResearcher.service';
+import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
+import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
 
 export async function GET(
   req: NextRequest,
@@ -20,6 +22,23 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ ADD RATE LIMITING for exports - 10 per hour
+    const rateLimitResult = await rateLimit(
+      `niche_research_export:${user.id}`,
+      10, // 10 exports per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Export rate limit exceeded. You can export 10 reports per hour.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
     const reportId = params.id;
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'html';
@@ -34,10 +53,26 @@ export async function GET(
       );
     }
 
+    // ✅ LOG USAGE for export
+    await logUsage({
+      userId: user.id,
+      feature: 'niche_research_export',
+      tokens: 0, // No AI tokens for export
+      timestamp: new Date(),
+      metadata: {
+        reportId,
+        format,
+        reportType: 'niche_research'
+      }
+    });
+
     if (format === 'json') {
       return NextResponse.json({
         success: true,
-        data: report
+        data: report,
+        meta: {
+          remaining: rateLimitResult.remaining
+        }
       });
     }
 

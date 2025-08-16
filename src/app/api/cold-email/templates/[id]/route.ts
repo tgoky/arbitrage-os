@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { ColdEmailService } from '@/services/coldEmail.service';
+import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
 import { z } from 'zod';
 
 const templateSchema = z.object({
@@ -35,6 +37,18 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ Add rate limiting - 50 individual template fetches per minute
+    const rateLimitResult = await rateLimit(user.id, 50, 60);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many requests. Please try again later.',
+          retryAfter: rateLimitResult.reset
+        },
+        { status: 429 }
+      );
+    }
+
     const templateId = params.id;
     const coldEmailService = new ColdEmailService();
     
@@ -49,9 +63,23 @@ export async function GET(
       );
     }
 
+    // ✅ Log template fetch usage
+    await logUsage({
+      userId: user.id,
+      feature: 'template_fetch_single',
+      tokens: 0, // No AI tokens used
+      timestamp: new Date(),
+      metadata: {
+        templateId
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: template
+      data: template,
+      meta: {
+        remaining: rateLimitResult.limit - rateLimitResult.count
+      }
     });
 
   } catch (error) {
@@ -82,6 +110,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ Add rate limiting - 20 template updates per minute
+    const rateLimitResult = await rateLimit(user.id, 20, 60);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many template update requests. Please try again later.',
+          retryAfter: rateLimitResult.reset
+        },
+        { status: 429 }
+      );
+    }
+
     const templateId = params.id;
 
     // Validate request body
@@ -92,7 +132,7 @@ export async function PUT(
       return NextResponse.json(
         { 
           error: 'Invalid input', 
-          details: validation.error.issues // Use 'issues' instead of 'errors'
+          details: validation.error.issues
         },
         { status: 400 }
       );
@@ -108,9 +148,24 @@ export async function PUT(
       );
     }
 
+    // ✅ Log template update usage
+    await logUsage({
+      userId: user.id,
+      feature: 'template_update',
+      tokens: 0, // No AI tokens used
+      timestamp: new Date(),
+      metadata: {
+        templateId,
+        updatedFields: Object.keys(validation.data)
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: template
+      data: template,
+      meta: {
+        remaining: rateLimitResult.limit - rateLimitResult.count
+      }
     });
 
   } catch (error) {
@@ -141,6 +196,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ Add rate limiting - 10 template deletions per minute
+    const rateLimitResult = await rateLimit(user.id, 10, 60);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many template deletion requests. Please try again later.',
+          retryAfter: rateLimitResult.reset
+        },
+        { status: 429 }
+      );
+    }
+
     const templateId = params.id;
     const coldEmailService = new ColdEmailService();
     const deleted = await coldEmailService.deleteTemplate(user.id, templateId);
@@ -152,9 +219,23 @@ export async function DELETE(
       );
     }
 
+    // ✅ Log template deletion usage
+    await logUsage({
+      userId: user.id,
+      feature: 'template_delete',
+      tokens: 0, // No AI tokens used
+      timestamp: new Date(),
+      metadata: {
+        templateId
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      message: 'Template deleted successfully'
+      message: 'Template deleted successfully',
+      meta: {
+        remaining: rateLimitResult.limit - rateLimitResult.count
+      }
     });
 
   } catch (error) {

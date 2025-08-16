@@ -1,6 +1,6 @@
-"use client";
+        "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ThunderboltOutlined,
   DollarOutlined,
@@ -13,7 +13,14 @@ import {
   CopyOutlined,
   DownloadOutlined,
   InfoCircleOutlined,
-  BulbOutlined
+  BulbOutlined,
+  SaveOutlined,
+  HistoryOutlined,
+  LineChartOutlined,
+  ExperimentOutlined,
+  TrophyOutlined,
+  EyeOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -32,21 +39,92 @@ import {
   Tooltip,
   Badge,
   Switch,
-  InputNumber
+  InputNumber,
+  Modal,
+  Tabs,
+  Table,
+  Statistic,
+  Progress,
+  List,
+  Spin,
+  notification,
+  Row,
+  Col,
+  message
 } from 'antd';
 
-const { Title, Text } = Typography;
+// Import our custom hooks
+import {
+  useOfferCreator,
+  useSavedOffers,
+  useOfferOptimization,
+  useOfferAnalysis,
+  useOfferPerformance,
+  useOfferExport,
+  useOfferBenchmarks,
+  useOfferTemplates,
+  useOfferValidation,
+  type OfferCreatorInput,
+  type GeneratedOfferPackage
+} from '../hooks/useOfferCreator';
+
+// FIX: Define proper interface
+interface Template {
+  id: string;
+  name: string;
+  offerType: string;
+  industry: string;
+  description: string;
+  example?: {
+    headline?: string;
+    discount?: number;
+    bonusValue?: string;
+    trialPeriod?: number;
+    guarantee?: boolean;
+    urgency?: string;
+  };
+}
+
+
+
+const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 const { Option } = Select;
 const { TextArea } = Input;
+const { TabPane } = Tabs;
 
-// Remove the named export and make this the default component
 export default function OfferCreatorPage() {
   const [form] = Form.useForm();
-  const [generatedOffer, setGeneratedOffer] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState('creator');
+  const [generatedOffer, setGeneratedOffer] = useState<GeneratedOfferPackage | null>(null);
+  const [savedOfferId, setSavedOfferId] = useState<string | null>(null);
   const [offerType, setOfferType] = useState('discount');
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3']);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
+  const [optimizationModalVisible, setOptimizationModalVisible] = useState(false);
+  const [performanceModalVisible, setPerformanceModalVisible] = useState(false);
+
+  // Hooks
+  const { generateOffer, generating, quickValidate, calculateSavings } = useOfferCreator();
+  const { offers, fetchOffers, getOffer } = useSavedOffers();
+  const { optimizeOffer } = useOfferOptimization();
+  const { analyzeOffer } = useOfferAnalysis();
+  const { exportOffer } = useOfferExport();
+  const { benchmarks, fetchBenchmarks } = useOfferBenchmarks();
+  const { templates, fetchTemplates, applyTemplate } = useOfferTemplates();
+  const { validateInput, getOfferInsights } = useOfferValidation();
+
+useEffect(() => {
+  const loadData = async () => {
+    await Promise.all([
+      fetchOffers(),
+      fetchBenchmarks(),
+      fetchTemplates()
+    ]);
+  };
+  loadData();
+}, []); // Empty dependency if functions are stable
 
   const offerTypes = [
     {
@@ -94,479 +172,1190 @@ export default function OfferCreatorPage() {
     'Manufacturing'
   ];
 
-  const onFinish = (values: any) => {
-    setIsGenerating(true);
+ // FIX: Add proper error handling
+const onFinish = async (values: any) => {
+  try {
+    const validation = validateInput(values);
+    if (!validation.isValid) {
+      // Handle validation errors
+      return;
+    }
     
-    // Simulate AI generation
-    setTimeout(() => {
-      const offer = generateOfferScript(values, offerType);
-      setGeneratedOffer(offer);
-      setIsGenerating(false);
-    }, 1500);
+    const result = await generateOffer(values);
+    if (result?.offer) {
+      setGeneratedOffer(result.offer);
+      setSavedOfferId(result.offerId);
+      setActiveTab('results');
+    }
+  } catch (error) {
+    console.error('Failed to generate offer:', error);
+    notification.error({
+      message: 'Generation Failed',
+      description: 'Please try again later.'
+    });
+  }
+};
+
+ const handleTemplateApply = (template: Template) => {
+    const templateData = applyTemplate(template);
+    form.setFieldsValue(templateData);
+    setOfferType(template.offerType);
+    notification.success({
+      message: 'Template Applied',
+      description: `${template.name} template has been applied to your form.`
+    });
   };
 
-  const generateOfferScript = (data: any, type: string) => {
-    let offer = '';
-    
-    const headlines: Record<string, string> = {
-      discount: `Limited-Time ${data.discountValue}% OFF - ${data.offerName}`,
-      bonus: `Get ${data.bonusItem} FREE With Your ${data.offerName}`,
-      trial: `Try ${data.offerName} Risk-Free for ${data.trialPeriod} Days`,
-      guarantee: `${data.guaranteePeriod}-Day 100% Satisfaction Guarantee on ${data.offerName}`
-    };
-
-    offer += `# ${headlines[type]}\n\n`;
-    offer += `**Primary Offer:** ${data.offerName}\n\n`;
-    offer += `**Offer Value:** ${data.offerValue}\n\n`;
-
-    switch(type) {
-      case 'discount':
-        offer += `For a limited time only, get ${data.discountValue}% off ${data.offerName}. This special discount saves you ${data.discountAmount} and is only available until ${data.expiryDate}.\n\n`;
-        offer += `👉 ${data.cta || 'Claim Your Discount Now'}\n\n`;
-        break;
-      case 'bonus':
-        offer += `When you purchase ${data.offerName} today, you'll also receive ${data.bonusItem} (valued at ${data.bonusValue}) absolutely FREE. That's ${data.totalValue} worth of value for just ${data.offerPrice}.\n\n`;
-        offer += `👉 ${data.cta || 'Get Your Free Bonus Now'}\n\n`;
-        break;
-      case 'trial':
-        offer += `Experience ${data.offerName} completely risk-free for ${data.trialPeriod} days. No commitment, no credit card required. After your trial, continue for just ${data.offerPrice}/month.\n\n`;
-        offer += `👉 ${data.cta || 'Start Your Free Trial'}\n\n`;
-        break;
-      case 'guarantee':
-        offer += `We're so confident you'll love ${data.offerName} that we're offering an iron-clad ${data.guaranteePeriod}-day 100% satisfaction guarantee. If you're not completely satisfied, we'll refund every penny, no questions asked.\n\n`;
-        offer += `👉 ${data.cta || 'Try Risk-Free Today'}\n\n`;
-        break;
+  const handleOptimize = async (type: 'headline' | 'cta' | 'urgency' | 'social-proof' | 'pricing') => {
+    if (!savedOfferId) {
+      notification.error({
+        message: 'No Offer to Optimize',
+        description: 'Please generate an offer first.'
+      });
+      return;
     }
 
-    if (data.scarcity) {
-      offer += `🚨 **Limited Availability:** ${data.scarcityReason}\n\n`;
+    const result = await optimizeOffer(savedOfferId, type);
+    if (result) {
+      setOptimizationModalVisible(true);
+      // Handle optimization results
     }
-
-    if (data.socialProof) {
-      offer += `## What Our Customers Say:\n"${data.testimonialQuote}" - ${data.testimonialAuthor}\n\n`;
-    }
-
-    offer += `## Offer Details:\n`;
-    offer += `- Regular Price: ${data.regularPrice}\n`;
-    offer += `- Offer Price: ${data.offerPrice}\n`;
-    if (type === 'discount') {
-      offer += `- You Save: ${data.discountAmount} (${data.discountValue}%)\n`;
-    }
-    if (type === 'bonus') {
-      offer += `- Bonus Value: ${data.bonusValue}\n`;
-      offer += `- Total Value: ${data.totalValue}\n`;
-    }
-    offer += `- Expires: ${data.expiryDate}\n\n`;
-
-    offer += `**How to Redeem:** ${data.redemptionInstructions || 'Click the button below to claim your offer'}\n\n`;
-
-    return offer;
   };
+
+  const handleAnalyze = async (text: string, type: 'conversion' | 'psychology' | 'competition') => {
+    const industry = form.getFieldValue('targetIndustry');
+    const result = await analyzeOffer(text, type, industry);
+    if (result) {
+      setAnalysisModalVisible(true);
+      // Handle analysis results
+    }
+  };
+
+  const handleExport = async (format: 'json' | 'html') => {
+    if (!savedOfferId) {
+      notification.error({
+        message: 'No Offer to Export',
+        description: 'Please generate an offer first.'
+      });
+      return;
+    }
+    
+    await exportOffer(savedOfferId, format);
+  };
+
+const handleHistoricalExport = async (offerId: string) => {
+  try {
+    // Direct API call for historical offer export
+    const response = await fetch(`/api/offer-creator/${offerId}/export?format=html`);
+    
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const contentDisposition = response.headers.get('content-disposition');
+    const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+    const filename = filenameMatch?.[1] || `offer-export-${offerId}.html`;
+
+    const blob = await response.blob();
+    
+    // Create download link with proper cleanup
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    try {
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      message.success('Offer exported successfully');
+    } finally {
+      // Cleanup always happens, even if click fails
+      window.URL.revokeObjectURL(url);
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+    }
+  } catch (error) {
+    console.error('Export error:', error);
+    message.error(error instanceof Error ? error.message : 'Export failed');
+  }
+};
+  // Real-time form insights
+  const formValues = Form.useWatch([], form);
+  const savings = formValues?.regularPrice && formValues?.offerPrice 
+    ? calculateSavings(formValues.regularPrice, formValues.offerPrice)
+    : null;
+
+  const insights = useMemo(() => 
+  formValues ? getOfferInsights(formValues) : null, 
+  [formValues, getOfferInsights]
+);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
           AI-Powered Offer Creator
         </Title>
         <Text type="secondary" className="text-lg">
-          Craft irresistible offers that convert with proven frameworks
+          Create irresistible offers that convert with AI-powered insights and optimization
         </Text>
       </div>
 
-      <Collapse 
-        activeKey={activePanels} 
-        onChange={(keys) => setActivePanels(keys as string[])}
-        bordered={false}
-        className="mb-6"
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab}
+        type="card"
+        size="large"
       >
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <FileTextOutlined className="mr-2" />
-              <span className="font-medium">Offer Basics</span>
-            </div>
+        <TabPane 
+          tab={
+            <span>
+              <RocketOutlined />
+              Creator
+            </span>
           } 
-          key="1"
-          extra={<Badge status="processing" text="Required" />}
+          key="creator"
         >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Form.Item
-                name="offerName"
-                label="Offer Name"
-                rules={[{ required: true, message: 'Please name your offer!' }]}
-                tooltip="Make it clear and compelling"
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={16}>
+              <Collapse 
+                activeKey={activePanels} 
+                onChange={(keys) => setActivePanels(keys as string[])}
+                bordered={false}
+                className="mb-6"
               >
-                <Input placeholder="e.g., Summer Growth Bundle" />
-              </Form.Item>
-              <Form.Item
-                name="offerValue"
-                label="Offer Value Proposition"
-                rules={[{ required: true, message: 'What value does this provide?' }]}
-                tooltip="What problem does this solve?"
-              >
-                <Input placeholder="e.g., 3x your leads in 30 days" />
-              </Form.Item>
-              <Form.Item
-                name="regularPrice"
-                label="Regular Price"
-                rules={[{ required: true, message: 'What is the normal price?' }]}
-              >
-                <Input prefix={<DollarOutlined />} placeholder="e.g., $997" />
-              </Form.Item>
-              <Form.Item
-                name="offerPrice"
-                label="Offer Price"
-                rules={[{ required: true, message: 'What is the special price?' }]}
-              >
-                <Input prefix={<DollarOutlined />} placeholder="e.g., $497" />
-              </Form.Item>
-              <Form.Item
-                name="expiryDate"
-                label="Offer Expiry Date"
-                rules={[{ required: true, message: 'When does this offer end?' }]}
-              >
-                <Input placeholder="e.g., August 31, 2023" />
-              </Form.Item>
-              <Form.Item
-                name="targetIndustry"
-                label="Target Industry"
-                rules={[{ required: true, message: 'Who is this for?' }]}
-              >
-                <Select 
-                  showSearch
-                  placeholder="Select industry"
-                  options={industries.map(ind => ({ value: ind, label: ind }))}
-                />
-              </Form.Item>
-            </div>
-          </Form>
-        </Panel>
-
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <BulbOutlined className="mr-2" />
-              <span className="font-medium">Offer Strategy</span>
-            </div>
-          } 
-          key="2"
-        >
-          <div className="mb-4">
-            <Text strong>Select your offer type:</Text>
-            <Text type="secondary" className="block mb-4">
-              Different approaches work better for different goals
-            </Text>
-          </div>
-          
-          <Form.Item
-            name="offerType"
-            initialValue="discount"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {offerTypes.map((type) => (
-                <Card
-                  key={type.value}
-                  hoverable
-                  onClick={() => setOfferType(type.value)}
-                  className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2' : ''}`}
-                >
-                  <div className="flex items-start">
-                    <div className="p-2 bg-blue-50 rounded-full mr-3">
-                      {type.icon}
+                <Panel 
+                  header={
+                    <div className="flex items-center">
+                      <FileTextOutlined className="mr-2" />
+                      <span className="font-medium">Offer Basics</span>
                     </div>
-                    <div>
-                      <div className="font-medium">{type.label}</div>
-                      <div className="text-gray-500 text-sm mb-2">{type.description}</div>
-                      <div className="flex flex-wrap gap-2">
-                        <Tag color="blue">{type.effectiveness}</Tag>
-                        <Tag color="geekblue">{type.bestFor}</Tag>
+                  } 
+                  key="1"
+                  extra={<Badge status="processing" text="Required" />}
+                >
+                  <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={onFinish}
+                    initialValues={{
+                      offerType: 'discount',
+                      targetIndustry: 'B2B SaaS'
+                    }}
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Form.Item
+                        name="offerName"
+                        label="Offer Name"
+                        rules={[{ required: true, message: 'Please name your offer!' }]}
+                        tooltip="Make it clear and compelling"
+                      >
+                        <Input placeholder="e.g., Summer Growth Bundle" />
+                      </Form.Item>
+                      <Form.Item
+                        name="offerValue"
+                        label="Offer Value Proposition"
+                        rules={[{ required: true, message: 'What value does this provide?' }]}
+                        tooltip="What problem does this solve?"
+                      >
+                        <Input placeholder="e.g., 3x your leads in 30 days" />
+                      </Form.Item>
+                      <Form.Item
+                        name="regularPrice"
+                        label="Regular Price"
+                        rules={[{ required: true, message: 'What is the normal price?' }]}
+                      >
+                        <Input prefix={<DollarOutlined />} placeholder="e.g., $997" />
+                      </Form.Item>
+                      <Form.Item
+                        name="offerPrice"
+                        label="Offer Price"
+                        rules={[{ required: true, message: 'What is the special price?' }]}
+                      >
+                        <Input prefix={<DollarOutlined />} placeholder="e.g., $497" />
+                      </Form.Item>
+                      <Form.Item
+                        name="expiryDate"
+                        label="Offer Expiry Date"
+                        rules={[{ required: true, message: 'When does this offer end?' }]}
+                      >
+                        <Input type="date" />
+                      </Form.Item>
+                      <Form.Item
+                        name="targetIndustry"
+                        label="Target Industry"
+                        rules={[{ required: true, message: 'Who is this for?' }]}
+                      >
+                        <Select 
+                          showSearch
+                          placeholder="Select industry"
+                          options={industries.map(ind => ({ value: ind, label: ind }))}
+                        />
+                      </Form.Item>
+                    </div>
+                  </Form>
+                </Panel>
+
+                <Panel 
+                  header={
+                    <div className="flex items-center">
+                      <BulbOutlined className="mr-2" />
+                      <span className="font-medium">Offer Strategy</span>
+                    </div>
+                  } 
+                  key="2"
+                >
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <Text strong>Select your offer type:</Text>
+                        <Text type="secondary" className="block">
+                          Different approaches work better for different goals
+                        </Text>
                       </div>
+                      <Button 
+                        icon={<TrophyOutlined />}
+                        onClick={() => {
+                          Modal.info({
+                            title: 'Quick Templates',
+                            width: 800,
+                            content: (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                {templates.slice(0, 4).map((template: any) => (
+                                  <Card 
+                                    key={template.id}
+                                    hoverable
+                                    onClick={() => handleTemplateApply(template)}
+                                    size="small"
+                                  >
+                                    <div className="text-center">
+                                      <Title level={5}>{template.name}</Title>
+                                      <Text type="secondary">{template.description}</Text>
+                                      <div className="mt-2">
+                                        <Tag color="blue">{template.offerType}</Tag>
+                                        <Tag color="green">{template.industry}</Tag>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
+                            )
+                          });
+                        }}
+                      >
+                        Use Template
+                      </Button>
                     </div>
                   </div>
-                </Card>
-              ))}
-            </div>
-          </Form.Item>
+                  
+                  <Form.Item
+                    name="offerType"
+                    initialValue="discount"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {offerTypes.map((type) => (
+                        <Card
+                          key={type.value}
+                          hoverable
+                          onClick={() => {
+                            setOfferType(type.value);
+                            form.setFieldValue('offerType', type.value);
+                          }}
+                          className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2' : ''}`}
+                        >
+                          <div className="flex items-start">
+                            <div className="p-2 bg-blue-50 rounded-full mr-3">
+                              {type.icon}
+                            </div>
+                            <div>
+                              <div className="font-medium">{type.label}</div>
+                              <div className="text-gray-500 text-sm mb-2">{type.description}</div>
+                              <div className="flex flex-wrap gap-2">
+                                <Tag color="blue">{type.effectiveness}</Tag>
+                                <Tag color="geekblue">{type.bestFor}</Tag>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </Form.Item>
 
-          <Divider />
+                  <Divider />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {offerType === 'discount' && (
-              <>
-                <Form.Item
-                  name="discountValue"
-                  label="Discount Percentage"
-                  rules={[
-                    { required: true, message: 'Please enter discount percentage!' },
-                    { pattern: /^[1-9][0-9]?$|^100$/, message: 'Enter a number between 1-100!' }
-                  ]}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {offerType === 'discount' && (
+                      <>
+                        <Form.Item
+                          name="discountValue"
+                          label="Discount Percentage"
+                          rules={[{ required: true, message: 'Please enter discount percentage!' }]}
+                        >
+                          <InputNumber 
+                            min={1}
+                            max={99}
+                            suffix="%"
+                            placeholder="25"
+                            style={{ width: '100%' }}
+                          />
+                        </Form.Item>
+                        <Form.Item
+                          name="discountAmount"
+                          label="Discount Amount"
+                          rules={[{ required: true }]}
+                        >
+                          <Input prefix={<DollarOutlined />} placeholder="e.g., $500" />
+                        </Form.Item>
+                      </>
+                    )}
+                    
+                    {offerType === 'bonus' && (
+                      <>
+                        <Form.Item
+                          name="bonusItem"
+                          label="Bonus Item Name"
+                          rules={[{ required: true }]}
+                        >
+                          <Input placeholder="e.g., Free Consulting Session" />
+                        </Form.Item>
+                        <Form.Item
+                          name="bonusValue"
+                          label="Bonus Value"
+                          rules={[{ required: true }]}
+                        >
+                          <Input prefix={<DollarOutlined />} placeholder="e.g., $300" />
+                        </Form.Item>
+                        <Form.Item
+                          name="totalValue"
+                          label="Total Package Value"
+                          rules={[{ required: true }]}
+                        >
+                          <Input prefix={<DollarOutlined />} placeholder="e.g., $1,297" />
+                        </Form.Item>
+                      </>
+                    )}
+                    
+                    {offerType === 'trial' && (
+                      <Form.Item
+                        name="trialPeriod"
+                        label="Trial Period (Days)"
+                        rules={[{ required: true, message: 'Please enter trial period!' }]}
+                      >
+                        <InputNumber 
+                          min={1}
+                          max={365}
+                          placeholder="14"
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    )}
+                    
+                    {offerType === 'guarantee' && (
+                      <Form.Item
+                        name="guaranteePeriod"
+                        label="Guarantee Period (Days)"
+                        rules={[{ required: true, message: 'Please enter guarantee period!' }]}
+                      >
+                        <InputNumber 
+                          min={1}
+                          max={365}
+                          placeholder="30"
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    )}
+                  </div>
+                </Panel>
+
+                <Panel 
+                  header={
+                    <div className="flex items-center">
+                      <RocketOutlined className="mr-2" />
+                      <span className="font-medium">Conversion Boosters</span>
+                    </div>
+                  } 
+                  key="3"
                 >
-                  <Input 
-                    suffix="%"
-                    placeholder="e.g., 25"
-                    style={{ width: '100%' }}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="discountAmount"
-                  label="Discount Amount"
-                  rules={[{ required: true }]}
-                >
-                  <Input prefix={<DollarOutlined />} placeholder="e.g., $500" />
-                </Form.Item>
-              </>
-            )}
-            
-            {offerType === 'bonus' && (
-              <>
-                <Form.Item
-                  name="bonusItem"
-                  label="Bonus Item Name"
-                  rules={[{ required: true }]}
-                >
-                  <Input placeholder="e.g., Free Consulting Session" />
-                </Form.Item>
-                <Form.Item
-                  name="bonusValue"
-                  label="Bonus Value"
-                  rules={[{ required: true }]}
-                >
-                  <Input prefix={<DollarOutlined />} placeholder="e.g., $300" />
-                </Form.Item>
-                <Form.Item
-                  name="totalValue"
-                  label="Total Package Value"
-                  rules={[{ required: true }]}
-                >
-                  <Input prefix={<DollarOutlined />} placeholder="e.g., $1,297" />
-                </Form.Item>
-              </>
-            )}
-            
-            {offerType === 'trial' && (
-              <Form.Item
-                name="trialPeriod"
-                label="Trial Period (Days)"
-                rules={[
-                  { required: true, message: 'Please enter trial period!' },
-                  { pattern: /^[1-9]\d*$/, message: 'Enter a positive number!' }
-                ]}
-              >
-                <Input 
-                  placeholder="e.g., 14"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            )}
-            
-            {offerType === 'guarantee' && (
-              <Form.Item
-                name="guaranteePeriod"
-                label="Guarantee Period (Days)"
-                rules={[
-                  { required: true, message: 'Please enter guarantee period!' },
-                  { pattern: /^[1-9]\d*$/, message: 'Enter a positive number!' }
-                ]}
-              >
-                <Input 
-                  placeholder="e.g., 30"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            )}
-          </div>
-        </Panel>
+                  <div className="flex justify-between items-center mb-4">
+                    <Text strong>Advanced Options</Text>
+                    <Switch
+                      checkedChildren="Advanced"
+                      unCheckedChildren="Basic"
+                      checked={showAdvanced}
+                      onChange={setShowAdvanced}
+                    />
+                  </div>
 
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <RocketOutlined className="mr-2" />
-              <span className="font-medium">Conversion Boosters</span>
-            </div>
-          } 
-          key="3"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              name="cta"
-              label="Call-to-Action Text"
-              tooltip="What action do you want them to take?"
-            >
-              <Input placeholder="e.g., Claim Your Spot Now" />
-            </Form.Item>
-            <Form.Item
-              name="redemptionInstructions"
-              label="Redemption Instructions"
-            >
-              <Input placeholder="How to claim the offer" />
-            </Form.Item>
-          </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Form.Item
+                      name="cta"
+                      label="Call-to-Action Text"
+                      tooltip="What action do you want them to take?"
+                    >
+                      <Input placeholder="e.g., Claim Your Spot Now" />
+                    </Form.Item>
+                    <Form.Item
+                      name="redemptionInstructions"
+                      label="Redemption Instructions"
+                    >
+                      <Input placeholder="How to claim the offer" />
+                    </Form.Item>
+                  </div>
 
-          <Divider />
+                  <Divider />
 
-          <Form.Item
-            name="scarcity"
-            label="Add Scarcity?"
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
+                  <Form.Item
+                    name="scarcity"
+                    label="Add Scarcity?"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.scarcity !== currentValues.scarcity}
-          >
-            {({ getFieldValue }) => getFieldValue('scarcity') ? (
-              <Form.Item
-                name="scarcityReason"
-                label="Scarcity Reason"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="e.g., Only 10 spots available" />
-              </Form.Item>
-            ) : null}
-          </Form.Item>
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) => prevValues.scarcity !== currentValues.scarcity}
+                  >
+                    {({ getFieldValue }) => getFieldValue('scarcity') ? (
+                      <Form.Item
+                        name="scarcityReason"
+                        label="Scarcity Reason"
+                        rules={[{ required: true }]}
+                      >
+                        <Input placeholder="e.g., Only 10 spots available" />
+                      </Form.Item>
+                    ) : null}
+                  </Form.Item>
 
-          <Divider />
+                  <Divider />
 
-          <Form.Item
-            name="socialProof"
-            label="Add Social Proof?"
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
+                  <Form.Item
+                    name="socialProof"
+                    label="Add Social Proof?"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.socialProof !== currentValues.socialProof}
-          >
-            {({ getFieldValue }) => getFieldValue('socialProof') ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Form.Item
-                  name="testimonialQuote"
-                  label="Testimonial Quote"
-                  rules={[{ required: true }]}
-                >
-                  <TextArea rows={3} placeholder="What did your customer say?" />
-                </Form.Item>
-                <Form.Item
-                  name="testimonialAuthor"
-                  label="Testimonial Author"
-                  rules={[{ required: true }]}
-                >
-                  <Input placeholder="Customer name and title" />
-                </Form.Item>
-              </div>
-            ) : null}
-          </Form.Item>
-        </Panel>
-      </Collapse>
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) => prevValues.socialProof !== currentValues.socialProof}
+                  >
+                    {({ getFieldValue }) => getFieldValue('socialProof') ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Form.Item
+                          name="testimonialQuote"
+                          label="Testimonial Quote"
+                          rules={[{ required: true }]}
+                        >
+                          <TextArea rows={3} placeholder="What did your customer say?" />
+                        </Form.Item>
+                        <Form.Item
+                          name="testimonialAuthor"
+                          label="Testimonial Author"
+                          rules={[{ required: true }]}
+                        >
+                          <Input placeholder="Customer name and title" />
+                        </Form.Item>
+                      </div>
+                    ) : null}
+                  </Form.Item>
 
-      <div className="text-center mt-6">
-        <Button 
-          type="primary" 
-          size="large" 
-          htmlType="submit"
-          loading={isGenerating}
-          icon={<RocketOutlined />}
-          onClick={() => form.submit()}
-          className="min-w-48"
-        >
-          {isGenerating ? 'Generating...' : 'Generate Offer'}
-        </Button>
-      </div>
+                  {showAdvanced && (
+                    <>
+                      <Divider>Advanced Settings</Divider>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Form.Item
+                          name="businessGoal"
+                          label="Business Goal"
+                        >
+                          <Select placeholder="Select goal">
+                            <Option value="lead-generation">Lead Generation</Option>
+                            <Option value="sales">Sales</Option>
+                            <Option value="retention">Retention</Option>
+                            <Option value="upsell">Upsell</Option>
+                            <Option value="brand-awareness">Brand Awareness</Option>
+                          </Select>
+                        </Form.Item>
+                        
+                        <Form.Item
+                          name="customerSegment"
+                          label="Customer Segment"
+                        >
+                          <Select placeholder="Select segment">
+                            <Option value="new">New Customers</Option>
+                            <Option value="existing">Existing Customers</Option>
+                            <Option value="churned">Churned Customers</Option>
+                            <Option value="high-value">High-Value Customers</Option>
+                          </Select>
+                        </Form.Item>
+                      </div>
 
-      {generatedOffer && (
-        <div className="mt-8">
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <Title level={4}>Your High-Converting Offer</Title>
-              <Space>
-                <Button 
-                  icon={<DownloadOutlined />}
-                  onClick={() => {
-                    const blob = new Blob([generatedOffer], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'irresistible-offer.txt';
-                    a.click();
-                  }}
-                >
-                  Download
-                </Button>
+                      <Form.Item
+                        name="seasonality"
+                        label="Seasonal Context"
+                      >
+                        <Input placeholder="e.g., Black Friday, Back to School" />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="competitorAnalysis"
+                        label="Competitor Analysis"
+                      >
+                        <TextArea 
+                          rows={3} 
+                          placeholder="What are competitors doing? How will you differentiate?"
+                        />
+                      </Form.Item>
+                    </>
+                  )}
+                </Panel>
+              </Collapse>
+
+              <div className="text-center mt-6">
                 <Button 
                   type="primary" 
-                  icon={<CopyOutlined />}
-                  onClick={() => navigator.clipboard.writeText(generatedOffer)}
+                  size="large" 
+                  htmlType="submit"
+                  loading={generating}
+                  icon={<RocketOutlined />}
+                  onClick={() => form.submit()}
+                  className="min-w-48"
                 >
-                  Copy to Clipboard
+                  {generating ? 'Generating AI Offer...' : 'Generate Offer'}
                 </Button>
-              </Space>
-            </div>
-            
-            <Alert 
-              message="Pro Tips" 
-              description={
-                <div>
-                  <p>Boost conversions further by:</p>
-                  <ul className="list-disc pl-5">
-                    <li>Adding a countdown timer for urgency</li>
-                    <li>Including before/after results</li>
-                    <li>Showing how many people have already claimed</li>
-                    <li>Adding a bonus for fast action takers</li>
-                  </ul>
+              </div>
+            </Col>
+
+            <Col xs={24} lg={8}>
+              {/* Live Preview Card */}
+              <Card className="mb-6">
+                <Title level={5} className="flex items-center">
+                  <EyeOutlined className="mr-2" />
+                  Live Preview
+                </Title>
+                
+                {savings && (
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+                      <Statistic
+                        title="Your Savings"
+                        value={savings.dollarAmount}
+                        precision={0}
+                        prefix="$"
+                        suffix={`(${savings.percentage}% off)`}
+                        valueStyle={{ color: '#3f8600', fontSize: '1.2em' }}
+                      />
+                    </div>
+                    
+                    {insights && (
+                      <div>
+                        <Title level={5}>Offer Insights</Title>
+                        <Space direction="vertical" className="w-full">
+                          <Tag color={insights.pricing.pricePoint === 'high-ticket' ? 'gold' : 'blue'}>
+                            {insights.pricing.pricePoint.toUpperCase()} Pricing
+                          </Tag>
+                          
+                          <Progress 
+                            percent={Math.min(100, insights.pricing.discountPercentage)} 
+                            status={insights.pricing.discountPercentage > 50 ? 'exception' : 'active'}
+                            format={() => `${insights.pricing.discountPercentage}% Discount`}
+                          />
+                          
+                          <div className="text-sm space-y-1">
+                            <div>🗓️ Expires in {insights.urgency.daysUntilExpiry} days</div>
+                            <div>🛡️ Trust factors: {[
+                              insights.trust.hasSocialProof && 'Social Proof',
+                              insights.trust.hasGuarantee && 'Guarantee',
+                              insights.trust.hasTestimonial && 'Testimonial'
+                            ].filter(Boolean).join(', ') || 'None'}</div>
+                          </div>
+                          
+                          {insights.recommendations.length > 0 && (
+                            <div>
+                              <Text strong className="text-orange-600">Recommendations:</Text>
+                              <ul className="mt-1 text-sm">
+                                {insights.recommendations.slice(0, 3).map((rec, idx) => (
+                                  <li key={idx}>• {rec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </Space>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {!savings && (
+                  <div className="text-center text-gray-400 py-8">
+                    <BulbOutlined style={{ fontSize: '2em' }} />
+                    <div className="mt-2">Fill in prices to see live preview</div>
+                  </div>
+                )}
+              </Card>
+
+              {/* Benchmarks Card */}
+              {benchmarks && (
+                <Card>
+                  <Title level={5} className="flex items-center">
+                    <TrophyOutlined className="mr-2" />
+                    Industry Benchmarks
+                  </Title>
+                  
+                  {benchmarks.industrySpecific && formValues?.targetIndustry && (
+                    <div className="space-y-3">
+                      <Text strong>Conversion Rates for {formValues.targetIndustry}:</Text>
+                      <div className="bg-gray-50 p-3 rounded">
+                        <div className="flex justify-between text-sm">
+                          <span>Low</span>
+                          <span>Average</span>
+                          <span>High</span>
+                        </div>
+                        <div className="flex justify-between font-medium">
+                          <span>{benchmarks.industrySpecific.conversionRate?.min}%</span>
+                          <span className="text-blue-600">{benchmarks.industrySpecific.conversionRate?.average}%</span>
+                          <span>{benchmarks.industrySpecific.conversionRate?.max}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </Col>
+          </Row>
+        </TabPane>
+
+        <TabPane 
+          tab={
+            <span>
+              <FileTextOutlined />
+              Results
+              {generatedOffer && <Badge dot style={{ marginLeft: 8 }} />}
+            </span>
+          } 
+          key="results"
+          disabled={!generatedOffer}
+        >
+          {generatedOffer ? (
+            <div className="space-y-6">
+              {/* Action Bar */}
+              <Card>
+                <div className="flex justify-between items-center">
+                  <Title level={4}>Your AI-Generated Offer</Title>
+                  <Space>
+                    <Button 
+                      icon={<ExperimentOutlined />} 
+                      onClick={() => setOptimizationModalVisible(true)}
+                    >
+                      Optimize
+                    </Button>
+                    <Button 
+                      icon={<LineChartOutlined />} 
+                      onClick={() => setAnalysisModalVisible(true)}
+                    >
+                      Analyze
+                    </Button>
+                    <Button 
+                      icon={<CopyOutlined />}
+                      onClick={() => {
+                        if (generatedOffer?.primaryOffer?.mainCopy) {
+                          navigator.clipboard.writeText(generatedOffer.primaryOffer.mainCopy);
+                          message.success('Copied to clipboard!');
+                        }
+                      }}
+                    >
+                      Copy
+                    </Button>
+                    <Button 
+                      icon={<DownloadOutlined />}
+                      onClick={() => handleExport('html')}
+                    >
+                      Export HTML
+                    </Button>
+                    <Button 
+                      type="primary"
+                      icon={<SaveOutlined />}
+                      onClick={() => handleExport('json')}
+                    >
+                      Save Package
+                    </Button>
+                  </Space>
                 </div>
-              } 
-              type="info" 
-              showIcon 
-              className="mb-4"
+              </Card>
+
+              {/* Main Offer Display */}
+              <Card>
+                <div className="text-center space-y-4">
+                  <Title level={2} className="text-blue-600">
+                    {generatedOffer.primaryOffer?.headline || 'No headline generated'}
+                  </Title>
+                  <Title level={3} type="secondary">
+                    {generatedOffer.primaryOffer?.subheadline || 'No subheadline generated'}
+                  </Title>
+                  <Paragraph className="text-lg">
+                    {generatedOffer.primaryOffer?.mainCopy || 'No main copy generated'}
+                  </Paragraph>
+                  
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <Title level={4}>Key Benefits:</Title>
+                    <ul className="text-left max-w-2xl mx-auto">
+                      {generatedOffer.primaryOffer.bulletPoints.map((point, index) => (
+                        <li key={index} className="mb-2">✓ {point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="flex justify-center space-x-4 mt-6">
+                    <Button type="primary" size="large" className="min-w-32">
+                      {generatedOffer.primaryOffer?.cta || 'Get Started'}
+                    </Button>
+                  </div>
+                  
+                  <Alert
+                    message={generatedOffer.primaryOffer?.urgency || 'Limited time offer'}
+                    type="warning"
+                    showIcon
+                    className="max-w-2xl mx-auto"
+                  />
+                  
+                  <Text type="secondary" className="block">
+                    {generatedOffer.primaryOffer?.socialProof || 'Trusted by customers worldwide'}
+                  </Text>
+                </div>
+              </Card>
+
+              {/* Performance Metrics */}
+              <Card title="Performance Analysis">
+                <Row gutter={24}>
+                  <Col span={6}>
+                    <Statistic
+                      title="Conversion Score"
+                      value={generatedOffer.analysis?.conversionPotential?.score || 0}
+                      precision={0}
+                      suffix="%"
+                      valueStyle={{ color: '#3f8600', fontSize: '1.5em' }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Market Relevance"
+                      value={generatedOffer.analysis?.marketFit?.industryRelevance || 0}
+                      precision={0}
+                      suffix="%"
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Emotional Appeal"
+                      value={generatedOffer.analysis?.psychologyFactors?.emotionalAppeal || 0}
+                      precision={0}
+                      suffix="/100"
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Expected CVR"
+                      value={generatedOffer.performanceMetrics?.expectedConversionRate || 'N/A'}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* Marketing Assets */}
+              <Collapse>
+                <Panel header="Email Subject Lines" key="email">
+                  <List
+                    dataSource={generatedOffer.primaryOffer.emailSubjectLines || []}
+                    renderItem={(subject: string, index: number) => (
+                      <List.Item
+                        actions={[
+                          <Button 
+                            key="copy"
+                            type="link"
+                            onClick={() => {
+                              navigator.clipboard.writeText(subject);
+                              message.success('Subject line copied!');
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        ]}
+                      >
+                        <Text strong>#{index + 1}:</Text> {subject}
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+
+                <Panel header="Social Media Captions" key="social">
+                  <List
+                    dataSource={generatedOffer.primaryOffer.socialMediaCaptions || []}
+                    renderItem={(caption: string, index: number) => (
+                      <List.Item
+                        actions={[
+                          <Button 
+                            key="copy"
+                            type="link"
+                            onClick={() => {
+                              navigator.clipboard.writeText(caption);
+                              message.success('Caption copied!');
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        ]}
+                      >
+                        <div>
+                          <Text strong>Variation {index + 1}:</Text>
+                          <div className="mt-2 p-3 bg-gray-50 rounded">
+                            {caption}
+                          </div>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+
+                <Panel header="Marketing Assets" key="assets">
+                  <Tabs type="card">
+                    <TabPane tab="Landing Page" key="landing">
+                      <div className="bg-gray-50 p-4 rounded">
+                        <pre className="whitespace-pre-wrap font-sans">
+                          {generatedOffer.marketingAssets?.landingPageCopy || 'No landing page copy generated'}
+                        </pre>
+                      </div>
+                    </TabPane>
+
+                    <TabPane tab="Email Sequence" key="sequence">
+                      <List
+                        dataSource={generatedOffer.marketingAssets?.emailSequence || []}
+                        renderItem={(email: any) => (
+                          <List.Item>
+                            <Card size="small" className="w-full">
+                              <div className="flex justify-between items-start mb-2">
+                                <Title level={5}>Day {email?.day || 0}: {email?.subject || 'No subject'}</Title>
+                                <Tag color="blue">{email?.purpose || 'General'}</Tag>
+                              </div>
+                              <Paragraph>{email?.content || 'No content available'}</Paragraph>
+                            </Card>
+                          </List.Item>
+                        )}
+                      />
+                    </TabPane>
+
+                    <TabPane tab="Ad Creatives" key="ads">
+                      <List
+                        dataSource={generatedOffer.marketingAssets?.adCreatives || []}
+                        renderItem={(ad: any) => (
+                          <List.Item>
+                            <Card size="small" className="w-full">
+                              <div className="flex justify-between items-start mb-2">
+                                <Title level={5}>{ad?.platform || 'Platform'} - {ad?.format || 'Format'}</Title>
+                                <Tag color="green">{ad?.cta || 'CTA'}</Tag>
+                              </div>
+                              <div>
+                                <Text strong>Headline:</Text> {ad?.headline || 'No headline'}
+                              </div>
+                              <div>
+                                <Text strong>Description:</Text> {ad?.description || 'No description'}
+                              </div>
+                            </Card>
+                          </List.Item>
+                        )}
+                      />
+                    </TabPane>
+                  </Tabs>
+                </Panel>
+
+                <Panel header="Optimization Suggestions" key="optimize">
+                  <List
+                    dataSource={generatedOffer.analysis?.optimizationSuggestions || []}
+                    renderItem={(suggestion: any) => (
+                      <List.Item>
+                        <Card size="small" className="w-full">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <Title level={5}>{suggestion?.area || 'Optimization Area'}</Title>
+                              <Paragraph>{suggestion?.suggestion || 'No suggestion available'}</Paragraph>
+                              <div className="flex space-x-4 text-sm">
+                                <Text><strong>Impact:</strong> {suggestion?.expectedImpact || 'Not specified'}</Text>
+                                <Text><strong>Difficulty:</strong> {suggestion?.difficulty || 'Not specified'}</Text>
+                              </div>
+                            </div>
+                            <Button 
+                              type="primary" 
+                              size="small"
+                              onClick={() => {
+                                const optimizationType = suggestion?.area?.toLowerCase();
+                                if (['headline', 'cta', 'urgency', 'social-proof', 'pricing'].includes(optimizationType)) {
+                                  handleOptimize(optimizationType as 'headline' | 'cta' | 'urgency' | 'social-proof' | 'pricing');
+                                }
+                              }}
+                            >
+                              Apply
+                            </Button>
+                          </div>
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+
+                <Panel header="Alternative Offers" key="alternatives">
+                  <List
+                    dataSource={generatedOffer.variations?.alternatives || []}
+                    renderItem={(alternative: any) => (
+                      <List.Item>
+                        <Card size="small" className="w-full">
+                          <Title level={5}>{alternative?.type || 'Alternative Offer'}: {alternative?.headline || 'No headline'}</Title>
+                          <Paragraph>{alternative?.description || 'No description available'}</Paragraph>
+                          <div className="flex justify-between items-center mt-3">
+                            <div>
+                              <Text strong>Expected Performance:</Text> {alternative?.expectedPerformance || 'Not specified'}
+                            </div>
+                            <div>
+                              <Text strong>Best for:</Text> {alternative?.useCases?.join(', ') || 'Not specified'}
+                            </div>
+                          </div>
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+
+                <Panel header="Upsell Opportunities" key="upsells">
+                  <List
+                    dataSource={generatedOffer.variations?.upsellOpportunities || []}
+                    renderItem={(upsell: any) => (
+                      <List.Item>
+                        <Card size="small" className="w-full">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <Title level={5}>{upsell?.name || 'Upsell Opportunity'}</Title>
+                              <Paragraph>{upsell?.description || 'No description available'}</Paragraph>
+                              <div className="flex space-x-4 text-sm">
+                                <Text><strong>Price Point:</strong> {upsell?.pricePoint || 'Not specified'}</Text>
+                                <Text><strong>Timing:</strong> {upsell?.timing || 'Not specified'}</Text>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </List.Item>
+                    )}
+                  />
+                </Panel>
+              </Collapse>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <BulbOutlined style={{ fontSize: '48px', color: '#ccc' }} />
+              <Title level={3} type="secondary">No Offer Generated Yet</Title>
+              <Text type="secondary">
+                Create an offer in the Creator tab to see AI-powered insights and marketing assets.
+              </Text>
+            </div>
+          )}
+        </TabPane>
+
+        <TabPane 
+          tab={
+            <span>
+              <HistoryOutlined />
+              History
+            </span>
+          } 
+          key="history"
+        >
+          <Card title="Your Saved Offers">
+            <Table
+              dataSource={offers}
+              rowKey="id"
+              columns={[
+                {
+                  title: 'Offer Name',
+                  dataIndex: 'offerName',
+                  key: 'offerName',
+                  render: (text: string, record: any) => (
+                    <div>
+                      <Text strong>{text || 'Unnamed Offer'}</Text>
+                      {record.expired && <Tag color="red" className="ml-2">Expired</Tag>}
+                    </div>
+                  )
+                },
+                {
+                  title: 'Type',
+                  dataIndex: 'offerType',
+                  key: 'offerType',
+                  render: (text: string) => text ? <Tag color="blue">{text}</Tag> : '-'
+                },
+                {
+                  title: 'Industry',
+                  dataIndex: 'targetIndustry',
+                  key: 'targetIndustry',
+                  render: (text: string) => text ? <Tag color="green">{text}</Tag> : '-'
+                },
+                {
+                  title: 'Conversion Score',
+                  dataIndex: 'conversionScore',
+                  key: 'conversionScore',
+                  render: (score: number) => score ? (
+                    <Progress 
+                      percent={score} 
+                      size="small" 
+                      status={score >= 70 ? 'success' : score >= 50 ? 'active' : 'exception'}
+                    />
+                  ) : '-'
+                },
+                {
+                  title: 'Created',
+                  dataIndex: 'createdAt',
+                  key: 'createdAt',
+                  render: (date: string) => new Date(date).toLocaleDateString()
+                },
+                {
+                  title: 'Actions',
+                  key: 'actions',
+                  render: (_: any, record: any) => (
+                    <Space>
+                      <Button 
+                        size="small" 
+                        type="link"
+                        onClick={() => {
+                          getOffer(record.id).then(offer => {
+                            if (offer) {
+                              setGeneratedOffer(offer.offer);
+                              setSavedOfferId(record.id);
+                              setActiveTab('results');
+                            }
+                          });
+                        }}
+                      >
+                        View
+                      </Button>
+                      <Button 
+                        size="small" 
+                        type="link"
+                          onClick={() => handleHistoricalExport(record.id)}
+                      >
+                        Export
+                      </Button>
+                      <Button 
+                        size="small" 
+                        type="link" 
+                        onClick={() => setPerformanceModalVisible(true)}
+                      >
+                        Performance
+                      </Button>
+                    </Space>
+                  )
+                }
+              ]}
+              pagination={{ pageSize: 10 }}
             />
-            
-            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <pre className="whitespace-pre-wrap font-sans text-gray-800">{generatedOffer}</pre>
-            </div>
-            
-            <Divider />
-            
-            <Title level={5} className="mb-2">Recommended Upsell/Cross-sell Opportunities</Title>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <Title level={5} className="flex items-center">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">1</span>
-                  Fast Action Bonus
-                </Title>
-                <Text className="block mb-2">For first 24 hours only</Text>
-                <Text type="secondary">Add an extra bonus for people who act quickly to boost urgency</Text>
-              </Card>
-              <Card>
-                <Title level={5} className="flex items-center">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">2</span>
-                  Premium Upsell
-                </Title>
-                <Text className="block mb-2">After initial purchase</Text>
-                <Text type="secondary">Offer a higher-ticket version with more features/services</Text>
-              </Card>
-              <Card>
-                <Title level={5} className="flex items-center">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">3</span>
-                  Complementary Product
-                </Title>
-                <Text className="block mb-2">During checkout</Text>
-                <Text type="secondary">Customers who bought this also purchased...</Text>
-              </Card>
-            </div>
           </Card>
+        </TabPane>
+      </Tabs>
+
+      {/* Modals */}
+      <Modal
+        title="Offer Analysis"
+        open={analysisModalVisible}
+        onCancel={() => setAnalysisModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        <div className="space-y-4">
+          <Text>Analyze your offer for different aspects:</Text>
+          <div className="grid grid-cols-3 gap-4">
+            <Button 
+              onClick={() => generatedOffer?.primaryOffer?.mainCopy && handleAnalyze(generatedOffer.primaryOffer.mainCopy, 'conversion')}
+              block
+            >
+              Conversion Analysis
+            </Button>
+            <Button 
+              onClick={() => generatedOffer?.primaryOffer?.mainCopy && handleAnalyze(generatedOffer.primaryOffer.mainCopy, 'psychology')}
+              block
+            >
+              Psychology Analysis
+            </Button>
+            <Button 
+              onClick={() => generatedOffer?.primaryOffer?.mainCopy && handleAnalyze(generatedOffer.primaryOffer.mainCopy, 'competition')}
+              block
+            >
+              Competitive Analysis
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
+
+      <Modal
+        title="Offer Optimization"
+        open={optimizationModalVisible}
+        onCancel={() => setOptimizationModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        <div className="space-y-4">
+          <Text>Optimize specific elements of your offer:</Text>
+          <div className="grid grid-cols-2 gap-4">
+            <Button onClick={() => handleOptimize('headline')} block>
+              Optimize Headline
+            </Button>
+            <Button onClick={() => handleOptimize('cta')} block>
+              Optimize CTA
+            </Button>
+            <Button onClick={() => handleOptimize('urgency')} block>
+              Optimize Urgency
+            </Button>
+            <Button onClick={() => handleOptimize('social-proof')} block>
+              Optimize Social Proof
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Performance Tracking"
+        open={performanceModalVisible}
+        onCancel={() => setPerformanceModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form layout="vertical">
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item label="Views" name="views">
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="Clicks" name="clicks">
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="Conversions" name="conversions">
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="Revenue" name="revenue">
+              <InputNumber min={0} prefix="$" style={{ width: '100%' }} />
+            </Form.Item>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item label="Start Date" name="startDate">
+              <Input type="date" />
+            </Form.Item>
+            <Form.Item label="End Date" name="endDate">
+              <Input type="date" />
+            </Form.Item>
+          </div>
+          <Button type="primary" block>
+            Update Performance
+          </Button>
+        </Form>
+      </Modal>
     </div>
   );
-}
+}     

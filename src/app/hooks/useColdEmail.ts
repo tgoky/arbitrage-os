@@ -12,31 +12,73 @@ export function useColdEmail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to handle common API patterns
+  const handleApiCall = async <T>(
+    url: string, 
+    options: RequestInit,
+    errorMessage: string = 'Operation failed'
+  ): Promise<T> => {
+    try {
+      console.log(`Making API call to: ${url}`); // Debug log
+      
+      const response = await fetch(url, {
+        ...options,
+        credentials: 'include', // ✅ Ensure cookies are included
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+
+      console.log(`API Response status: ${response.status}`); // Debug log
+
+      const result = await response.json();
+      console.log('API Response:', result); // Debug log
+      
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please log in again.');
+        }
+        if (response.status === 429) {
+          throw new Error(result.error || 'Rate limit exceeded. Please try again later.');
+        }
+        throw new Error(result.error || errorMessage);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || errorMessage);
+      }
+
+      return result.data;
+    } catch (err) {
+      console.error(`API Error for ${url}:`, err); // Debug log
+      throw err;
+    }
+  };
+
   const generateEmails = async (input: ColdEmailGenerationInput): Promise<GeneratedEmail[]> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await fetch('/api/cold-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-
-      const result = await response.json();
+      console.log('Generating emails with input:', input); // Debug log
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate emails');
-      }
+      const data = await handleApiCall<GeneratedEmail[]>(
+        '/api/cold-email',
+        {
+          method: 'POST',
+          body: JSON.stringify(input)
+        },
+        'Failed to generate emails'
+      );
 
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || 'Generation failed');
-      }
+      message.success('Emails generated successfully!');
+      return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Generation failed';
       setError(errorMessage);
+      message.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -48,23 +90,23 @@ export function useColdEmail() {
     optimizationType: ColdEmailOptimizationType
   ): Promise<string> => {
     try {
-      const response = await fetch('/api/cold-email/optimize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emailContent, optimizationType })
-      });
-
-      const result = await response.json();
+      console.log('Optimizing email:', { emailContent: emailContent.substring(0, 100), optimizationType }); // Debug log
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Optimization failed');
-      }
+      const data = await handleApiCall<string>(
+        '/api/cold-email/optimize',
+        {
+          method: 'POST',
+          body: JSON.stringify({ emailContent, optimizationType })
+        },
+        'Optimization failed'
+      );
 
-      return result.data;
+      message.success('Email optimized successfully!');
+      return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Optimization failed';
       message.error(errorMessage);
-      throw err;
+      throw new Error(errorMessage);
     }
   };
 
@@ -77,14 +119,13 @@ export function useColdEmail() {
       if (options?.category) params.set('category', options.category);
       if (options?.includePublic) params.set('includePublic', 'true');
 
-      const response = await fetch(`/api/cold-email/templates?${params.toString()}`);
-      const result = await response.json();
+      const url = `/api/cold-email/templates${params.toString() ? `?${params.toString()}` : ''}`;
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch templates');
-      }
-
-      return result.data;
+      return await handleApiCall<EmailTemplate[]>(
+        url,
+        { method: 'GET' },
+        'Failed to fetch templates'
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
       message.error(errorMessage);
@@ -103,19 +144,17 @@ export function useColdEmail() {
     isPublic?: boolean;
   }): Promise<EmailTemplate> => {
     try {
-      const response = await fetch('/api/cold-email/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(templateData)
-      });
+      const data = await handleApiCall<EmailTemplate>(
+        '/api/cold-email/templates',
+        {
+          method: 'POST',
+          body: JSON.stringify(templateData)
+        },
+        'Failed to create template'
+      );
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create template');
-      }
-
-      return result.data;
+      message.success('Template created successfully!');
+      return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
       message.error(errorMessage);
@@ -137,19 +176,17 @@ export function useColdEmail() {
     }>
   ): Promise<EmailTemplate> => {
     try {
-      const response = await fetch(`/api/cold-email/templates/${templateId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-      });
+      const data = await handleApiCall<EmailTemplate>(
+        `/api/cold-email/templates/${templateId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(updateData)
+        },
+        'Failed to update template'
+      );
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update template');
-      }
-
-      return result.data;
+      message.success('Template updated successfully!');
+      return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update template';
       message.error(errorMessage);
@@ -159,15 +196,11 @@ export function useColdEmail() {
 
   const deleteTemplate = async (templateId: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/cold-email/templates/${templateId}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete template');
-      }
+      await handleApiCall<void>(
+        `/api/cold-email/templates/${templateId}`,
+        { method: 'DELETE' },
+        'Failed to delete template'
+      );
 
       message.success('Template deleted successfully');
     } catch (err) {

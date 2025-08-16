@@ -296,21 +296,35 @@ export class PricingCalculatorService {
     `;
   }
 
-  private parseAIResponse(content: string, input: PricingCalculatorInput, baseCalc: any): Omit<GeneratedPricingPackage, 'tokensUsed' | 'generationTime'> {
-    try {
-      // Try to parse JSON response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+private parseAIResponse(content: string, input: PricingCalculatorInput, baseCalc: any): Omit<GeneratedPricingPackage, 'tokensUsed' | 'generationTime'> {
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // ✅ Validate the parsed object has required structure
+      if (this.validateParsedResponse(parsed)) {
         return parsed;
+      } else {
+        console.warn('Parsed response failed validation, using fallback');
       }
-    } catch (error) {
-      console.warn('Failed to parse JSON response, generating fallback pricing package');
     }
-
-    // Fallback to structured generation if JSON fails
-    return this.generateFallbackPackage(input, baseCalc);
+  } catch (error) {
+    console.error('Failed to parse JSON response:', error);
   }
+
+  return this.generateFallbackPackage(input, baseCalc);
+}
+private validateParsedResponse(parsed: any): boolean {
+  return (
+    parsed &&
+    parsed.calculations &&
+    parsed.strategy &&
+    parsed.benchmarks &&
+    typeof parsed.calculations.recommendedRetainer === 'number' &&
+    typeof parsed.calculations.roiPercentage === 'number'
+  );
+}
 
   private generateFallbackPackage(input: PricingCalculatorInput, baseCalc: any): Omit<GeneratedPricingPackage, 'tokensUsed' | 'generationTime'> {
     const projectDuration = input.projectDuration || 6;
@@ -808,7 +822,16 @@ async updatePricingCalculation(userId: string, calculationId: string, updates: P
   }
 
   private generateCacheKey(input: PricingCalculatorInput): string {
-    const key = `pricing_calc:${input.annualSavings}:${input.hoursPerWeek}:${input.roiMultiple}:${input.experienceLevel}:${input.deliveryRisk}`;
-    return key.toLowerCase().replace(/\s+/g, '_');
-  }
+  const key = [
+    'pricing_calc',
+    input.annualSavings,
+    input.hoursPerWeek,
+    input.roiMultiple,
+    input.experienceLevel || 'intermediate',
+    input.deliveryRisk || 'medium',
+    input.industry || 'general'
+  ].join(':');
+  
+  return key.toLowerCase().replace(/\s+/g, '_');
+}
 }

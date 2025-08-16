@@ -1,11 +1,22 @@
-// app/api/pricing-calculator/route.ts
+// app/api/pricing-calculator/route.ts - FIXED: SERVICE LEVEL STORAGE ONLY
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { PricingCalculatorService } from '@/services/pricingCalculator.service';
 import { validatePricingCalculatorInput } from '../../validators/pricingCalculator.validator';
-import { rateLimit } from '@lib/rateLimit';
+import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+
+const RATE_LIMITS = {
+  CALCULATION: {
+    limit: 10, // 10 calculations per hour (expensive AI operation)
+    window: 3600
+  },
+  LIST: {
+    limit: 100, // 100 list requests per hour
+    window: 3600
+  }
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,12 +36,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate limiting - 20 calculations per hour
-    const rateLimitResult = await rateLimit(user.id, 20, 3600);
+    // ✅ RATE LIMITING for pricing calculations
+    const rateLimitResult = await rateLimit(
+      `pricing_calculation:${user.id}`, 
+      RATE_LIMITS.CALCULATION.limit, 
+      RATE_LIMITS.CALCULATION.window
+    );
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { 
-          error: 'Too many calculations. Please try again later.',
+          error: 'Calculation rate limit exceeded. You can generate 10 pricing calculations per hour.',
           retryAfter: rateLimitResult.reset 
         },
         { status: 429 }
@@ -55,7 +70,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user's workspace
+    // ✅ GET USER'S WORKSPACE (consistent pattern)
     const { prisma } = await import('@/lib/prisma');
     let workspace = await prisma.workspace.findFirst({
       where: { user_id: user.id }
@@ -72,44 +87,48 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Generate pricing package
+    // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE
     const pricingService = new PricingCalculatorService();
     const calculatorInput = { ...validation.data, userId: user.id };
+    
+    // Generate the package
     const generatedPackage = await pricingService.generatePricingPackage(calculatorInput);
-
-    // Save to database
-    const calculationId = await pricingService.savePricingCalculation(
-      user.id, 
-      workspace.id, 
-      generatedPackage, 
+    
+    // Save it via service (not API)
+    const deliverableId = await pricingService.savePricingCalculation(
+      user.id,
+      workspace.id,
+      generatedPackage,
       calculatorInput
     );
 
-    // Log usage for analytics/billing
+    // ✅ LOG USAGE for analytics/billing
     await logUsage({
       userId: user.id,
       feature: 'pricing_calculator',
       tokens: generatedPackage.tokensUsed,
       timestamp: new Date(),
       metadata: {
+        deliverableId, // ✅ Reference the actual deliverable
         clientName: validation.data.clientName,
         annualSavings: validation.data.annualSavings,
-        recommendedRetainer: generatedPackage.calculations.recommendedRetainer,
-        roiPercentage: generatedPackage.calculations.roiPercentage,
-        calculationId
+        recommendedRetainer: generatedPackage.calculations?.recommendedRetainer,
+        roiPercentage: generatedPackage.calculations?.roiPercentage,
+        hoursPerWeek: validation.data.hoursPerWeek,
+        experienceLevel: validation.data.experienceLevel
       }
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        calculationId,
+        calculationId: deliverableId, // ✅ Return service-generated ID
         package: generatedPackage
       },
       meta: {
         tokensUsed: generatedPackage.tokensUsed,
         generationTime: generatedPackage.generationTime,
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.remaining
       }
     });
 
@@ -137,15 +156,50 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ RATE LIMITING for listing
+    const rateLimitResult = await rateLimit(
+      `pricing_list:${user.id}`,
+      RATE_LIMITS.LIST.limit,
+      RATE_LIMITS.LIST.window
+    );
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'List rate limit exceeded.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
+    // ✅ USE SERVICE METHOD (consistent with architecture)
     const pricingService = new PricingCalculatorService();
-    const calculations = await pricingService.getUserPricingCalculations(user.id, workspaceId || undefined);
+    const calculations = await pricingService.getUserPricingCalculations(
+      user.id,
+      workspaceId || undefined
+    );
+
+    // ✅ LOG USAGE for listing
+    await logUsage({
+      userId: user.id,
+      feature: 'pricing_list',
+      tokens: 0,
+      timestamp: new Date(),
+      metadata: {
+        workspaceId,
+        resultCount: calculations.length
+      }
+    });
 
     return NextResponse.json({
       success: true,
-      data: calculations
+      data: calculations,
+      meta: {
+        remaining: rateLimitResult.remaining
+      }
     });
 
   } catch (error) {

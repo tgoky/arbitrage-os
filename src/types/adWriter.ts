@@ -24,6 +24,7 @@ export interface AdGenerationInput {
   urgency?: string;
   leadMagnet?: string;
   userId?: string;
+    [key: string]: any;
 }
 
 export type Platform = 'facebook' | 'google' | 'linkedin' | 'tiktok';

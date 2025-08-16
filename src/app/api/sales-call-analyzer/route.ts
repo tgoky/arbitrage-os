@@ -1,4 +1,4 @@
-// app/api/sales-call-analyzer/route.ts
+// app/api/sales-call-analyzer/route.ts - FIXED: SERVICE LEVEL STORAGE ONLY
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user's workspace
+    // ✅ GET USER'S WORKSPACE (consistent pattern)
     const { prisma } = await import('@/lib/prisma');
     let workspace = await prisma.workspace.findFirst({
       where: { user_id: user.id }
@@ -60,29 +60,32 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Analyze the call
+    // ✅ SERVICE HANDLES BOTH ANALYSIS AND STORAGE
     const analyzerService = new SalesCallAnalyzerService();
     const analysisInput = { ...validation.data, userId: user.id };
+    
+    // Analyze the call
     const analysisPackage = await analyzerService.analyzeCall(analysisInput);
-
-    // Save to database
-    const analysisId = await analyzerService.saveCallAnalysis(
+    
+    // Save via service (not API)
+    const deliverableId = await analyzerService.saveCallAnalysis(
       user.id,
       workspace.id,
       analysisPackage,
       analysisInput
     );
 
-    // Log usage for billing/analytics
+    // ✅ LOG USAGE for billing/analytics
     await logUsage({
       userId: user.id,
       feature: 'sales_call_analyzer',
       tokens: analysisPackage.tokensUsed,
       timestamp: new Date(),
       metadata: {
+        deliverableId, // ✅ Reference the actual deliverable
         callType: validation.data.callType,
         companyName: validation.data.companyName,
-        analysisId,
+        analysisId: deliverableId, // ✅ Use service-generated ID
         overallScore: analysisPackage.callResults.analysis.overallScore,
         sentiment: analysisPackage.callResults.analysis.sentiment
       }
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        analysisId,
+        analysisId: deliverableId, // ✅ Return service-generated ID
         analysis: analysisPackage
       },
       meta: {
@@ -123,15 +126,52 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ RATE LIMITING for list fetches
+    const rateLimitResult = await rateLimit(
+      `sales_call_list:${user.id}`,
+      100, // 100 list fetches per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'List fetch rate limit exceeded.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
+    // ✅ USE SERVICE METHOD (consistent with architecture)
     const analyzerService = new SalesCallAnalyzerService();
-    const analyses = await analyzerService.getUserCallAnalyses(user.id, workspaceId || undefined);
+    const analyses = await analyzerService.getUserCallAnalyses(
+      user.id,
+      workspaceId || undefined
+    );
+
+    // ✅ LOG USAGE for list access
+    await logUsage({
+      userId: user.id,
+      feature: 'sales_call_analyzer_list',
+      tokens: 0, // No AI tokens for listing
+      timestamp: new Date(),
+      metadata: {
+        workspaceId,
+        resultCount: analyses.length,
+        action: 'list'
+      }
+    });
 
     return NextResponse.json({
       success: true,
-      data: analyses
+      data: analyses,
+      meta: {
+        remaining: rateLimitResult.remaining
+      }
     });
 
   } catch (error) {

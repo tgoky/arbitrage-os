@@ -4,15 +4,15 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { ColdEmailService } from '@/services/coldEmail.service';
 import { logUsage } from '@/lib/usage';
-
+import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
 import { ColdEmailOptimizationType } from '@/types/coldEmail';
 
 export async function POST(req: NextRequest) {
   try {
     // Create Supabase client for server-side auth
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ 
-      cookies: () => cookieStore 
+    const supabase = createRouteHandlerClient({
+      cookies: () => cookieStore
     });
     
     // Get the authenticated user
@@ -22,8 +22,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ Add rate limiting - 30 optimizations per minute
+    const rateLimitResult = await rateLimit(user.id, 30, 60);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many optimization requests. Please try again later.',
+          retryAfter: rateLimitResult.reset
+        },
+        { status: 429 }
+      );
+    }
+
     const { emailContent, optimizationType } = await req.json();
-        
+    
     if (!emailContent || !optimizationType) {
       return NextResponse.json(
         { error: 'Email content and optimization type are required' },
@@ -42,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     const coldEmailService = new ColdEmailService();
     const optimizedEmail = await coldEmailService.optimizeEmail(
-      emailContent, 
+      emailContent,
       optimizationType as ColdEmailOptimizationType
     );
 
@@ -51,14 +63,20 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       feature: 'cold_email_optimize',
       tokens: optimizedEmail.tokensUsed,
-      timestamp: new Date()
+      timestamp: new Date(),
+      metadata: {
+        optimizationType,
+        originalLength: emailContent.length,
+        optimizedLength: optimizedEmail.content.length
+      }
     });
 
     return NextResponse.json({
       success: true,
       data: optimizedEmail.content,
       meta: {
-        tokensUsed: optimizedEmail.tokensUsed
+        tokensUsed: optimizedEmail.tokensUsed,
+        remaining: rateLimitResult.limit - rateLimitResult.count // ✅ Add remaining count
       }
     });
   } catch (error) {

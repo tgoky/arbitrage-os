@@ -1,8 +1,10 @@
-// app/api/growth-plans/bulk/route.ts - Bulk operations with Supabase Auth
+// app/api/growth-plans/bulk/route.ts - WITH RATE LIMITING
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { GrowthPlanService } from '@/services/growthPlan.service';
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
 import { GrowthPlanServiceResponse } from '@/types/growthPlan';
 
 const growthPlanService = new GrowthPlanService();
@@ -30,6 +32,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     const userId = user.id;
+
+    // ✅ ADD RATE LIMITING for bulk operations
+    const rateLimitResult = await rateLimit(
+      `growth_plan_bulk_delete:${userId}`,
+      5, // 5 bulk operations per hour (strict for destructive operations)
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Bulk delete rate limit exceeded' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { planIds } = body;
 
@@ -40,7 +57,28 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Limit bulk operations to prevent abuse
+    if (planIds.length > 50) {
+      return NextResponse.json(
+        { success: false, error: 'Cannot delete more than 50 plans at once' },
+        { status: 400 }
+      );
+    }
+
     const deletedCount = await growthPlanService.bulkDeleteGrowthPlans(userId, planIds);
+
+    // ✅ LOG USAGE
+    await logUsage({
+      userId,
+      feature: 'growth_plan_bulk_delete',
+      tokens: 0,
+      timestamp: new Date(),
+      metadata: {
+        requestedCount: planIds.length,
+        deletedCount,
+        planIds: planIds.slice(0, 10) // Log first 10 IDs only
+      }
+    });
 
     const response: GrowthPlanServiceResponse<{ deletedCount: number }> = {
       success: true,

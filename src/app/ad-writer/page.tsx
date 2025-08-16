@@ -37,6 +37,7 @@ import {
   Popover,
   Switch,
   message,
+   Modal, 
   notification
 } from 'antd';
 import { useAdWriter, type AdWriterInput, type GeneratedAd } from '../hooks/useAdWriter';
@@ -53,6 +54,7 @@ const AdWriter = () => {
   const [activePlatforms, setActivePlatforms] = useState<string[]>(['facebook', 'google']);
   const [activeTab, setActiveTab] = useState('1');
   const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
+    const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
 
   const { generateAds, optimizeAd, regeneratePlatformAds, loading, error, setError } = useAdWriter();
 
@@ -159,67 +161,173 @@ const AdWriter = () => {
   };
 
   // Optimize existing ad copy
-  const handleOptimizeAd = async (adCopy: string, optimizationType: string) => {
-    try {
-      const optimizedContent = await optimizeAd(adCopy, optimizationType);
-      
-      // You could show the optimized content in a modal or replace the original
-      notification.success({
-        message: 'Ad Optimized!',
-        description: 'Check the new version',
-        placement: 'topRight',
-      });
-      
-      // For now, just show in a message
-      message.success('Ad optimized successfully!');
-      
-      return optimizedContent;
-    } catch (error) {
-      // Error is already handled in the hook
-      return null;
-    }
-  };
-
-  // Regenerate specific platform ads
-  const handleRegeneratePlatform = async (platform: string) => {
-    if (!originalFormData) {
-      message.error('No original data found for regeneration');
-      return;
+const handleOptimizeAd = async (adCopy: string, optimizationType: string) => {
+  try {
+    const optimizedContent = await optimizeAd(adCopy, optimizationType);
+    
+    if (!optimizedContent) {
+      throw new Error('No optimized content returned');
     }
     
-    try {
-      const newAd = await regeneratePlatformAds(originalFormData, platform);
-      
-      // Update only the regenerated platform
-      setGeneratedAds(prev => {
-        const filtered = prev.filter(ad => ad.platform !== platform);
-        return [...filtered, newAd];
-      });
-      
-      message.success(`${platform} ads regenerated!`);
-    } catch (error) {
-      // Error is already handled in the hook
-    }
-  };
-
-  const nextStep = () => {
-    form.validateFields().then(() => {
-      setCurrentStep(currentStep + 1);
-    }).catch(() => {
-      message.error('Please fill in all required fields');
+    // Show optimized content in a modal instead of just success message
+    Modal.info({
+      title: `Optimized for ${optimizationType}`,
+      content: (
+        <div>
+          <Text strong>Original:</Text>
+          <div className="bg-gray-50 p-2 rounded mb-2">{adCopy}</div>
+          <Text strong>Optimized:</Text>
+          <div className="bg-blue-50 p-2 rounded">{optimizedContent}</div>
+          <div className="mt-2">
+            <Button 
+              onClick={() => copyToClipboard(optimizedContent)}
+              icon={<CopyOutlined />}
+            >
+              Copy Optimized Version
+            </Button>
+          </div>
+        </div>
+      ),
+      width: 600,
     });
-  };
+    
+    return optimizedContent;
+  } catch (error) {
+    console.error('Optimization error:', error);
+    notification.error({
+      message: 'Optimization Failed',
+      description: error instanceof Error ? error.message : 'Please try again later',
+      placement: 'topRight',
+    });
+    return null;
+  }
+};
+
+  // Regenerate specific platform ads
+ const handleRegeneratePlatform = async (platform: string) => {
+  if (!originalFormData) {
+    message.error('No original data found for regeneration');
+    return;
+  }
+  
+  // Add loading state for specific platform
+
+  
+  setRegeneratingPlatforms(prev => new Set(prev).add(platform));
+  
+  try {
+    const newAd = await regeneratePlatformAds(originalFormData, platform);
+    
+    // Update only the regenerated platform with validation
+    setGeneratedAds(prev => {
+      const filtered = prev.filter(ad => ad.platform !== platform);
+      
+      // Validate the new ad structure
+      if (!newAd.headlines || !newAd.descriptions || !newAd.ctas) {
+        throw new Error('Invalid ad structure returned');
+      }
+      
+      return [...filtered, newAd];
+    });
+    
+    message.success(`${platform.charAt(0).toUpperCase() + platform.slice(1)} ads regenerated!`);
+  } catch (error) {
+    console.error('Regeneration error:', error);
+    notification.error({
+      message: 'Regeneration Failed',
+      description: `Failed to regenerate ${platform} ads. Please try again.`,
+      placement: 'topRight',
+    });
+  } finally {
+    setRegeneratingPlatforms(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(platform);
+      return newSet;
+    });
+  }
+};
+
+const validateBusinessFields = () => {
+  return form.validateFields(['businessName', 'valueProposition', 'offerName', 'offerDescription', 'pricing', 'uniqueMechanism'])
+    .then(() => true)
+    .catch((errorInfo) => {
+      const firstError = errorInfo.errorFields[0];
+      if (firstError) {
+        message.error(`Please fill in: ${firstError.name[0]}`);
+      }
+      return false;
+    });
+};
+
+
+
+const nextStep = async () => {
+  let isValid = false;
+  
+  switch (currentStep) {
+    case 0:
+      isValid = await validateBusinessFields();
+      break;
+    case 1:
+      isValid = await form.validateFields(['idealCustomer', 'primaryPainPoint', 'coreResult'])
+        .then(() => true)
+        .catch(() => false);
+      break;
+    case 2:
+      if (activePlatforms.length === 0) {
+        message.error('Please select at least one platform!');
+        return;
+      }
+      isValid = await form.validateFields(['adType', 'tone', 'cta', 'url'])
+        .then(() => true)
+        .catch(() => false);
+      break;
+  }
+  
+  if (isValid) {
+    setCurrentStep(currentStep + 1);
+  }
+};
+
 
   const prevStep = () => {
     setCurrentStep(currentStep - 1);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+ const copyToClipboard = async (text: string) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for older browsers or non-HTTPS
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    }
     message.success('Copied to clipboard!');
-  };
+  } catch (error) {
+    console.error('Copy failed:', error);
+    message.error('Failed to copy to clipboard');
+  }
+};
 
-  const downloadAds = () => {
+
+const downloadAds = () => {
+  let url: string | null = null;
+  let anchor: HTMLAnchorElement | null = null;
+  
+  try {
     const content = generatedAds.map(ad => 
       `=== ${ad.platform.toUpperCase()} ===\n\n` +
       `Headlines:\n${ad.headlines.map((h: string) => `- ${h}`).join('\n')}\n\n` +
@@ -230,13 +338,30 @@ const AdWriter = () => {
     ).join('\n');
 
     const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ad-copy-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    url = URL.createObjectURL(blob);
+    
+    anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `ad-copy-${Date.now()}.txt`;
+    anchor.style.display = 'none';
+    
+    document.body.appendChild(anchor);
+    anchor.click();
+    
+    message.success('Ads downloaded successfully!');
+  } catch (error) {
+    console.error('Download error:', error);
+    message.error('Failed to download ads');
+  } finally {
+    // Comprehensive cleanup
+    if (url) {
+      URL.revokeObjectURL(url);
+    }
+    if (anchor && document.body.contains(anchor)) {
+      document.body.removeChild(anchor);
+    }
+  }
+};
 
   const renderStepContent = () => {
     switch (currentStep) {

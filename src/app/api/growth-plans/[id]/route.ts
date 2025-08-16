@@ -1,9 +1,11 @@
-// app/api/growth-plans/[id]/route.ts - Individual plan operations with Supabase Auth
+// app/api/growth-plans/[id]/route.ts - WITH RATE LIMITING
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { GrowthPlanService } from '@/services/growthPlan.service';
 import { validateGrowthPlanInput } from '../../../validators/growthPlan.validator';
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
 import { 
   GetGrowthPlanResponse, 
   UpdateGrowthPlanRequest, 
@@ -40,6 +42,20 @@ export async function GET(
 
     const userId = user.id;
     const planId = params.id;
+
+    // ✅ LIGHT RATE LIMITING: Prevent abuse
+    const rateLimitResult = await rateLimit(
+      `growth_plan_read:${userId}`,
+      200, // 200 reads per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 }
+      );
+    }
 
     const plan = await growthPlanService.getGrowthPlan(userId, planId);
     
@@ -86,12 +102,30 @@ export async function PUT(
 
     const userId = user.id;
     const planId = params.id;
+
+    // ✅ MODERATE RATE LIMITING: Updates might trigger AI regeneration
+    const rateLimitResult = await rateLimit(
+      `growth_plan_update:${userId}`,
+      20, // 20 updates per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Update rate limit exceeded. You can update 20 plans per hour.' 
+        },
+        { status: 429 }
+      );
+    }
+
     const body: UpdateGrowthPlanRequest = await request.json();
     const { updates } = body;
 
     // Validate partial updates
     if (Object.keys(updates).length > 0) {
-      const validation = validateGrowthPlanInput(updates, true); // partial validation
+      const validation = validateGrowthPlanInput(updates, true);
       if (!validation.success) {
         return NextResponse.json(
           {
@@ -106,12 +140,27 @@ export async function PUT(
 
     const updatedPlan = await growthPlanService.updateGrowthPlan(userId, planId, updates);
     
+    // ✅ LOG USAGE: If AI was used for regeneration
+    if (updatedPlan.metadata.updateType === 'full_regeneration') {
+      await logUsage({
+        userId,
+        feature: 'growth_plan_update_regeneration',
+        tokens: updatedPlan.metadata.lastGenerationTime || 0,
+        timestamp: new Date(),
+        metadata: {
+          planId,
+          updateType: 'full_regeneration',
+          fieldsUpdated: Object.keys(updates)
+        }
+      });
+    }
+    
     const response: GrowthPlanServiceResponse<UpdateGrowthPlanResponse> = {
       success: true,
       data: {
         planId,
-        plan: JSON.parse(updatedPlan.content),
-        updatedAt: updatedPlan.updated_at.toISOString()
+        plan: updatedPlan.plan,
+        updatedAt: updatedPlan.updatedAt.toISOString()
       },
       message: 'Growth plan updated successfully'
     };
@@ -156,6 +205,20 @@ export async function DELETE(
     const userId = user.id;
     const planId = params.id;
 
+    // ✅ MODERATE RATE LIMITING: Prevent delete spam
+    const rateLimitResult = await rateLimit(
+      `growth_plan_delete:${userId}`,
+      50, // 50 deletes per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Delete rate limit exceeded' },
+        { status: 429 }
+      );
+    }
+
     const success = await growthPlanService.deleteGrowthPlan(userId, planId);
     
     if (!success) {
@@ -164,6 +227,18 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // ✅ LOG USAGE: Track deletions
+    await logUsage({
+      userId,
+      feature: 'growth_plan_deletion',
+      tokens: 0,
+      timestamp: new Date(),
+      metadata: {
+        planId,
+        action: 'delete'
+      }
+    });
 
     const response: GrowthPlanServiceResponse = {
       success: true,

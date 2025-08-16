@@ -1,9 +1,18 @@
 
-// app/api/pricing-calculator/export/[id]/route.ts
+// app/api/pricing-calculator/export/[id]/route.ts - WITH RATE LIMITING & USAGE
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { PricingCalculatorService } from '@/services/pricingCalculator.service';
+import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
+import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+
+const RATE_LIMITS = {
+  EXPORT: {
+    limit: 20,
+    window: 3600 // 1 hour
+  }
+};
 
 export async function GET(
   req: NextRequest,
@@ -23,12 +32,35 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ ADD RATE LIMITING for exports
+    const rateLimitResult = await rateLimit(
+      `pricing_export:${user.id}`,
+      RATE_LIMITS.EXPORT.limit,
+      RATE_LIMITS.EXPORT.window
+    );
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Export rate limit exceeded. You can export 20 calculations per hour.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
     const calculationId = params.id;
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'proposal';
 
-    const pricingService = new PricingCalculatorService();
-    const calculation = await pricingService.getPricingCalculation(user.id, calculationId);
+    // ✅ FETCH FROM DELIVERABLES
+    const { prisma } = await import('@/lib/prisma');
+    const calculation = await prisma.deliverable.findFirst({
+      where: {
+        id: calculationId,
+        user_id: user.id,
+        type: 'pricing_calculation'
+      }
+    });
 
     if (!calculation) {
       return NextResponse.json(
@@ -37,31 +69,51 @@ export async function GET(
       );
     }
 
+    const calculationData = {
+      calculation: JSON.parse(calculation.content),
+      metadata: calculation.metadata
+    };
+
     let content = '';
     let filename = '';
 
-  switch (format) {
-  case 'proposal':
-    content = generateProposalHTML(calculation);
-    filename = `pricing-proposal-${(calculation.metadata as any)?.clientName || 'client'}.html`;
-    break;
-  case 'presentation':
-    content = generatePresentationHTML(calculation);
-    filename = `pricing-presentation-${(calculation.metadata as any)?.clientName || 'client'}.html`;
-    break;
-  case 'contract':
-    content = generateContractHTML(calculation);
-    filename = `contract-template-${(calculation.metadata as any)?.clientName || 'client'}.html`;
-    break;
-  default:
-    content = generateCompletePackageHTML(calculation);
-    filename = `complete-pricing-package-${(calculation.metadata as any)?.clientName || 'client'}.html`;
-}
+    switch (format) {
+      case 'proposal':
+        content = generateProposalHTML(calculationData);
+        filename = `pricing-proposal-${(calculation.metadata as any)?.clientName || 'client'}.html`;
+        break;
+      case 'presentation':
+        content = generatePresentationHTML(calculationData);
+        filename = `pricing-presentation-${(calculation.metadata as any)?.clientName || 'client'}.html`;
+        break;
+      case 'contract':
+        content = generateContractHTML(calculationData);
+        filename = `contract-template-${(calculation.metadata as any)?.clientName || 'client'}.html`;
+        break;
+      default:
+        content = generateCompletePackageHTML(calculationData);
+        filename = `complete-pricing-package-${(calculation.metadata as any)?.clientName || 'client'}.html`;
+    }
+
+    // ✅ LOG USAGE for export
+    await logUsage({
+      userId: user.id,
+      feature: 'pricing_export',
+      tokens: 0,
+      timestamp: new Date(),
+      metadata: {
+        calculationId,
+        format,
+        filename,
+        clientName: (calculation.metadata as any)?.clientName
+      }
+    });
     
     return new NextResponse(content, {
       headers: {
         'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename="${filename}"`
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
       }
     });
 

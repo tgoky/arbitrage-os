@@ -42,7 +42,7 @@ import {
   notification
 } from 'antd';
 import { useColdEmail } from '../hooks/useColdEmail';
-import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput } from '@/types/coldEmail';
+import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput, ColdEmailOptimizationType } from '@/types/coldEmail';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -57,6 +57,8 @@ const ColdEmailWriter = () => {
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
 
+  const [optimizedEmails, setOptimizedEmails] = useState<{[key: number]: GeneratedEmail}>({});
+
   const {
     generateEmails,
     optimizeEmail,
@@ -64,8 +66,10 @@ const ColdEmailWriter = () => {
     createTemplate,
     loading,
     error,
+    
     setError
   } = useColdEmail();
+  const [optimizationLoading, setOptimizationLoading] = useState<{[key: number]: boolean}>({});
 
   const emailMethods = [
     {
@@ -208,133 +212,236 @@ const ColdEmailWriter = () => {
       message.error('Failed to copy to clipboard');
     }
   };
-
-  const downloadEmail = (email: GeneratedEmail) => {
-    try {
-      const content = `Subject: ${email.subject}\n\n${email.body}\n\n${email.signature}`;
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cold-email-${email.metadata?.variationIndex || 0}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+const downloadEmail = (email: GeneratedEmail) => {
+  let url: string | null = null;
+  let anchor: HTMLAnchorElement | null = null;
+  
+  try {
+    const content = `Subject: ${email.subject}\n\n${email.body}\n\n${email.signature}`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    url = URL.createObjectURL(blob);
+    
+    anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `cold-email-${email.metadata?.variationIndex || Date.now()}.txt`;
+    anchor.style.display = 'none';
+    
+    document.body.appendChild(anchor);
+    anchor.click();
+    
+    message.success('Email downloaded successfully!');
+  } catch (error) {
+    console.error('Download error:', error);
+    message.error('Failed to download email');
+  } finally {
+    // Comprehensive cleanup
+    if (url) {
       URL.revokeObjectURL(url);
-      message.success('Email downloaded successfully!');
-    } catch (error) {
-      message.error('Failed to download email');
     }
-  };
-
-  const handleOptimizeEmail = async (emailContent: string, optimizationType: string) => {
-    try {
-      const optimizedContent = await optimizeEmail(
-        emailContent, 
-        optimizationType as any
-      );
-      
-      notification.success({
-        message: 'Email Optimized!',
-        description: 'Check the new optimized version',
-        placement: 'topRight',
-      });
-      
-      // Here you could update the email in place or show in a modal
-      // For now, just show success message
-      message.success('Email optimized successfully!');
-      
-      return optimizedContent;
-    } catch (error) {
-      // Error is already handled in the hook
-      return emailContent;
+    if (anchor && document.body.contains(anchor)) {
+      document.body.removeChild(anchor);
     }
-  };
+  }
+};
 
-  const fetchTemplates = async () => {
-    try {
-      const fetchedTemplates = await getTemplates({ includePublic: true });
-      setTemplates(fetchedTemplates);
-      setIsTemplateModalVisible(true);
-      message.success(`Loaded ${fetchedTemplates.length} templates`);
-    } catch (error) {
-      // Error is already handled in the hook
+
+const handleOptimizeEmail = async (
+  emailIndex: number, 
+  emailContent: string, 
+  optimizationType: ColdEmailOptimizationType
+) => {
+  // Set loading for this specific email
+  setOptimizationLoading(prev => ({ ...prev, [emailIndex]: true }));
+  
+  try {
+    const optimizedContent = await optimizeEmail(emailContent, optimizationType);
+    
+    // Parse the optimized content
+    const lines = optimizedContent.split('\n');
+    let subject = '';
+    let body = '';
+    let signature = '';
+    let currentSection = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('Subject:')) {
+        subject = line.replace('Subject:', '').trim();
+      } else if (line.includes('Best regards') || line.includes('Sincerely')) {
+        currentSection = 'signature';
+        signature += line + '\n';
+      } else if (currentSection === 'signature') {
+        signature += line + '\n';
+      } else if (line.trim()) {
+        body += line + '\n';
+      }
     }
-  };
-
-  const handleApplyTemplate = (template: EmailTemplate) => {
-    setEmailMethod(template.method);
-    form.setFieldsValue({
-      method: template.method,
-      targetIndustry: template.metadata?.targetIndustry,
-      targetRole: template.metadata?.targetRole,
+    
+    // Update the specific email in state
+    const originalEmail = generatedEmails[emailIndex];
+    const optimizedEmail: GeneratedEmail = {
+      ...originalEmail,
+      subject: subject || originalEmail.subject,
+      body: body.trim() || optimizedContent,
+      signature: signature.trim() || originalEmail.signature,
+      metadata: {
+        ...originalEmail.metadata,
+        targetIndustry: originalEmail.metadata?.targetIndustry || '',
+        targetRole: originalEmail.metadata?.targetRole || '',
+        generatedAt: originalEmail.metadata?.generatedAt || new Date().toISOString(),
+        // ✅ Now these fields exist in the type
+        optimizationType,
+        optimizedAt: new Date().toISOString()
+      }
+    };
+    
+    setOptimizedEmails(prev => ({
+      ...prev,
+      [emailIndex]: optimizedEmail
+    }));
+    
+    notification.success({
+      message: 'Email Optimized!',
+      description: `Optimized for ${optimizationType}`,
+      placement: 'topRight',
     });
     
-    setGeneratedEmails([{
-      subject: template.subject,
-      body: template.body,
-      signature: '',
-      method: template.method,
-      metadata: {
-        targetIndustry: template.metadata?.targetIndustry || '',
-        targetRole: template.metadata?.targetRole || '',
-        generatedAt: template.createdAt,
-      }
-    }]);
-    
-    setIsTemplateModalVisible(false);
-    message.success(`Applied template: ${template.name}`);
+    return optimizedEmail;
+  } catch (error) {
+    console.error('Optimization error:', error);
+    notification.error({
+      message: 'Optimization Failed',
+      description: 'Please try again later',
+      placement: 'topRight',
+    });
+    return null;
+  } finally {
+    // ✅ Clear loading for this specific email
+    setOptimizationLoading(prev => ({ ...prev, [emailIndex]: false }));
+  }
+};
+
+
+
+
+ const [templatesLoading, setTemplatesLoading] = useState(false);
+
+const fetchTemplates = async () => {
+  try {
+    setTemplatesLoading(true); // ✅ Use separate loading state
+    const fetchedTemplates = await getTemplates({ includePublic: true });
+    setTemplates(fetchedTemplates);
+    setIsTemplateModalVisible(true);
+    message.success(`Loaded ${fetchedTemplates.length} templates`);
+  } catch (error) {
+    console.error('Failed to fetch templates:', error);
+    // ✅ Show error even if hook doesn't
+    notification.error({
+      message: 'Failed to Load Templates',
+      description: 'Please try again later',
+      placement: 'topRight',
+    });
+  } finally {
+    setTemplatesLoading(false);
+  }
+};
+
+  const handleApplyTemplate = (template: EmailTemplate) => {
+  setEmailMethod(template.method);
+  form.setFieldsValue({
+    method: template.method,
+    targetIndustry: template.metadata?.targetIndustry,
+    targetRole: template.metadata?.targetRole,
+  });
+  
+  const appliedEmail: GeneratedEmail = {
+    subject: template.subject,
+    body: template.body,
+    signature: '', // ✅ Will be generated
+    method: template.method,
+    metadata: {
+      targetIndustry: template.metadata?.targetIndustry || '',
+      targetRole: template.metadata?.targetRole || '',
+      generatedAt: new Date().toISOString(), // ✅ Proper ISO string
+      appliedFromTemplate: template.id
+    }
   };
+  
+  setGeneratedEmails([appliedEmail]);
+  setIsTemplateModalVisible(false);
+  message.success(`Applied template: ${template.name}`);
+};
+
 
   const columns = [
-    {
-      title: 'Template Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Subject',
-      dataIndex: 'subject',
-      key: 'subject',
-    },
-    {
-      title: 'Method',
-      dataIndex: 'method',
-      key: 'method',
-      render: (method: string) => (
-        <Tag color="blue">
-          {emailMethods.find(m => m.value === method)?.label || method}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Created At',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: any, template: EmailTemplate) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => copyToClipboard(`Subject: ${template.subject}\n\n${template.body}`)}
-          >
-            Preview
-          </Button>
-          <Button
-            type="primary"
-            icon={<SelectOutlined />}
-            onClick={() => handleApplyTemplate(template)}
-          >
-            Apply
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  {
+    title: 'Template Name',
+    dataIndex: 'name',
+    key: 'name',
+  },
+  {
+    title: 'Subject',
+    dataIndex: 'subject',
+    key: 'subject',
+  },
+  {
+    title: 'Method',
+    dataIndex: 'method',
+    key: 'method',
+    render: (method: string) => (
+      <Tag color="blue">
+        {emailMethods.find(m => m.value === method)?.label || method}
+      </Tag>
+    ),
+  },
+  {
+    title: 'Created At',
+    dataIndex: 'createdAt',
+    key: 'createdAt',
+    render: (date: string) => new Date(date).toLocaleDateString(),
+  },
+  {
+    title: 'Actions',
+    key: 'actions',
+    render: (_: any, template: EmailTemplate) => (
+      <Space>
+        <Button
+          icon={<EyeOutlined />}
+          onClick={() => {
+            // ✅ Actually show preview in modal or expand
+            Modal.info({
+              title: `Preview: ${template.name}`,
+              content: (
+                <div>
+                  <p><strong>Subject:</strong> {template.subject}</p>
+                  <Divider />
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                    {template.body}
+                  </pre>
+                </div>
+              ),
+              width: 600,
+            });
+          }}
+        >
+          Preview
+        </Button>
+        <Button
+          icon={<SelectOutlined />}
+          onClick={() => copyToClipboard(`Subject: ${template.subject}\n\n${template.body}`)}
+        >
+          Copy
+        </Button>
+        <Button
+          type="primary"
+          icon={<SelectOutlined />}
+          onClick={() => handleApplyTemplate(template)}
+        >
+          Apply
+        </Button>
+      </Space>
+    ),
+  },
+];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -909,7 +1016,7 @@ const ColdEmailWriter = () => {
           <Button
             type="primary"
             onClick={fetchTemplates}
-            loading={loading}
+            loading={templatesLoading}
           >
             Load Saved Templates
           </Button>
@@ -945,97 +1052,144 @@ const ColdEmailWriter = () => {
         </Button>
       </div>
 
-      {generatedEmails.length > 0 && (
-        <div className="mt-8">
-          {generatedEmails.map((email, index) => (
-            <Card key={index} className="mb-4">
-              <div className="flex justify-between items-center mb-4">
-                <Title level={4}>Generated Email {index + 1}</Title>
-                <Space>
-                  <Button 
-                    onClick={() => handleOptimizeEmail(`${email.subject}\n\n${email.body}\n\n${email.signature}`, 'personalization')}
-                  >
-                    Optimize Personalization
-                  </Button>
-                  <Button 
-                    onClick={() => handleOptimizeEmail(`${email.subject}\n\n${email.body}\n\n${email.signature}`, 'value')}
-                  >
-                    Optimize Value
-                  </Button>
-                  <Button 
-                    icon={<DownloadOutlined />}
-                    onClick={() => downloadEmail(email)}
-                  >
-                    Download
-                  </Button>
-                  <Button 
-                    type="primary" 
-                    onClick={() => copyToClipboard(`${email.subject}\n\n${email.body}\n\n${email.signature}`)}
-                  >
-                    Copy to Clipboard
-                  </Button>
-                </Space>
-              </div>
-              
-              <Alert 
-                message="Pro Tip" 
-                description={
-                  <div>
-                    <p>Personalize this further by:</p>
-                    <ul className="list-disc pl-5">
-                      <li>Adding specific details about the recipient company</li>
-                      <li>Referencing recent news about their industry</li>
-                      <li>Including a personalized compliment</li>
-                      <li>Mentioning mutual connections if any</li>
-                    </ul>
-                  </div>
-                } 
-                type="info" 
-                showIcon 
-                className="mb-4"
-              />
-              
-              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-                  Subject: {email.subject}
-                  {'\n\n'}
-                  {email.body}
-                  {'\n\n'}
-                  {email.signature}
-                </pre>
-              </div>
-              
-              {email.followUpSequence && (
-                <>
-                  <Divider />
-                  <Title level={5} className="mb-2">Follow-Up Sequence</Title>
-                  <List
-                    grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
-                    dataSource={email.followUpSequence}
-                    renderItem={(followUp: GeneratedEmail) => (
-                      <List.Item>
-                        <Card>
-                          <Title level={5} className="flex items-center">
-                            <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">{followUp.metadata?.sequenceNumber}</span>
-                            Follow-Up (Day {followUp.metadata?.dayInterval})
-                          </Title>
-                          <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-                            Subject: {followUp.subject}
-                            {'\n\n'}
-                            {followUp.body}
-                            {'\n\n'}
-                            {followUp.signature}
-                          </pre>
-                        </Card>
-                      </List.Item>
-                    )}
-                  />
-                </>
+     {generatedEmails.length > 0 && (
+  <div className="mt-8">
+    {generatedEmails.map((email, index) => {
+      // Show optimized version if available, otherwise show original
+      const displayEmail = optimizedEmails[index] || email;
+      const isOptimizationLoading = optimizationLoading[index] || false;
+      
+      return (
+        <Card key={index} className="mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <Title level={4}>
+              Generated Email {index + 1}
+              {optimizedEmails[index] && (
+                <Tag color="green" className="ml-2">
+                  Optimized for {optimizedEmails[index].metadata?.optimizationType}
+                </Tag>
               )}
-            </Card>
-          ))}
-        </div>
-      )}
+            </Title>
+            <Space>
+              <Button 
+                onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'personalization')}
+                loading={isOptimizationLoading}
+                disabled={loading}
+              >
+                Optimize Personalization
+              </Button>
+              <Button 
+                onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'value')}
+                loading={isOptimizationLoading}
+                disabled={loading}
+              >
+                Optimize Value
+              </Button>
+              <Button 
+                icon={<DownloadOutlined />}
+                onClick={() => downloadEmail(displayEmail)}
+                disabled={loading}
+              >
+                Download
+              </Button>
+              <Button 
+                type="primary" 
+                onClick={() => copyToClipboard(`${displayEmail.subject}\n\n${displayEmail.body}\n\n${displayEmail.signature}`)}
+                disabled={loading}
+              >
+                Copy to Clipboard
+              </Button>
+            </Space>
+          </div>
+          
+          {/* Show optimization status */}
+          {optimizedEmails[index] && (
+            <Alert
+              message="Email Optimized"
+              description={`This email has been optimized for ${optimizedEmails[index].metadata?.optimizationType}. Showing the optimized version below.`}
+              type="success"
+              showIcon
+              className="mb-4"
+              action={
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    // Remove optimization to show original
+                    setOptimizedEmails(prev => {
+                      const newState = { ...prev };
+                      delete newState[index];
+                      return newState;
+                    });
+                  }}
+                >
+                  Show Original
+                </Button>
+              }
+            />
+          )}
+          
+          <Alert 
+            message="Pro Tip" 
+            description={
+              <div>
+                <p>Personalize this further by:</p>
+                <ul className="list-disc pl-5">
+                  <li>Adding specific details about the recipient company</li>
+                  <li>Referencing recent news about their industry</li>
+                  <li>Including a personalized compliment</li>
+                  <li>Mentioning mutual connections if any</li>
+                </ul>
+              </div>
+            } 
+            type="info" 
+            showIcon 
+            className="mb-4"
+          />
+          
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+              Subject: {displayEmail.subject}
+              {'\n\n'}
+              {displayEmail.body}
+              {'\n\n'}
+              {displayEmail.signature}
+            </pre>
+          </div>
+          
+          {displayEmail.followUpSequence && displayEmail.followUpSequence.length > 0 && (
+            <>
+              <Divider />
+              <Title level={5} className="mb-2">Follow-Up Sequence</Title>
+              <List
+                grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
+                dataSource={displayEmail.followUpSequence}
+                renderItem={(followUp: GeneratedEmail) => (
+                  <List.Item>
+                    <Card>
+                      <Title level={5} className="flex items-center">
+                        <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">
+                          {followUp.metadata?.sequenceNumber || 1}
+                        </span>
+                        Follow-Up (Day {followUp.metadata?.dayInterval || 1})
+                      </Title>
+                      <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                        Subject: {followUp.subject}
+                        {'\n\n'}
+                        {followUp.body}
+                        {'\n\n'}
+                        {followUp.signature}
+                      </pre>
+                    </Card>
+                  </List.Item>
+                )}
+              />
+            </>
+          )}
+        </Card>
+      );
+    })}
+  </div>
+)}
     </div>
   );
 };

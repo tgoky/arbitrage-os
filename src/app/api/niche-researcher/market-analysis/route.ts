@@ -1,8 +1,10 @@
-// app/api/niche-research/market-analysis/route.ts
+// app/api/niche-research/market-analysis/route.ts - WITH RATE LIMITING & USAGE
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { OpenRouterClient } from '@/lib/openrouter';
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
 import { z } from 'zod';
 
 const marketAnalysisSchema = z.object({
@@ -26,6 +28,23 @@ export async function POST(req: NextRequest) {
     
     if (error || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ✅ ADD RATE LIMITING for market analysis - 20 per hour
+    const rateLimitResult = await rateLimit(
+      `niche_market_analysis:${user.id}`,
+      20, // 20 analyses per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Market analysis rate limit exceeded. You can perform 20 analyses per hour.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
     }
 
     // Validate input
@@ -76,6 +95,21 @@ export async function POST(req: NextRequest) {
       analysis = generateFallbackAnalysis(niche, analysisType);
     }
 
+    // ✅ LOG USAGE for market analysis
+    await logUsage({
+      userId: user.id,
+      feature: 'niche_market_analysis',
+      tokens: response.usage.total_tokens,
+      timestamp: new Date(),
+      metadata: {
+        niche,
+        analysisType,
+        skills: skills.slice(0, 3), // Log first 3 skills only
+        location,
+        budget
+      }
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -83,6 +117,9 @@ export async function POST(req: NextRequest) {
         analysisType,
         analysis,
         tokensUsed: response.usage.total_tokens
+      },
+      meta: {
+        remaining: rateLimitResult.remaining
       }
     });
 

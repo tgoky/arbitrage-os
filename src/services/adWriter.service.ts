@@ -1,4 +1,4 @@
-// services/adWriter.service.ts
+// services/adWriter.service.ts - FIXED VERSION WITH PROPER TYPE SAFETY
 import { OpenRouterClient } from '@/lib/openrouter';
 import { AdGenerationInput, GeneratedAd, Platform } from '@/types/adWriter';
 import { AdOptimizationType } from '@/types/adWriter';
@@ -16,6 +16,223 @@ export class AdWriterService {
     });
   }
 
+  // ✅ FIXED: Wrapper method that generates AND saves ads
+  async generateAndSaveAds(
+    input: AdGenerationInput, 
+    userId: string, 
+    workspaceId: string
+  ): Promise<{
+    ads: GeneratedAd[];
+    deliverableId: string;
+    tokensUsed: number;
+    generationTime: number;
+  }> {
+    // Generate ads using existing method
+    const response = await this.generateAds(input);
+    
+    // Save to deliverables
+    const deliverableId = await this.saveAdGeneration(userId, workspaceId, response, input);
+    
+    return {
+      ...response,
+      deliverableId
+    };
+  }
+
+  // ✅ FIXED: Method to save ad generation to deliverables table with proper JSON serialization
+  async saveAdGeneration(
+    userId: string, 
+    workspaceId: string, 
+    adResponse: { ads: GeneratedAd[]; tokensUsed: number; generationTime: number }, 
+    input: AdGenerationInput
+  ): Promise<string> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      // ✅ SOLUTION: Convert AdGenerationInput to a plain JSON-serializable object
+      const serializedInput: Record<string, any> = {
+        businessName: input.businessName,
+        personalTitle: input.personalTitle,
+        valueProposition: input.valueProposition,
+        offerName: input.offerName,
+        offerDescription: input.offerDescription,
+        features: input.features,
+        pricing: input.pricing,
+        uniqueMechanism: input.uniqueMechanism,
+        idealCustomer: input.idealCustomer,
+        primaryPainPoint: input.primaryPainPoint,
+        failedSolutions: input.failedSolutions,
+        coreResult: input.coreResult,
+        secondaryBenefits: input.secondaryBenefits,
+        timeline: input.timeline,
+        platforms: input.platforms,
+        adType: input.adType,
+        tone: input.tone,
+        caseStudy1: input.caseStudy1,
+        credentials: input.credentials,
+        cta: input.cta,
+        url: input.url,
+        urgency: input.urgency,
+        leadMagnet: input.leadMagnet,
+        userId: input.userId
+      };
+
+      // ✅ FIXED: Create metadata object with proper typing
+      const metadata: Record<string, any> = {
+        businessName: input.businessName,
+        offerName: input.offerName,
+        idealCustomer: input.idealCustomer,
+        primaryPainPoint: input.primaryPainPoint,
+        platforms: input.platforms,
+        adType: input.adType,
+        tone: input.tone,
+        adCount: adResponse.ads.length,
+        tokensUsed: adResponse.tokensUsed,
+        generationTime: adResponse.generationTime,
+        generatedAt: new Date().toISOString(),
+        originalInput: serializedInput // Now properly serialized
+      };
+      
+      const deliverable = await prisma.deliverable.create({
+        data: {
+          title: `Ad Campaign - ${input.offerName || input.businessName}`,
+          content: JSON.stringify(adResponse),
+          type: 'ad_writer',
+          user_id: userId,
+          workspace_id: workspaceId,
+          metadata: metadata, // This now satisfies InputJsonValue
+          tags: [
+            'ad-campaign',
+            input.adType,
+            input.tone,
+            ...input.platforms,
+            input.businessName.toLowerCase().replace(/\s+/g, '-')
+          ].filter(Boolean)
+        }
+      });
+
+      return deliverable.id;
+    } catch (error) {
+      console.error('Error saving ad generation:', error);
+      throw error;
+    }
+  }
+
+  // ✅ NEW: Method to get user's ad generations
+  async getUserAdGenerations(userId: string, workspaceId?: string) {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const whereClause: any = {
+        user_id: userId,
+        type: 'ad_writer'
+      };
+
+      if (workspaceId) {
+        whereClause.workspace_id = workspaceId;
+      }
+
+      const generations = await prisma.deliverable.findMany({
+        where: whereClause,
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          metadata: true,
+          created_at: true,
+          updated_at: true,
+          workspace: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      });
+
+      return generations.map(gen => {
+        const metadata = gen.metadata as Record<string, any>;
+        
+        return {
+          id: gen.id,
+          title: gen.title,
+          businessName: metadata?.businessName,
+          offerName: metadata?.offerName,
+          idealCustomer: metadata?.idealCustomer,
+          primaryPainPoint: metadata?.primaryPainPoint,
+          platforms: metadata?.platforms || [],
+          adType: metadata?.adType,
+          tone: metadata?.tone,
+          adCount: metadata?.adCount,
+          tokensUsed: metadata?.tokensUsed,
+          generationTime: metadata?.generationTime,
+          createdAt: gen.created_at,
+          updatedAt: gen.updated_at,
+          workspace: gen.workspace
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching ad generations:', error);
+      return [];
+    }
+  }
+
+  // ✅ NEW: Method to get specific ad generation
+  async getAdGeneration(userId: string, generationId: string) {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const generation = await prisma.deliverable.findFirst({
+        where: {
+          id: generationId,
+          user_id: userId,
+          type: 'ad_writer'
+        },
+        include: {
+          workspace: true
+        }
+      });
+
+      if (!generation) {
+        return null;
+      }
+
+      return {
+        id: generation.id,
+        title: generation.title,
+        ads: JSON.parse(generation.content),
+        metadata: generation.metadata,
+        createdAt: generation.created_at,
+        updatedAt: generation.updated_at,
+        workspace: generation.workspace
+      };
+    } catch (error) {
+      console.error('Error retrieving ad generation:', error);
+      throw error;
+    }
+  }
+
+  // ✅ NEW: Method to delete ad generation
+  async deleteAdGeneration(userId: string, generationId: string): Promise<boolean> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const result = await prisma.deliverable.deleteMany({
+        where: {
+          id: generationId,
+          user_id: userId,
+          type: 'ad_writer'
+        }
+      });
+
+      return result.count > 0;
+    } catch (error) {
+      console.error('Error deleting ad generation:', error);
+      throw error;
+    }
+  }
+
+  // EXISTING METHODS (unchanged)
   async generateAds(input: AdGenerationInput): Promise<{
     ads: GeneratedAd[];
     tokensUsed: number;
@@ -102,7 +319,7 @@ export class AdWriterService {
     - Offer: ${input.offerName} - ${input.offerDescription}
     - Unique Mechanism: ${input.uniqueMechanism}
     - Pricing: ${input.pricing}
-    - Features: ${input.features?.join(', ')}
+    - Features: ${input.features?.join(', ') || 'N/A'}
     
     TARGET AUDIENCE:
     - Ideal Customer: ${input.idealCustomer}
@@ -244,10 +461,14 @@ export class AdWriterService {
     };
   }
 
+  // ✅ IMPROVED: Added generationTime to optimizeAd
   async optimizeAd(adCopy: string, optimizationType: AdOptimizationType): Promise<{
     content: string;
     tokensUsed: number;
+    generationTime: number;
   }> {
+    const startTime = Date.now();
+
     const optimizationPrompts: Record<AdOptimizationType, string> = {
       'emotional': 'Rewrite this ad copy to have stronger emotional appeal',
       'urgency': 'Add more urgency and scarcity to this ad copy',
@@ -279,8 +500,262 @@ export class AdWriterService {
 
     return {
       content: response.content,
-      tokensUsed: response.usage.total_tokens
+      tokensUsed: response.usage.total_tokens,
+      generationTime: Date.now() - startTime
     };
+  }
+
+  // ✅ FIXED: Method to update ad generation metadata with proper JSON handling
+  async updateAdGeneration(
+    userId: string, 
+    generationId: string, 
+    updates: Partial<AdGenerationInput>
+  ) {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const existingGeneration = await prisma.deliverable.findFirst({
+        where: {
+          id: generationId,
+          user_id: userId,
+          type: 'ad_writer'
+        }
+      });
+
+      if (!existingGeneration) {
+        throw new Error('Ad generation not found');
+      }
+
+      const currentMetadata = existingGeneration.metadata as Record<string, any> || {};
+      
+      // ✅ FIXED: Serialize the updates properly
+      const serializedUpdates: Record<string, any> = {};
+      Object.keys(updates).forEach(key => {
+        const value = updates[key as keyof AdGenerationInput];
+        serializedUpdates[key] = value;
+      });
+      
+      const updatedMetadata: Record<string, any> = {
+        ...currentMetadata,
+        ...serializedUpdates,
+        updatedAt: new Date().toISOString()
+      };
+
+      const updated = await prisma.deliverable.update({
+        where: { id: generationId },
+        data: {
+          title: updates.offerName ? `Ad Campaign - ${updates.offerName}` : undefined,
+          metadata: updatedMetadata,
+          updated_at: new Date()
+        }
+      });
+
+      return updated;
+    } catch (error) {
+      console.error('Error updating ad generation:', error);
+      throw error;
+    }
+  }
+
+  // ✅ NEW: Method to get analytics for ad generations
+  async getAdAnalytics(userId: string, workspaceId?: string, timeframe: 'week' | 'month' | 'quarter' = 'month') {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const dateFilter = new Date();
+      switch (timeframe) {
+        case 'week':
+          dateFilter.setDate(dateFilter.getDate() - 7);
+          break;
+        case 'month':
+          dateFilter.setMonth(dateFilter.getMonth() - 1);
+          break;
+        case 'quarter':
+          dateFilter.setMonth(dateFilter.getMonth() - 3);
+          break;
+      }
+
+      const whereClause: any = {
+        user_id: userId,
+        type: 'ad_writer',
+        created_at: {
+          gte: dateFilter
+        }
+      };
+
+      if (workspaceId) {
+        whereClause.workspace_id = workspaceId;
+      }
+
+      const campaigns = await prisma.deliverable.findMany({
+        where: whereClause,
+        select: {
+          metadata: true,
+          created_at: true
+        }
+      });
+
+      // Calculate analytics
+      const totalCampaigns = campaigns.length;
+      
+      const platformDistribution = campaigns.reduce((acc, campaign) => {
+        const metadata = campaign.metadata as Record<string, any>;
+        const platforms = metadata?.platforms || [];
+        platforms.forEach((platform: string) => {
+          acc[platform] = (acc[platform] || 0) + 1;
+        });
+        return acc;
+      }, {} as Record<string, number>);
+
+      const toneDistribution = campaigns.reduce((acc, campaign) => {
+        const metadata = campaign.metadata as Record<string, any>;
+        const tone = metadata?.tone || 'unknown';
+        acc[tone] = (acc[tone] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const adTypeDistribution = campaigns.reduce((acc, campaign) => {
+        const metadata = campaign.metadata as Record<string, any>;
+        const adType = metadata?.adType || 'unknown';
+        acc[adType] = (acc[adType] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const totalAdsGenerated = campaigns.reduce((sum, campaign) => {
+        const metadata = campaign.metadata as Record<string, any>;
+        return sum + (metadata?.adCount || 0);
+      }, 0);
+
+      const averageGenerationTime = campaigns.reduce((sum, campaign) => {
+        const metadata = campaign.metadata as Record<string, any>;
+        return sum + (metadata?.generationTime || 0);
+      }, 0) / totalCampaigns || 0;
+
+      return {
+        totalCampaigns,
+        totalAdsGenerated,
+        averageGenerationTime: Math.round(averageGenerationTime),
+        platformDistribution,
+        toneDistribution,
+        adTypeDistribution,
+        timeframe,
+        insights: this.generateAdInsights(campaigns)
+      };
+    } catch (error) {
+      console.error('Error generating ad analytics:', error);
+      throw error;
+    }
+  }
+
+  private generateAdInsights(campaigns: any[]): string[] {
+    const insights: string[] = [];
+    
+    if (campaigns.length === 0) return ['No ad campaigns created yet'];
+
+    const platforms = campaigns.reduce((acc, campaign) => {
+      const metadata = campaign.metadata as Record<string, any>;
+      const platforms = metadata?.platforms || [];
+      platforms.forEach((platform: string) => {
+        acc[platform] = (acc[platform] || 0) + 1;
+      });
+      return acc;
+    }, {} as Record<string, number>);
+
+    // ✅ FIXED: Explicit type annotations for sort function
+    const mostPopularPlatform = Object.entries(platforms).sort(([,a], [,b]) => (b as number) - (a as number))[0];
+    if (mostPopularPlatform) {
+      insights.push(`Most popular platform: ${mostPopularPlatform[0]} (${mostPopularPlatform[1]} campaigns)`);
+    }
+
+    const tones = campaigns.reduce((acc, campaign) => {
+      const metadata = campaign.metadata as Record<string, any>;
+      const tone = metadata?.tone;
+      if (tone) acc[tone] = (acc[tone] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // ✅ FIXED: Explicit type annotations for sort function
+    const preferredTone = Object.entries(tones).sort(([,a], [,b]) => (b as number) - (a as number))[0];
+    if (preferredTone) {
+      insights.push(`Preferred tone: ${preferredTone[0]} (${preferredTone[1]} campaigns)`);
+    }
+
+    const avgAdsPerCampaign = campaigns.reduce((sum, campaign) => {
+      const metadata = campaign.metadata as Record<string, any>;
+      return sum + (metadata?.adCount || 0);
+    }, 0) / campaigns.length;
+
+    if (avgAdsPerCampaign > 3) {
+      insights.push('High ad variety - generating multiple platforms per campaign');
+    } else if (avgAdsPerCampaign < 2) {
+      insights.push('Consider expanding to multiple platforms for better reach');
+    }
+
+    return insights;
+  }
+
+  // ✅ NEW: Export ad generation
+  async exportAdGeneration(userId: string, generationId: string, format: 'json' | 'csv' = 'json') {
+    try {
+      const generation = await this.getAdGeneration(userId, generationId);
+      if (!generation) {
+        throw new Error('Ad generation not found');
+      }
+
+      const metadata = generation.metadata as Record<string, any>;
+      const ads = generation.ads?.ads || [];
+
+      if (format === 'json') {
+        return {
+          format: 'json',
+          content: generation,
+          filename: `ad-campaign-${metadata?.businessName || 'export'}.json`
+        };
+      }
+
+      // For CSV format, flatten the ads data
+      const csvContent = this.generateCSVExport(ads, metadata);
+      return {
+        format: 'csv',
+        content: csvContent,
+        filename: `ad-campaign-${metadata?.businessName || 'export'}.csv`
+      };
+    } catch (error) {
+      console.error('Error exporting ad generation:', error);
+      throw error;
+    }
+  }
+
+  private generateCSVExport(ads: GeneratedAd[], metadata: Record<string, any>): string {
+    const headers = [
+      'Platform',
+      'Headlines',
+      'Descriptions', 
+      'CTAs',
+      'Hooks',
+      'Visual Suggestions',
+      'Business Name',
+      'Offer Name',
+      'Ad Type',
+      'Tone'
+    ];
+
+    const rows = ads.map(ad => [
+      ad.platform,
+      ad.headlines?.join(' | ') || '',
+      ad.descriptions?.join(' | ') || '',
+      ad.ctas?.join(' | ') || '',
+      ad.hooks?.join(' | ') || '',
+      ad.visualSuggestions?.join(' | ') || '',
+      metadata?.businessName || '',
+      metadata?.offerName || '',
+      metadata?.adType || '',
+      metadata?.tone || ''
+    ]);
+
+    return [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
   }
 
   private generateCacheKey(input: AdGenerationInput): string {

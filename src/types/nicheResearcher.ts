@@ -19,7 +19,7 @@ export interface NicheResearchInput {
   otherConstraints?: string;
   
   // System field
-  userId: string;
+  userId?: string;
 }
 
 export interface NicheOpportunity {

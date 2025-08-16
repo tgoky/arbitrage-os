@@ -1,7 +1,15 @@
-// app/api/pricing-calculator/benchmarks/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
+import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+
+const RATE_LIMITS = {
+  BENCHMARKS: {
+    limit: 100,
+    window: 3600 // 1 hour
+  }
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,15 +26,47 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ ADD RATE LIMITING for benchmarks
+    const rateLimitResult = await rateLimit(
+      `pricing_benchmarks:${user.id}`,
+      RATE_LIMITS.BENCHMARKS.limit,
+      RATE_LIMITS.BENCHMARKS.window
+    );
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Benchmarks rate limit exceeded.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const industry = searchParams.get('industry');
     const serviceType = searchParams.get('serviceType');
 
     const benchmarks = getPricingBenchmarks(industry, serviceType);
 
+    // ✅ LOG USAGE for benchmarks
+    await logUsage({
+      userId: user.id,
+      feature: 'pricing_benchmarks',
+      tokens: 0,
+      timestamp: new Date(),
+      metadata: {
+        industry,
+        serviceType,
+        requestType: industry || serviceType ? 'specific' : 'general'
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: benchmarks
+      data: benchmarks,
+      meta: {
+        remaining: rateLimitResult.remaining
+      }
     });
 
   } catch (error) {
@@ -37,7 +77,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 function getPricingBenchmarks(industry?: string | null, serviceType?: string | null) {
   const benchmarkData = {
     industries: {

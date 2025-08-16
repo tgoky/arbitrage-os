@@ -1,21 +1,19 @@
-// app/api/ad-writer/route.ts
+// app/api/ad-writer/route.ts - UPDATED to use service-level storage
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { AdWriterService } from '@/services/adWriter.service';
 import { validateAdWriterInput } from '@/app/validators/adWriter.validator';
 import { rateLimit } from '../../../lib/rateLimit';
-import { logUsage } from '@lib/usage';
+import { logUsage } from '@/lib/usage'; // ✅ Fixed import path
 
 export async function POST(req: NextRequest) {
   try {
-    // Create Supabase client for server-side auth
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ 
       cookies: () => cookieStore 
     });
     
-    // Get the authenticated user
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
@@ -25,19 +23,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate limiting
-    const rateLimitResult = await rateLimit(user.id);
+    // ✅ PROPER RATE LIMITING with specific limits
+    const rateLimitResult = await rateLimit(
+      `ad_writer:${user.id}`,
+      25, // 25 ad generations per hour
+      3600
+    );
+
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
+        { 
+          error: 'Too many ad generation requests. You can generate 25 ads per hour.',
+          retryAfter: rateLimitResult.reset,
+          remaining: rateLimitResult.remaining
+        },
         { status: 429 }
       );
     }
 
-    // Parse and validate request body
     const body = await req.json();
     const validation = validateAdWriterInput(body);
-        
+    
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: validation.errors },
@@ -45,31 +51,64 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate ads using AI service
-    const adWriterService = new AdWriterService();
-    const generatedAds = await adWriterService.generateAds({
-      ...body,
-      userId: user.id,
-      platforms: body.activePlatforms || ['facebook', 'google']
+    // ✅ GET USER'S WORKSPACE (consistent pattern)
+    const { prisma } = await import('@/lib/prisma');
+    let workspace = await prisma.workspace.findFirst({
+      where: { user_id: user.id }
     });
 
-    // Log usage for analytics/billing
+    if (!workspace) {
+      workspace = await prisma.workspace.create({
+        data: {
+          user_id: user.id,
+          name: 'Default Workspace',
+          slug: 'default',
+          description: 'Default workspace for ad campaigns'
+        }
+      });
+    }
+
+    // ✅ USE NEW SERVICE METHOD that generates AND saves
+    const adWriterService = new AdWriterService();
+    const result = await adWriterService.generateAndSaveAds(
+      {
+        ...validation.data,
+        userId: user.id,
+        platforms: validation.data.activePlatforms || ['facebook', 'google']
+      },
+      user.id,
+      workspace.id
+    );
+
+    // ✅ LOG USAGE with deliverable reference
     await logUsage({
       userId: user.id,
       feature: 'ad_writer',
-      tokens: generatedAds.tokensUsed,
-      timestamp: new Date()
+      tokens: result.tokensUsed,
+      timestamp: new Date(),
+      metadata: {
+        deliverableId: result.deliverableId, // ✅ Now includes deliverable ID
+        businessName: validation.data.businessName,
+        offerName: validation.data.offerName,
+        platforms: validation.data.activePlatforms || ['facebook', 'google'],
+        adCount: result.ads.length
+      }
     });
 
     return NextResponse.json({
       success: true,
-      data: generatedAds.ads,
+      data: {
+        campaignId: result.deliverableId, // ✅ Return deliverable ID
+        ads: result.ads
+      },
       meta: {
-        tokensUsed: generatedAds.tokensUsed,
-        generationTime: generatedAds.generationTime
+        tokensUsed: result.tokensUsed,
+        generationTime: result.generationTime,
+        remaining: rateLimitResult.remaining
       }
     });
-   } catch (error) {
+
+  } catch (error) {
     console.error('Ad Writer API Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate ads. Please try again.' },

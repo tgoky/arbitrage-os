@@ -11,6 +11,11 @@ import {
   GrowthPlanServiceResponse
 } from '@/types/growthPlan';
 
+interface UpdateGrowthPlanOptions {
+  regenerateStrategy?: boolean; // Only regenerate if explicitly requested
+  preserveManualEdits?: boolean; // Don't overwrite manual edits
+}
+
 export class GrowthPlanService {
   private openRouterClient: OpenRouterClient;
   private redis: Redis;
@@ -190,21 +195,35 @@ export class GrowthPlanService {
     `;
   }
 
-  private parseGrowthPlanResponse(content: string, input: GrowthPlanInput): Omit<GeneratedGrowthPlan, 'tokensUsed' | 'generationTime'> {
-    try {
-      // Try to parse JSON response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return parsed;
+ private parseGrowthPlanResponse(content: string, input: GrowthPlanInput) {
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // ✅ Validate required structure
+      if (!this.validateParsedPlan(parsed)) {
+        throw new Error('Invalid plan structure');
       }
-    } catch (error) {
-      console.warn('Failed to parse JSON response, generating fallback plan');
+      
+      return parsed;
     }
-
-    // Fallback to structured parsing if JSON fails
-    return this.generateFallbackPlan(input);
+  } catch (error) {
+    console.warn('Failed to parse JSON response:', error);
   }
+  return this.generateFallbackPlan(input);
+}
+
+
+private validateParsedPlan(plan: any): boolean {
+  return !!(
+    plan.executiveSummary &&
+    plan.strategy &&
+    plan.metrics &&
+    plan.implementation &&
+    Array.isArray(plan.nextSteps)
+  );
+}
 
   private generateFallbackPlan(input: GrowthPlanInput): Omit<GeneratedGrowthPlan, 'tokensUsed' | 'generationTime'> {
     const months = input.timeframe === '3m' ? 3 : input.timeframe === '6m' ? 6 : 12;
@@ -440,78 +459,168 @@ export class GrowthPlanService {
   }
 
   // FIXED UPDATE METHOD - Type Safe
-  async updateGrowthPlan(userId: string, planId: string, updates: Partial<GrowthPlanInput>): Promise<any> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      // Get existing plan
-      const existingPlan = await this.getGrowthPlan(userId, planId);
-      if (!existingPlan) {
-        throw new Error('Growth plan not found');
+  async updateGrowthPlan(
+  userId: string, 
+  planId: string, 
+  updates: Partial<GrowthPlanInput>,
+  options: UpdateGrowthPlanOptions = {}
+): Promise<SavedGrowthPlan> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    // ✅ 1. Validate user owns the plan (single query)
+    const existingPlan = await prisma.deliverable.findFirst({
+      where: {
+        id: planId,
+        user_id: userId,
+        type: 'growth_plan'
       }
-
-      // Extract current metadata as typed object
-      const currentMetadata = existingPlan.metadata;
-      
-      // Only include updates that have actual values (not undefined)
-      const cleanUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = value;
-        }
-        return acc;
-      }, {} as Record<string, any>);
-
-      // Create updated input with all required fields
-      const updatedInput: GrowthPlanInput = {
-        email: cleanUpdates.email || this.getMetadataField(currentMetadata, 'email') || '',
-        name: cleanUpdates.name || this.getMetadataField(currentMetadata, 'name') || '',
-        company: cleanUpdates.company || this.getMetadataField(currentMetadata, 'company') || '',
-        clientCompany: cleanUpdates.clientCompany || this.getMetadataField(currentMetadata, 'clientCompany') || '',
-        industry: cleanUpdates.industry || this.getMetadataField(currentMetadata, 'industry') || '',
-        contactName: cleanUpdates.contactName || this.getMetadataField(currentMetadata, 'contactName') || '',
-        contactRole: cleanUpdates.contactRole || this.getMetadataField(currentMetadata, 'contactRole') || '',
-        expertise: cleanUpdates.expertise || this.getMetadataField(currentMetadata, 'expertise') || [],
-        experience: cleanUpdates.experience || this.getMetadataField(currentMetadata, 'experience') || '',
-        timeframe: cleanUpdates.timeframe || this.getMetadataField(currentMetadata, 'timeframe') || '6m',
-        userId: userId,
-        // Optional fields
-        transcript: cleanUpdates.transcript || this.getMetadataField(currentMetadata, 'transcript'),
-        caseStudies: cleanUpdates.caseStudies || this.getMetadataField(currentMetadata, 'caseStudies'),
-        focusAreas: cleanUpdates.focusAreas || this.getMetadataField(currentMetadata, 'focusAreas'),
-        budget: cleanUpdates.budget || this.getMetadataField(currentMetadata, 'budget'),
-        currentRevenue: cleanUpdates.currentRevenue || this.getMetadataField(currentMetadata, 'currentRevenue'),
-        targetRevenue: cleanUpdates.targetRevenue || this.getMetadataField(currentMetadata, 'targetRevenue'),
-        businessModel: cleanUpdates.businessModel || this.getMetadataField(currentMetadata, 'businessModel'),
-        teamSize: cleanUpdates.teamSize || this.getMetadataField(currentMetadata, 'teamSize'),
-        currentChannels: cleanUpdates.currentChannels || this.getMetadataField(currentMetadata, 'currentChannels'),
-        painPoints: cleanUpdates.painPoints || this.getMetadataField(currentMetadata, 'painPoints'),
-        objectives: cleanUpdates.objectives || this.getMetadataField(currentMetadata, 'objectives')
-      };
-
-      // Regenerate plan with updates
-      const newPlan = await this.generateGrowthPlan(updatedInput);
-
-      // Update the deliverable
-      const updated = await prisma.deliverable.update({
-        where: { id: planId },
-        data: {
-          content: JSON.stringify(newPlan),
-          metadata: {
-            ...currentMetadata,
-            ...cleanUpdates,
-            updatedAt: new Date().toISOString(),
-            tokensUsed: newPlan.tokensUsed,
-            generationTime: newPlan.generationTime
-          }
-        }
-      });
-
-      return updated;
-    } catch (error) {
-      console.error('Error updating growth plan:', error);
-      throw error;
+    });
+    
+    if (!existingPlan) {
+      throw new Error('Growth plan not found');
     }
+
+    // ✅ 2. Parse existing data safely
+    let existingContent;
+    try {
+      existingContent = JSON.parse(existingPlan.content);
+    } catch (error) {
+      throw new Error('Invalid plan data format');
+    }
+
+    const currentMetadata = existingPlan.metadata as any || {};
+    
+    // ✅ 3. Sanitize and validate updates
+    const sanitizedUpdates = this.sanitizeUpdates(updates);
+    
+    // ✅ 4. SMART UPDATE: Only regenerate if strategy changes or explicitly requested
+    const needsRegeneration = options.regenerateStrategy || 
+      this.hasStrategyChanges(sanitizedUpdates);
+    
+    let updatedContent = existingContent;
+    let tokensUsed = 0;
+    let generationTime = 0;
+    
+    if (needsRegeneration) {
+      // Only regenerate if necessary
+      const fullInput = this.mergeWithExistingData(currentMetadata, sanitizedUpdates, userId);
+      const newPlan = await this.generateGrowthPlan(fullInput);
+      updatedContent = newPlan;
+      tokensUsed = newPlan.tokensUsed;
+      generationTime = newPlan.generationTime;
+    } else {
+      // ✅ Fast update: Just update metadata without AI regeneration
+      tokensUsed = currentMetadata.tokensUsed || 0;
+      generationTime = 0; // No generation time for metadata-only updates
+    }
+
+    // ✅ 5. Smart metadata merging (preserve important fields)
+    const updatedMetadata = {
+      ...currentMetadata,
+      ...sanitizedUpdates,
+      updatedAt: new Date().toISOString(),
+      tokensUsed: (currentMetadata.tokensUsed || 0) + tokensUsed,
+      lastGenerationTime: generationTime,
+      updateType: needsRegeneration ? 'full_regeneration' : 'metadata_only'
+    };
+
+    // ✅ 6. Single database update
+    const updated = await prisma.deliverable.update({
+      where: { id: planId },
+      data: {
+        content: JSON.stringify(updatedContent),
+        metadata: updatedMetadata,
+        updated_at: new Date()
+      },
+      include: {
+        workspace: true
+      }
+    });
+
+    // ✅ 7. Return properly typed result
+    return {
+      id: updated.id,
+      title: updated.title,
+      plan: updatedContent,
+      metadata: updatedMetadata,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
+      workspace: updated.workspace ? {
+        id: updated.workspace.id,
+        name: updated.workspace.name
+      } : undefined
+    };
+
+  } catch (error) {
+    console.error('Error updating growth plan:', error);
+    throw error;
   }
+}
+
+private sanitizeUpdates(updates: Partial<GrowthPlanInput>): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  
+  // Only include defined values and sanitize strings
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (typeof value === 'string') {
+        sanitized[key] = value.trim();
+      } else if (Array.isArray(value)) {
+        sanitized[key] = value.filter(Boolean); // Remove empty items
+      } else {
+        sanitized[key] = value;
+      }
+    }
+  });
+  
+  return sanitized;
+}
+
+
+private hasStrategyChanges(updates: Record<string, any>): boolean {
+  // Only regenerate if these critical fields change
+  const strategyFields = [
+    'expertise', 'experience', 'timeframe', 'targetRevenue', 
+    'currentRevenue', 'budget', 'focusAreas', 'businessModel'
+  ];
+  
+  return strategyFields.some(field => updates.hasOwnProperty(field));
+}
+
+private mergeWithExistingData(
+  currentMetadata: any, 
+  updates: Record<string, any>, 
+  userId: string
+): GrowthPlanInput {
+  // Create complete input object with fallbacks
+  return {
+    userId,
+    email: updates.email || currentMetadata.email || '',
+    name: updates.name || currentMetadata.name || '',
+    company: updates.company || currentMetadata.company || '',
+    clientCompany: updates.clientCompany || currentMetadata.clientCompany || '',
+    industry: updates.industry || currentMetadata.industry || '',
+    contactName: updates.contactName || currentMetadata.contactName || '',
+    contactRole: updates.contactRole || currentMetadata.contactRole || '',
+    expertise: updates.expertise || currentMetadata.expertise || [],
+    experience: updates.experience || currentMetadata.experience || '',
+    timeframe: updates.timeframe || currentMetadata.timeframe || '6m',
+    // Optional fields with proper fallbacks
+    transcript: updates.transcript || currentMetadata.transcript,
+    caseStudies: updates.caseStudies || currentMetadata.caseStudies || [],
+    focusAreas: updates.focusAreas || currentMetadata.focusAreas || [],
+    budget: updates.budget || currentMetadata.budget,
+    currentRevenue: updates.currentRevenue || currentMetadata.currentRevenue,
+    targetRevenue: updates.targetRevenue || currentMetadata.targetRevenue,
+    businessModel: updates.businessModel || currentMetadata.businessModel,
+    teamSize: updates.teamSize || currentMetadata.teamSize,
+    currentChannels: updates.currentChannels || currentMetadata.currentChannels || [],
+    painPoints: updates.painPoints || currentMetadata.painPoints || [],
+    objectives: updates.objectives || currentMetadata.objectives || []
+  };
+}
+
 
   async deleteGrowthPlan(userId: string, planId: string): Promise<boolean> {
     try {

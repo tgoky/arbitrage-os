@@ -120,36 +120,43 @@ export function useNicheResearcher() {
     }
   };
 
-  const exportNicheReport = async (
-    reportId: string, 
-    format: 'html' | 'json' = 'html'
-  ): Promise<void> => {
-    try {
-      const response = await fetch(`/api/niche-research/export/${reportId}?format=${format}`);
-      
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || 'Export failed');
-      }
+ const exportNicheReport = async (
+  reportId: string, 
+  format: 'html' | 'json' = 'html'
+): Promise<void> => {
+  try {
+    const response = await fetch(`/api/niche-research/export/${reportId}?format=${format}`);
+    
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || 'Export failed');
+    }
 
-      // Create download
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    try {
       a.href = url;
       a.download = `niche-research-report-${reportId}.${format === 'json' ? 'json' : 'html'}`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+    } finally {
+      // Cleanup always happens
       URL.revokeObjectURL(url);
-
-      message.success('Report exported successfully');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Export failed';
-      message.error(errorMessage);
-      throw err;
+      document.body.removeChild(a);
     }
-  };
+
+    message.success('Report exported successfully');
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Export failed';
+    message.error(errorMessage);
+    throw err;
+  }
+};
+
+
 
   const analyzeMarket = async (options: {
     niche: string;

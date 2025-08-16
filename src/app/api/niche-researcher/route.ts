@@ -133,15 +133,47 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ ADD RATE LIMITING for listing reports - 100 per hour
+    const rateLimitResult = await rateLimit(
+      `niche_research_list:${user.id}`,
+      100, // 100 list requests per hour
+      3600
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'List rate limit exceeded.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
     const nicheService = new NicheResearcherService();
     const reports = await nicheService.getUserNicheReports(user.id, workspaceId || undefined);
 
+    // ✅ LOG USAGE for listing reports
+    await logUsage({
+      userId: user.id,
+      feature: 'niche_research_list',
+      tokens: 0,
+      timestamp: new Date(),
+      metadata: {
+        workspaceId,
+        reportCount: reports.length
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: reports
+      data: reports,
+      meta: {
+        remaining: rateLimitResult.remaining
+      }
     });
 
   } catch (error) {
