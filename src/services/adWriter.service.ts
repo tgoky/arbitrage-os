@@ -1,4 +1,4 @@
-// services/adWriter.service.ts - FRAMEWORK-BASED VERSION with real AI generation
+// services/adWriter.service.ts - FIXED generateVisualSuggestions method
 import { OpenRouterClient } from '@/lib/openrouter';
 import { AdGenerationInput, GeneratedAd, Platform } from '@/types/adWriter';
 import { AdOptimizationType } from '@/types/adWriter';
@@ -53,22 +53,21 @@ export class AdWriterService {
   }> {
     const startTime = Date.now();
     
-    console.log('🚀 Starting framework-based ad generation for platforms:', input.platforms);
+    // ✅ Handle optional platforms - default to generic if none selected
+    const platforms = input.platforms && input.platforms.length > 0 
+      ? input.platforms 
+      : ['generic']; // Generate platform-agnostic scripts
     
-    // Check cache first
-    const cacheKey = this.generateCacheKey(input);
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      console.log('✅ Found cached result');
-      return JSON.parse(cached as string);
-    }
-
+    console.log('🚀 Starting script-section ad generation for platforms:', platforms);
+    
+    // Skip cache for better variety - each generation should be unique
+    
     // Generate ads for each platform using AI with different frameworks
-    const adsPromises = input.platforms.map(platform => 
-      this.generatePlatformAdsWithAI(platform, input)
+    const adsPromises = platforms.map(platform => 
+      this.generatePlatformAdsWithAI(platform as Platform, input)
     );
     
-    console.log('⏳ Calling AI to generate ads for', input.platforms.length, 'platforms...');
+    console.log('⏳ Calling AI to generate unique script sections for', platforms.length, 'platforms...');
     const results = await Promise.all(adsPromises);
     
     const tokensUsed = results.reduce((sum, r) => sum + r.tokensUsed, 0);
@@ -79,14 +78,11 @@ export class AdWriterService {
       generationTime: Date.now() - startTime
     };
 
-    console.log('✅ Generated AI-powered ads:', {
+    console.log('✅ Generated script-section ads:', {
       platforms: response.ads.map(ad => ad.platform),
       tokensUsed,
       generationTime: response.generationTime
     });
-
-    // Cache for 1 hour
-    await this.redis.set(cacheKey, JSON.stringify(response), { ex: 3600 });
     
     return response;
   }
@@ -95,62 +91,70 @@ export class AdWriterService {
     platform: Platform,
     input: AdGenerationInput
   ): Promise<{ ad: GeneratedAd; tokensUsed: number }> {
-    console.log(`🎯 Calling AI for ${platform} ads using proven frameworks...`);
+    console.log(`🎯 Generating high-converting script sections for ${platform}...`);
     
-    // Select 3 random frameworks for variety
+    // ✅ Always select different frameworks for variety (no hard limit)
     const selectedFrameworks = this.frameworks
       .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
+      .slice(0, 5); // Use 5 frameworks for more variety
     
     console.log(`📋 Using frameworks for ${platform}:`, selectedFrameworks);
 
-    // Call AI for each framework to get unique copy
+    // Call AI to generate 5 complete script sections using different frameworks
     const frameworkPromises = selectedFrameworks.map(framework => 
-      this.generateFrameworkCopy(framework, platform, input)
+      this.generateScriptSections(framework, platform, input)
     );
     
     const frameworkResults = await Promise.all(frameworkPromises);
     
-    // Extract the copy from each framework
+    // ✅ NEW STRUCTURE: Extract script sections instead of basic ad parts
     const headlines = frameworkResults.map(result => result.headline);
-    const descriptions = frameworkResults.map(result => result.description);  
-    const ctas = frameworkResults.map(result => result.cta);
     const hooks = frameworkResults.map(result => result.hook);
+    const fixes = frameworkResults.map(result => result.fix);
+    const results = frameworkResults.map(result => result.result);
+    const proofs = frameworkResults.map(result => result.proof);
+    const ctas = frameworkResults.map(result => result.cta);
     
     // Generate visual suggestions
     const visualSuggestions = await this.generateVisualSuggestions(platform, input);
     
     const totalTokens = frameworkResults.reduce((sum, result) => sum + result.tokensUsed, 0);
     
-    console.log(`✅ Generated ${platform} ads with ${selectedFrameworks.length} frameworks`);
+    console.log(`✅ Generated ${platform} script sections with ${selectedFrameworks.length} frameworks`);
     
     return {
       ad: {
         platform,
         headlines,
-        descriptions,
+        descriptions: fixes, // ✅ Use 'fix' sections as descriptions
         ctas,
         hooks,
-        visualSuggestions
+        visualSuggestions,
+        // ✅ NEW: Add the new script sections
+        fixes,
+        results,
+        proofs
       },
       tokensUsed: totalTokens
     };
   }
 
-  private async generateFrameworkCopy(
+  private async generateScriptSections(
     framework: string,
     platform: Platform,
     input: AdGenerationInput
   ): Promise<{
     headline: string;
-    description: string;
-    cta: string;
     hook: string;
+    fix: string;
+    result: string;
+    proof: string;
+    cta: string;
     tokensUsed: number;
   }> {
-    const prompt = this.buildFrameworkPrompt(framework, platform, input);
+    const prompt = this.buildScriptSectionPrompt(framework, platform, input);
     
-    console.log(`🤖 Calling AI for ${framework} framework on ${platform}...`);
+    console.log(`🎬 Generating script sections for ${framework} on ${platform}...`);
     
     try {
       const response = await this.openRouterClient.complete({
@@ -158,25 +162,31 @@ export class AdWriterService {
         messages: [
           {
             role: 'system',
-            content: `You are a world-class direct response copywriter who specializes in high-converting ${platform} ads. 
-            
-            You create compelling, unique copy that drives action. Never use generic phrases or templates. 
-            Every piece of copy should be tailored to the specific business data provided.
-            
-            CRITICAL: Return ONLY the requested format with no extra text or formatting.`
+            content: `You are a world-class direct response copywriter who creates scroll-stopping video script sections like the example:
+
+"Your funnel isn't broken—it's just missing the 3 growth-strategy bolts that turn clicks into cash."
+
+You create PUNCHY, SPECIFIC, URGENT copy with:
+- Concrete numbers and timeframes
+- Visual metaphors and analogies  
+- Urgency and scarcity
+- Specific proof points
+- Action-driving language
+
+CRITICAL: Return ONLY the requested format with no extra text.`
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.8, // Higher for more creativity
-        max_tokens: 500
+        temperature: 0.9, // Higher creativity for unique copy
+        max_tokens: 600
       });
 
-      console.log(`📥 Received AI response for ${framework}:`, response.content.substring(0, 100) + '...');
+      console.log(`📥 Received script sections for ${framework}:`, response.content.substring(0, 100) + '...');
       
-      const parsed = this.parseFrameworkResponse(response.content);
+      const parsed = this.parseScriptSectionResponse(response.content);
       
       return {
         ...parsed,
@@ -186,19 +196,21 @@ export class AdWriterService {
     } catch (error) {
       console.error(`❌ AI call failed for ${framework}:`, error);
       
-      // Return a basic fallback that's still personalized
+      // Return a compelling fallback that's still personalized
       return {
-        headline: `${input.businessName}: ${input.coreResult} in 30 Days`,
-        description: `Transform your ${input.primaryPainPoint.toLowerCase()} into ${input.coreResult.toLowerCase()} with ${input.offerName}. Join ${input.idealCustomer} who've already seen results for just ${input.pricing}.`,
-        cta: input.cta || 'Get Started Now',
-        hook: `Tired of ${input.primaryPainPoint.toLowerCase()}?`,
+        headline: `${input.coreResult} in 40 Days - ${input.businessName}`,
+        hook: `Your ${input.primaryPainPoint.toLowerCase()} isn't broken—it's just missing the 3 growth bolts.`,
+        fix: `We install those bolts in 40 days with ${input.uniqueMechanism}.`,
+        result: `Result: ${input.coreResult}, 10+ extra hours weekly, and a business that finally respects you.`,
+        proof: `One client used this system and saw ${input.coreResult} in just 36 days.`,
+        cta: `${input.cta} at ${input.url}. Timer's ticking.`,
         tokensUsed: 0
       };
     }
   }
 
-  private buildFrameworkPrompt(framework: string, platform: Platform, input: AdGenerationInput): string {
-    const businessContext = `
+private buildScriptSectionPrompt(framework: string, platform: Platform, input: AdGenerationInput): string {
+  const businessContext = `
 BUSINESS DATA:
 - Company: ${input.businessName}
 - Offer: ${input.offerName} - ${input.offerDescription}  
@@ -212,153 +224,125 @@ BUSINESS DATA:
 - URL: ${input.url}
 ${input.urgency ? `- Urgency: ${input.urgency}` : ''}
 ${input.caseStudy1 ? `- Proof: ${input.caseStudy1}` : ''}
-    `;
+  `;
 
-    const frameworkInstructions: Record<string, string> = {
-      'Problem → Solution': `
-Using the Problem → Solution framework, create a ${platform} ad that:
-1. Opens with the pain point in a compelling way
-2. Presents the solution (the offer) clearly  
-3. Shows the transformation/result
-4. Ends with a strong call-to-action
+  // ✅ NO TEMPLATES - Just use their actual data as the example
+  const personalizedExample = `Your ${input.primaryPainPoint.toLowerCase()} isn't permanent—it's missing ${input.uniqueMechanism.toLowerCase()} that delivers ${input.coreResult.toLowerCase()}.`;
 
-Return in this EXACT format:
-HEADLINE: [compelling headline]
-DESCRIPTION: [full ad copy following problem → solution structure]
-CTA: [action-oriented call-to-action]
-HOOK: [attention-grabbing opening line]
-      `,
-      
-      'Before → After Bridge': `
-Using the Before → After Bridge framework, create a ${platform} ad that:
-1. Paints the "before" state (current pain)
-2. Shows the "after" state (desired outcome)  
-3. Positions your offer as the bridge
-4. Creates urgency to cross that bridge
+  // ✅ Handle platform optimization
+  const platformContext = platform === 'generic' 
+    ? 'Create high-converting ad script sections that work across all platforms'
+    : `Create a high-converting ${platform} script optimized for that platform's audience`;
 
-Return in this EXACT format:
-HEADLINE: [compelling headline]
-DESCRIPTION: [full ad copy showing before → after transformation]
-CTA: [action-oriented call-to-action]
-HOOK: [attention-grabbing opening line]
-      `,
-      
-      'AIDA': `
-Using the AIDA framework, create a ${platform} ad that:
-1. ATTENTION: Grabs attention with the pain point
-2. INTEREST: Builds interest with the unique solution
-3. DESIRE: Creates desire by showing the outcome
-4. ACTION: Drives to clear action
+  // ✅ Framework-specific guidance with personalization
+  const frameworkGuidance = this.getFrameworkGuidance(framework, input);
+
+  return `${businessContext}
+
+${platformContext} using the ${framework} framework.
+
+${frameworkGuidance}
+
+Create PUNCHY, SPECIFIC copy like this personalized example:
+"${personalizedExample}"
+
+CRITICAL REQUIREMENTS:
+- Use the EXACT business name: "${input.businessName}"
+- Reference their SPECIFIC pain point: "${input.primaryPainPoint}"
+- Mention their UNIQUE mechanism: "${input.uniqueMechanism}"
+- Promise their EXACT result: "${input.coreResult}"
+- Include their ACTUAL pricing: "${input.pricing}"
+- Use their REAL case study data: "${input.caseStudy1 || 'proven results'}"
+- Write for their SPECIFIC target: "${input.idealCustomer}"
 
 Return in this EXACT format:
-HEADLINE: [attention-grabbing headline]
-DESCRIPTION: [full ad copy following AIDA structure]
-CTA: [clear action step]
-HOOK: [attention-grabbing opening line]
-      `,
-      
-      'PAS (Problem → Agitation → Solution)': `
-Using the PAS framework, create a ${platform} ad that:
-1. PROBLEM: States the core problem clearly
-2. AGITATION: Makes the problem feel urgent/costly
-3. SOLUTION: Presents your offer as the solution
 
-Return in this EXACT format:
-HEADLINE: [problem-focused headline]
-DESCRIPTION: [full ad copy following PAS structure]
-CTA: [solution-oriented call-to-action]
-HOOK: [problem-focused hook]
-      `,
-      
-      'Star → Story → Solution': `
-Using the Star → Story → Solution framework, create a ${platform} ad that:
-1. STAR: Position the ideal customer as the star
-2. STORY: Tell a relatable transformation story
-3. SOLUTION: Present your offer as their solution
+HEADLINE: [attention-grabbing headline using their business name, specific result, and timeframe]
+HOOK: [scroll-stopping opening that reframes THEIR specific pain point with THEIR unique mechanism]
+FIX: [how THEIR specific offer solves THEIR problem in THEIR timeframe]
+RESULT: [THEIR specific outcomes with THEIR numbers and transformation]
+PROOF: [THEIR specific case study or proof point with actual numbers]
+CTA: [urgent call-to-action using THEIR exact CTA and urgency]
 
-Return in this EXACT format:
-HEADLINE: [story-driven headline]
-DESCRIPTION: [full ad copy following star → story → solution]
-CTA: [story-conclusion call-to-action]
-HOOK: [story-opening hook]
-      `,
-      
-      'Feel → Felt → Found': `
-Using the Feel → Felt → Found framework, create a ${platform} ad that:
-1. FEEL: "I know how you feel..." (empathy)
-2. FELT: "I felt the same way..." (relatability)
-3. FOUND: "Then I found..." (solution)
+Make each section:
+- Use THEIR actual business data (not generic templates)
+- Reference THEIR specific audience pain points
+- Mention THEIR unique differentiators
+- Include THEIR real numbers and timeframes
+- Match THEIR specified tone: ${input.tone}
 
-Return in this EXACT format:
-HEADLINE: [empathy-driven headline]
-DESCRIPTION: [full ad copy following feel → felt → found]
-CTA: [empathetic call-to-action]
-HOOK: [empathy-opening hook]
-      `,
-      
-      'Broken System → Fix': `
-Using the Broken System → Fix framework, create a ${platform} ad that:
-1. Identify what's broken in their current approach
-2. Explain why traditional solutions fail
-3. Present your system as the fix
+NO generic "3 accelerators" or template phrases. Use THEIR specific business details in every section.`;
+}
 
-Return in this EXACT format:
-HEADLINE: [system-focused headline]
-DESCRIPTION: [full ad copy showing broken system → fix]
-CTA: [fix-oriented call-to-action]
-HOOK: [broken-system hook]
-      `
-    };
+// ✅ Enhanced framework guidance that uses actual business data
+private getFrameworkGuidance(framework: string, input: AdGenerationInput): string {
+  const frameworkMap: Record<string, string> = {
+    'Problem → Solution': `Reframe "${input.primaryPainPoint}" as solvable, then present "${input.uniqueMechanism}" as the missing solution that delivers "${input.coreResult}".`,
+    
+    'Before → After Bridge': `Paint the contrast between their current "${input.primaryPainPoint}" struggle and the "${input.coreResult}" transformation your "${input.offerName}" provides.`,
+    
+    'AIDA': `Grab attention with their pain "${input.primaryPainPoint}", build interest with "${input.uniqueMechanism}", create desire with "${input.coreResult}", prompt action with "${input.cta}".`,
+    
+    'PAS (Problem → Agitation → Solution)': `Identify "${input.primaryPainPoint}", amplify the cost of staying stuck, then position "${input.offerName}" as the relief that delivers "${input.coreResult}".`,
+    
+    'Star → Story → Solution': `Lead with "${input.idealCustomer}" identity, tell a transformation story about achieving "${input.coreResult}", present "${input.uniqueMechanism}" as the vehicle.`,
+    
+    'Feel → Felt → Found': `Connect with their "${input.primaryPainPoint}" feelings, show others felt the same, reveal they found "${input.uniqueMechanism}" that delivered "${input.coreResult}".`,
+    
+    'Broken System → Fix': `Expose why current solutions fail at solving "${input.primaryPainPoint}", then introduce "${input.uniqueMechanism}" as the systematic fix for "${input.coreResult}".`
+  };
+  
+  return frameworkMap[framework] || `Structure a compelling transformation story using their specific business details: ${input.businessName}, ${input.uniqueMechanism}, ${input.coreResult}.`;
+}
 
-    return `${businessContext}
-
-${frameworkInstructions[framework] || frameworkInstructions['Problem → Solution']}
-
-Remember: 
-- Use the actual business data to personalize every element
-- Make it specific to ${platform} best practices
-- Keep ${input.tone} tone throughout
-- Be compelling and conversion-focused
-- NO generic phrases or templates`;
-  }
-
-  private parseFrameworkResponse(content: string): {
+  private parseScriptSectionResponse(content: string): {
     headline: string;
-    description: string;
-    cta: string;
     hook: string;
+    fix: string;
+    result: string;
+    proof: string;
+    cta: string;
   } {
     const lines = content.split('\n').filter(line => line.trim());
     
     let headline = '';
-    let description = '';
-    let cta = '';
     let hook = '';
+    let fix = '';
+    let result = '';
+    let proof = '';
+    let cta = '';
     
     for (const line of lines) {
       if (line.startsWith('HEADLINE:')) {
         headline = line.replace('HEADLINE:', '').trim();
-      } else if (line.startsWith('DESCRIPTION:')) {
-        description = line.replace('DESCRIPTION:', '').trim();
-      } else if (line.startsWith('CTA:')) {
-        cta = line.replace('CTA:', '').trim();
       } else if (line.startsWith('HOOK:')) {
         hook = line.replace('HOOK:', '').trim();
+      } else if (line.startsWith('FIX:')) {
+        fix = line.replace('FIX:', '').trim();
+      } else if (line.startsWith('RESULT:')) {
+        result = line.replace('RESULT:', '').trim();
+      } else if (line.startsWith('PROOF:')) {
+        proof = line.replace('PROOF:', '').trim();
+      } else if (line.startsWith('CTA:')) {
+        cta = line.replace('CTA:', '').trim();
       }
     }
     
     // Fallback if parsing fails
-    if (!headline || !description || !cta || !hook) {
+    if (!headline || !hook || !fix || !result || !proof || !cta) {
       const fullContent = content.replace(/\n/g, ' ').trim();
       headline = headline || fullContent.substring(0, 60) + '...';
-      description = description || fullContent;
-      cta = cta || 'Learn More';
-      hook = hook || fullContent.substring(0, 40) + '...';
+      hook = hook || fullContent.substring(0, 80) + '...';
+      fix = fix || 'We fix this with our proven system.';
+      result = result || 'Result: Transform your business in 40 days.';
+      proof = proof || 'One client saw amazing results in 36 days.';
+      cta = cta || 'Book a call now. Spots are limited.';
     }
     
-    return { headline, description, cta, hook };
+    return { headline, hook, fix, result, proof, cta };
   }
 
+  // ✅ FIXED: Add 'generic' platform to visual suggestions
   private async generateVisualSuggestions(platform: Platform, input: AdGenerationInput): Promise<string[]> {
     const suggestions: Record<Platform, string[]> = {
       facebook: [
@@ -376,15 +360,17 @@ Remember:
       tiktok: [
         `Behind-the-scenes video showing your ${input.uniqueMechanism} in action`,
         `Quick transformation reveal video with dramatic before/after results`
+      ],
+      // ✅ NEW: Add generic platform suggestions
+      generic: [
+        `Visual comparison showing before/after transformation from "${input.primaryPainPoint}" to "${input.coreResult}"`,
+        `Professional graphic showcasing key benefits and your unique methodology`,
+        `Client testimonial video or graphic with specific results and timeframes`,
+        `Infographic demonstrating your ${input.uniqueMechanism} process step-by-step`
       ]
     };
 
-    return suggestions[platform] || suggestions.facebook;
-  }
-
-  private generateCacheKey(input: AdGenerationInput): string {
-    const key = `ad_writer_v2:${input.businessName}:${input.offerName}:${input.platforms.join('-')}`;
-    return key.toLowerCase().replace(/\s+/g, '_');
+    return suggestions[platform] || suggestions.generic;
   }
 
   // Keep all existing database methods unchanged...

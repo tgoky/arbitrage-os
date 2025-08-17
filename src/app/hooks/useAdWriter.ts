@@ -1,6 +1,7 @@
 // hooks/useAdWriter.ts - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { message } from 'antd';
+import { type Platform, isValidPlatform, convertToPlatforms } from '@/types/adWriter';
 
 export interface AdWriterInput {
   businessName: string;
@@ -17,7 +18,7 @@ export interface AdWriterInput {
   coreResult: string;
   secondaryBenefits?: string[];
   timeline?: string;
-  activePlatforms: string[];
+  activePlatforms: string[]; // ✅ Keep as string[] for form compatibility
   adType: 'awareness' | 'conversion' | 'lead' | 'traffic';
   tone: 'professional' | 'friendly' | 'urgent' | 'humorous' | 'inspirational';
   caseStudy1?: string;
@@ -28,13 +29,18 @@ export interface AdWriterInput {
   leadMagnet?: string;
 }
 
+// ✅ FIXED: Updated GeneratedAd interface to match the service output
 export interface GeneratedAd {
-  platform: string;
+  platform: string; // Keep as string for frontend compatibility
   headlines: string[];
   descriptions: string[];
   ctas: string[];
   hooks?: string[];
   visualSuggestions?: string[];
+  // ✅ NEW: Add the script section properties
+  fixes?: string[];
+  results?: string[];
+  proofs?: string[];
 }
 
 export function useAdWriter() {
@@ -70,8 +76,15 @@ export function useAdWriter() {
         throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
       }
 
+      // ✅ FIXED: Convert platforms to the correct format before sending
+      const requestData = {
+        ...input,
+        // Convert string[] to Platform[] on the backend, but send as-is for now
+        activePlatforms: input.activePlatforms || []
+      };
+
       // LOG THE EXACT DATA BEING SENT
-      console.log('Sending data to API:', JSON.stringify(input, null, 2));
+      console.log('Sending data to API:', JSON.stringify(requestData, null, 2));
 
       const response = await fetch('/api/ad-writer', {
         method: 'POST',
@@ -79,7 +92,7 @@ export function useAdWriter() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(input),
+        body: JSON.stringify(requestData),
         signal: controller.signal // Add abort signal
       });
 
@@ -104,7 +117,10 @@ export function useAdWriter() {
               descriptions: ad.descriptions?.length || 0,
               ctas: ad.ctas?.length || 0,
               hooks: ad.hooks?.length || 0,
-              visualSuggestions: ad.visualSuggestions?.length || 0
+              visualSuggestions: ad.visualSuggestions?.length || 0,
+              fixes: ad.fixes?.length || 0,
+              results: ad.results?.length || 0,
+              proofs: ad.proofs?.length || 0
             });
           });
         }
@@ -128,22 +144,40 @@ export function useAdWriter() {
       }
 
       if (result.success && result.data && result.data.ads && Array.isArray(result.data.ads)) {
-        // Validate response structure
-        const validAds = result.data.ads.filter((ad: any) => 
-          ad.platform && 
-          Array.isArray(ad.headlines) && 
-          ad.headlines.length > 0 &&
-          Array.isArray(ad.descriptions) && 
-          ad.descriptions.length > 0 &&
-          Array.isArray(ad.ctas) &&
-          ad.ctas.length > 0
-        );
+        // ✅ IMPROVED: Validate response structure with better error handling
+        const validAds = result.data.ads.filter((ad: any) => {
+          const hasRequiredFields = (
+            ad.platform && 
+            Array.isArray(ad.headlines) && ad.headlines.length > 0 &&
+            Array.isArray(ad.descriptions) && ad.descriptions.length > 0 &&
+            Array.isArray(ad.ctas) && ad.ctas.length > 0
+          );
+          
+          if (!hasRequiredFields) {
+            console.warn('Ad missing required fields:', ad);
+          }
+          
+          return hasRequiredFields;
+        });
         
         if (validAds.length === 0) {
           throw new Error('No valid ads received from server');
         }
         
-        return validAds;
+        // ✅ Ensure the response matches our GeneratedAd interface
+        const typedAds: GeneratedAd[] = validAds.map((ad: any) => ({
+          platform: ad.platform,
+          headlines: ad.headlines || [],
+          descriptions: ad.descriptions || [],
+          ctas: ad.ctas || [],
+          hooks: ad.hooks || [],
+          visualSuggestions: ad.visualSuggestions || [],
+          fixes: ad.fixes || [],
+          results: ad.results || [],
+          proofs: ad.proofs || []
+        }));
+        
+        return typedAds;
       } else {
         throw new Error(result.error || 'Invalid response format from server');
       }
@@ -210,8 +244,8 @@ export function useAdWriter() {
         throw new Error('Platform is required');
       }
 
-      // Validate that the platform is in the original platforms list
-      const validPlatforms = ['facebook', 'google', 'linkedin', 'tiktok'];
+      // ✅ FIXED: Validate that the platform is valid
+      const validPlatforms = ['facebook', 'google', 'linkedin', 'tiktok', 'generic'];
       if (!validPlatforms.includes(platform)) {
         throw new Error(`Invalid platform: ${platform}`);
       }
@@ -251,7 +285,20 @@ export function useAdWriter() {
           throw new Error('No CTAs generated');
         }
 
-        return newAd;
+        // ✅ Return properly typed GeneratedAd
+        const typedAd: GeneratedAd = {
+          platform: newAd.platform,
+          headlines: newAd.headlines || [],
+          descriptions: newAd.descriptions || [],
+          ctas: newAd.ctas || [],
+          hooks: newAd.hooks || [],
+          visualSuggestions: newAd.visualSuggestions || [],
+          fixes: newAd.fixes || [],
+          results: newAd.results || [],
+          proofs: newAd.proofs || []
+        };
+
+        return typedAd;
       } else {
         throw new Error('No ads generated for platform');
       }
@@ -319,9 +366,7 @@ export function useAdWriter() {
       }
     }
 
-    if (!input.activePlatforms || input.activePlatforms.length === 0) {
-      errors.push('At least one platform must be selected');
-    }
+    // ✅ NO PLATFORM REQUIREMENT - platforms are optional
 
     if (!input.adType) {
       errors.push('Ad type is required');

@@ -1,4 +1,4 @@
-// app/api/ad-writer/route.ts - EXACT MATCH to pricing calculator authentication
+// app/api/ad-writer/route.ts - FIXED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -8,6 +8,7 @@ import { AdWriterService } from '@/services/adWriter.service';
 import { validateAdWriterInput } from '@/app/validators/adWriter.validator';
 import { rateLimit } from '../../../lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+import { convertToPlatforms, type Platform } from '@/types/adWriter'; // ✅ Import the helper function
 
 // EXACT COPY of pricing calculator's robust authentication function
 async function getAuthenticatedUser(request: NextRequest) {
@@ -212,11 +213,13 @@ export async function POST(req: NextRequest) {
 
     console.log('Using workspace:', workspace.id);
 
-    // Prepare data for ad generation service
+    // ✅ FIXED: Convert string platforms to Platform type and prepare data for ad generation service
+    const validatedPlatforms = convertToPlatforms(validation.data.activePlatforms || []);
+    
     const adGenerationInput = {
       ...validation.data,
       userId: user.id,
-      platforms: validation.data.activePlatforms || ['facebook', 'google']
+      platforms: validatedPlatforms // ✅ Now properly typed as Platform[]
     };
 
     console.log('Calling AdWriterService with:', JSON.stringify(adGenerationInput, null, 2));
@@ -262,7 +265,7 @@ export async function POST(req: NextRequest) {
           deliverableId: result.deliverableId,
           businessName: validation.data.businessName,
           offerName: validation.data.offerName,
-          platforms: validation.data.activePlatforms || ['facebook', 'google'],
+          platforms: validation.data.activePlatforms || [],
           adCount: result.ads.length
         }
       });

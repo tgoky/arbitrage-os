@@ -1,4 +1,4 @@
-// validators/adWriter.validator.ts - FIXED VERSION
+// validators/adWriter.validator.ts - UPDATED VERSION
 import { z } from 'zod';
 
 const adWriterSchema = z.object({
@@ -22,9 +22,8 @@ const adWriterSchema = z.object({
   secondaryBenefits: z.array(z.string()).max(3).optional().default([]),
   timeline: z.string().optional().default(""),
   
-  // Ad Strategy - CRITICAL: These need to match frontend exactly
-  activePlatforms: z.array(z.enum(['facebook', 'google', 'linkedin', 'tiktok']))
-    .min(1, "At least one platform must be selected"),
+  // ✅ UPDATED: Platforms are now optional
+  activePlatforms: z.array(z.string()).optional().default([]),
   adType: z.enum(['awareness', 'conversion', 'lead', 'traffic']),
   tone: z.enum(['professional', 'friendly', 'urgent', 'humorous', 'inspirational']),
   

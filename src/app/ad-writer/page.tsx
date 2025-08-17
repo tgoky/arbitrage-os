@@ -51,7 +51,7 @@ const AdWriter = () => {
   const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(0);
   const [generatedAds, setGeneratedAds] = useState<GeneratedAd[]>([]);
-  const [activePlatforms, setActivePlatforms] = useState<string[]>(['facebook', 'google']);
+  const [activePlatforms, setActivePlatforms] = useState<string[]>([]); // ✅ No default platforms selected
   const [activeTab, setActiveTab] = useState('1');
   const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
   const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
@@ -190,9 +190,7 @@ const AdWriter = () => {
         throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
 
-      if (activePlatforms.length === 0) {
-        throw new Error('Please select at least one platform');
-      }
+      // ✅ NO PLATFORM REQUIREMENT - can generate without platforms
 
       // Store form data for regeneration
       setOriginalFormData(requestData);
@@ -333,10 +331,7 @@ const nextStep = async () => {
         .catch(() => false);
       break;
     case 2:
-      if (activePlatforms.length === 0) {
-        message.error('Please select at least one platform!');
-        return;
-      }
+      // ✅ NO PLATFORM REQUIREMENT - only validate form fields
       isValid = await form.validateFields(['adType', 'tone', 'cta', 'url'])
         .then(() => true)
         .catch(() => false);
@@ -626,9 +621,11 @@ const downloadAds = () => {
             </Title>
             
             <Form.Item
-              label="Select Platforms"
-              required
+              label="Select Platforms (Optional)"
             >
+              <Text type="secondary" className="block mb-3">
+                Choose specific platforms to optimize for, or leave blank for general ad scripts
+              </Text>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {platforms.map(platform => (
                   <Card
@@ -835,7 +832,7 @@ const downloadAds = () => {
                       
                       {ad.hooks && ad.hooks.length > 0 && (
                         <div>
-                          <Title level={5} className="mb-2">Hooks</Title>
+                          <Title level={5} className="mb-2">🎯 Hooks</Title>
                           <div className="space-y-2">
                             {ad.hooks.map((hook: string, i: number) => (
                               <Card key={i} hoverable className="cursor-pointer">
@@ -852,9 +849,69 @@ const downloadAds = () => {
                           </div>
                         </div>
                       )}
+
+                      {ad.fixes && ad.fixes.length > 0 && (
+                        <div>
+                          <Title level={5} className="mb-2">🔧 Fix Sections</Title>
+                          <div className="space-y-2">
+                            {ad.fixes.map((fix: string, i: number) => (
+                              <Card key={i} hoverable className="cursor-pointer">
+                                <div className="flex justify-between items-start">
+                                  <Text className="flex-1">{fix}</Text>
+                                  <Button 
+                                    type="text" 
+                                    icon={<CopyOutlined />} 
+                                    onClick={() => copyToClipboard(fix)}
+                                  />
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {ad.results && ad.results.length > 0 && (
+                        <div>
+                          <Title level={5} className="mb-2">🎯 Results</Title>
+                          <div className="space-y-2">
+                            {ad.results.map((result: string, i: number) => (
+                              <Card key={i} hoverable className="cursor-pointer">
+                                <div className="flex justify-between items-start">
+                                  <Text className="flex-1">{result}</Text>
+                                  <Button 
+                                    type="text" 
+                                    icon={<CopyOutlined />} 
+                                    onClick={() => copyToClipboard(result)}
+                                  />
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {ad.proofs && ad.proofs.length > 0 && (
+                        <div>
+                          <Title level={5} className="mb-2">✅ Proof</Title>
+                          <div className="space-y-2">
+                            {ad.proofs.map((proof: string, i: number) => (
+                              <Card key={i} hoverable className="cursor-pointer">
+                                <div className="flex justify-between items-start">
+                                  <Text className="flex-1">{proof}</Text>
+                                  <Button 
+                                    type="text" 
+                                    icon={<CopyOutlined />} 
+                                    onClick={() => copyToClipboard(proof)}
+                                  />
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       
                       <div>
-                        <Title level={5} className="mb-2">Headlines</Title>
+                        <Title level={5} className="mb-2">📝 Headlines</Title>
                         <div className="space-y-2">
                           {ad.headlines.map((headline: string, i: number) => (
                             <Card key={i} hoverable className="cursor-pointer">
@@ -883,25 +940,7 @@ const downloadAds = () => {
                       </div>
                       
                       <div>
-                        <Title level={5} className="mb-2">Descriptions</Title>
-                        <div className="space-y-2">
-                          {ad.descriptions.map((desc: string, i: number) => (
-                            <Card key={i} hoverable className="cursor-pointer">
-                              <div className="flex justify-between items-start">
-                                <Text className="flex-1">{desc}</Text>
-                                <Button 
-                                  type="text" 
-                                  icon={<CopyOutlined />} 
-                                  onClick={() => copyToClipboard(desc)}
-                                />
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Title level={5} className="mb-2">Call-to-Actions</Title>
+                        <Title level={5} className="mb-2">📢 Call-to-Actions</Title>
                         <div className="space-y-2">
                           {ad.ctas.map((cta: string, i: number) => (
                             <Card key={i} hoverable className="cursor-pointer">
@@ -1072,10 +1111,7 @@ const downloadAds = () => {
               type="primary" 
               loading={loading}
               onClick={() => {
-                if (activePlatforms.length === 0) {
-                  message.error('Please select at least one platform!');
-                  return;
-                }
+                // ✅ NO PLATFORM CHECK - can generate without platforms
                 form.submit();
               }}
               icon={<ArrowRightOutlined />}
