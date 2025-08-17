@@ -1,4 +1,4 @@
-// hooks/useAdWriter.ts
+// hooks/useAdWriter.ts - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { message } from 'antd';
 
@@ -64,35 +64,72 @@ export function useAdWriter() {
     setError(null);
     
     try {
-      // Validate input before sending
-      if (!input.businessName || !input.valueProposition) {
-        throw new Error('Missing required business information');
-      }
-      
-      if (!input.activePlatforms || input.activePlatforms.length === 0) {
-        throw new Error('At least one platform must be selected');
+      // CLIENT-SIDE VALIDATION
+      const validationErrors = validateInput(input);
+      if (validationErrors.length > 0) {
+        throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
       }
 
-      if (!input.cta || !input.url) {
-        throw new Error('Call-to-action and URL are required');
-      }
+      // LOG THE EXACT DATA BEING SENT
+      console.log('Sending data to API:', JSON.stringify(input, null, 2));
 
       const response = await fetch('/api/ad-writer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(input),
         signal: controller.signal // Add abort signal
       });
 
+      // LOG THE RESPONSE
+      console.log('API Response status:', response.status);
+      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+
       const result = await response.json();
+      console.log('API Response body:', result);
+      
+      // ✅ ADD DETAILED LOGGING to understand the response structure
+      if (result.success) {
+        console.log('✅ API Success - result.data:', result.data);
+        console.log('✅ result.data.ads exists?', !!result.data?.ads);
+        console.log('✅ result.data.ads is array?', Array.isArray(result.data?.ads));
+        if (result.data?.ads) {
+          console.log('✅ Number of ads returned:', result.data.ads.length);
+          console.log('✅ All ads structure:', result.data.ads);
+          result.data.ads.forEach((ad: any, index: number) => {
+            console.log(`✅ Ad ${index + 1} (${ad.platform}):`, {
+              headlines: ad.headlines?.length || 0,
+              descriptions: ad.descriptions?.length || 0,
+              ctas: ad.ctas?.length || 0,
+              hooks: ad.hooks?.length || 0,
+              visualSuggestions: ad.visualSuggestions?.length || 0
+            });
+          });
+        }
+      }
       
       if (!response.ok) {
-        throw new Error(result.error || `Server error: ${response.status}`);
+        // Handle specific error cases
+        if (response.status === 400) {
+          const errorDetails = result.details || [];
+          const errorMessages = errorDetails.map((err: any) => 
+            `${err.path}: ${err.message}`
+          ).join(', ');
+          throw new Error(`Validation error: ${errorMessages || result.error}`);
+        } else if (response.status === 429) {
+          throw new Error(`Rate limit exceeded: ${result.error}`);
+        } else if (response.status === 401) {
+          throw new Error('Authentication required. Please log in.');
+        } else {
+          throw new Error(result.error || `Server error: ${response.status}`);
+        }
       }
 
-      if (result.success && Array.isArray(result.data)) {
+      if (result.success && result.data && result.data.ads && Array.isArray(result.data.ads)) {
         // Validate response structure
-        const validAds = result.data.filter((ad: any) => 
+        const validAds = result.data.ads.filter((ad: any) => 
           ad.platform && 
           Array.isArray(ad.headlines) && 
           ad.headlines.length > 0 &&
@@ -108,7 +145,7 @@ export function useAdWriter() {
         
         return validAds;
       } else {
-        throw new Error(result.error || 'Invalid response format');
+        throw new Error(result.error || 'Invalid response format from server');
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -118,6 +155,7 @@ export function useAdWriter() {
       }
       
       const errorMessage = err instanceof Error ? err.message : 'Generation failed';
+      console.error('Generation error:', err);
       setError(errorMessage);
       throw err;
     } finally {
@@ -193,8 +231,8 @@ export function useAdWriter() {
         throw new Error(result.error || 'Regeneration failed');
       }
 
-      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-        const newAd = result.data[0];
+      if (result.success && result.data && result.data.ads && Array.isArray(result.data.ads) && result.data.ads.length > 0) {
+        const newAd = result.data.ads[0];
         
         // Validate the new ad structure
         if (!newAd.headlines || !newAd.descriptions || !newAd.ctas) {
@@ -229,6 +267,7 @@ export function useAdWriter() {
   const validateInput = (input: Partial<AdWriterInput>): string[] => {
     const errors: string[] = [];
 
+    // Required fields validation
     if (!input.businessName?.trim()) {
       errors.push('Business name is required');
     }
@@ -290,6 +329,31 @@ export function useAdWriter() {
 
     if (!input.tone) {
       errors.push('Tone is required');
+    }
+
+    // Length validations
+    if (input.valueProposition && input.valueProposition.length < 10) {
+      errors.push('Value proposition must be at least 10 characters');
+    }
+
+    if (input.offerDescription && input.offerDescription.length < 10) {
+      errors.push('Offer description must be at least 10 characters');
+    }
+
+    if (input.uniqueMechanism && input.uniqueMechanism.length < 5) {
+      errors.push('Unique mechanism must be at least 5 characters');
+    }
+
+    if (input.idealCustomer && input.idealCustomer.length < 10) {
+      errors.push('Ideal customer description must be at least 10 characters');
+    }
+
+    if (input.primaryPainPoint && input.primaryPainPoint.length < 5) {
+      errors.push('Primary pain point must be at least 5 characters');
+    }
+
+    if (input.coreResult && input.coreResult.length < 5) {
+      errors.push('Core result must be at least 5 characters');
     }
 
     return errors;

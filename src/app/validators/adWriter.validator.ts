@@ -1,35 +1,42 @@
-// validators/adWriter.validator.ts
+// validators/adWriter.validator.ts - FIXED VERSION
 import { z } from 'zod';
 
 const adWriterSchema = z.object({
-  businessName: z.string().min(1).max(100),
+  // Business Information
+  businessName: z.string().min(1, "Business name is required").max(100),
   personalTitle: z.string().optional(),
-  valueProposition: z.string().min(10).max(500),
+  valueProposition: z.string().min(10, "Value proposition must be at least 10 characters").max(500),
   
-  offerName: z.string().min(1).max(100),
-  offerDescription: z.string().min(10).max(500),
-  features: z.array(z.string()).max(3).optional(),
-  pricing: z.string().min(1).max(50),
-  uniqueMechanism: z.string().min(5).max(200),
+  // Offer Details  
+  offerName: z.string().min(1, "Offer name is required").max(100),
+  offerDescription: z.string().min(10, "Offer description must be at least 10 characters").max(500),
+  features: z.array(z.string()).max(3).optional().default([]),
+  pricing: z.string().min(1, "Pricing is required").max(50),
+  uniqueMechanism: z.string().min(5, "Unique mechanism must be at least 5 characters").max(200),
   
-  idealCustomer: z.string().min(10).max(500),
-  primaryPainPoint: z.string().min(5).max(300),
-  failedSolutions: z.string().optional(),
-  coreResult: z.string().min(5).max(200),
-  secondaryBenefits: z.array(z.string()).max(3).optional(),
-  timeline: z.string().optional(),
+  // Target Audience
+  idealCustomer: z.string().min(10, "Ideal customer description must be at least 10 characters").max(500),
+  primaryPainPoint: z.string().min(5, "Primary pain point must be at least 5 characters").max(300),
+  failedSolutions: z.string().optional().default(""),
+  coreResult: z.string().min(5, "Core result must be at least 5 characters").max(200),
+  secondaryBenefits: z.array(z.string()).max(3).optional().default([]),
+  timeline: z.string().optional().default(""),
   
-  activePlatforms: z.array(z.enum(['facebook', 'google', 'linkedin', 'tiktok'])),
+  // Ad Strategy - CRITICAL: These need to match frontend exactly
+  activePlatforms: z.array(z.enum(['facebook', 'google', 'linkedin', 'tiktok']))
+    .min(1, "At least one platform must be selected"),
   adType: z.enum(['awareness', 'conversion', 'lead', 'traffic']),
   tone: z.enum(['professional', 'friendly', 'urgent', 'humorous', 'inspirational']),
   
-  caseStudy1: z.string().optional(),
-  credentials: z.string().optional(),
+  // Social Proof
+  caseStudy1: z.string().optional().default(""),
+  credentials: z.string().optional().default(""),
   
-  cta: z.string().min(1).max(50),
-  url: z.string().url(),
-  urgency: z.string().optional(),
-  leadMagnet: z.string().optional()
+  // Call-to-Action
+  cta: z.string().min(1, "Call-to-action is required").max(50),
+  url: z.string().url("Please enter a valid URL"),
+  urgency: z.string().optional().default(""),
+  leadMagnet: z.string().optional().default("")
 });
 
 // Infer the type from the schema
@@ -37,27 +44,69 @@ export type AdWriterInput = z.infer<typeof adWriterSchema>;
 
 export function validateAdWriterInput(data: unknown) {
   try {
+    // Add debug logging
+    console.log('Validating input:', JSON.stringify(data, null, 2));
+    
     const validated = adWriterSchema.parse(data);
+    console.log('Validation successful:', JSON.stringify(validated, null, 2));
+    
     return { success: true as const, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Access the issues property which contains the validation errors
-      return { 
-        success: false as const, 
+      console.error('Validation errors:', error.issues);
+      
+      return {
+        success: false as const,
         errors: error.issues.map(issue => ({
           path: issue.path.join('.'),
           message: issue.message,
-          code: issue.code
+          code: issue.code,
+          received: issue.code === 'invalid_type' ? (issue as any).received : undefined
         }))
       };
     }
-    return { 
-      success: false as const, 
-      errors: [{ 
+    
+    console.error('Unknown validation error:', error);
+    return {
+      success: false as const,
+      errors: [{
         path: '',
         message: 'Validation failed',
-        code: 'unknown' 
-      }] 
+        code: 'unknown'
+      }]
     };
+  }
+}
+
+// Helper function to validate specific step data
+export function validateStep(step: number, data: Partial<AdWriterInput>) {
+  switch (step) {
+    case 0: // Business & Offer
+      return adWriterSchema.pick({
+        businessName: true,
+        valueProposition: true,
+        offerName: true,
+        offerDescription: true,
+        pricing: true,
+        uniqueMechanism: true
+      }).safeParse(data);
+      
+    case 1: // Target Audience
+      return adWriterSchema.pick({
+        idealCustomer: true,
+        primaryPainPoint: true,
+        coreResult: true
+      }).safeParse(data);
+      
+    case 2: // Ad Strategy
+      return adWriterSchema.pick({
+        adType: true,
+        tone: true,
+        cta: true,
+        url: true
+      }).safeParse(data);
+      
+    default:
+      return { success: false, error: 'Invalid step' };
   }
 }

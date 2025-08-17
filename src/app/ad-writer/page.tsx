@@ -1,4 +1,4 @@
-// Updated AdWriter.tsx with backend integration
+// Updated AdWriter.tsx - FIXED VERSION
 "use client";
 
 import React, { useState } from 'react';
@@ -54,7 +54,10 @@ const AdWriter = () => {
   const [activePlatforms, setActivePlatforms] = useState<string[]>(['facebook', 'google']);
   const [activeTab, setActiveTab] = useState('1');
   const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
-    const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
+  const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
+  
+  // ✅ NEW: Store all form data across steps
+  const [formData, setFormData] = useState<any>({});
 
   const { generateAds, optimizeAd, regeneratePlatformAds, loading, error, setError } = useAdWriter();
 
@@ -124,14 +127,72 @@ const AdWriter = () => {
     'Generate Ads'
   ];
 
-  // Main function to call backend API
+  // ✅ FIXED: Save form data when moving between steps
+  const saveCurrentStepData = () => {
+    const currentValues = form.getFieldsValue();
+    setFormData(prev => ({ ...prev, ...currentValues }));
+  };
+
+  // ✅ FIXED: Main function to call backend API
   const onFinish = async (values: any) => {
     try {
-      // Prepare data for API
+      // Save current step data first
+      saveCurrentStepData();
+      
+      // Combine all saved data with current form values
+      const allData = { ...formData, ...form.getFieldsValue() };
+      
+      console.log('Current form values:', form.getFieldsValue());
+      console.log('Saved form data:', formData);
+      console.log('Combined data:', allData);
+      console.log('Active platforms:', activePlatforms);
+
+      // ✅ FIXED: Use combined data for the request
       const requestData: AdWriterInput = {
-        ...values,
-        activePlatforms,
+        businessName: allData.businessName || '',
+        personalTitle: allData.personalTitle || '',
+        valueProposition: allData.valueProposition || '',
+        offerName: allData.offerName || '',
+        offerDescription: allData.offerDescription || '',
+        features: allData.features || [],
+        pricing: allData.pricing || '',
+        uniqueMechanism: allData.uniqueMechanism || '',
+        idealCustomer: allData.idealCustomer || '',
+        primaryPainPoint: allData.primaryPainPoint || '',
+        failedSolutions: allData.failedSolutions || '',
+        coreResult: allData.coreResult || '',
+        secondaryBenefits: allData.secondaryBenefits || [],
+        timeline: allData.timeline || '',
+        activePlatforms: activePlatforms, // This comes from state
+        adType: allData.adType || 'conversion',
+        tone: allData.tone || 'professional',
+        caseStudy1: allData.caseStudy1 || '',
+        credentials: allData.credentials || '',
+        cta: allData.cta || '',
+        url: allData.url || '',
+        urgency: allData.urgency || '',
+        leadMagnet: allData.leadMagnet || ''
       };
+
+      // ✅ Debug: Log the exact data being sent
+      console.log('Final request data:', JSON.stringify(requestData, null, 2));
+
+      // ✅ Validate required fields before sending
+      const requiredFields = [
+        'businessName', 'valueProposition', 'offerName', 'offerDescription', 
+        'pricing', 'uniqueMechanism', 'idealCustomer', 'primaryPainPoint', 
+        'coreResult', 'cta', 'url'
+      ];
+
+      const missingFields = requiredFields.filter(field => !requestData[field as keyof AdWriterInput]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      if (activePlatforms.length === 0) {
+        throw new Error('Please select at least one platform');
+      }
 
       // Store form data for regeneration
       setOriginalFormData(requestData);
@@ -210,9 +271,6 @@ const handleOptimizeAd = async (adCopy: string, optimizationType: string) => {
     return;
   }
   
-  // Add loading state for specific platform
-
-  
   setRegeneratingPlatforms(prev => new Set(prev).add(platform));
   
   try {
@@ -259,10 +317,11 @@ const validateBusinessFields = () => {
     });
 };
 
-
-
 const nextStep = async () => {
   let isValid = false;
+  
+  // ✅ CRITICAL: Save current step data before moving to next step
+  saveCurrentStepData();
   
   switch (currentStep) {
     case 0:
@@ -289,8 +348,9 @@ const nextStep = async () => {
   }
 };
 
-
   const prevStep = () => {
+    // ✅ Save current step data before going back
+    saveCurrentStepData();
     setCurrentStep(currentStep - 1);
   };
 
@@ -321,7 +381,6 @@ const nextStep = async () => {
     message.error('Failed to copy to clipboard');
   }
 };
-
 
 const downloadAds = () => {
   let url: string | null = null;
@@ -945,11 +1004,49 @@ const downloadAds = () => {
           ))}
         </div>
       </div>
+
+      {/* ✅ DEBUG INFO - Remove this after fixing */}
+      {process.env.NODE_ENV === 'development' && currentStep === 2 && (
+        <Card className="mb-4 bg-yellow-50 border-yellow-200">
+          <Title level={5}>🐛 Debug Info (Development Only)</Title>
+          <div className="space-y-2 text-sm">
+            <div><strong>Current Form Values:</strong></div>
+            <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
+              {JSON.stringify(form.getFieldsValue(), null, 2)}
+            </pre>
+            <div><strong>Saved Form Data:</strong></div>
+            <pre className="bg-blue-100 p-2 rounded text-xs overflow-auto max-h-32">
+              {JSON.stringify(formData, null, 2)}
+            </pre>
+            <div><strong>Combined Data:</strong></div>
+            <pre className="bg-green-100 p-2 rounded text-xs overflow-auto max-h-32">
+              {JSON.stringify({ ...formData, ...form.getFieldsValue() }, null, 2)}
+            </pre>
+            <div><strong>Active Platforms:</strong> {JSON.stringify(activePlatforms)}</div>
+            <div><strong>Required Fields Status (from combined data):</strong></div>
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              {['businessName', 'valueProposition', 'offerName', 'offerDescription', 'pricing', 'uniqueMechanism', 'idealCustomer', 'primaryPainPoint', 'coreResult', 'cta', 'url'].map(field => {
+                const combinedData = { ...formData, ...form.getFieldsValue() };
+                const value = combinedData[field];
+                return (
+                  <div key={field} className={value ? 'text-green-600' : 'text-red-600'}>
+                    {field}: {value ? '✓' : '✗'}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
       
       <Form
         form={form}
         layout="vertical"
         onFinish={onFinish}
+        onValuesChange={(changedValues, allValues) => {
+          // ✅ CRITICAL: Save form data on every change
+          setFormData(prev => ({ ...prev, ...allValues }));
+        }}
       >
         {renderStepContent()}
         
@@ -995,6 +1092,7 @@ const downloadAds = () => {
                 setCurrentStep(0);
                 setGeneratedAds([]);
                 setOriginalFormData(null);
+                setFormData({}); // ✅ NEW: Clear saved form data
                 form.resetFields();
               }}
             >
