@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MailOutlined, 
   UserOutlined, 
@@ -56,7 +56,6 @@ const ColdEmailWriter = () => {
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-
   const [optimizedEmails, setOptimizedEmails] = useState<{[key: number]: GeneratedEmail}>({});
 
   const {
@@ -66,10 +65,30 @@ const ColdEmailWriter = () => {
     createTemplate,
     loading,
     error,
-    
     setError
   } = useColdEmail();
   const [optimizationLoading, setOptimizationLoading] = useState<{[key: number]: boolean}>({});
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+
+  // ✅ Debug: Monitor state changes and auto-scroll to results
+  useEffect(() => {
+    console.log('📊 Generated emails state updated:', generatedEmails);
+    console.log('📊 State length:', generatedEmails.length);
+    if (generatedEmails.length > 0) {
+      console.log('📊 First email in state:', generatedEmails[0]);
+      
+      // ✅ Auto-scroll to results when emails are generated
+      setTimeout(() => {
+        const resultsElement = document.getElementById('email-results');
+        if (resultsElement) {
+          resultsElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 100);
+    }
+  }, [generatedEmails]);
 
   const emailMethods = [
     {
@@ -154,20 +173,67 @@ const ColdEmailWriter = () => {
 
   const onFinish = async (values: any) => {
     try {
-      // Prepare data for API using the hook
+      console.log('🔍 Form values before submission:', values);
+
+      // ✅ Validate and prepare data with proper defaults
       const requestData: ColdEmailGenerationInput = {
         ...values,
         method: emailMethod,
+        tone: values.tone || 'professional',
+        targetIndustry: values.targetIndustry || '',
+        targetRole: values.targetRole || '',
+        valueProposition: values.valueProposition || '',
+        emailLength: values.emailLength || 'medium',
+        quality: values.quality || 'balanced',
+        creativity: values.creativity || 'moderate',
         variations: values.variations || 1,
         generateFollowUps: values.generateFollowUps || false,
         followUpCount: values.followUpCount || 3,
         saveAsTemplate: values.saveAsTemplate || false
       };
 
+      console.log('🔍 Request data after processing:', requestData);
+
+      // ✅ Client-side validation for required fields
+      const missingFields = [];
+      if (!requestData.firstName) missingFields.push('First Name');
+      if (!requestData.lastName) missingFields.push('Last Name');
+      if (!requestData.email) missingFields.push('Email');
+      if (!requestData.jobTitle) missingFields.push('Job Title');
+      if (!requestData.companyName) missingFields.push('Company Name');
+      if (!requestData.workEmail) missingFields.push('Work Email');
+      if (!requestData.tone) missingFields.push('Email Tone');
+      if (!requestData.targetIndustry) missingFields.push('Target Industry');
+      if (!requestData.targetRole) missingFields.push('Target Role');
+      if (!requestData.valueProposition) missingFields.push('Value Proposition');
+
+      if (missingFields.length > 0) {
+        notification.error({
+          message: 'Missing Required Fields',
+          description: `Please fill in: ${missingFields.join(', ')}`,
+          placement: 'topRight',
+          duration: 8
+        });
+        
+        // Expand all panels to show missing fields
+        setActivePanels(['1', '2', '3', '4', '5']);
+        return;
+      }
+
+      console.log('🔍 About to call generateEmails...');
+      
       // Call backend API using hook
       const result = await generateEmails(requestData);
       
+      console.log('✅ Generate emails returned:', result);
+      console.log('✅ Result type:', typeof result);
+      console.log('✅ Result is array:', Array.isArray(result));
+      console.log('✅ Result length:', Array.isArray(result) ? result.length : 'Not an array');
+      console.log('✅ First email:', result?.[0]);
+      
+      console.log('🔍 About to set generated emails state...');
       setGeneratedEmails(result);
+      console.log('✅ Called setGeneratedEmails');
       
       // Show success notification
       notification.success({
@@ -194,7 +260,7 @@ const ColdEmailWriter = () => {
       }
       
     } catch (error: any) {
-      console.error('Error generating email:', error);
+      console.error('❌ Form submission error:', error);
       
       notification.error({
         message: 'Generation Failed',
@@ -212,236 +278,222 @@ const ColdEmailWriter = () => {
       message.error('Failed to copy to clipboard');
     }
   };
-const downloadEmail = (email: GeneratedEmail) => {
-  let url: string | null = null;
-  let anchor: HTMLAnchorElement | null = null;
-  
-  try {
-    const content = `Subject: ${email.subject}\n\n${email.body}\n\n${email.signature}`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    url = URL.createObjectURL(blob);
-    
-    anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `cold-email-${email.metadata?.variationIndex || Date.now()}.txt`;
-    anchor.style.display = 'none';
-    
-    document.body.appendChild(anchor);
-    anchor.click();
-    
-    message.success('Email downloaded successfully!');
-  } catch (error) {
-    console.error('Download error:', error);
-    message.error('Failed to download email');
-  } finally {
-    // Comprehensive cleanup
-    if (url) {
-      URL.revokeObjectURL(url);
-    }
-    if (anchor && document.body.contains(anchor)) {
-      document.body.removeChild(anchor);
-    }
-  }
-};
 
-
-const handleOptimizeEmail = async (
-  emailIndex: number, 
-  emailContent: string, 
-  optimizationType: ColdEmailOptimizationType
-) => {
-  // Set loading for this specific email
-  setOptimizationLoading(prev => ({ ...prev, [emailIndex]: true }));
-  
-  try {
-    const optimizedContent = await optimizeEmail(emailContent, optimizationType);
+  const downloadEmail = (email: GeneratedEmail) => {
+    let url: string | null = null;
+    let anchor: HTMLAnchorElement | null = null;
     
-    // Parse the optimized content
-    const lines = optimizedContent.split('\n');
-    let subject = '';
-    let body = '';
-    let signature = '';
-    let currentSection = '';
-    
-    for (const line of lines) {
-      if (line.startsWith('Subject:')) {
-        subject = line.replace('Subject:', '').trim();
-      } else if (line.includes('Best regards') || line.includes('Sincerely')) {
-        currentSection = 'signature';
-        signature += line + '\n';
-      } else if (currentSection === 'signature') {
-        signature += line + '\n';
-      } else if (line.trim()) {
-        body += line + '\n';
+    try {
+      const content = `Subject: ${email.subject}\n\n${email.body}\n\n${email.signature}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      url = URL.createObjectURL(blob);
+      
+      anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `cold-email-${email.metadata?.variationIndex || Date.now()}.txt`;
+      anchor.style.display = 'none';
+      
+      document.body.appendChild(anchor);
+      anchor.click();
+      
+      message.success('Email downloaded successfully!');
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Failed to download email');
+    } finally {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+      if (anchor && document.body.contains(anchor)) {
+        document.body.removeChild(anchor);
       }
     }
+  };
+
+  const handleOptimizeEmail = async (
+    emailIndex: number, 
+    emailContent: string, 
+    optimizationType: ColdEmailOptimizationType
+  ) => {
+    setOptimizationLoading(prev => ({ ...prev, [emailIndex]: true }));
     
-    // Update the specific email in state
-    const originalEmail = generatedEmails[emailIndex];
-    const optimizedEmail: GeneratedEmail = {
-      ...originalEmail,
-      subject: subject || originalEmail.subject,
-      body: body.trim() || optimizedContent,
-      signature: signature.trim() || originalEmail.signature,
+    try {
+      const optimizedContent = await optimizeEmail(emailContent, optimizationType);
+      
+      const lines = optimizedContent.split('\n');
+      let subject = '';
+      let body = '';
+      let signature = '';
+      let currentSection = '';
+      
+      for (const line of lines) {
+        if (line.startsWith('Subject:')) {
+          subject = line.replace('Subject:', '').trim();
+        } else if (line.includes('Best regards') || line.includes('Sincerely')) {
+          currentSection = 'signature';
+          signature += line + '\n';
+        } else if (currentSection === 'signature') {
+          signature += line + '\n';
+        } else if (line.trim()) {
+          body += line + '\n';
+        }
+      }
+      
+      const originalEmail = generatedEmails[emailIndex];
+      const optimizedEmail: GeneratedEmail = {
+        ...originalEmail,
+        subject: subject || originalEmail.subject,
+        body: body.trim() || optimizedContent,
+        signature: signature.trim() || originalEmail.signature,
+        metadata: {
+          ...originalEmail.metadata,
+          targetIndustry: originalEmail.metadata?.targetIndustry || '',
+          targetRole: originalEmail.metadata?.targetRole || '',
+          generatedAt: originalEmail.metadata?.generatedAt || new Date().toISOString(),
+          optimizationType,
+          optimizedAt: new Date().toISOString()
+        }
+      };
+      
+      setOptimizedEmails(prev => ({
+        ...prev,
+        [emailIndex]: optimizedEmail
+      }));
+      
+      notification.success({
+        message: 'Email Optimized!',
+        description: `Optimized for ${optimizationType}`,
+        placement: 'topRight',
+      });
+      
+      return optimizedEmail;
+    } catch (error) {
+      console.error('Optimization error:', error);
+      notification.error({
+        message: 'Optimization Failed',
+        description: 'Please try again later',
+        placement: 'topRight',
+      });
+      return null;
+    } finally {
+      setOptimizationLoading(prev => ({ ...prev, [emailIndex]: false }));
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      setTemplatesLoading(true);
+      const fetchedTemplates = await getTemplates({ includePublic: true });
+      setTemplates(fetchedTemplates);
+      setIsTemplateModalVisible(true);
+      message.success(`Loaded ${fetchedTemplates.length} templates`);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
+      notification.error({
+        message: 'Failed to Load Templates',
+        description: 'Please try again later',
+        placement: 'topRight',
+      });
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const handleApplyTemplate = (template: EmailTemplate) => {
+    setEmailMethod(template.method);
+    form.setFieldsValue({
+      method: template.method,
+      targetIndustry: template.metadata?.targetIndustry,
+      targetRole: template.metadata?.targetRole,
+    });
+    
+    const appliedEmail: GeneratedEmail = {
+      subject: template.subject,
+      body: template.body,
+      signature: '',
+      method: template.method,
       metadata: {
-        ...originalEmail.metadata,
-        targetIndustry: originalEmail.metadata?.targetIndustry || '',
-        targetRole: originalEmail.metadata?.targetRole || '',
-        generatedAt: originalEmail.metadata?.generatedAt || new Date().toISOString(),
-        // ✅ Now these fields exist in the type
-        optimizationType,
-        optimizedAt: new Date().toISOString()
+        targetIndustry: template.metadata?.targetIndustry || '',
+        targetRole: template.metadata?.targetRole || '',
+        generatedAt: new Date().toISOString(),
+        appliedFromTemplate: template.id
       }
     };
     
-    setOptimizedEmails(prev => ({
-      ...prev,
-      [emailIndex]: optimizedEmail
-    }));
-    
-    notification.success({
-      message: 'Email Optimized!',
-      description: `Optimized for ${optimizationType}`,
-      placement: 'topRight',
-    });
-    
-    return optimizedEmail;
-  } catch (error) {
-    console.error('Optimization error:', error);
-    notification.error({
-      message: 'Optimization Failed',
-      description: 'Please try again later',
-      placement: 'topRight',
-    });
-    return null;
-  } finally {
-    // ✅ Clear loading for this specific email
-    setOptimizationLoading(prev => ({ ...prev, [emailIndex]: false }));
-  }
-};
-
-
-
-
- const [templatesLoading, setTemplatesLoading] = useState(false);
-
-const fetchTemplates = async () => {
-  try {
-    setTemplatesLoading(true); // ✅ Use separate loading state
-    const fetchedTemplates = await getTemplates({ includePublic: true });
-    setTemplates(fetchedTemplates);
-    setIsTemplateModalVisible(true);
-    message.success(`Loaded ${fetchedTemplates.length} templates`);
-  } catch (error) {
-    console.error('Failed to fetch templates:', error);
-    // ✅ Show error even if hook doesn't
-    notification.error({
-      message: 'Failed to Load Templates',
-      description: 'Please try again later',
-      placement: 'topRight',
-    });
-  } finally {
-    setTemplatesLoading(false);
-  }
-};
-
-  const handleApplyTemplate = (template: EmailTemplate) => {
-  setEmailMethod(template.method);
-  form.setFieldsValue({
-    method: template.method,
-    targetIndustry: template.metadata?.targetIndustry,
-    targetRole: template.metadata?.targetRole,
-  });
-  
-  const appliedEmail: GeneratedEmail = {
-    subject: template.subject,
-    body: template.body,
-    signature: '', // ✅ Will be generated
-    method: template.method,
-    metadata: {
-      targetIndustry: template.metadata?.targetIndustry || '',
-      targetRole: template.metadata?.targetRole || '',
-      generatedAt: new Date().toISOString(), // ✅ Proper ISO string
-      appliedFromTemplate: template.id
-    }
+    setGeneratedEmails([appliedEmail]);
+    setIsTemplateModalVisible(false);
+    message.success(`Applied template: ${template.name}`);
   };
-  
-  setGeneratedEmails([appliedEmail]);
-  setIsTemplateModalVisible(false);
-  message.success(`Applied template: ${template.name}`);
-};
-
 
   const columns = [
-  {
-    title: 'Template Name',
-    dataIndex: 'name',
-    key: 'name',
-  },
-  {
-    title: 'Subject',
-    dataIndex: 'subject',
-    key: 'subject',
-  },
-  {
-    title: 'Method',
-    dataIndex: 'method',
-    key: 'method',
-    render: (method: string) => (
-      <Tag color="blue">
-        {emailMethods.find(m => m.value === method)?.label || method}
-      </Tag>
-    ),
-  },
-  {
-    title: 'Created At',
-    dataIndex: 'createdAt',
-    key: 'createdAt',
-    render: (date: string) => new Date(date).toLocaleDateString(),
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    render: (_: any, template: EmailTemplate) => (
-      <Space>
-        <Button
-          icon={<EyeOutlined />}
-          onClick={() => {
-            // ✅ Actually show preview in modal or expand
-            Modal.info({
-              title: `Preview: ${template.name}`,
-              content: (
-                <div>
-                  <p><strong>Subject:</strong> {template.subject}</p>
-                  <Divider />
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                    {template.body}
-                  </pre>
-                </div>
-              ),
-              width: 600,
-            });
-          }}
-        >
-          Preview
-        </Button>
-        <Button
-          icon={<SelectOutlined />}
-          onClick={() => copyToClipboard(`Subject: ${template.subject}\n\n${template.body}`)}
-        >
-          Copy
-        </Button>
-        <Button
-          type="primary"
-          icon={<SelectOutlined />}
-          onClick={() => handleApplyTemplate(template)}
-        >
-          Apply
-        </Button>
-      </Space>
-    ),
-  },
-];
+    {
+      title: 'Template Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Subject',
+      dataIndex: 'subject',
+      key: 'subject',
+    },
+    {
+      title: 'Method',
+      dataIndex: 'method',
+      key: 'method',
+      render: (method: string) => (
+        <Tag color="blue">
+          {emailMethods.find(m => m.value === method)?.label || method}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date: string) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, template: EmailTemplate) => (
+        <Space>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => {
+              Modal.info({
+                title: `Preview: ${template.name}`,
+                content: (
+                  <div>
+                    <p><strong>Subject:</strong> {template.subject}</p>
+                    <Divider />
+                    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                      {template.body}
+                    </pre>
+                  </div>
+                ),
+                width: 600,
+              });
+            }}
+          >
+            Preview
+          </Button>
+          <Button
+            icon={<SelectOutlined />}
+            onClick={() => copyToClipboard(`Subject: ${template.subject}\n\n${template.body}`)}
+          >
+            Copy
+          </Button>
+          <Button
+            type="primary"
+            icon={<SelectOutlined />}
+            onClick={() => handleApplyTemplate(template)}
+          >
+            Apply
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -455,38 +507,54 @@ const fetchTemplates = async () => {
         </Text>
       </div>
 
-      <Collapse 
-        activeKey={activePanels} 
-        onChange={(keys) => setActivePanels(keys as string[])}
-        bordered={false}
-        className="mb-6"
+      {/* ✅ CRITICAL FIX: Form wrapper now includes ALL panels */}
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        initialValues={{
+          // ✅ Set comprehensive initial values
+          tone: 'professional',
+          emailLength: 'medium',
+          quality: 'balanced',
+          creativity: 'moderate',
+          targetIndustry: 'B2B SaaS',
+          targetRole: 'CEO',
+          valueProposition: '',
+          variations: 1,
+          generateFollowUps: false,
+          followUpCount: 3,
+          saveAsTemplate: false,
+          callToAction: 'call'
+        }}
       >
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <UserOutlined className="mr-2" />
-              <span className="font-medium">Your Information</span>
-            </div>
-          } 
-          key="1"
-          extra={<Badge status="processing" text="Required" />}
+        {error && (
+          <Alert
+            message="Error"
+            description={error}
+            type="error"
+            closable
+            onClose={() => setError(null)}
+            className="mb-4"
+          />
+        )}
+
+        <Collapse 
+          activeKey={activePanels} 
+          onChange={(keys) => setActivePanels(keys as string[])}
+          bordered={false}
+          className="mb-6"
         >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
+          <Panel 
+            header={
+              <div className="flex items-center">
+                <UserOutlined className="mr-2" />
+                <span className="font-medium">Your Information</span>
+              </div>
+            } 
+            key="1"
+            extra={<Badge status="processing" text="Required" />}
           >
-            {error && (
-              <Alert
-                message="Error"
-                description={error}
-                type="error"
-                closable
-                onClose={() => setError(null)}
-                className="mb-4"
-              />
-            )}
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
                 name="firstName"
@@ -543,485 +611,493 @@ const fetchTemplates = async () => {
                 <Input prefix={<LinkOutlined />} placeholder="https://yourcompany.com" />
               </Form.Item>
             </div>
-          </Form>
-        </Panel>
+          </Panel>
 
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <SolutionOutlined className="mr-2" />
-              <span className="font-medium">Email Strategy</span>
-            </div>
-          } 
-          key="2"
-        >
-          <div className="mb-4">
-            <Text strong>Select your outreach method:</Text>
-            <Text type="secondary" className="block mb-4">
-              Different approaches work better for different goals
-            </Text>
-          </div>
-          
-          <Form.Item
-            name="method"
-            initialValue="direct"
+          <Panel 
+            header={
+              <div className="flex items-center">
+                <SolutionOutlined className="mr-2" />
+                <span className="font-medium">Email Strategy</span>
+              </div>
+            } 
+            key="2"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {emailMethods.map((method) => (
-                <Card
-                  key={method.value}
-                  hoverable
-                  onClick={() => setEmailMethod(method.value)}
-                  className={`cursor-pointer transition-all ${emailMethod === method.value ? 'border-blue-500 border-2 shadow-md' : 'hover:shadow-sm'}`}
-                >
-                  <div className="flex items-start">
-                    <div className="p-2 bg-blue-50 rounded-full mr-3">
-                      {method.icon}
-                    </div>
-                    <div>
-                      <div className="font-medium">{method.label}</div>
-                      <div className="text-gray-500 text-sm mb-2">{method.description}</div>
-                      <div className="flex flex-wrap gap-2">
-                        <Tag color="blue">{method.effectiveness}</Tag>
-                        <Tag color="geekblue">{method.bestFor}</Tag>
+            <div className="mb-4">
+              <Text strong>Select your outreach method:</Text>
+              <Text type="secondary" className="block mb-4">
+                Different approaches work better for different goals
+              </Text>
+            </div>
+            
+            <Form.Item
+              name="method"
+              initialValue="direct"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {emailMethods.map((method) => (
+                  <Card
+                    key={method.value}
+                    hoverable
+                    onClick={() => setEmailMethod(method.value)}
+                    className={`cursor-pointer transition-all ${emailMethod === method.value ? 'border-blue-500 border-2 shadow-md' : 'hover:shadow-sm'}`}
+                  >
+                    <div className="flex items-start">
+                      <div className="p-2 bg-blue-50 rounded-full mr-3">
+                        {method.icon}
+                      </div>
+                      <div>
+                        <div className="font-medium">{method.label}</div>
+                        <div className="text-gray-500 text-sm mb-2">{method.description}</div>
+                        <div className="flex flex-wrap gap-2">
+                          <Tag color="blue">{method.effectiveness}</Tag>
+                          <Tag color="geekblue">{method.bestFor}</Tag>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
+            </Form.Item>
+
+            <Divider />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                name="tone"
+                label="Email Tone"
+                rules={[{ required: true, message: 'Please select email tone!' }]}
+              >
+                <Segmented 
+                  options={[
+                    { label: 'Professional', value: 'professional' },
+                    { label: 'Friendly', value: 'friendly' },
+                    { label: 'Casual', value: 'casual' },
+                    { label: 'Formal', value: 'formal' }
+                  ]}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="emailLength"
+                label="Email Length"
+              >
+                <Select>
+                  <Option value="short">Short (~100 words)</Option>
+                  <Option value="medium">Medium (~150-200 words)</Option>
+                  <Option value="long">Long (~250-300 words)</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="quality"
+                label="Generation Quality"
+              >
+                <Radio.Group>
+                  <Radio value="fast">Fast</Radio>
+                  <Radio value="balanced">Balanced</Radio>
+                  <Radio value="high">High Quality</Radio>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item
+                name="creativity"
+                label="Creativity Level"
+              >
+                <Radio.Group>
+                  <Radio value="low">Low</Radio>
+                  <Radio value="moderate">Moderate</Radio>
+                  <Radio value="high">High</Radio>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item
+                name="variations"
+                label="Number of Variations"
+              >
+                <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="generateFollowUps"
+                valuePropName="checked"
+                label="Generate Follow-up Sequence"
+              >
+                <Switch checkedChildren="Generate Follow-ups" unCheckedChildren="No Follow-ups" />
+              </Form.Item>
+
+              <Form.Item
+                name="followUpCount"
+                label="Number of Follow-ups"
+              >
+                <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="saveAsTemplate"
+                valuePropName="checked"
+                label="Save as Template"
+              >
+                <Switch checkedChildren="Save Template" unCheckedChildren="Don't Save" />
+              </Form.Item>
             </div>
-          </Form.Item>
 
-          <Divider />
+            <Divider />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              name="tone"
-              label="Email Tone"
-              initialValue="professional"
-            >
-              <Segmented 
-                options={[
-                  { label: 'Professional', value: 'professional' },
-                  { label: 'Friendly', value: 'friendly' },
-                  { label: 'Casual', value: 'casual' },
-                  { label: 'Formal', value: 'formal' }
-                ]}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="emailLength"
-              label="Email Length"
-              initialValue="medium"
-            >
-              <Select>
-                <Option value="short">Short (~100 words)</Option>
-                <Option value="medium">Medium (~150-200 words)</Option>
-                <Option value="long">Long (~250-300 words)</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="quality"
-              label="Generation Quality"
-              initialValue="balanced"
-            >
-              <Radio.Group>
-                <Radio value="fast">Fast</Radio>
-                <Radio value="balanced">Balanced</Radio>
-                <Radio value="high">High Quality</Radio>
-              </Radio.Group>
-            </Form.Item>
-
-            <Form.Item
-              name="creativity"
-              label="Creativity Level"
-              initialValue="moderate"
-            >
-              <Radio.Group>
-                <Radio value="low">Low</Radio>
-                <Radio value="moderate">Moderate</Radio>
-                <Radio value="high">High</Radio>
-              </Radio.Group>
-            </Form.Item>
-
-            <Form.Item
-              name="variations"
-              label="Number of Variations"
-              initialValue={1}
-            >
-              <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="generateFollowUps"
-              valuePropName="checked"
-              label="Generate Follow-up Sequence"
-            >
-              <Switch checkedChildren="Generate Follow-ups" unCheckedChildren="No Follow-ups" />
-            </Form.Item>
-
-            <Form.Item
-              name="followUpCount"
-              label="Number of Follow-ups"
-              initialValue={3}
-            >
-              <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="saveAsTemplate"
-              valuePropName="checked"
-              label="Save as Template"
-            >
-              <Switch checkedChildren="Save Template" unCheckedChildren="Don't Save" />
-            </Form.Item>
-          </div>
-
-          <Divider />
-
-          <div>
-            <Text strong>Method Tips:</Text>
-            <div className="mt-2">
-              {emailMethod === 'interview' && (
-                <Alert
-                  message="Interview Method Tips"
-                  description="Focus on making the interview valuable for them by offering to share insights afterward. Keep it to 15-20 minutes max."
-                  type="info"
-                  showIcon
-                />
-              )}
-              {emailMethod === 'podcast' && (
-                <Alert
-                  message="Podcast Method Tips"
-                  description="Have actual podcast content ready before sending. Reference specific timestamps that would be most relevant to them."
-                  type="info"
-                  showIcon
-                />
-              )}
-              {emailMethod === 'direct' && (
-                <Alert
-                  message="Direct Method Tips"
-                  description="Be specific about results you've achieved for similar companies. Include concrete numbers when possible."
-                  type="info"
-                  showIcon
-                />
-              )}
-              {emailMethod === 'masterclass' && (
-                <Alert
-                  message="Masterclass Method Tips"
-                  description="Position this as truly exclusive (limited seats). Include social proof of past participants' results."
-                  type="info"
-                  showIcon
-                />
-              )}
-              {emailMethod === 'referral' && (
-                <Alert
-                  message="Referral Method Tips"
-                  description="Mention the mutual connection early and explain the context of your relationship. Be specific about why the referral was made."
-                  type="info"
-                  showIcon
-                />
-              )}
-              {emailMethod === 'problem' && (
-                <Alert
-                  message="Problem-Solution Method Tips"
-                  description="Clearly articulate a specific pain point and position your solution as the answer. Use data to back up your claims."
-                  type="info"
-                  showIcon
-                />
-              )}
+            <div>
+              <Text strong>Method Tips:</Text>
+              <div className="mt-2">
+                {emailMethod === 'interview' && (
+                  <Alert
+                    message="Interview Method Tips"
+                    description="Focus on making the interview valuable for them by offering to share insights afterward. Keep it to 15-20 minutes max."
+                    type="info"
+                    showIcon
+                  />
+                )}
+                {emailMethod === 'podcast' && (
+                  <Alert
+                    message="Podcast Method Tips"
+                    description="Have actual podcast content ready before sending. Reference specific timestamps that would be most relevant to them."
+                    type="info"
+                    showIcon
+                  />
+                )}
+                {emailMethod === 'direct' && (
+                  <Alert
+                    message="Direct Method Tips"
+                    description="Be specific about results you've achieved for similar companies. Include concrete numbers when possible."
+                    type="info"
+                    showIcon
+                  />
+                )}
+                {emailMethod === 'masterclass' && (
+                  <Alert
+                    message="Masterclass Method Tips"
+                    description="Position this as truly exclusive (limited seats). Include social proof of past participants' results."
+                    type="info"
+                    showIcon
+                  />
+                )}
+                {emailMethod === 'referral' && (
+                  <Alert
+                    message="Referral Method Tips"
+                    description="Mention the mutual connection early and explain the context of your relationship. Be specific about why the referral was made."
+                    type="info"
+                    showIcon
+                  />
+                )}
+                {emailMethod === 'problem' && (
+                  <Alert
+                    message="Problem-Solution Method Tips"
+                    description="Clearly articulate a specific pain point and position your solution as the answer. Use data to back up your claims."
+                    type="info"
+                    showIcon
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </Panel>
+          </Panel>
 
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <ContactsOutlined className="mr-2" />
-              <span className="font-medium">Target Details</span>
+          <Panel 
+            header={
+              <div className="flex items-center">
+                <ContactsOutlined className="mr-2" />
+                <span className="font-medium">Target Details</span>
+              </div>
+            } 
+            key="3"
+            extra={<Badge status="processing" text="Required" />}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                name="targetIndustry"
+                label={
+                  <span>
+                    Target Industry{' '}
+                    <Tooltip title="The industry your prospect works in">
+                      <InfoCircleOutlined />
+                    </Tooltip>
+                  </span>
+                }
+                rules={[{ required: true, message: 'Please select an industry!' }]}
+              >
+                <Select 
+                  showSearch
+                  placeholder="e.g., B2B SaaS, E-commerce Brands, Healthcare"
+                  options={industries.map(ind => ({ value: ind, label: ind }))}
+                />
+              </Form.Item>
+              <Form.Item
+                name="targetRole"
+                label={
+                  <span>
+                    Target Role{' '}
+                    <Tooltip title="The job title of the person you're emailing">
+                      <InfoCircleOutlined />
+                    </Tooltip>
+                  </span>
+                }
+                rules={[{ required: true, message: 'Please select a role!' }]}
+              >
+                <Select 
+                  showSearch
+                  placeholder="e.g., Marketing Manager, CEO, Head of Sales"
+                  options={roles.map(role => ({ value: role, label: role }))}
+                />
+              </Form.Item>
+              <Form.Item
+                name="targetFirstName"
+                label="Recipient's First Name (optional)"
+                tooltip="Personalized emails get 26% higher open rates"
+              >
+                <Input placeholder="First name if known" />
+              </Form.Item>
+              <Form.Item
+                name="targetCompany"
+                label="Recipient's Company (optional)"
+              >
+                <Input placeholder="Company name if known" />
+              </Form.Item>
+              <Form.Item
+                name="targetCompanySize"
+                label="Target Company Size"
+              >
+                <Select placeholder="Select company size">
+                  <Option value="1-10">1-10 employees</Option>
+                  <Option value="11-50">11-50 employees</Option>
+                  <Option value="51-200">51-200 employees</Option>
+                  <Option value="201-1000">201-1000 employees</Option>
+                  <Option value="1000+">1000+ employees</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="targetPainPoints"
+                label="Target Pain Points"
+              >
+                <Select 
+                  mode="tags" 
+                  placeholder="Add pain points..."
+                  options={painPoints.map(point => ({ value: point, label: point }))}
+                />
+              </Form.Item>
+              <Form.Item
+                name="targetGoals"
+                label="Target Goals"
+              >
+                <Select 
+                  mode="tags" 
+                  placeholder="Add goals..."
+                  options={[
+                    'Increase Revenue',
+                    'Reduce Costs',
+                    'Improve Efficiency',
+                    'Boost Engagement',
+                    'Scale Operations'
+                  ].map(goal => ({ value: goal, label: goal }))}
+                />
+              </Form.Item>
             </div>
-          } 
-          key="3"
-          extra={<Badge status="processing" text="Required" />}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <Divider />
+
             <Form.Item
-              name="targetIndustry"
+              name="valueProposition"
               label={
                 <span>
-                  Target Industry{' '}
-                  <Tooltip title="The industry your prospect works in">
+                  Your Value Proposition{' '}
+                  <Tooltip title="What specific benefit do you offer this type of prospect?">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </span>
               }
-              rules={[{ required: true, message: 'Please select an industry!' }]}
+              rules={[{ required: true, message: 'Please input your value proposition!' }]}
             >
-              <Select 
-                showSearch
-                placeholder="e.g., B2B SaaS, E-commerce Brands, Healthcare"
-                options={industries.map(ind => ({ value: ind, label: ind }))}
+              <TextArea 
+                rows={3} 
+                placeholder="e.g., We help [target role] in [industry] achieve [specific outcome] by [your unique approach]"
               />
             </Form.Item>
-            <Form.Item
-              name="targetRole"
-              label={
-                <span>
-                  Target Role{' '}
-                  <Tooltip title="The job title of the person you're emailing">
-                    <InfoCircleOutlined />
-                  </Tooltip>
-                </span>
-              }
-              rules={[{ required: true, message: 'Please select a role!' }]}
-            >
-              <Select 
-                showSearch
-                placeholder="e.g., Marketing Manager, CEO, Head of Sales"
-                options={roles.map(role => ({ value: role, label: role }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="targetFirstName"
-              label="Recipient's First Name (optional)"
-              tooltip="Personalized emails get 26% higher open rates"
-            >
-              <Input placeholder="First name if known" />
-            </Form.Item>
-            <Form.Item
-              name="targetCompany"
-              label="Recipient's Company (optional)"
-            >
-              <Input placeholder="Company name if known" />
-            </Form.Item>
-            <Form.Item
-              name="targetCompanySize"
-              label="Target Company Size"
-            >
-              <Select placeholder="Select company size">
-                <Option value="1-10">1-10 employees</Option>
-                <Option value="11-50">11-50 employees</Option>
-                <Option value="51-200">51-200 employees</Option>
-                <Option value="201-1000">201-1000 employees</Option>
-                <Option value="1000+">1000+ employees</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="targetPainPoints"
-              label="Target Pain Points"
-            >
-              <Select 
-                mode="tags" 
-                placeholder="Add pain points..."
-                options={painPoints.map(point => ({ value: point, label: point }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="targetGoals"
-              label="Target Goals"
-            >
-              <Select 
-                mode="tags" 
-                placeholder="Add goals..."
-                options={[
-                  'Increase Revenue',
-                  'Reduce Costs',
-                  'Improve Efficiency',
-                  'Boost Engagement',
-                  'Scale Operations'
-                ].map(goal => ({ value: goal, label: goal }))}
-              />
-            </Form.Item>
-          </div>
 
-          <Divider />
-
-          <Form.Item
-            name="valueProposition"
-            label={
-              <span>
-                Your Value Proposition{' '}
-                <Tooltip title="What specific benefit do you offer this type of prospect?">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </span>
-            }
-            rules={[{ required: true, message: 'Please input your value proposition!' }]}
-          >
-            <TextArea 
-              rows={3} 
-              placeholder="e.g., We help [target role] in [industry] achieve [specific outcome] by [your unique approach]"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="uniqueDifferentiator"
-            label="Unique Differentiator"
-            tooltip="What makes your offering stand out?"
-          >
-            <TextArea 
-              rows={2} 
-              placeholder="e.g., Our proprietary AI technology delivers 3x faster results"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="socialProof"
-            label="Social Proof"
-            tooltip="Add credibility with results or testimonials"
-          >
-            <TextArea 
-              rows={2} 
-              placeholder="e.g., Helped 50+ SaaS companies increase conversion rates by 30%"
-            />
-          </Form.Item>
-        </Panel>
-
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <LinkOutlined className="mr-2" />
-              <span className="font-medium">Advanced Options</span>
-            </div>
-          } 
-          key="4"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item
-              name="phone"
-              label="Your Phone Number"
-            >
-              <Input placeholder="+1 (555) 123-4567" />
-            </Form.Item>
-            <Form.Item
-              name="linkedIn"
-              label="LinkedIn URL"
-            >
-              <Input 
-                prefix={<LinkOutlined />} 
-                placeholder="https://linkedin.com/in/yourprofile" 
-              />
-            </Form.Item>
-            <Form.Item
-              name="companyAddress"
-              label="Your Company Address"
-              tooltip="Including an address can increase trust"
-            >
-              <Input placeholder="123 Main St, City, State" />
-            </Form.Item>
-            <Form.Item
-              name="callToAction"
-              label="Desired Next Step"
-              initialValue="call"
-            >
-              <Select placeholder="Select preferred action">
-                <Option value="call">Schedule a call</Option>
-                <Option value="demo">Book a demo</Option>
-                <Option value="coffee">Coffee meeting</Option>
-                <Option value="lunch">Lunch meeting</Option>
-                <Option value="reply">Just get a reply</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="meetingType"
-              label="Meeting Type"
-            >
-              <Select placeholder="Select meeting type">
-                <Option value="call">Phone Call</Option>
-                <Option value="demo">Demo</Option>
-                <Option value="coffee">Coffee Meeting</Option>
-                <Option value="lunch">Lunch Meeting</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="urgencyFactor"
-              label="Urgency Factor"
-            >
-              <Input placeholder="e.g., Limited spots available this month" />
-            </Form.Item>
-            <Form.Item
-              name="subjectLineStyle"
-              label="Subject Line Style"
-            >
-              <Select placeholder="Select style">
-                <Option value="intriguing">Intriguing</Option>
-                <Option value="direct">Direct</Option>
-                <Option value="personal">Personalized</Option>
-                <Option value="benefit">Benefit-focused</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              name="personalizedElement"
-              label="Personalization Element"
-              tooltip="Add specific details about the recipient"
+              name="uniqueDifferentiator"
+              label="Unique Differentiator"
+              tooltip="What makes your offering stand out?"
             >
               <TextArea 
                 rows={2} 
-                placeholder="e.g., I noticed your recent blog post about X"
+                placeholder="e.g., Our proprietary AI technology delivers 3x faster results"
               />
             </Form.Item>
-          </div>
 
-          <Divider />
+            <Form.Item
+              name="socialProof"
+              label="Social Proof"
+              tooltip="Add credibility with results or testimonials"
+            >
+              <TextArea 
+                rows={2} 
+                placeholder="e.g., Helped 50+ SaaS companies increase conversion rates by 30%"
+              />
+            </Form.Item>
+          </Panel>
 
-          <Title level={5} className="mb-2">Referral Information (Optional)</Title>
-          <Text type="secondary" className="block mb-4">
-            Only needed if using referral/forwarding angle
-          </Text>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              name="referrerFirstName"
-              label="Referrer's First Name"
-            >
-              <Input placeholder="First name" />
-            </Form.Item>
-            <Form.Item
-              name="referrerLastName"
-              label="Referrer's Last Name"
-            >
-              <Input placeholder="Last name" />
-            </Form.Item>
-            <Form.Item
-              name="referrerJobTitle"
-              label="Referrer's Job Title"
-            >
-              <Input placeholder="e.g., CEO" />
-            </Form.Item>
-            <Form.Item
-              name="referrerEmail"
-              label="Referrer's Email Address"
-            >
-              <Input placeholder="referrer@company.com" />
-            </Form.Item>
-            <Form.Item
-              name="referrerRelationship"
-              label="Referrer Relationship"
-            >
-              <Input placeholder="e.g., Former colleague" />
-            </Form.Item>
-          </div>
-        </Panel>
-
-        <Panel 
-          header={
-            <div className="flex items-center">
-              <SolutionOutlined className="mr-2" />
-              <span className="font-medium">Templates</span>
-            </div>
-          } 
-          key="5"
-        >
-          <Button
-            type="primary"
-            onClick={fetchTemplates}
-            loading={templatesLoading}
+          <Panel 
+            header={
+              <div className="flex items-center">
+                <LinkOutlined className="mr-2" />
+                <span className="font-medium">Advanced Options</span>
+              </div>
+            } 
+            key="4"
           >
-            Load Saved Templates
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                name="phone"
+                label="Your Phone Number"
+              >
+                <Input placeholder="+1 (555) 123-4567" />
+              </Form.Item>
+              <Form.Item
+                name="linkedIn"
+                label="LinkedIn URL"
+              >
+                <Input 
+                  prefix={<LinkOutlined />} 
+                  placeholder="https://linkedin.com/in/yourprofile" 
+                />
+              </Form.Item>
+              <Form.Item
+                name="companyAddress"
+                label="Your Company Address"
+                tooltip="Including an address can increase trust"
+              >
+                <Input placeholder="123 Main St, City, State" />
+              </Form.Item>
+              <Form.Item
+                name="callToAction"
+                label="Desired Next Step"
+              >
+                <Select placeholder="Select preferred action">
+                  <Option value="call">Schedule a call</Option>
+                  <Option value="demo">Book a demo</Option>
+                  <Option value="coffee">Coffee meeting</Option>
+                  <Option value="lunch">Lunch meeting</Option>
+                  <Option value="reply">Just get a reply</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="meetingType"
+                label="Meeting Type"
+              >
+                <Select placeholder="Select meeting type">
+                  <Option value="call">Phone Call</Option>
+                  <Option value="demo">Demo</Option>
+                  <Option value="coffee">Coffee Meeting</Option>
+                  <Option value="lunch">Lunch Meeting</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="urgencyFactor"
+                label="Urgency Factor"
+              >
+                <Input placeholder="e.g., Limited spots available this month" />
+              </Form.Item>
+              <Form.Item
+                name="subjectLineStyle"
+                label="Subject Line Style"
+              >
+                <Select placeholder="Select style">
+                  <Option value="intriguing">Intriguing</Option>
+                  <Option value="direct">Direct</Option>
+                  <Option value="personal">Personalized</Option>
+                  <Option value="benefit">Benefit-focused</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="personalizedElement"
+                label="Personalization Element"
+                tooltip="Add specific details about the recipient"
+              >
+                <TextArea 
+                  rows={2} 
+                  placeholder="e.g., I noticed your recent blog post about X"
+                />
+              </Form.Item>
+            </div>
+
+            <Divider />
+
+            <Title level={5} className="mb-2">Referral Information (Optional)</Title>
+            <Text type="secondary" className="block mb-4">
+              Only needed if using referral/forwarding angle
+            </Text>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                name="referrerFirstName"
+                label="Referrer's First Name"
+              >
+                <Input placeholder="First name" />
+              </Form.Item>
+              <Form.Item
+                name="referrerLastName"
+                label="Referrer's Last Name"
+              >
+                <Input placeholder="Last name" />
+              </Form.Item>
+              <Form.Item
+                name="referrerJobTitle"
+                label="Referrer's Job Title"
+              >
+                <Input placeholder="e.g., CEO" />
+              </Form.Item>
+              <Form.Item
+                name="referrerEmail"
+                label="Referrer's Email Address"
+              >
+                <Input placeholder="referrer@company.com" />
+              </Form.Item>
+              <Form.Item
+                name="referrerRelationship"
+                label="Referrer Relationship"
+              >
+                <Input placeholder="e.g., Former colleague" />
+              </Form.Item>
+            </div>
+          </Panel>
+
+          <Panel 
+            header={
+              <div className="flex items-center">
+                <SolutionOutlined className="mr-2" />
+                <span className="font-medium">Templates</span>
+              </div>
+            } 
+            key="5"
+          >
+            <Button
+              type="primary"
+              onClick={fetchTemplates}
+              loading={templatesLoading}
+            >
+              Load Saved Templates
+            </Button>
+          </Panel>
+        </Collapse>
+
+        {/* ✅ Submit button is now inside the Form */}
+        <div className="text-center mt-6">
+          <Button 
+            type="primary" 
+            size="large" 
+            htmlType="submit"
+            loading={loading}
+            icon={<ArrowRightOutlined />}
+            className="min-w-48"
+          >
+            {loading ? 'Generating AI Email...' : 'Generate AI Email'}
           </Button>
-        </Panel>
-      </Collapse>
+        </div>
+      </Form>
 
       <Modal
         title="Saved Templates"
@@ -1038,158 +1114,146 @@ const fetchTemplates = async () => {
         />
       </Modal>
 
-      <div className="text-center mt-6">
-        <Button 
-          type="primary" 
-          size="large" 
-          htmlType="submit"
-          loading={loading}
-          icon={<ArrowRightOutlined />}
-          onClick={() => form.submit()}
-          className="min-w-48"
-        >
-          {loading ? 'Generating AI Email...' : 'Generate AI Email'}
-        </Button>
-      </div>
-
-     {generatedEmails.length > 0 && (
-  <div className="mt-8">
-    {generatedEmails.map((email, index) => {
-      // Show optimized version if available, otherwise show original
-      const displayEmail = optimizedEmails[index] || email;
-      const isOptimizationLoading = optimizationLoading[index] || false;
-      
-      return (
-        <Card key={index} className="mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <Title level={4}>
-              Generated Email {index + 1}
-              {optimizedEmails[index] && (
-                <Tag color="green" className="ml-2">
-                  Optimized for {optimizedEmails[index].metadata?.optimizationType}
-                </Tag>
-              )}
-            </Title>
-            <Space>
-              <Button 
-                onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'personalization')}
-                loading={isOptimizationLoading}
-                disabled={loading}
-              >
-                Optimize Personalization
-              </Button>
-              <Button 
-                onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'value')}
-                loading={isOptimizationLoading}
-                disabled={loading}
-              >
-                Optimize Value
-              </Button>
-              <Button 
-                icon={<DownloadOutlined />}
-                onClick={() => downloadEmail(displayEmail)}
-                disabled={loading}
-              >
-                Download
-              </Button>
-              <Button 
-                type="primary" 
-                onClick={() => copyToClipboard(`${displayEmail.subject}\n\n${displayEmail.body}\n\n${displayEmail.signature}`)}
-                disabled={loading}
-              >
-                Copy to Clipboard
-              </Button>
-            </Space>
-          </div>
-          
-          {/* Show optimization status */}
-          {optimizedEmails[index] && (
-            <Alert
-              message="Email Optimized"
-              description={`This email has been optimized for ${optimizedEmails[index].metadata?.optimizationType}. Showing the optimized version below.`}
-              type="success"
-              showIcon
-              className="mb-4"
-              action={
-                <Button 
-                  size="small" 
-                  onClick={() => {
-                    // Remove optimization to show original
-                    setOptimizedEmails(prev => {
-                      const newState = { ...prev };
-                      delete newState[index];
-                      return newState;
-                    });
-                  }}
-                >
-                  Show Original
-                </Button>
-              }
-            />
-          )}
-          
-          <Alert 
-            message="Pro Tip" 
-            description={
-              <div>
-                <p>Personalize this further by:</p>
-                <ul className="list-disc pl-5">
-                  <li>Adding specific details about the recipient company</li>
-                  <li>Referencing recent news about their industry</li>
-                  <li>Including a personalized compliment</li>
-                  <li>Mentioning mutual connections if any</li>
-                </ul>
-              </div>
-            } 
-            type="info" 
-            showIcon 
-            className="mb-4"
-          />
-          
-          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-            <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-              Subject: {displayEmail.subject}
-              {'\n\n'}
-              {displayEmail.body}
-              {'\n\n'}
-              {displayEmail.signature}
-            </pre>
-          </div>
-          
-          {displayEmail.followUpSequence && displayEmail.followUpSequence.length > 0 && (
-            <>
-              <Divider />
-              <Title level={5} className="mb-2">Follow-Up Sequence</Title>
-              <List
-                grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
-                dataSource={displayEmail.followUpSequence}
-                renderItem={(followUp: GeneratedEmail) => (
-                  <List.Item>
-                    <Card>
-                      <Title level={5} className="flex items-center">
-                        <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">
-                          {followUp.metadata?.sequenceNumber || 1}
-                        </span>
-                        Follow-Up (Day {followUp.metadata?.dayInterval || 1})
-                      </Title>
-                      <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-                        Subject: {followUp.subject}
-                        {'\n\n'}
-                        {followUp.body}
-                        {'\n\n'}
-                        {followUp.signature}
-                      </pre>
-                    </Card>
-                  </List.Item>
+      {generatedEmails.length > 0 && (
+        <div id="email-results" className="mt-8">
+          {generatedEmails.map((email, index) => {
+            console.log(`🔍 Rendering email ${index + 1}:`, email);
+            
+            // Show optimized version if available, otherwise show original
+            const displayEmail = optimizedEmails[index] || email;
+            const isOptimizationLoading = optimizationLoading[index] || false;
+            
+            return (
+              <Card key={index} className="mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <Title level={4}>
+                    Generated Email {index + 1}
+                    {optimizedEmails[index] && (
+                      <Tag color="green" className="ml-2">
+                        Optimized for {optimizedEmails[index].metadata?.optimizationType}
+                      </Tag>
+                    )}
+                  </Title>
+                  <Space>
+                    <Button 
+                      onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'personalization')}
+                      loading={isOptimizationLoading}
+                      disabled={loading}
+                    >
+                      Optimize Personalization
+                    </Button>
+                    <Button 
+                      onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'value')}
+                      loading={isOptimizationLoading}
+                      disabled={loading}
+                    >
+                      Optimize Value
+                    </Button>
+                    <Button 
+                      icon={<DownloadOutlined />}
+                      onClick={() => downloadEmail(displayEmail)}
+                      disabled={loading}
+                    >
+                      Download
+                    </Button>
+                    <Button 
+                      type="primary" 
+                      onClick={() => copyToClipboard(`${displayEmail.subject}\n\n${displayEmail.body}\n\n${displayEmail.signature}`)}
+                      disabled={loading}
+                    >
+                      Copy to Clipboard
+                    </Button>
+                  </Space>
+                </div>
+                
+                {/* Show optimization status */}
+                {optimizedEmails[index] && (
+                  <Alert
+                    message="Email Optimized"
+                    description={`This email has been optimized for ${optimizedEmails[index].metadata?.optimizationType}. Showing the optimized version below.`}
+                    type="success"
+                    showIcon
+                    className="mb-4"
+                    action={
+                      <Button 
+                        size="small" 
+                        onClick={() => {
+                          // Remove optimization to show original
+                          setOptimizedEmails(prev => {
+                            const newState = { ...prev };
+                            delete newState[index];
+                            return newState;
+                          });
+                        }}
+                      >
+                        Show Original
+                      </Button>
+                    }
+                  />
                 )}
-              />
-            </>
-          )}
-        </Card>
-      );
-    })}
-  </div>
-)}
+                
+                <Alert 
+                  message="Pro Tip" 
+                  description={
+                    <div>
+                      <p>Personalize this further by:</p>
+                      <ul className="list-disc pl-5">
+                        <li>Adding specific details about the recipient company</li>
+                        <li>Referencing recent news about their industry</li>
+                        <li>Including a personalized compliment</li>
+                        <li>Mentioning mutual connections if any</li>
+                      </ul>
+                    </div>
+                  } 
+                  type="info" 
+                  showIcon 
+                  className="mb-4"
+                />
+                
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                    Subject: {displayEmail.subject}
+                    {'\n\n'}
+                    {displayEmail.body}
+                    {'\n\n'}
+                    {displayEmail.signature}
+                  </pre>
+                </div>
+                
+                {displayEmail.followUpSequence && displayEmail.followUpSequence.length > 0 && (
+                  <>
+                    <Divider />
+                    <Title level={5} className="mb-2">Follow-Up Sequence</Title>
+                    <List
+                      grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
+                      dataSource={displayEmail.followUpSequence}
+                      renderItem={(followUp: GeneratedEmail) => (
+                        <List.Item>
+                          <Card>
+                            <Title level={5} className="flex items-center">
+                              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">
+                                {followUp.metadata?.sequenceNumber || 1}
+                              </span>
+                              Follow-Up (Day {followUp.metadata?.dayInterval || 1})
+                            </Title>
+                            <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                              Subject: {followUp.subject}
+                              {'\n\n'}
+                              {followUp.body}
+                              {'\n\n'}
+                              {followUp.signature}
+                            </pre>
+                          </Card>
+                        </List.Item>
+                      )}
+                    />
+                  </>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

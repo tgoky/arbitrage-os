@@ -273,7 +273,7 @@ export class ColdEmailService {
     const variationPrompt = `${basePrompt}\n\nGenerate email variation #${variation}. Make it unique while maintaining the core message.`;
     
     const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-sonnet',
+      model: 'anthropic/claude-3-haiku',
       messages: [
         {
           role: 'system',
