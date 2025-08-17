@@ -10,12 +10,13 @@ import {
   InfoCircleOutlined,
   SaveOutlined,
   DownloadOutlined,
-  CompareArrowsOutlined,
+
   BulbOutlined,
   TrophyOutlined,
   BookOutlined,
   FileTextOutlined,
-  PresentationChartLineOutlined,
+
+    BarChartOutlined,
   ContainerOutlined,
   BankOutlined
 } from '@ant-design/icons';
@@ -620,7 +621,7 @@ const PricingCalculator = () => {
                       Proposal
                     </Button>
                     <Button 
-                      icon={<PresentationChartLineOutlined />} 
+                      icon={<  BarChartOutlined />} 
                       onClick={() => handleExport('presentation')}
                     >
                       Presentation

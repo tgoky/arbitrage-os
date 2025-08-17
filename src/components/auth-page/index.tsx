@@ -8,10 +8,9 @@ import Link from "next/link";
 
 export const AuthPage = (props: AuthPageProps) => {
   const [showCreds, setShowCreds] = useState(false);
-  const [activeWindow, setActiveWindow] = useState("auth"); // Tracks active window
+  const [activeWindow, setActiveWindow] = useState("auth");
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Update time every second for the taskbar clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -19,15 +18,6 @@ export const AuthPage = (props: AuthPageProps) => {
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  // Override the AuthPageBase props to handle navigation properly
-  const authProps = {
-    ...props,
-    registerLink: props.type === "login" ? "/register" : undefined,
-    loginLink: props.type === "register" ? "/login" : undefined,
-    // Add forgotPasswordLink if you have a forgot password page
-    // forgotPasswordLink: "/forgot-password",
   };
 
   return (
@@ -245,18 +235,22 @@ export const AuthPage = (props: AuthPageProps) => {
                   </>
                 )}
                 <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-                  <style jsx global>{`
-                    /* Hide Refine's default auth links if they're not working */
-                    .ant-card-actions {
-                      display: none !important;
-                    }
-                  `}</style>
-                  <AuthPageBase {...authProps} />
+                  {/* FIXED: Remove CSS that hides auth buttons and simplify props */}
+                  <AuthPageBase 
+                    {...props}
+                    renderContent={(content: any, title: any) => (
+                      <div>
+                        {title && <h2 className="text-xl font-bold mb-4 text-center">{title}</h2>}
+                        {content}
+                      </div>
+                    )}
+                  />
+                  
                   {/* Add manual navigation links */}
-                  <div className="text-center mt-4">
+                  <div className="text-center mt-4 pt-4 border-t border-gray-300">
                     {props.type === "login" ? (
                       <p className="text-sm">
-                        Dont have an account?{" "}
+                        Do not have an account?{" "}
                         <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
                           Sign up
                         </Link>
@@ -272,7 +266,10 @@ export const AuthPage = (props: AuthPageProps) => {
                   </div>
                 </div>
                 <div className="mt-4 flex justify-between items-center">
-                  <button className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400">
+                  <button 
+                    className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
+                    onClick={() => setActiveWindow("")}
+                  >
                     Cancel
                   </button>
                   <div className="text-xs text-gray-600">Arbitrage-OS v1.0</div>
@@ -282,6 +279,7 @@ export const AuthPage = (props: AuthPageProps) => {
           </div>
         )}
 
+        {/* Other Windows remain the same... */}
         {/* My Computer Window */}
         {activeWindow === "my-computer" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">

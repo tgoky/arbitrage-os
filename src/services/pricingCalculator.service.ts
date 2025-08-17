@@ -33,7 +33,7 @@ export class PricingCalculatorService {
     
     // Generate enhanced strategy with AI
     const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-sonnet',
+      model: 'anthropic/claude-3-haiku',
       messages: [
         {
           role: 'system',
@@ -45,7 +45,7 @@ export class PricingCalculatorService {
         }
       ],
       temperature: 0.7,
-      max_tokens: 4000
+      max_tokens: 2000
     });
 
     const enhancedResults = this.parseAIResponse(response.content, input, baseCalculations);
