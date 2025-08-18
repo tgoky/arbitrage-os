@@ -139,75 +139,70 @@ export class AdWriterService {
     };
   }
 
-  private async generateScriptSections(
-    framework: string,
-    platform: Platform,
-    input: AdGenerationInput
-  ): Promise<{
-    headline: string;
-    hook: string;
-    fix: string;
-    result: string;
-    proof: string;
-    cta: string;
-    tokensUsed: number;
-  }> {
-    const prompt = this.buildScriptSectionPrompt(framework, platform, input);
-    
-    console.log(`🎬 Generating script sections for ${framework} on ${platform}...`);
-    
-    try {
-      const response = await this.openRouterClient.complete({
-        model: 'anthropic/claude-3-haiku',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a world-class direct response copywriter who creates scroll-stopping video script sections like the example:
-
+ private async generateScriptSections(
+  framework: string,
+  platform: Platform,
+  input: AdGenerationInput
+): Promise<{
+  headline: string;
+  hook: string;
+  fix: string;
+  result: string;
+  proof: string;
+  cta: string;
+  tokensUsed: number;
+}> {
+  const prompt = this.buildScriptSectionPrompt(framework, platform, input);
+  
+  console.log(`🎬 Generating script sections for ${framework} on ${platform}...`);
+  
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a world-class direct response copywriter who creates scroll-stopping video script sections like the example:
 "Your funnel isn't broken—it's just missing the 3 growth-strategy bolts that turn clicks into cash."
-
 You create PUNCHY, SPECIFIC, URGENT copy with:
 - Concrete numbers and timeframes
-- Visual metaphors and analogies  
+- Visual metaphors and analogies
 - Urgency and scarcity
 - Specific proof points
 - Action-driving language
+CRITICAL: Return ONLY a valid JSON object with no extra text, markdown, or code fences.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.9,
+      max_tokens: 600
+    });
 
-CRITICAL: Return ONLY the requested format with no extra text.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.9, // Higher creativity for unique copy
-        max_tokens: 600
-      });
-
-      console.log(`📥 Received script sections for ${framework}:`, response.content.substring(0, 100) + '...');
-      
-      const parsed = this.parseScriptSectionResponse(response.content);
-      
-      return {
-        ...parsed,
-        tokensUsed: response.usage.total_tokens
-      };
-      
-    } catch (error) {
-      console.error(`❌ AI call failed for ${framework}:`, error);
-      
-      // Return a compelling fallback that's still personalized
-      return {
-        headline: `${input.coreResult} in 40 Days - ${input.businessName}`,
-        hook: `Your ${input.primaryPainPoint.toLowerCase()} isn't broken—it's just missing the 3 growth bolts.`,
-        fix: `We install those bolts in 40 days with ${input.uniqueMechanism}.`,
-        result: `Result: ${input.coreResult}, 10+ extra hours weekly, and a business that finally respects you.`,
-        proof: `One client used this system and saw ${input.coreResult} in just 36 days.`,
-        cta: `${input.cta} at ${input.url}. Timer's ticking.`,
-        tokensUsed: 0
-      };
-    }
+    console.log(`📥 Received script sections for ${framework}:`, response.content.substring(0, 100) + '...');
+    
+    const parsed = this.parseScriptSectionResponse(response.content, input); // Pass input here
+    
+    return {
+      ...parsed,
+      tokensUsed: response.usage.total_tokens
+    };
+  } catch (error) {
+    console.error(`❌ AI call failed for ${framework}:`, error);
+    return {
+      headline: `${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}`,
+      hook: `Struggling with ${input.primaryPainPoint.toLowerCase()}? ${input.uniqueMechanism} changes that.`,
+      fix: `Our ${input.offerName} delivers ${input.coreResult} in ${input.timeline || 'weeks'}.`,
+      result: `Result: ${input.coreResult} for ${input.idealCustomer.toLowerCase()}.`,
+      proof: `${input.caseStudy1 || 'Proven results with real clients'}.`,
+      cta: `${input.cta} at ${input.url} now.`,
+      tokensUsed: 0
+    };
   }
+}
+
 
 private buildScriptSectionPrompt(framework: string, platform: Platform, input: AdGenerationInput): string {
   const businessContext = `
@@ -226,52 +221,56 @@ ${input.urgency ? `- Urgency: ${input.urgency}` : ''}
 ${input.caseStudy1 ? `- Proof: ${input.caseStudy1}` : ''}
   `;
 
-  // ✅ NO TEMPLATES - Just use their actual data as the example
-  const personalizedExample = `Your ${input.primaryPainPoint.toLowerCase()} isn't permanent—it's missing ${input.uniqueMechanism.toLowerCase()} that delivers ${input.coreResult.toLowerCase()}.`;
+  const personalizedExample = `{
+    "headline": "${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}",
+    "hook": "Your ${input.primaryPainPoint.toLowerCase()} isn't permanent—it's missing ${input.uniqueMechanism.toLowerCase()}.",
+    "fix": "We deliver ${input.coreResult} with ${input.uniqueMechanism} in ${input.timeline || 'weeks'}.",
+    "result": "Result: ${input.coreResult} and transformed ${input.idealCustomer.toLowerCase()} business.",
+    "proof": "${input.caseStudy1 || 'Proven results with real clients'}.",
+    "cta": "${input.cta} at ${input.url} now."
+  }`;
 
-  // ✅ Handle platform optimization
   const platformContext = platform === 'generic' 
-    ? 'Create high-converting ad script sections that work across all platforms'
-    : `Create a high-converting ${platform} script optimized for that platform's audience`;
+    ? 'Create high-converting ad script sections for any platform'
+    : `Create high-converting ${platform} script optimized for its audience`;
 
-  // ✅ Framework-specific guidance with personalization
   const frameworkGuidance = this.getFrameworkGuidance(framework, input);
 
-  return `${businessContext}
+  return `
+**Instructions**:
+- Generate ad script sections using the ${framework} framework.
+- Return **only a valid JSON object** with no markdown, code fences (e.g., \`\`\`json), or extra text.
+- Use the EXACT business data provided below for personalized, punchy copy.
+- Match the tone: ${input.tone}.
+- Incorporate specific pain point (${input.primaryPainPoint}), unique mechanism (${input.uniqueMechanism}), and result (${input.coreResult}).
 
-${platformContext} using the ${framework} framework.
+${businessContext}
+
+${platformContext}
 
 ${frameworkGuidance}
 
-Create PUNCHY, SPECIFIC copy like this personalized example:
-"${personalizedExample}"
+**Example Output** (for reference, do not include):
+${personalizedExample}
 
-CRITICAL REQUIREMENTS:
-- Use the EXACT business name: "${input.businessName}"
-- Reference their SPECIFIC pain point: "${input.primaryPainPoint}"
-- Mention their UNIQUE mechanism: "${input.uniqueMechanism}"
-- Promise their EXACT result: "${input.coreResult}"
-- Include their ACTUAL pricing: "${input.pricing}"
-- Use their REAL case study data: "${input.caseStudy1 || 'proven results'}"
-- Write for their SPECIFIC target: "${input.idealCustomer}"
+**JSON Format**:
+{
+  "headline": "string",
+  "hook": "string",
+  "fix": "string",
+  "result": "string",
+  "proof": "string",
+  "cta": "string"
+}
 
-Return in this EXACT format:
-
-HEADLINE: [attention-grabbing headline using their business name, specific result, and timeframe]
-HOOK: [scroll-stopping opening that reframes THEIR specific pain point with THEIR unique mechanism]
-FIX: [how THEIR specific offer solves THEIR problem in THEIR timeframe]
-RESULT: [THEIR specific outcomes with THEIR numbers and transformation]
-PROOF: [THEIR specific case study or proof point with actual numbers]
-CTA: [urgent call-to-action using THEIR exact CTA and urgency]
-
-Make each section:
-- Use THEIR actual business data (not generic templates)
-- Reference THEIR specific audience pain points
-- Mention THEIR unique differentiators
-- Include THEIR real numbers and timeframes
-- Match THEIR specified tone: ${input.tone}
-
-NO generic "3 accelerators" or template phrases. Use THEIR specific business details in every section.`;
+**Requirements**:
+- Use ${input.businessName}, ${input.primaryPainPoint}, ${input.uniqueMechanism}, ${input.coreResult}.
+- Include ${input.pricing} and ${input.caseStudy1 || 'proven results'}.
+- Write for ${input.idealCustomer}.
+- Use specific numbers/timeframes from ${input.timeline || 'weeks'}.
+- Avoid generic phrases like "3 accelerators" or "proven system."
+- Return only the JSON object.
+`;
 }
 
 // ✅ Enhanced framework guidance that uses actual business data
@@ -295,52 +294,36 @@ private getFrameworkGuidance(framework: string, input: AdGenerationInput): strin
   return frameworkMap[framework] || `Structure a compelling transformation story using their specific business details: ${input.businessName}, ${input.uniqueMechanism}, ${input.coreResult}.`;
 }
 
-  private parseScriptSectionResponse(content: string): {
-    headline: string;
-    hook: string;
-    fix: string;
-    result: string;
-    proof: string;
-    cta: string;
-  } {
-    const lines = content.split('\n').filter(line => line.trim());
-    
-    let headline = '';
-    let hook = '';
-    let fix = '';
-    let result = '';
-    let proof = '';
-    let cta = '';
-    
-    for (const line of lines) {
-      if (line.startsWith('HEADLINE:')) {
-        headline = line.replace('HEADLINE:', '').trim();
-      } else if (line.startsWith('HOOK:')) {
-        hook = line.replace('HOOK:', '').trim();
-      } else if (line.startsWith('FIX:')) {
-        fix = line.replace('FIX:', '').trim();
-      } else if (line.startsWith('RESULT:')) {
-        result = line.replace('RESULT:', '').trim();
-      } else if (line.startsWith('PROOF:')) {
-        proof = line.replace('PROOF:', '').trim();
-      } else if (line.startsWith('CTA:')) {
-        cta = line.replace('CTA:', '').trim();
-      }
+private parseScriptSectionResponse(content: string, input: AdGenerationInput): {
+  headline: string;
+  hook: string;
+  fix: string;
+  result: string;
+  proof: string;
+  cta: string;
+} {
+  try {
+    console.log('Raw AI response:', content);
+    const parsed = JSON.parse(content);
+    if (!parsed.headline || !parsed.hook || !parsed.fix || !parsed.result || !parsed.proof || !parsed.cta) {
+      throw new Error('Incomplete JSON structure');
     }
-    
-    // Fallback if parsing fails
-    if (!headline || !hook || !fix || !result || !proof || !cta) {
-      const fullContent = content.replace(/\n/g, ' ').trim();
-      headline = headline || fullContent.substring(0, 60) + '...';
-      hook = hook || fullContent.substring(0, 80) + '...';
-      fix = fix || 'We fix this with our proven system.';
-      result = result || 'Result: Transform your business in 40 days.';
-      proof = proof || 'One client saw amazing results in 36 days.';
-      cta = cta || 'Book a call now. Spots are limited.';
-    }
-    
-    return { headline, hook, fix, result, proof, cta };
+    return parsed;
+  } catch (error) {
+    console.error('JSON parsing error:', error, 'Raw content:', content);
+    return {
+      headline: `${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}`,
+      hook: `Struggling with ${input.primaryPainPoint.toLowerCase()}? ${input.uniqueMechanism} changes that.`,
+      fix: `Our ${input.offerName} delivers ${input.coreResult} in ${input.timeline || 'weeks'}.`,
+      result: `Result: ${input.coreResult} for ${input.idealCustomer.toLowerCase()}.`,
+      proof: `${input.caseStudy1 || 'Proven results with real clients'}.`,
+      cta: `${input.cta} at ${input.url} now.`,
+    };
   }
+}
+
+
+
 
   // ✅ FIXED: Add 'generic' platform to visual suggestions
   private async generateVisualSuggestions(platform: Platform, input: AdGenerationInput): Promise<string[]> {
@@ -466,7 +449,7 @@ private getFrameworkGuidance(framework: string, input: AdGenerationInput): strin
     }
 
     const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-haiku',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',

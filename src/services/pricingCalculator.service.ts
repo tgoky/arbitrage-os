@@ -33,7 +33,7 @@ export class PricingCalculatorService {
     
     // Generate enhanced strategy with AI
     const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-haiku',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -750,7 +750,7 @@ async updatePricingCalculation(userId: string, calculationId: string, updates: P
       const comparisonPrompt = this.buildComparisonPrompt(scenarioResults);
       
       const response = await this.openRouterClient.complete({
-        model: 'anthropic/claude-3-haiku',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'system',

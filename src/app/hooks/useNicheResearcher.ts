@@ -1,4 +1,5 @@
-// hooks/useNicheResearcher.ts
+
+// hooks/useNicheResearcher.ts - SIMPLIFIED VERSION (matching working pattern)
 import { useState } from 'react';
 import { message } from 'antd';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
@@ -24,6 +25,43 @@ export function useNicheResearcher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ Simplified API call (exactly same as cold email)
+  const handleApiCall = async <T>(
+    url: string, 
+    options: RequestInit,
+    errorMessage: string = 'Operation failed'
+  ): Promise<T> => {
+    try {
+      console.log(`Making API call to: ${url}`);
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+
+      console.log(`API Response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorMessage);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || errorMessage);
+      }
+
+      return data.data;
+    } catch (err) {
+      console.error(`API Error for ${url}:`, err);
+      throw err;
+    }
+  };
+
   const generateNicheReport = async (input: NicheResearchInput): Promise<{
     reportId: string;
     report: GeneratedNicheReport;
@@ -32,26 +70,29 @@ export function useNicheResearcher() {
     setError(null);
     
     try {
-      const response = await fetch('/api/niche-research', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-
-      const result = await response.json();
+      console.log('Generating niche report with input:', input);
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate niche report');
-      }
+      const response = await handleApiCall<{
+        reportId: string;
+        report: GeneratedNicheReport;
+      }>(
+        '/api/niche-research',
+        {
+          method: 'POST',
+          body: JSON.stringify(input)
+        },
+        'Failed to generate niche report'
+      );
 
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || 'Generation failed');
-      }
+      console.log('✅ Received response from API:', response);
+      
+      message.success('Niche report generated successfully!');
+      return response;
     } catch (err) {
+      console.error('❌ Generate niche report error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Generation failed';
       setError(errorMessage);
+      message.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -63,14 +104,11 @@ export function useNicheResearcher() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/niche-research/${reportId}`);
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch report');
-      }
-
-      return result.data;
+      return await handleApiCall<any>(
+        `/api/niche-research/${reportId}`,
+        { method: 'GET' },
+        'Failed to fetch report'
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch report';
       setError(errorMessage);
@@ -85,14 +123,13 @@ export function useNicheResearcher() {
       const params = new URLSearchParams();
       if (workspaceId) params.set('workspaceId', workspaceId);
 
-      const response = await fetch(`/api/niche-research?${params.toString()}`);
-      const result = await response.json();
+      const url = `/api/niche-research${params.toString() ? `?${params.toString()}` : ''}`;
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch reports');
-      }
-
-      return result.data;
+      return await handleApiCall<NicheReportSummary[]>(
+        url,
+        { method: 'GET' },
+        'Failed to fetch reports'
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch reports';
       message.error(errorMessage);
@@ -102,15 +139,11 @@ export function useNicheResearcher() {
 
   const deleteNicheReport = async (reportId: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/niche-research/${reportId}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete report');
-      }
+      await handleApiCall<void>(
+        `/api/niche-research/${reportId}`,
+        { method: 'DELETE' },
+        'Failed to delete report'
+      );
 
       message.success('Report deleted successfully');
     } catch (err) {
@@ -120,43 +153,45 @@ export function useNicheResearcher() {
     }
   };
 
- const exportNicheReport = async (
-  reportId: string, 
-  format: 'html' | 'json' = 'html'
-): Promise<void> => {
-  try {
-    const response = await fetch(`/api/niche-research/export/${reportId}?format=${format}`);
-    
-    if (!response.ok) {
-      const result = await response.json();
-      throw new Error(result.error || 'Export failed');
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    
+  const exportNicheReport = async (
+    reportId: string, 
+    format: 'html' | 'json' = 'html'
+  ): Promise<void> => {
     try {
-      a.href = url;
-      a.download = `niche-research-report-${reportId}.${format === 'json' ? 'json' : 'html'}`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-    } finally {
-      // Cleanup always happens
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const response = await fetch(`/api/niche-research/export/${reportId}?format=${format}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      
+      try {
+        a.href = url;
+        a.download = `niche-research-report-${reportId}.${format === 'json' ? 'json' : 'html'}`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+      } finally {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+
+      message.success('Report exported successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Export failed';
+      message.error(errorMessage);
+      throw err;
     }
-
-    message.success('Report exported successfully');
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Export failed';
-    message.error(errorMessage);
-    throw err;
-  }
-};
-
-
+  };
 
   const analyzeMarket = async (options: {
     niche: string;
@@ -166,19 +201,14 @@ export function useNicheResearcher() {
     analysisType?: 'competitive' | 'opportunity' | 'validation';
   }) => {
     try {
-      const response = await fetch('/api/niche-research/market-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(options)
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Market analysis failed');
-      }
-
-      return result.data;
+      return await handleApiCall<any>(
+        '/api/niche-research/market-analysis',
+        {
+          method: 'POST',
+          body: JSON.stringify(options)
+        },
+        'Market analysis failed'
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Market analysis failed';
       message.error(errorMessage);
@@ -191,14 +221,13 @@ export function useNicheResearcher() {
       const params = new URLSearchParams();
       if (category) params.set('category', category);
 
-      const response = await fetch(`/api/niche-research/skills-suggestions?${params.toString()}`);
-      const result = await response.json();
+      const url = `/api/niche-research/skills-suggestions${params.toString() ? `?${params.toString()}` : ''}`;
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch skills');
-      }
-
-      return result.data;
+      return await handleApiCall<any>(
+        url,
+        { method: 'GET' },
+        'Failed to fetch skills'
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch skills';
       message.error(errorMessage);

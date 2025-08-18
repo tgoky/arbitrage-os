@@ -22,17 +22,17 @@ export class NicheResearcherService {
     workspaceId: string
   ): Promise<{
     report: GeneratedNicheReport;
-    deliverableId: string;
+    reportId: string;
   }> {
     // Generate report using existing method
     const report = await this.generateNicheReport(input);
     
     // Save to deliverables
-    const deliverableId = await this.saveNicheReport(userId, workspaceId, report, input);
+    const reportId = await this.saveNicheReport(userId, workspaceId, report, input);
     
     return {
       report,
-      deliverableId
+      reportId,
     };
   }
 
@@ -51,7 +51,7 @@ export class NicheResearcherService {
     
     // Generate report using AI
     const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-sonnet',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -379,176 +379,182 @@ export class NicheResearcherService {
   }
 
   // EXISTING METHODS - unchanged but with better typing
-  private buildNicheAnalysisPrompt(input: NicheResearchInput): string {
-    return `
-    NICHE RESEARCH & OPPORTUNITY ANALYSIS REQUEST
+private buildNicheAnalysisPrompt(input: NicheResearchInput): string {
+  return `
+  **Instructions**:
+  - Generate a comprehensive niche research report based on the provided input.
+  - Return the response **strictly as a JSON object** with no additional text, markdown, code fences (e.g., \`\`\`json), or explanations. The response must be valid JSON that can be parsed directly.
+  - Ensure the report is tailored to the user's background, constraints, and market insights, using dynamic data and calculated values (e.g., confidenceScore based on skill-interest alignment).
+  
+  **Input**:
+  PROFESSIONAL BACKGROUND:
+  - Past Roles & Industries: ${input.roles}
+  - Core Skills: ${input.skills.join(', ')}
+  - Unique Competencies: ${input.competencies}
 
-    PROFESSIONAL BACKGROUND:
-    - Past Roles & Industries: ${input.roles}
-    - Core Skills: ${input.skills.join(', ')}
-    - Unique Competencies: ${input.competencies}
+  PERSONAL PROFILE:
+  - Interests & Passions: ${input.interests}
+  - Strategic Network: ${input.connections}
+  - Audience Access: ${input.audienceAccess || 'Not specified'}
 
-    PERSONAL PROFILE:
-    - Interests & Passions: ${input.interests}
-    - Strategic Network: ${input.connections}
-    - Audience Access: ${input.audienceAccess || 'Not specified'}
+  MARKET INSIGHTS:
+  - Observed Problems: ${input.problems}
+  - Emerging Trends of Interest: ${input.trends}
 
-    MARKET INSIGHTS:
-    - Observed Problems: ${input.problems}
-    - Emerging Trends of Interest: ${input.trends}
+  CONSTRAINTS & RESOURCES:
+  - Time Available: ${input.time} hours per week
+  - Startup Budget: ${input.budget}
+  - Location Preference: ${input.location}
+  - Other Constraints: ${input.otherConstraints || 'None specified'}
 
-    CONSTRAINTS & RESOURCES:
-    - Time Available: ${input.time} hours per week
-    - Startup Budget: ${input.budget}
-    - Location Preference: ${input.location}
-    - Other Constraints: ${input.otherConstraints || 'None specified'}
-
-    DELIVERABLE REQUIREMENTS:
-    Generate a comprehensive niche research report in JSON format with the following structure:
-
-    {
-      "executiveSummary": "2-3 paragraph overview of the analysis and key recommendations",
-      "recommendedNiches": [
+  **JSON Structure**:
+  {
+    "executiveSummary": "2-3 paragraph overview of the analysis and key recommendations",
+    "recommendedNiches": [
+      {
+        "name": "Specific niche name",
+        "matchScore": number, // 0-100, calculated based on alignment
+        "category": "industry category",
+        "reasons": ["specific reason why this fits the person"],
+        "marketSize": "market size with growth rate",
+        "growthRate": "annual growth percentage",
+        "competition": {
+          "level": "Low|Moderate|High",
+          "score": 1-5,
+          "description": "competitive landscape description"
+        },
+        "resourcesNeeded": ["specific resources required"],
+        "startupCosts": {
+          "min": number,
+          "max": number,
+          "breakdown": [
+            {
+              "category": "cost category",
+              "amount": number,
+              "description": "what this covers"
+            }
+          ]
+        },
+        "timeToMarket": "estimated time to launch",
+        "skillsRequired": ["skills needed"],
+        "networkLeverage": ["how to use existing network"],
+        "riskFactors": ["potential risks"],
+        "monetizationModels": ["revenue strategies"],
+        "targetCustomers": ["ideal customer segments"],
+        "keyMetrics": ["important metrics to track"],
+        "nextSteps": ["immediate actionable steps"]
+      }
+    ],
+    "marketAnalysis": {
+      "trends": [
         {
-          "name": "Specific niche name",
-          "matchScore": number_0_to_100,
-          "category": "industry category",
-          "reasons": ["specific reason why this fits the person"],
-          "marketSize": "market size with growth rate",
-          "growthRate": "annual growth percentage",
-          "competition": {
-            "level": "Low/Moderate/High",
-            "score": number_1_to_5,
-            "description": "competitive landscape description"
-          },
-          "resourcesNeeded": ["specific resources required"],
-          "startupCosts": {
-            "min": minimum_cost_number,
-            "max": maximum_cost_number,
-            "breakdown": [
-              {
-                "category": "cost category",
-                "amount": cost_number,
-                "description": "what this covers"
-              }
-            ]
-          },
-          "timeToMarket": "estimated time to launch",
-          "skillsRequired": ["skills needed"],
-          "networkLeverage": ["how to use existing network"],
-          "riskFactors": ["potential risks"],
-          "monetizationModels": ["revenue strategies"],
-          "targetCustomers": ["ideal customer segments"],
-          "keyMetrics": ["important metrics to track"],
-          "nextSteps": ["immediate actionable steps"]
+          "trend": "market trend",
+          "relevance": "High|Medium|Low",
+          "impact": "how it affects opportunities",
+          "timeline": "when this trend peaks"
         }
       ],
-      "marketAnalysis": {
-        "trends": [
-          {
-            "trend": "market trend",
-            "relevance": "High/Medium/Low",
-            "impact": "how it affects opportunities",
-            "timeline": "when this trend peaks"
-          }
-        ],
-        "gaps": [
-          {
-            "gap": "market gap",
-            "severity": "High/Medium/Low",
-            "opportunity": "how to capitalize"
-          }
-        ],
-        "competitorLandscape": {
-          "overview": "overall competitive situation",
-          "keyPlayers": ["main competitors"],
-          "barriers": ["barriers to entry"],
-          "advantages": ["competitive advantages possible"]
-        }
-      },
-      "personalFit": {
-        "strengths": ["person's key strengths for these niches"],
-        "skillGaps": ["areas needing development"],
-        "networkAdvantages": ["network-based advantages"],
-        "constraintImpacts": [
-          {
-            "constraint": "specific constraint",
-            "impact": "how it affects success",
-            "mitigation": "how to work around it"
-          }
-        ],
-        "confidenceScore": confidence_0_to_100,
-        "developmentAreas": ["skills/areas to focus on developing"]
-      },
-      "actionPlan": {
-        "immediateSteps": ["actions to take this week"],
-        "shortTerm": [
-          {
-            "action": "specific action",
-            "timeline": "when to complete",
-            "resources": ["what's needed"]
-          }
-        ],
-        "longTerm": [
-          {
-            "goal": "long-term objective",
-            "timeline": "target completion",
-            "milestones": ["key milestones"]
-          }
-        ]
-      },
-      "riskAssessment": [
+      "gaps": [
         {
-          "risk": "potential risk",
-          "probability": "High/Medium/Low",
-          "impact": "High/Medium/Low",
-          "mitigation": "how to address"
+          "gap": "market gap",
+          "severity": "High|Medium|Low",
+          "opportunity": "how to capitalize"
         }
       ],
-      "financialProjections": [
+      "competitorLandscape": {
+        "overview": "overall competitive situation",
+        "keyPlayers": ["main competitors"],
+        "barriers": ["barriers to entry"],
+        "advantages": ["competitive advantages possible"]
+      }
+    },
+    "personalFit": {
+      "strengths": ["person's key strengths for these niches"],
+      "skillGaps": ["areas needing development"],
+      "networkAdvantages": ["network-based advantages"],
+      "constraintImpacts": [
         {
-          "niche": "niche name",
-          "timeline": "projection period",
-          "revenue": {
-            "conservative": conservative_estimate,
-            "optimistic": optimistic_estimate,
-            "realistic": realistic_estimate
-          },
-          "costs": estimated_costs,
-          "profitability": net_profit_estimate
+          "constraint": "specific constraint",
+          "impact": "how it affects success",
+          "mitigation": "how to work around it"
+        }
+      ],
+      "confidenceScore": number, // 0-100, calculated dynamically
+      "developmentAreas": ["skills/areas to focus on developing"]
+    },
+    "actionPlan": {
+      "immediateSteps": ["actions to take this week"],
+      "shortTerm": [
+        {
+          "action": "specific action",
+          "timeline": "when to complete",
+          "resources": ["what's needed"]
+        }
+      ],
+      "longTerm": [
+        {
+          "goal": "long-term objective",
+          "timeline": "target completion",
+          "milestones": ["key milestones"]
         }
       ]
-    }
-
-    ANALYSIS REQUIREMENTS:
-    1. Identify 2-3 highly personalized niche opportunities that align with their background
-    2. Consider their constraints (time, budget, location) in recommendations
-    3. Leverage their existing skills and network advantages
-    4. Provide realistic market analysis with current industry data
-    5. Include specific, actionable next steps
-    6. Address their observed problems and trend interests
-    7. Match recommendations to their available resources and time commitment
-    8. Provide financial projections based on their budget category
-
-    Focus on practical, achievable opportunities that build on their existing strengths while addressing real market needs.
-    `;
+    },
+    "riskAssessment": [
+      {
+        "risk": "potential risk",
+        "probability": "High|Medium|Low",
+        "impact": "High|Medium|Low",
+        "mitigation": "how to address"
+      }
+    ],
+    "financialProjections": [
+      {
+        "niche": "niche name",
+        "timeline": "projection period",
+        "revenue": {
+          "conservative": number,
+          "optimistic": number,
+          "realistic": number
+        },
+        "costs": number,
+        "profitability": number
+      }
+    ]
   }
 
-  private parseNicheReportResponse(content: string, input: NicheResearchInput): Omit<GeneratedNicheReport, 'tokensUsed' | 'generationTime'> {
-    try {
-      // Try to parse JSON response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return parsed;
-      }
-    } catch (error) {
-      console.warn('Failed to parse JSON response, generating fallback report');
-    }
+  **ANALYSIS REQUIREMENTS**:
+  1. Identify 2-3 highly personalized niche opportunities that align with the user's background.
+  2. Consider constraints (time, budget, location) in recommendations.
+  3. Leverage existing skills and network advantages.
+  4. Provide realistic market analysis with current industry data.
+  5. Include specific, actionable next steps.
+  6. Address observed problems and trend interests.
+  7. Match recommendations to available resources and time commitment.
+  8. Provide financial projections based on the budget category.
+  9. Calculate confidenceScore dynamically (e.g., 90 for strong skill-interest alignment, 50 for moderate).
 
-    // Fallback to structured parsing if JSON fails
+  **Output**:
+  Return only the JSON object, with no additional text, markdown, or code fences.
+  `;
+}
+ private parseNicheReportResponse(content: string, input: NicheResearchInput): Omit<GeneratedNicheReport, 'tokensUsed' | 'generationTime'> {
+  try {
+    console.log('Raw AI response:', content); // Log for debugging
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate the parsed JSON has required fields
+      if (!parsed.executiveSummary || !parsed.recommendedNiches || !parsed.personalFit) {
+        throw new Error('Incomplete JSON structure');
+      }
+      return parsed;
+    }
+    throw new Error('No JSON found in response');
+  } catch (error) {
+    console.warn('Failed to parse JSON response:', error, 'Raw content:', content);
     return this.generateFallbackReport(input);
   }
+}
 
   private generateFallbackReport(input: NicheResearchInput): Omit<GeneratedNicheReport, 'tokensUsed' | 'generationTime'> {
     const budgetMap = {

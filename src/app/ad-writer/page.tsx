@@ -41,6 +41,11 @@ import {
   notification
 } from 'antd';
 import { useAdWriter, type AdWriterInput, type GeneratedAd } from '../hooks/useAdWriter';
+import { LoadingAnimation, loadingMessages } from './Loading';
+
+
+import { motion, AnimatePresence } from "framer-motion";
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -55,6 +60,7 @@ const AdWriter = () => {
   const [activeTab, setActiveTab] = useState('1');
   const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
   const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
+  const [generatingAds, setGeneratingAds] = useState(false);
   
   // ✅ NEW: Store all form data across steps
   const [formData, setFormData] = useState<any>({});
@@ -135,89 +141,115 @@ const AdWriter = () => {
 
   // ✅ FIXED: Main function to call backend API
   const onFinish = async (values: any) => {
-    try {
-      // Save current step data first
-      saveCurrentStepData();
-      
-      // Combine all saved data with current form values
-      const allData = { ...formData, ...form.getFieldsValue() };
-      
-      console.log('Current form values:', form.getFieldsValue());
-      console.log('Saved form data:', formData);
-      console.log('Combined data:', allData);
-      console.log('Active platforms:', activePlatforms);
+  try {
+    // Show loading animation
+    setGeneratingAds(true);
+    
+    // Save current step data first
+    saveCurrentStepData();
+    
+    // Combine all saved data with current form values
+    const allData = { ...formData, ...form.getFieldsValue() };
+    
+    console.log('Current form values:', form.getFieldsValue());
+    console.log('Saved form data:', formData);
+    console.log('Combined data:', allData);
+    console.log('Active platforms:', activePlatforms);
 
-      // ✅ FIXED: Use combined data for the request
-      const requestData: AdWriterInput = {
-        businessName: allData.businessName || '',
-        personalTitle: allData.personalTitle || '',
-        valueProposition: allData.valueProposition || '',
-        offerName: allData.offerName || '',
-        offerDescription: allData.offerDescription || '',
-        features: allData.features || [],
-        pricing: allData.pricing || '',
-        uniqueMechanism: allData.uniqueMechanism || '',
-        idealCustomer: allData.idealCustomer || '',
-        primaryPainPoint: allData.primaryPainPoint || '',
-        failedSolutions: allData.failedSolutions || '',
-        coreResult: allData.coreResult || '',
-        secondaryBenefits: allData.secondaryBenefits || [],
-        timeline: allData.timeline || '',
-        activePlatforms: activePlatforms, // This comes from state
-        adType: allData.adType || 'conversion',
-        tone: allData.tone || 'professional',
-        caseStudy1: allData.caseStudy1 || '',
-        credentials: allData.credentials || '',
-        cta: allData.cta || '',
-        url: allData.url || '',
-        urgency: allData.urgency || '',
-        leadMagnet: allData.leadMagnet || ''
-      };
+    // ✅ FIXED: Use combined data for the request
+    const requestData: AdWriterInput = {
+      businessName: allData.businessName || '',
+      personalTitle: allData.personalTitle || '',
+      valueProposition: allData.valueProposition || '',
+      offerName: allData.offerName || '',
+      offerDescription: allData.offerDescription || '',
+      features: allData.features || [],
+      pricing: allData.pricing || '',
+      uniqueMechanism: allData.uniqueMechanism || '',
+      idealCustomer: allData.idealCustomer || '',
+      primaryPainPoint: allData.primaryPainPoint || '',
+      failedSolutions: allData.failedSolutions || '',
+      coreResult: allData.coreResult || '',
+      secondaryBenefits: allData.secondaryBenefits || [],
+      timeline: allData.timeline || '',
+      activePlatforms: activePlatforms, // This comes from state
+      adType: allData.adType || 'conversion',
+      tone: allData.tone || 'professional',
+      caseStudy1: allData.caseStudy1 || '',
+      credentials: allData.credentials || '',
+      cta: allData.cta || '',
+      url: allData.url || '',
+      urgency: allData.urgency || '',
+      leadMagnet: allData.leadMagnet || ''
+    };
 
-      // ✅ Debug: Log the exact data being sent
-      console.log('Final request data:', JSON.stringify(requestData, null, 2));
+    // ✅ Debug: Log the exact data being sent
+    console.log('Final request data:', JSON.stringify(requestData, null, 2));
 
-      // ✅ Validate required fields before sending
-      const requiredFields = [
-        'businessName', 'valueProposition', 'offerName', 'offerDescription', 
-        'pricing', 'uniqueMechanism', 'idealCustomer', 'primaryPainPoint', 
-        'coreResult', 'cta', 'url'
-      ];
+    // ✅ Validate required fields before sending
+    const requiredFields = [
+      'businessName', 'valueProposition', 'offerName', 'offerDescription', 
+      'pricing', 'uniqueMechanism', 'idealCustomer', 'primaryPainPoint', 
+      'coreResult', 'cta', 'url'
+    ];
 
-      const missingFields = requiredFields.filter(field => !requestData[field as keyof AdWriterInput]);
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-      }
-
-      // ✅ NO PLATFORM REQUIREMENT - can generate without platforms
-
-      // Store form data for regeneration
-      setOriginalFormData(requestData);
-
-      // Call backend API using hook
-      const result = await generateAds(requestData);
-      
-      setGeneratedAds(result);
-      setCurrentStep(3);
-      
-      // Show success notification
-      notification.success({
-        message: 'Ads Generated Successfully!',
-        description: `Generated ${result.length} platform variations`,
-        placement: 'topRight',
-      });
-      
-    } catch (error: any) {
-      console.error('Error generating ads:', error);
-      
-      notification.error({
-        message: 'Generation Failed',
-        description: error.message || 'Please try again later',
-        placement: 'topRight',
-      });
+    const missingFields = requiredFields.filter(field => !requestData[field as keyof AdWriterInput]);
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
     }
-  };
+
+    // Store form data for regeneration
+    setOriginalFormData(requestData);
+
+    // Call backend API using hook
+    const result = await generateAds(requestData);
+    
+    // Update state with generated ads
+    setGeneratedAds(result);
+    setCurrentStep(3);
+    
+    // Show success notification with animation
+    notification.success({
+      message: (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          Ads Generated Successfully!
+        </motion.div>
+      ),
+      description: `Generated ${result.length} platform variations`,
+      placement: 'topRight',
+      duration: 3,
+    });
+    
+  } catch (error: any) {
+    console.error('Error generating ads:', error);
+    
+    // Show error notification with animation
+    notification.error({
+      message: (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          Generation Failed
+        </motion.div>
+      ),
+      description: error.message || 'Please try again later',
+      placement: 'topRight',
+      duration: 4,
+    });
+    
+  } finally {
+    // Hide loading animation regardless of success/error
+    setGeneratingAds(false);
+  }
+};
+
 
   // Optimize existing ad copy
 const handleOptimizeAd = async (adCopy: string, optimizationType: string) => {
@@ -1006,6 +1038,23 @@ const downloadAds = () => {
                 </Card>
               </div>
             </Card>
+<Modal
+  open={generatingAds}
+  footer={null}
+  closable={false}
+  centered
+  width={400}
+  style={{ 
+    background: 'transparent',
+    boxShadow: 'none'
+  }}
+  maskStyle={{
+    backdropFilter: 'blur(5px)',
+    backgroundColor: 'rgba(0,0,0,0.1)'
+  }}
+>
+  <LoadingAnimation />
+</Modal>
           </div>
         );
         
@@ -1105,22 +1154,19 @@ const downloadAds = () => {
               Continue
             </Button>
           )}
-          
-          {currentStep === 2 && (
-            <Button 
-              type="primary" 
-              loading={loading}
-              onClick={() => {
-                // ✅ NO PLATFORM CHECK - can generate without platforms
-                form.submit();
-              }}
-              icon={<ArrowRightOutlined />}
-              className="ml-auto"
-            >
-              Generate Ad Copy
-            </Button>
-          )}
-          
+       {currentStep === 2 && (
+  <Button 
+    type="primary" 
+    loading={loading}
+    onClick={() => {
+      form.submit();
+    }}
+    icon={<ArrowRightOutlined />}
+    className="ml-auto"
+  >
+    Generate Ad Copy
+  </Button>
+)}
           {currentStep === 3 && (
             <Button 
               type="primary"
@@ -1137,6 +1183,7 @@ const downloadAds = () => {
           )}
         </div>
       </Form>
+      
     </div>
   );
 };

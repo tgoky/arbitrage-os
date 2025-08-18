@@ -589,7 +589,7 @@ export class OfferCreatorService {
       const optimizationPrompt = this.buildOptimizationPrompt(offer.offer, optimizationType);
       
       const response = await this.openRouterClient.complete({
-        model: 'anthropic/claude-3-haiku',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'system',
@@ -683,7 +683,7 @@ export class OfferCreatorService {
       const analysisPrompt = this.buildAnalysisPrompt(request);
       
       const response = await this.openRouterClient.complete({
-        model: 'anthropic/claude-3-haiku',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'system',

@@ -37,6 +37,7 @@ import {
 } from '@ant-design/icons';
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
+import { debounce } from 'lodash';
 
 interface FormValues {
   roles: string;
@@ -66,6 +67,7 @@ const NicheResearcher = () => {
   const [showReportsModal, setShowReportsModal] = useState(false);
   const [previousReports, setPreviousReports] = useState<any[]>([]);
   const [skillsSuggestions, setSkillsSuggestions] = useState<any>(null);
+    const [formData, setFormData] = useState<any>({});
 
   const {
     generateNicheReport,
@@ -85,6 +87,15 @@ const NicheResearcher = () => {
     'Market Insights & Constraints',
     'Generate Report'
   ];
+
+    // ✅ ADD: Save form data function (like AdWriter)
+  const saveCurrentStepData = () => {
+    const currentValues = form.getFieldsValue();
+    setFormData(prev => ({ ...prev, ...currentValues }));
+    console.log('💾 Saved current step data:', currentValues);
+    console.log('💾 Total saved data:', { ...formData, ...currentValues });
+  };
+
 
    // 5. Safe array rendering with proper null checks
   const renderReasons = (reasons?: string[]) => {
@@ -124,25 +135,56 @@ const NicheResearcher = () => {
   };
   
   // Load skills suggestions on component mount
-  useEffect(() => {
-    loadSkillsSuggestions();
-  }, []);
+ // Load skills suggestions on component mount - ONLY ONCE
+const [isLoadingSkills, setIsLoadingSkills] = useState(false);
 
-   const loadSkillsSuggestions = useCallback(async () => {
+const debouncedGetSkillsSuggestions = useCallback(
+  debounce(async () => {
+    if (isLoadingSkills || skillsSuggestions) {
+      console.log('🛑 Skills already loading or loaded, skipping...');
+      return;
+    }
+
+    setIsLoadingSkills(true);
     try {
+      console.log('🔄 Loading debounced skills suggestions...');
       const suggestions = await getSkillsSuggestions();
       setSkillsSuggestions(suggestions);
+      console.log('✅ Skills loaded successfully:', suggestions);
     } catch (error) {
-      console.error('Failed to load skills suggestions:', error);
-      // Optional: Show user-friendly error
-      message.error('Failed to load skills suggestions');
+      console.error('❌ Failed to load skills:', error);
+      setSkillsSuggestions({
+        all: {
+          fallback: [
+            'Project Management', 'Sales', 'Marketing', 'Data Analysis',
+            'Product Development', 'Consulting', 'Software Development', 'Business Strategy'
+          ]
+        }
+      });
+    } finally {
+      setIsLoadingSkills(false);
     }
-  }, [getSkillsSuggestions]);
+  }, 500), // 500ms debounce
+  [getSkillsSuggestions, skillsSuggestions, isLoadingSkills]
+);
 
-  // Fixed useEffect with proper dependencies
-  useEffect(() => {
-    loadSkillsSuggestions();
-  }, [loadSkillsSuggestions]);
+useEffect(() => {
+  let mounted = true;
+  console.log('🔄 NicheResearcher component mounted');
+
+  const loadSkills = async () => {
+    if (!mounted) return;
+    await debouncedGetSkillsSuggestions();
+  };
+
+  loadSkills();
+
+  return () => {
+    mounted = false;
+    debouncedGetSkillsSuggestions.cancel();
+    console.log('🔄 NicheResearcher component unmounted');
+  };
+}, [debouncedGetSkillsSuggestions]); // ✅ Empty dependency array - only run once
 
   const loadPreviousReports = async () => {
     try {
@@ -205,10 +247,56 @@ const NicheResearcher = () => {
   };
 
    // Updated onFinish function with proper typing
-  const onFinish = async (values: FormValues) => {
+const onFinish = async (values: FormValues) => {
     try {
-      // ✅ Now you get TypeScript autocomplete and type checking
-      const requestData = values; // Backend handles userId
+      console.log('🔍 FORM onFinish called');
+      
+      // Save current step data first
+      saveCurrentStepData();
+      
+      // Combine all saved data with current form values (like AdWriter)
+      const allData = { ...formData, ...form.getFieldsValue() };
+      
+      console.log('🔍 RAW FORM VALUES:', values);
+      console.log('🔍 SAVED FORM DATA:', formData);
+      console.log('🔍 COMBINED DATA:', allData);
+      
+      // ✅ CLEAN THE DATA BEFORE SENDING (use combined data)
+      const requestData = {
+        roles: allData.roles || '',
+        skills: Array.isArray(allData.skills) ? allData.skills : [],
+        competencies: allData.competencies || '',
+        interests: allData.interests || '',
+        connections: allData.connections || '',
+        audienceAccess: allData.audienceAccess || '',
+        problems: allData.problems || '',
+        trends: allData.trends || '',
+        time: allData.time,
+        budget: allData.budget,
+        location: allData.location,
+        otherConstraints: allData.otherConstraints || ''
+      };
+
+      console.log('🔍 CLEANED REQUEST DATA:', requestData);
+      
+      // Validate required fields
+      const requiredFields = ['roles', 'skills', 'competencies', 'interests', 'connections', 'problems', 'trends', 'time', 'budget', 'location'];
+      const missingFields = requiredFields.filter(field => {
+        const value = requestData[field as keyof typeof requestData];
+        return !value || (Array.isArray(value) && value.length === 0);
+      });
+      
+      if (missingFields.length > 0) {
+        console.error('❌ Missing fields:', missingFields);
+        notification.error({
+          message: 'Form Validation Error',
+          description: `Please fill in: ${missingFields.join(', ')}`,
+          placement: 'topRight',
+        });
+        return;
+      }
+
+      console.log('✅ All validation passed, sending to API...');
       
       const result = await generateNicheReport(requestData);
       
@@ -224,7 +312,7 @@ const NicheResearcher = () => {
       });
       
     } catch (error: any) {
-      console.error('Error generating niche report:', error);
+      console.error('💥 Error generating niche report:', error);
       
       notification.error({
         message: 'Generation Failed',
@@ -234,7 +322,11 @@ const NicheResearcher = () => {
     }
   };
 
+  // ✅ FIXED: nextStep function with data saving (like AdWriter)
   const nextStep = () => {
+    // ✅ CRITICAL: Save current step data before moving to next step
+    saveCurrentStepData();
+    
     form.validateFields().then(() => {
       setCurrentStep(currentStep + 1);
     }).catch(() => {
@@ -245,9 +337,13 @@ const NicheResearcher = () => {
     });
   };
 
+  // ✅ FIXED: prevStep function with data saving (like AdWriter)
   const prevStep = () => {
+    // ✅ Save current step data before going back
+    saveCurrentStepData();
     setCurrentStep(currentStep - 1);
   };
+
 
   const reportColumns = [
     {
@@ -871,10 +967,15 @@ const NicheResearcher = () => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
+          onValuesChange={(changedValues, allValues) => {
+          // ✅ CRITICAL: Save form data on every change (like AdWriter)
+          setFormData(prev => ({ ...prev, ...allValues }));
+        }}
         className="dark:bg-white-900 rounded-lg"
       >
         {renderStepContent()}
-        
+           
+       
         <div className="flex justify-between mt-8 pb-8 px-4">
           {currentStep > 0 && currentStep < 3 && (
             <Button onClick={prevStep}>

@@ -1,10 +1,10 @@
-// validators/nicheResearcher.validator.ts
+// validators/nicheResearcher.validator.ts - RELAXED VERSION
 import { z } from 'zod';
 
 const nicheResearchSchema = z.object({
-  // Professional Background
+  // Professional Background - RELAXED minimums
   roles: z.string()
-    .min(20, 'Please provide more detail about your professional background')
+    .min(5, 'Please provide some detail about your professional background')
     .max(1000, 'Professional background description is too long'),
   
   skills: z.array(z.string())
@@ -13,32 +13,32 @@ const nicheResearchSchema = z.object({
     .refine(skills => skills.every(skill => skill.length > 0), 'Invalid skill selection'),
   
   competencies: z.string()
-    .min(20, 'Please describe your unique competencies in more detail')
+    .min(5, 'Please describe your unique competencies')
     .max(500, 'Competencies description is too long'),
 
-  // Personal Interests & Network
+  // Personal Interests & Network - RELAXED minimums
   interests: z.string()
-    .min(10, 'Please describe your interests in more detail')
+    .min(3, 'Please describe your interests')
     .max(500, 'Interests description is too long'),
   
   connections: z.string()
-    .min(10, 'Please describe your network connections in more detail')
+    .min(3, 'Please describe your network connections')
     .max(500, 'Network description is too long'),
   
   audienceAccess: z.string()
     .max(300, 'Audience access description is too long')
     .optional(),
 
-  // Market Insights & Constraints
+  // Market Insights & Constraints - RELAXED minimums
   problems: z.string()
-    .min(20, 'Please describe business problems you\'ve noticed in more detail')
+    .min(5, 'Please describe business problems you\'ve noticed')
     .max(1000, 'Problems description is too long'),
   
   trends: z.string()
-    .min(10, 'Please describe emerging trends that interest you')
+    .min(3, 'Please describe emerging trends that interest you')
     .max(500, 'Trends description is too long'),
   
-  // Fixed enum definitions - Compatible with all Zod versions
+  // Enums - keep these strict
   time: z.enum(['5-10', '10-20', '20-30', '30+']),
   budget: z.enum(['0-1k', '1k-5k', '5k-10k', '10k+']),
   location: z.enum(['remote-only', 'local-focused', 'hybrid']),
@@ -47,7 +47,7 @@ const nicheResearchSchema = z.object({
     .max(300, 'Other constraints description is too long')
     .optional(),
 
-  // Optional additional context
+  // Optional fields
   currentEmploymentStatus: z.enum(['employed', 'unemployed', 'freelancing', 'student', 'retired']).optional(),
   industryExperience: z.array(z.string()).max(5).optional(),
   educationLevel: z.enum(['high-school', 'bachelors', 'masters', 'phd', 'other']).optional(),
@@ -59,13 +59,32 @@ export function validateNicheResearchInput(data: any):
   | { success: true; data: z.infer<typeof nicheResearchSchema> }
   | { success: false; errors: any[] } {
   try {
-    const validated = nicheResearchSchema.parse(data);
+    // ✅ ADD PRE-VALIDATION CLEANUP
+    const cleanedData = {
+      ...data,
+      // Ensure all string fields are strings, not undefined/null
+      roles: data.roles || '',
+      competencies: data.competencies || '',
+      interests: data.interests || '',
+      connections: data.connections || '',
+      problems: data.problems || '',
+      trends: data.trends || '',
+      audienceAccess: data.audienceAccess || '',
+      otherConstraints: data.otherConstraints || '',
+      // Ensure skills is an array
+      skills: Array.isArray(data.skills) ? data.skills : []
+    };
+
+    console.log('🔍 Cleaned data for validation:', cleanedData);
+    
+    const validated = nicheResearchSchema.parse(cleanedData);
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Fixed: Use 'issues' instead of 'errors' for compatibility
+      console.error('❌ Zod validation errors:', error.issues);
       return { success: false, errors: error.issues };
     }
+    console.error('❌ Unknown validation error:', error);
     return { success: false, errors: [{ message: 'Validation failed' }] };
   }
 }
@@ -121,7 +140,7 @@ export function validateNicheResearchBusinessRules(data: z.infer<typeof nicheRes
   }
 
   // Network leverage validation
-  const hasStrongNetwork = data.connections.length > 50 && 
+  const hasStrongNetwork = data.connections.length > 20 && 
     (data.connections.toLowerCase().includes('industry') || 
      data.connections.toLowerCase().includes('professional') ||
      data.connections.toLowerCase().includes('business'));
@@ -146,7 +165,7 @@ export function validateNicheResearchBusinessRules(data: z.infer<typeof nicheRes
   }
 
   // Market awareness check
-  if (data.problems.length > 100 && data.trends.length > 50) {
+  if (data.problems.length > 50 && data.trends.length > 20) {
     suggestions.push('Your strong market awareness is valuable - consider thought leadership as part of your strategy');
   }
 
@@ -157,12 +176,12 @@ export function validateNicheResearchBusinessRules(data: z.infer<typeof nicheRes
   };
 }
 
-// Helper function to extract insights from input - FIXED with proper typing
+// Helper function to extract insights from input
 export function extractNicheInsights(data: z.infer<typeof nicheResearchSchema>) {
   const insights = {
-    primaryStrengths: [] as string[], // Fixed: Explicitly type as string array
-    marketOpportunities: [] as string[], // Fixed: Explicitly type as string array
-    constraintFactors: [] as string[], // Fixed: Explicitly type as string array
+    primaryStrengths: [] as string[],
+    marketOpportunities: [] as string[],
+    constraintFactors: [] as string[],
     recommendedDirection: ''
   };
 
