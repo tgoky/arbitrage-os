@@ -50,7 +50,7 @@ export class OfferCreatorService {
     
     // Generate offer using AI
     const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-sonnet',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -255,290 +255,331 @@ export class OfferCreatorService {
     return this.generateFallbackOffer(input);
   }
 
-  private generateFallbackOffer(input: OfferCreatorInput): Omit<GeneratedOfferPackage, 'tokensUsed' | 'generationTime'> {
-    const savings = input.discountValue ? `${input.discountValue}% OFF` : '';
-    const deadline = formatOfferDeadline(input.expiryDate);
-    const metrics = calculateOfferMetrics(input.regularPrice, input.offerPrice);
-    const industryTips = getIndustrySpecificTips(input.targetIndustry);
-    
-    // Generate dynamic email subject lines and social media captions
-    const emailSubjects = generateEmailSubjectLines(input.offerName, input.offerType, savings);
-    const socialCaptions = generateSocialMediaCaptions(
-      input.offerName, 
-      input.offerValue, 
-      input.offerPrice, 
-      deadline
-    );
-    
-    return {
-      primaryOffer: {
-        headline: `${savings} ${input.offerName} - Limited Time`,
-        subheadline: `${input.offerValue} - Special Pricing Ends ${deadline}`,
-        mainCopy: `Transform your business with ${input.offerName}. This exclusive offer gives you everything you need to ${input.offerValue.toLowerCase()}. Normally ${input.regularPrice}, but for a limited time, you can get started for just ${input.offerPrice}. This special pricing ends ${deadline}, so don't wait.`,
-        bulletPoints: [
-          `Save ${input.discountAmount || `${metrics.savings.toFixed(0)}`} with this limited-time offer`,
-          'Immediate access to all features and benefits',
-          `Proven results in the ${input.targetIndustry} industry`,
-          'Risk-free with our satisfaction guarantee'
-        ],
-        cta: input.cta || 'Claim Your Offer Now',
-        urgency: `Offer expires ${deadline} - Limited availability`,
-        socialProof: input.socialProof ? `"${input.testimonialQuote}" - ${input.testimonialAuthor}` : 'Trusted by thousands of satisfied customers',
-        riskReversal: 'Backed by our 100% satisfaction guarantee',
-        offerSummary: `${input.offerName} - ${input.offerPrice} (Reg. ${input.regularPrice}) - Expires ${deadline}`,
-        emailSubjectLines: emailSubjects,
-        socialMediaCaptions: socialCaptions,
-        adCopy: `${input.offerValue} with ${input.offerName}. Limited-time offer: ${input.offerPrice} (regularly ${input.regularPrice}). Proven results for ${input.targetIndustry} businesses. Offer ends ${deadline}.`
-      },
+ 
+// Replace the generateFallbackOffer method with this type-safe version:
 
-      analysis: {
-        conversionPotential: {
-          score: 75,
-          factors: [
-            {
-              factor: 'Clear value proposition',
-              impact: 'High',
-              recommendation: 'Emphasize specific outcomes and benefits'
-            },
-            {
-              factor: 'Price reduction creates urgency',
-              impact: 'Medium',
-              recommendation: 'Add countdown timer for stronger urgency'
-            },
-            {
-              factor: 'Industry targeting',
-              impact: 'Medium',
-              recommendation: 'Include industry-specific case studies'
-            }
-          ]
+private generateFallbackOffer(input: OfferCreatorInput): Omit<GeneratedOfferPackage, 'tokensUsed' | 'generationTime'> {
+  const savings = input.discountValue ? `${input.discountValue}% OFF` : '';
+  const deadline = this.formatOfferDeadline(input.expiryDate);
+  const metrics = this.calculateOfferMetrics(input.regularPrice, input.offerPrice);
+  
+  // Safe email subject lines generation
+  const emailSubjects = [
+    `🔥 ${input.offerName} - Limited Time Offer`,
+    `Last Chance: ${savings} ${input.offerName}`,
+    `Don't Miss Out: ${input.offerName} Special Pricing`,
+    `⏰ ${input.offerName} - Expires ${deadline}`,
+    `Exclusive: ${input.offerValue} - ${savings}`
+  ];
+  
+  // Safe social media captions
+  const socialCaptions = [
+    `🚨 Special offer: ${input.offerName} for just ${input.offerPrice}! ${savings} - Expires ${deadline}`,
+    `💡 Transform your business with ${input.offerName}. Limited time: ${input.offerPrice}`,
+    `🔥 Don't miss out! ${input.offerValue} - Special pricing ends ${deadline}`
+  ];
+  
+  // Ensure all arrays and objects are properly structured with correct types
+  const fallbackOffer = {
+    primaryOffer: {
+      headline: `${savings} ${input.offerName} - Limited Time`,
+      subheadline: `${input.offerValue} - Special Pricing Ends ${deadline}`,
+      mainCopy: `Transform your business with ${input.offerName}. This exclusive offer gives you everything you need to ${input.offerValue.toLowerCase()}. Normally ${input.regularPrice}, but for a limited time, you can get started for just ${input.offerPrice}. This special pricing ends ${deadline}, so don't wait.`,
+      bulletPoints: [
+        `Save ${input.discountAmount || `$${metrics.savings.toFixed(0)}`} with this limited-time offer`,
+        'Immediate access to all features and benefits',
+        `Proven results in the ${input.targetIndustry} industry`,
+        'Risk-free with our satisfaction guarantee'
+      ],
+      cta: input.cta || 'Claim Your Offer Now',
+      urgency: `Offer expires ${deadline} - Limited availability`,
+      socialProof: input.socialProof ? `"${input.testimonialQuote}" - ${input.testimonialAuthor}` : 'Trusted by thousands of satisfied customers',
+      riskReversal: 'Backed by our 100% satisfaction guarantee',
+      offerSummary: `${input.offerName} - ${input.offerPrice} (Reg. ${input.regularPrice}) - Expires ${deadline}`,
+      emailSubjectLines: emailSubjects,
+      socialMediaCaptions: socialCaptions,
+      adCopy: `${input.offerValue} with ${input.offerName}. Limited-time offer: ${input.offerPrice} (regularly ${input.regularPrice}). Proven results for ${input.targetIndustry} businesses. Offer ends ${deadline}.`
+    },
+
+    analysis: {
+      conversionPotential: {
+        score: 75,
+        factors: [
+          {
+            factor: 'Clear value proposition',
+            impact: 'High' as const, // Fix: Use 'as const' to ensure literal type
+            recommendation: 'Emphasize specific outcomes and benefits'
+          },
+          {
+            factor: 'Price reduction creates urgency',
+            impact: 'Medium' as const, // Fix: Use 'as const'
+            recommendation: 'Add countdown timer for stronger urgency'
+          },
+          {
+            factor: 'Industry targeting',
+            impact: 'Medium' as const, // Fix: Use 'as const'
+            recommendation: 'Include industry-specific case studies'
+          }
+        ]
+      },
+      marketFit: {
+        industryRelevance: 80,
+        competitiveAdvantage: ['Competitive pricing', 'Industry focus', 'Time-limited availability'],
+        marketTiming: 'Good' as const // Fix: Use 'as const' for literal type
+      },
+      psychologyFactors: {
+        persuasionTechniques: ['Scarcity', 'Loss aversion', 'Social proof'],
+        cognitiveTriggersUsed: ['Time pressure', 'Price anchoring', 'Authority'],
+        emotionalAppeal: 70
+      },
+      optimizationSuggestions: [
+        {
+          area: 'Social Proof',
+          suggestion: 'Add customer logos and specific results',
+          expectedImpact: '15-25% conversion increase',
+          difficulty: 'Easy' as const // Fix: Use 'as const'
         },
-        marketFit: {
-          industryRelevance: 80,
-          competitiveAdvantage: ['Competitive pricing', 'Industry focus', 'Time-limited availability'],
-          marketTiming: 'Good'
-        },
-        psychologyFactors: {
-          persuasionTechniques: ['Scarcity', 'Loss aversion', 'Social proof'],
-          cognitiveTriggersUsed: ['Time pressure', 'Price anchoring', 'Authority'],
-          emotionalAppeal: 70
-        },
-        optimizationSuggestions: [
-          {
-            area: 'Social Proof',
-            suggestion: 'Add customer logos and specific results',
-            expectedImpact: '15-25% conversion increase',
-            difficulty: 'Easy'
-          },
-          {
-            area: 'Urgency',
-            suggestion: 'Include real-time countdown timer',
-            expectedImpact: '10-20% conversion increase',
-            difficulty: 'Medium'
-          },
-      ...industryTips.slice(0, 2).map(tip => ({
-  area: 'Industry Optimization',
-  suggestion: tip,
-  expectedImpact: '8-15% conversion increase',
-  difficulty: 'Easy' as const  // Add 'as const'
-}))
-        ]
-      },
-
-      variations: {
-        alternatives: [
-          {
-            type: 'Bundle Offer',
-            headline: `${input.offerName} Complete Bundle`,
-            description: 'Add complementary services for higher value',
-            expectedPerformance: 'Higher AOV, slightly lower conversion',
-            useCases: ['Existing customers', 'High-value prospects']
-          },
-          {
-            type: 'Payment Plan',
-            headline: `${input.offerName} - 3 Easy Payments`,
-            description: 'Split payment to reduce barrier',
-            expectedPerformance: 'Higher conversion, same total value',
-            useCases: ['Price-sensitive customers', 'Larger purchases']
-          }
-        ],
-        upsellOpportunities: [
-          {
-            name: `${input.offerName} Premium`,
-            description: 'Enhanced version with premium features',
-            pricePoint: `${parseInt(input.offerPrice.replace(/[^0-9]/g, '')) * 1.5}`,
-            timing: 'Immediately after purchase'
-          },
-          {
-            name: 'Implementation Service',
-            description: 'Done-for-you setup and optimization',
-            pricePoint: `${parseInt(input.offerPrice.replace(/[^0-9]/g, '')) * 0.8}`,
-            timing: 'During checkout process'
-          }
-        ],
-        crossSellIdeas: [
-          {
-            product: 'Training & Support Package',
-            rationale: 'Ensures successful implementation',
-            bundleOpportunity: true
-          },
-          {
-            product: 'Analytics & Reporting Tools',
-            rationale: 'Track results and ROI',
-            bundleOpportunity: false
-          }
-        ]
-      },
-
-      marketingAssets: {
-        landingPageCopy: `# ${input.offerName} - ${savings} Limited Time Offer\n\n## ${input.offerValue}\n\n**Special Price:** ${input.offerPrice} (Regular: ${input.regularPrice})\n**Expires:** ${deadline}\n\n### What You Get:\n- Full access to ${input.offerName}\n- Implementation guide\n- Customer support\n- 30-day guarantee\n\n### Why This Offer?\nWe're making this special pricing available for a limited time to help more ${input.targetIndustry} businesses achieve ${input.offerValue.toLowerCase()}.\n\n**${input.cta || 'Get Started Now'}**`,
-        
-        emailSequence: [
-          {
-            day: 1,
-            subject: `Welcome! Your ${input.offerName} is waiting`,
-            content: `Thanks for your interest! Here's everything you need to know about this limited-time offer...`,
-            purpose: 'Welcome and set expectations'
-          },
-          {
-            day: 3,
-            subject: `How ${input.offerName} helps ${input.targetIndustry} businesses`,
-            content: `See exactly how other businesses like yours are using ${input.offerName} to achieve results...`,
-            purpose: 'Social proof and case studies'
-          },
-          {
-            day: 5,
-            subject: `⏰ Only 2 days left - ${input.offerName} at ${input.offerPrice}`,
-            content: `This special pricing ends soon. Here's a quick reminder of what you get...`,
-            purpose: 'Urgency and final push'
-          }
-        ],
-
-        socialMediaKit: [
-          {
-            platform: 'LinkedIn',
-            content: `🔥 Limited-time offer for ${input.targetIndustry} professionals: ${input.offerName} at ${input.offerPrice} (normally ${input.regularPrice}). Get ${input.offerValue} before ${deadline}.`,
-            hashtags: [`#${input.targetIndustry.replace(/\s/g, '')}`, '#LimitedOffer', '#BusinessGrowth']
-          },
-          {
-            platform: 'Facebook',
-            content: `💡 Special offer: ${input.offerName} helps you ${input.offerValue.toLowerCase()}. ${savings} until ${deadline}!`,
-            hashtags: ['#SpecialOffer', '#BusinessSolution', '#LimitedTime']
-          },
-          {
-            platform: 'Twitter',
-            content: `🚨 FLASH SALE: ${input.offerName} ${savings} - ${input.offerValue}. Ends ${deadline}!`,
-            hashtags: ['#FlashSale', '#LimitedOffer', `#${input.targetIndustry.replace(/\s/g, '')}`]
-          }
-        ],
-
-        adCreatives: [
-          {
-            platform: 'Facebook',
-            format: 'Single Image',
-            headline: `${savings} ${input.offerName}`,
-            description: `${input.offerValue} - Special pricing ends ${deadline}`,
-            cta: input.cta || 'Learn More'
-          },
-          {
-            platform: 'Google',
-            format: 'Responsive Search Ad',
-            headline: `${input.offerName} ${savings}`,
-            description: `${input.offerValue}. Limited time: ${input.offerPrice}`,
-            cta: 'Get Offer'
-          },
-          {
-            platform: 'LinkedIn',
-            format: 'Sponsored Content',
-            headline: `${input.targetIndustry} Special: ${input.offerName}`,
-            description: `Exclusive offer for ${input.targetIndustry} professionals`,
-            cta: 'Claim Offer'
-          }
-        ]
-      },
-
-      performanceMetrics: {
-        expectedConversionRate: '3-8% depending on traffic quality and targeting',
-        estimatedROI: '200-400% based on industry benchmarks',
-        benchmarkComparison: `Above average for limited-time offers in ${input.targetIndustry}`,
-        keyMetricsToTrack: [
-          'Conversion rate by traffic source',
-          'Time on landing page',
-          'Cart abandonment rate', 
-          'Email sequence open/click rates',
-          'Social media engagement',
-          `${input.targetIndustry}-specific metrics`
-        ]
-      }
-    };
-  }
-
-  async saveOffer(userId: string, workspaceId: string, offer: GeneratedOfferPackage, input: OfferCreatorInput): Promise<string> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const deliverable = await prisma.deliverable.create({
-        data: {
-          title: `${input.offerType.charAt(0).toUpperCase() + input.offerType.slice(1)} Offer - ${input.offerName}`,
-          content: JSON.stringify(offer),
-          type: 'offer_creator',
-          user_id: userId,
-          workspace_id: workspaceId,
-          metadata: {
-            offerName: input.offerName,
-            offerType: input.offerType,
-            targetIndustry: input.targetIndustry,
-            regularPrice: input.regularPrice,
-            offerPrice: input.offerPrice,
-            expiryDate: input.expiryDate,
-            conversionScore: offer.analysis.conversionPotential.score,
-            generatedAt: new Date().toISOString(),
-            tokensUsed: offer.tokensUsed,
-            generationTime: offer.generationTime
-          },
-          tags: ['offer', input.offerType, input.targetIndustry.toLowerCase().replace(/\s/g, '-'), 'marketing']
+        {
+          area: 'Urgency',
+          suggestion: 'Include real-time countdown timer',
+          expectedImpact: '10-20% conversion increase',
+          difficulty: 'Medium' as const // Fix: Use 'as const'
         }
-      });
+      ]
+    },
 
-      return deliverable.id;
-    } catch (error) {
-      console.error('Error saving offer:', error);
-      throw error;
+    variations: {
+      alternatives: [
+        {
+          type: 'Bundle Offer',
+          headline: `${input.offerName} Complete Bundle`,
+          description: 'Add complementary services for higher value',
+          expectedPerformance: 'Higher AOV, slightly lower conversion',
+          useCases: ['Existing customers', 'High-value prospects']
+        },
+        {
+          type: 'Payment Plan',
+          headline: `${input.offerName} - 3 Easy Payments`,
+          description: 'Split payment to reduce barrier',
+          expectedPerformance: 'Higher conversion, same total value',
+          useCases: ['Price-sensitive customers', 'Larger purchases']
+        }
+      ],
+      upsellOpportunities: [
+        {
+          name: `${input.offerName} Premium`,
+          description: 'Enhanced version with premium features',
+          pricePoint: `${Math.round(parseInt(input.offerPrice.replace(/[^0-9]/g, '')) * 1.5)}`,
+          timing: 'Immediately after purchase'
+        }
+      ],
+      crossSellIdeas: [
+        {
+          product: 'Training & Support Package',
+          rationale: 'Ensures successful implementation',
+          bundleOpportunity: true
+        }
+      ]
+    },
+
+    marketingAssets: {
+      landingPageCopy: `# ${input.offerName} - ${savings} Limited Time Offer\n\n## ${input.offerValue}\n\n**Special Price:** ${input.offerPrice} (Regular: ${input.regularPrice})\n**Expires:** ${deadline}\n\n### What You Get:\n- Full access to ${input.offerName}\n- Implementation guide\n- Customer support\n- 30-day guarantee\n\n**${input.cta || 'Get Started Now'}**`,
+      
+      emailSequence: [
+        {
+          day: 1,
+          subject: `Welcome! Your ${input.offerName} is waiting`,
+          content: `Thanks for your interest! Here's everything you need to know about this limited-time offer...`,
+          purpose: 'Welcome and set expectations'
+        },
+        {
+          day: 3,
+          subject: `How ${input.offerName} helps ${input.targetIndustry} businesses`,
+          content: `See exactly how other businesses like yours are using ${input.offerName} to achieve results...`,
+          purpose: 'Social proof and case studies'
+        }
+      ],
+
+      socialMediaKit: [
+        {
+          platform: 'LinkedIn',
+          content: `🔥 Limited-time offer for ${input.targetIndustry} professionals: ${input.offerName} at ${input.offerPrice} (normally ${input.regularPrice}). Get ${input.offerValue} before ${deadline}.`,
+          hashtags: [`#${input.targetIndustry.replace(/\s/g, '')}`, '#LimitedOffer', '#BusinessGrowth']
+        }
+      ],
+
+      adCreatives: [
+        {
+          platform: 'Facebook',
+          format: 'Single Image',
+          headline: `${savings} ${input.offerName}`,
+          description: `${input.offerValue} - Special pricing ends ${deadline}`,
+          cta: input.cta || 'Learn More'
+        }
+      ]
+    },
+
+    performanceMetrics: {
+      expectedConversionRate: '3-8% depending on traffic quality and targeting',
+      estimatedROI: '200-400% based on industry benchmarks',
+      benchmarkComparison: `Above average for limited-time offers in ${input.targetIndustry}`,
+      keyMetricsToTrack: [
+        'Conversion rate by traffic source',
+        'Time on landing page',
+        'Cart abandonment rate', 
+        'Email sequence open/click rates'
+      ]
     }
+  };
+
+  return fallbackOffer;
+}
+
+// Helper methods (keep these the same as before):
+private formatOfferDeadline(expiryDate: string): string {
+  try {
+    const date = new Date(expiryDate);
+    return date.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  } catch (error) {
+    return 'soon';
   }
+}
 
-  async getOffer(userId: string, offerId: string) {
+private calculateOfferMetrics(regularPrice: string, offerPrice: string) {
+  try {
+    const regular = parseFloat(regularPrice.replace(/[$,]/g, ''));
+    const offer = parseFloat(offerPrice.replace(/[$,]/g, ''));
+    
+    if (isNaN(regular) || isNaN(offer)) {
+      return { savings: 0, percentage: 0 };
+    }
+    
+    const savings = regular - offer;
+    const percentage = (savings / regular) * 100;
+    
+    return { savings, percentage };
+  } catch (error) {
+    return { savings: 0, percentage: 0 };
+  }
+}
+
+
+async saveOffer(userId: string, workspaceId: string, offer: GeneratedOfferPackage, input: OfferCreatorInput): Promise<string> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    console.log('📝 Creating deliverable...');
+    console.log('📝 User ID:', userId);
+    console.log('📝 Workspace ID:', workspaceId);
+    
+    // Ensure we can properly serialize the offer data
+    let serializedOffer: string;
     try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const deliverable = await prisma.deliverable.findFirst({
-        where: {
-          id: offerId,
-          user_id: userId,
-          type: 'offer_creator'
-        },
-        include: {
-          workspace: true
-        }
-      });
-
-      if (!deliverable) {
-        return null;
-      }
-
-      return {
-        id: deliverable.id,
-        title: deliverable.title,
-        offer: JSON.parse(deliverable.content),
-        metadata: deliverable.metadata,
-        createdAt: deliverable.created_at,
-        updatedAt: deliverable.updated_at,
-        workspace: deliverable.workspace
+      // Create a clean copy of the offer to avoid circular references
+      const cleanOffer = {
+        primaryOffer: offer.primaryOffer || {},
+        analysis: offer.analysis || {},
+        variations: offer.variations || {},
+        marketingAssets: offer.marketingAssets || {},
+        performanceMetrics: offer.performanceMetrics || {},
+        tokensUsed: offer.tokensUsed || 0,
+        generationTime: offer.generationTime || 0
       };
-    } catch (error) {
-      console.error('Error retrieving offer:', error);
-      throw error;
+      
+      serializedOffer = JSON.stringify(cleanOffer, null, 2);
+      console.log('✅ Offer serialization successful');
+    } catch (serializationError) {
+      console.error('💥 Offer serialization failed:', serializationError);
+      // Fallback serialization with basic data
+      serializedOffer = JSON.stringify({
+        primaryOffer: {
+          headline: offer.primaryOffer?.headline || 'Generated Offer',
+          subheadline: offer.primaryOffer?.subheadline || 'AI-generated offer content',
+          mainCopy: offer.primaryOffer?.mainCopy || 'Offer details',
+          bulletPoints: offer.primaryOffer?.bulletPoints || [],
+          cta: offer.primaryOffer?.cta || 'Get Started',
+          urgency: offer.primaryOffer?.urgency || 'Limited time offer',
+          socialProof: offer.primaryOffer?.socialProof || 'Trusted by customers',
+          riskReversal: offer.primaryOffer?.riskReversal || 'Satisfaction guaranteed',
+          offerSummary: offer.primaryOffer?.offerSummary || `${input.offerName} - ${input.offerPrice}`
+        },
+        analysis: {
+          conversionPotential: { score: 75 },
+          marketFit: { industryRelevance: 80 },
+          psychologyFactors: { emotionalAppeal: 70 }
+        },
+        tokensUsed: offer.tokensUsed || 0,
+        generationTime: offer.generationTime || 0,
+        fallbackUsed: true
+      }, null, 2);
     }
+    
+    // Let Prisma generate the UUID automatically - don't set explicit ID
+    const deliverable = await prisma.deliverable.create({
+      data: {
+        // Remove the explicit ID - let the database generate it
+        title: `${input.offerType.charAt(0).toUpperCase() + input.offerType.slice(1)} Offer - ${input.offerName}`,
+        content: serializedOffer,
+        type: 'offer_creator',
+        user_id: userId,
+        workspace_id: workspaceId || 'default',
+        metadata: {
+          offerName: input.offerName,
+          offerType: input.offerType,
+          targetIndustry: input.targetIndustry,
+          regularPrice: input.regularPrice,
+          offerPrice: input.offerPrice,
+          expiryDate: input.expiryDate,
+          conversionScore: offer.analysis?.conversionPotential?.score || 75,
+          generatedAt: new Date().toISOString(),
+          tokensUsed: offer.tokensUsed || 0,
+          generationTime: offer.generationTime || 0,
+          // Include discount info if it's a discount offer
+          ...(input.offerType === 'discount' && {
+            discountValue: input.discountValue,
+            discountAmount: input.discountAmount
+          }),
+          // Include bonus info if it's a bonus offer
+          ...(input.offerType === 'bonus' && {
+            bonusItem: input.bonusItem,
+            bonusValue: input.bonusValue,
+            totalValue: input.totalValue
+          }),
+          // Include trial info if it's a trial offer
+          ...(input.offerType === 'trial' && {
+            trialPeriod: input.trialPeriod
+          }),
+          // Include guarantee info if it's a guarantee offer
+          ...(input.offerType === 'guarantee' && {
+            guaranteePeriod: input.guaranteePeriod
+          })
+        },
+        tags: [
+          'offer', 
+          input.offerType, 
+          input.targetIndustry.toLowerCase().replace(/\s/g, '-'), 
+          'marketing',
+          `${input.offerType}-offer`
+        ]
+      }
+    });
+
+    console.log('✅ Deliverable created successfully with ID:', deliverable.id);
+    return deliverable.id;
+  } catch (error) {
+    console.error('💥 Error saving offer:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack'
+    });
+    throw error;
   }
+}
 
   async getUserOffers(userId: string, workspaceId?: string) {
     try {
@@ -579,6 +620,57 @@ export class OfferCreatorService {
     }
   }
 
+  async getOffer(userId: string, offerId: string) {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    const deliverable = await prisma.deliverable.findFirst({
+      where: {
+        id: offerId,
+        user_id: userId,
+        type: 'offer_creator'
+      },
+      include: {
+        workspace: true
+      }
+    });
+
+    if (!deliverable) {
+      return null;
+    }
+
+    let parsedOffer;
+    try {
+      parsedOffer = JSON.parse(deliverable.content);
+    } catch (parseError) {
+      console.error('Error parsing offer content:', parseError);
+      // Return a basic structure if parsing fails
+      parsedOffer = {
+        primaryOffer: {
+          headline: 'Error loading offer',
+          subheadline: 'Please regenerate this offer',
+          mainCopy: 'There was an issue loading the offer content.',
+          bulletPoints: [],
+          cta: 'Get Started'
+        }
+      };
+    }
+
+    return {
+      id: deliverable.id,
+      title: deliverable.title,
+      offer: parsedOffer,
+      metadata: deliverable.metadata,
+      createdAt: deliverable.created_at,
+      updatedAt: deliverable.updated_at,
+      workspace: deliverable.workspace
+    };
+  } catch (error) {
+    console.error('Error retrieving offer:', error);
+    throw error;
+  }
+}
+
   async optimizeOffer(userId: string, offerId: string, optimizationType: OptimizationType): Promise<OptimizationResult> {
     try {
       const offer = await this.getOffer(userId, offerId);
@@ -589,7 +681,7 @@ export class OfferCreatorService {
       const optimizationPrompt = this.buildOptimizationPrompt(offer.offer, optimizationType);
       
       const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o',
+        model: 'anthropic/claude-3-haiku',
         messages: [
           {
             role: 'system',

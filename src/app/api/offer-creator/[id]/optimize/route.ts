@@ -1,15 +1,15 @@
-// app/api/offer-creator/[id]/optimize/route.ts - ADD USAGE LOGGING
+// app/api/offer-creator/[id]/optimize/route.ts - FIXED
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { OfferCreatorService } from '../../../../../services/offerCreator.service';
 import { validateOptimizationRequest } from '../../../../validators/offerCreator.validator';
 import { rateLimit } from '@/lib/rateLimit';
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { logUsage } from '@/lib/usage';
 
 const RATE_LIMITS = {
   OPTIMIZATION: {
-    limit: 10, // ✅ Increased from 5 to 10
+    limit: 10,
     window: 3600 // 1 hour
   }
 };
@@ -19,6 +19,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🚀 Optimize API Route called for offer:', params.id);
+
+    // ✅ SIMPLE AUTH (same as cold email)
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
       cookies: () => cookieStore
@@ -27,8 +30,11 @@ export async function POST(
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+      console.error('❌ Auth failed:', error);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('✅ User authenticated:', user.id);
 
     // Rate limiting for optimization requests
     const rateLimitResult = await rateLimit(
@@ -49,8 +55,11 @@ export async function POST(
     const offerId = params.id;
     const body = await req.json();
 
+    console.log('🔧 Optimization request:', body);
+
     const validation = validateOptimizationRequest(body);
     if (!validation.success) {
+      console.error('❌ Validation failed:', validation.errors);
       return NextResponse.json(
         { error: 'Invalid optimization type', details: validation.errors },
         { status: 400 }
@@ -74,7 +83,7 @@ export async function POST(
       );
     }
 
-    // ✅ LOG USAGE for optimization - Using OptimizationResult type
+    // Log usage for optimization
     await logUsage({
       userId: user.id,
       feature: 'offer_optimization',
@@ -98,7 +107,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Offer Optimization Error:', error);
+    console.error('💥 Offer Optimization Error:', error);
     return NextResponse.json(
       { error: 'Failed to optimize offer' },
       { status: 500 }

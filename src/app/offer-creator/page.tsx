@@ -126,6 +126,27 @@ useEffect(() => {
   loadData();
 }, []); // Empty dependency if functions are stable
 
+useEffect(() => {
+  // Set initial offer type in form
+  form.setFieldValue('offerType', offerType);
+  
+  // Auto-populate discount fields when prices change
+  const formValues = form.getFieldsValue();
+  if (offerType === 'discount' && formValues.regularPrice && formValues.offerPrice) {
+    const discountCalc = calculateDiscountValues(formValues.regularPrice, formValues.offerPrice);
+    
+    // Only set if fields are empty
+    if (!formValues.discountValue) {
+      form.setFieldValue('discountValue', discountCalc.percentage);
+    }
+    if (!formValues.discountAmount) {
+      form.setFieldValue('discountAmount', `$${discountCalc.amount}`);
+    }
+  }
+}, [offerType, form]);
+
+
+
   const offerTypes = [
     {
       value: 'discount',
@@ -172,12 +193,61 @@ useEffect(() => {
     'Manufacturing'
   ];
 
+  const handlePriceChange = () => {
+  const formValues = form.getFieldsValue();
+  
+  if (offerType === 'discount' && formValues.regularPrice && formValues.offerPrice) {
+    const discountCalc = calculateDiscountValues(formValues.regularPrice, formValues.offerPrice);
+    
+    form.setFieldsValue({
+      discountValue: discountCalc.percentage,
+      discountAmount: `$${discountCalc.amount}`
+    });
+  }
+};
+
+
  // FIX: Add proper error handling
 const onFinish = async (values: any) => {
   try {
+    console.log('Form values before processing:', values);
+    
+    // Ensure offer type is set
+    if (!values.offerType) {
+      values.offerType = offerType;
+      form.setFieldValue('offerType', offerType);
+    }
+    
+    // Auto-calculate discount values for discount offers if not provided
+    if (values.offerType === 'discount') {
+      const discountCalc = calculateDiscountValues(values.regularPrice, values.offerPrice);
+      
+      if (!values.discountValue) {
+        values.discountValue = discountCalc.percentage;
+      }
+      if (!values.discountAmount) {
+        values.discountAmount = `$${discountCalc.amount}`;
+      }
+      
+      // Update form with calculated values
+      form.setFieldsValue({
+        discountValue: values.discountValue,
+        discountAmount: values.discountAmount
+      });
+    }
+    
+    console.log('Final values being sent:', values);
+    
     const validation = validateInput(values);
     if (!validation.isValid) {
-      // Handle validation errors
+      // Show validation errors
+      Object.entries(validation.errors).forEach(([field, error]) => {
+        form.setFields([{ name: field, errors: [error] }]);
+      });
+      notification.error({
+        message: 'Validation Failed',
+        description: 'Please fix the errors and try again.'
+      });
       return;
     }
     
@@ -195,6 +265,21 @@ const onFinish = async (values: any) => {
     });
   }
 };
+
+
+
+const calculateDiscountValues = (regularPrice: string, offerPrice: string) => {
+  const regular = parseFloat(regularPrice.replace(/[$,]/g, ''));
+  const offer = parseFloat(offerPrice.replace(/[$,]/g, ''));
+  
+  if (isNaN(regular) || isNaN(offer)) return { percentage: 0, amount: 0 };
+  
+  const amount = regular - offer;
+  const percentage = Math.round((amount / regular) * 100);
+  
+  return { percentage, amount };
+};
+
 
  const handleTemplateApply = (template: Template) => {
     const templateData = applyTemplate(template);
@@ -364,20 +449,28 @@ const handleHistoricalExport = async (offerId: string) => {
                       >
                         <Input placeholder="e.g., 3x your leads in 30 days" />
                       </Form.Item>
-                      <Form.Item
-                        name="regularPrice"
-                        label="Regular Price"
-                        rules={[{ required: true, message: 'What is the normal price?' }]}
-                      >
-                        <Input prefix={<DollarOutlined />} placeholder="e.g., $997" />
-                      </Form.Item>
-                      <Form.Item
-                        name="offerPrice"
-                        label="Offer Price"
-                        rules={[{ required: true, message: 'What is the special price?' }]}
-                      >
-                        <Input prefix={<DollarOutlined />} placeholder="e.g., $497" />
-                      </Form.Item>
+                  <Form.Item
+  name="regularPrice"
+  label="Regular Price"
+  rules={[{ required: true, message: 'What is the normal price?' }]}
+>
+  <Input 
+    prefix={<DollarOutlined />} 
+    placeholder="e.g., $997" 
+    onChange={handlePriceChange}
+  />
+</Form.Item>
+<Form.Item
+  name="offerPrice"
+  label="Offer Price"
+  rules={[{ required: true, message: 'What is the special price?' }]}
+>
+  <Input 
+    prefix={<DollarOutlined />} 
+    placeholder="e.g., $497" 
+    onChange={handlePriceChange}
+  />
+</Form.Item>
                       <Form.Item
                         name="expiryDate"
                         label="Offer Expiry Date"
@@ -453,122 +546,241 @@ const handleHistoricalExport = async (offerId: string) => {
                   </div>
                   
                   <Form.Item
-                    name="offerType"
-                    initialValue="discount"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {offerTypes.map((type) => (
-                        <Card
-                          key={type.value}
-                          hoverable
-                          onClick={() => {
-                            setOfferType(type.value);
-                            form.setFieldValue('offerType', type.value);
-                          }}
-                          className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2' : ''}`}
-                        >
-                          <div className="flex items-start">
-                            <div className="p-2 bg-blue-50 rounded-full mr-3">
-                              {type.icon}
-                            </div>
-                            <div>
-                              <div className="font-medium">{type.label}</div>
-                              <div className="text-gray-500 text-sm mb-2">{type.description}</div>
-                              <div className="flex flex-wrap gap-2">
-                                <Tag color="blue">{type.effectiveness}</Tag>
-                                <Tag color="geekblue">{type.bestFor}</Tag>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </Form.Item>
+  name="offerType"
+  rules={[{ required: true, message: 'Please select an offer type!' }]}
+>
+  <Radio.Group
+    value={offerType}
+    onChange={(e) => {
+      const newType = e.target.value;
+      setOfferType(newType);
+      form.setFieldValue('offerType', newType);
+    }}
+  >
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {offerTypes.map((type) => (
+        <Radio.Button
+          key={type.value}
+          value={type.value}
+          className="h-auto p-0 border-0"
+        >
+          <Card
+            hoverable
+            className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2' : ''}`}
+          >
+            <div className="flex items-start">
+              <div className="p-2 bg-blue-50 rounded-full mr-3">
+                {type.icon}
+              </div>
+              <div>
+                <div className="font-medium">{type.label}</div>
+                <div className="text-gray-500 text-sm mb-2">{type.description}</div>
+                <div className="flex flex-wrap gap-2">
+                  <Tag color="blue">{type.effectiveness}</Tag>
+                  <Tag color="geekblue">{type.bestFor}</Tag>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Radio.Button>
+      ))}
+    </div>
+  </Radio.Group>
+</Form.Item>
 
                   <Divider />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {offerType === 'discount' && (
-                      <>
-                        <Form.Item
-                          name="discountValue"
-                          label="Discount Percentage"
-                          rules={[{ required: true, message: 'Please enter discount percentage!' }]}
-                        >
-                          <InputNumber 
-                            min={1}
-                            max={99}
-                            suffix="%"
-                            placeholder="25"
-                            style={{ width: '100%' }}
-                          />
-                        </Form.Item>
-                        <Form.Item
-                          name="discountAmount"
-                          label="Discount Amount"
-                          rules={[{ required: true }]}
-                        >
-                          <Input prefix={<DollarOutlined />} placeholder="e.g., $500" />
-                        </Form.Item>
-                      </>
-                    )}
-                    
-                    {offerType === 'bonus' && (
-                      <>
-                        <Form.Item
-                          name="bonusItem"
-                          label="Bonus Item Name"
-                          rules={[{ required: true }]}
-                        >
-                          <Input placeholder="e.g., Free Consulting Session" />
-                        </Form.Item>
-                        <Form.Item
-                          name="bonusValue"
-                          label="Bonus Value"
-                          rules={[{ required: true }]}
-                        >
-                          <Input prefix={<DollarOutlined />} placeholder="e.g., $300" />
-                        </Form.Item>
-                        <Form.Item
-                          name="totalValue"
-                          label="Total Package Value"
-                          rules={[{ required: true }]}
-                        >
-                          <Input prefix={<DollarOutlined />} placeholder="e.g., $1,297" />
-                        </Form.Item>
-                      </>
-                    )}
-                    
-                    {offerType === 'trial' && (
-                      <Form.Item
-                        name="trialPeriod"
-                        label="Trial Period (Days)"
-                        rules={[{ required: true, message: 'Please enter trial period!' }]}
-                      >
-                        <InputNumber 
-                          min={1}
-                          max={365}
-                          placeholder="14"
-                          style={{ width: '100%' }}
-                        />
-                      </Form.Item>
-                    )}
-                    
-                    {offerType === 'guarantee' && (
-                      <Form.Item
-                        name="guaranteePeriod"
-                        label="Guarantee Period (Days)"
-                        rules={[{ required: true, message: 'Please enter guarantee period!' }]}
-                      >
-                        <InputNumber 
-                          min={1}
-                          max={365}
-                          placeholder="30"
-                          style={{ width: '100%' }}
-                        />
-                      </Form.Item>
-                    )}
-                  </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {offerType === 'discount' && (
+    <>
+      <Form.Item
+        name="discountValue"
+        label="Discount Percentage"
+        rules={[{ required: true, message: 'Please enter discount percentage!' }]}
+        tooltip="Auto-calculated from your prices, but you can adjust"
+      >
+        <InputNumber 
+          min={1}
+          max={99}
+          suffix="%"
+          style={{ width: '100%' }}
+          placeholder={
+            formValues?.regularPrice && formValues?.offerPrice 
+              ? calculateDiscountValues(formValues.regularPrice, formValues.offerPrice).percentage.toString()
+              : "25"
+          }
+          onChange={(value) => {
+            if (value && formValues?.regularPrice) {
+              const regular = parseFloat(formValues.regularPrice.replace(/[$,]/g, ''));
+              const discountAmount = Math.round((regular * value) / 100);
+              form.setFieldValue('discountAmount', `$${discountAmount}`);
+            }
+          }}
+        />
+      </Form.Item>
+      <Form.Item
+        name="discountAmount"
+        label="Discount Amount"
+        rules={[{ required: true, message: 'Discount amount is required!' }]}
+        tooltip="Auto-calculated from percentage, but you can adjust"
+      >
+        <Input 
+          prefix={<DollarOutlined />} 
+          placeholder={
+            formValues?.regularPrice && formValues?.offerPrice 
+              ? `$${calculateDiscountValues(formValues.regularPrice, formValues.offerPrice).amount}`
+              : "e.g., $500"
+          }
+          onChange={(e) => {
+            const amount = parseFloat(e.target.value.replace(/[$,]/g, ''));
+            if (amount && formValues?.regularPrice) {
+              const regular = parseFloat(formValues.regularPrice.replace(/[$,]/g, ''));
+              const percentage = Math.round((amount / regular) * 100);
+              form.setFieldValue('discountValue', percentage);
+            }
+          }}
+        />
+      </Form.Item>
+      
+      {/* Auto-calculated preview */}
+      {formValues?.regularPrice && formValues?.offerPrice && (
+        <div className="col-span-2">
+          <Alert
+            type="info"
+            showIcon
+            message="Auto-calculated Values"
+            description={
+              <div className="text-sm">
+                <div>Discount: {calculateDiscountValues(formValues.regularPrice, formValues.offerPrice).percentage}% (${calculateDiscountValues(formValues.regularPrice, formValues.offerPrice).amount})</div>
+                <div>You can edit these values above if needed</div>
+              </div>
+            }
+          />
+        </div>
+      )}
+    </>
+  )}
+  
+  {offerType === 'bonus' && (
+    <>
+      <Form.Item
+        name="bonusItem"
+        label="Bonus Item Name"
+        rules={[{ required: true, message: 'Please enter bonus item name!' }]}
+        tooltip="What additional value are you including?"
+      >
+        <Input placeholder="e.g., Free Consulting Session" />
+      </Form.Item>
+      <Form.Item
+        name="bonusValue"
+        label="Bonus Value"
+        rules={[{ required: true, message: 'Please enter bonus value!' }]}
+        tooltip="What's the value of this bonus?"
+      >
+        <Input prefix={<DollarOutlined />} placeholder="e.g., $300" />
+      </Form.Item>
+      <Form.Item
+        name="totalValue"
+        label="Total Package Value"
+        rules={[{ required: true, message: 'Please enter total value!' }]}
+        tooltip="Main product + bonus value"
+      >
+        <Input prefix={<DollarOutlined />} placeholder="e.g., $1,297" />
+      </Form.Item>
+      
+      {/* Auto-calculated preview for bonus */}
+      {formValues?.bonusValue && formValues?.regularPrice && (
+        <div className="col-span-2">
+          <Alert
+            type="info"
+            showIcon
+            message="Package Value Preview"
+            description={
+              <div className="text-sm">
+                <div>Main Product: {formValues.regularPrice}</div>
+                <div>Bonus Value: {formValues.bonusValue}</div>
+                <div><strong>Total Package Value: ${
+                  (parseFloat(formValues.regularPrice.replace(/[$,]/g, '')) + 
+                   parseFloat((formValues.bonusValue || '0').replace(/[$,]/g, ''))).toLocaleString()
+                }</strong></div>
+              </div>
+            }
+          />
+        </div>
+      )}
+    </>
+  )}
+  
+  {offerType === 'trial' && (
+    <>
+      <Form.Item
+        name="trialPeriod"
+        label="Trial Period (Days)"
+        rules={[{ required: true, message: 'Please enter trial period!' }]}
+        tooltip="How long is the trial period?"
+      >
+        <InputNumber 
+          min={1}
+          max={365}
+          placeholder="14"
+          style={{ width: '100%' }}
+        />
+      </Form.Item>
+      
+      {/* Trial preview */}
+      {formValues?.trialPeriod && (
+        <div className="col-span-2">
+          <Alert
+            type="info"
+            showIcon
+            message="Trial Details"
+            description={
+              <div className="text-sm">
+                <div>{formValues.trialPeriod} day trial period</div>
+                <div>Perfect for building trust and demonstrating value</div>
+              </div>
+            }
+          />
+        </div>
+      )}
+    </>
+  )}
+  
+  {offerType === 'guarantee' && (
+    <>
+      <Form.Item
+        name="guaranteePeriod"
+        label="Guarantee Period (Days)"
+        rules={[{ required: true, message: 'Please enter guarantee period!' }]}
+        tooltip="How long is the guarantee valid?"
+      >
+        <InputNumber 
+          min={1}
+          max={365}
+          placeholder="30"
+          style={{ width: '100%' }}
+        />
+      </Form.Item>
+      
+      {/* Guarantee preview */}
+      {formValues?.guaranteePeriod && (
+        <div className="col-span-2">
+          <Alert
+            type="success"
+            showIcon
+            message="Risk Reversal"
+            description={
+              <div className="text-sm">
+                <div>{formValues.guaranteePeriod} day money-back guarantee</div>
+                <div>Removes risk and builds customer confidence</div>
+              </div>
+            }
+          />
+        </div>
+      )}
+    </>
+  )}
+</div>
                 </Panel>
 
                 <Panel 

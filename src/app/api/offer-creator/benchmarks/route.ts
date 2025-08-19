@@ -1,11 +1,10 @@
-
-// app/api/offer-creator/benchmarks/route.ts - WITH RATE LIMITING & USAGE
+// app/api/offer-creator/benchmarks/route.ts - FIXED
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { INDUSTRY_BENCHMARKS, getIndustryBenchmark } from '@/utils/offerCreator.utils';
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
 
 const RATE_LIMITS = {
   BENCHMARKS: {
@@ -16,6 +15,9 @@ const RATE_LIMITS = {
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('🚀 Benchmarks API Route called');
+
+    // ✅ SIMPLE AUTH (same as cold email)
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
       cookies: () => cookieStore
@@ -24,10 +26,13 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+      console.error('❌ Auth failed:', error);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ ADD RATE LIMITING for benchmarks
+    console.log('✅ User authenticated:', user.id);
+
+    // Rate limiting for benchmarks
     const rateLimitResult = await rateLimit(
       `offer_benchmarks:${user.id}`,
       RATE_LIMITS.BENCHMARKS.limit,
@@ -46,13 +51,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const industry = searchParams.get('industry');
 
+    console.log('📊 Fetching benchmarks for industry:', industry || 'all');
+
     let responseData;
     if (industry) {
       // Return specific industry benchmark
       const benchmark = getIndustryBenchmark(industry);
       responseData = {
         industry,
-        benchmark
+        benchmark,
+        industrySpecific: benchmark
       };
     } else {
       // Return all industry benchmarks
@@ -62,7 +70,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // ✅ LOG USAGE for benchmarks
+    // Log usage for benchmarks
     await logUsage({
       userId: user.id,
       feature: 'offer_benchmarks',
@@ -83,7 +91,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Benchmarks Fetch Error:', error);
+    console.error('💥 Benchmarks Fetch Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch benchmarks' },
       { status: 500 }

@@ -1,10 +1,10 @@
-// app/api/offer-creator/insights/route.ts - WITH RATE LIMITING & USAGE (FIXED)
+// app/api/offer-creator/insights/route.ts - FIXED
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { getIndustrySpecificTips, generateCopywritingVariations } from '@/utils/offerCreator.utils';
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
 
 const RATE_LIMITS = {
   INSIGHTS: {
@@ -15,6 +15,9 @@ const RATE_LIMITS = {
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('🚀 Insights API Route called');
+
+    // ✅ SIMPLE AUTH (same as cold email)
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
       cookies: () => cookieStore
@@ -23,10 +26,13 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+      console.error('❌ Auth failed:', error);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ ADD RATE LIMITING for insights
+    console.log('✅ User authenticated:', user.id);
+
+    // Rate limiting for insights
     const rateLimitResult = await rateLimit(
       `offer_insights:${user.id}`,
       RATE_LIMITS.INSIGHTS.limit,
@@ -47,6 +53,8 @@ export async function GET(req: NextRequest) {
     const text = searchParams.get('text');
     const type = searchParams.get('type') as 'headline' | 'cta' | 'urgency';
 
+    console.log('💡 Generating insights for:', { industry, text: text?.substring(0, 50), type });
+
     let data: any = {};
 
     // Get industry-specific tips
@@ -59,7 +67,7 @@ export async function GET(req: NextRequest) {
       data.variations = generateCopywritingVariations(text, type);
     }
 
-    // ✅ LOG USAGE for insights
+    // Log usage for insights
     await logUsage({
       userId: user.id,
       feature: 'offer_insights',
@@ -73,7 +81,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // ✅ MISSING RETURN STATEMENT (FIXED)
+    // ✅ FIXED: Added missing return statement
     return NextResponse.json({
       success: true,
       data,
@@ -83,7 +91,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Insights Fetch Error:', error);
+    console.error('💥 Insights Fetch Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch insights' },
       { status: 500 }

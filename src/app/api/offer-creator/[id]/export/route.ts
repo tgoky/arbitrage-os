@@ -1,10 +1,10 @@
-// app/api/offer-creator/[id]/export/route.ts - WITH RATE LIMITING & USAGE
+// app/api/offer-creator/[id]/export/route.ts - FIXED
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { OfferCreatorService } from '../../../../../services/offerCreator.service';
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
 
 const RATE_LIMITS = {
   EXPORT: {
@@ -18,6 +18,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🚀 Export API Route called for offer:', params.id);
+
+    // ✅ SIMPLE AUTH (same as cold email)
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
       cookies: () => cookieStore
@@ -26,10 +29,13 @@ export async function GET(
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+      console.error('❌ Auth failed:', error);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ ADD RATE LIMITING for exports
+    console.log('✅ User authenticated:', user.id);
+
+    // Rate limiting for exports
     const rateLimitResult = await rateLimit(
       `offer_export:${user.id}`,
       RATE_LIMITS.EXPORT.limit,
@@ -49,6 +55,8 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'json';
 
+    console.log('📤 Exporting offer:', offerId, 'format:', format);
+
     const offerService = new OfferCreatorService();
     const exportData = await offerService.exportOffer(user.id, offerId, format as 'json' | 'html');
 
@@ -59,7 +67,7 @@ export async function GET(
       );
     }
 
-    // ✅ LOG USAGE for export
+    // Log usage for export
     await logUsage({
       userId: user.id,
       feature: 'offer_export',
@@ -92,7 +100,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Offer Export Error:', error);
+    console.error('💥 Offer Export Error:', error);
     return NextResponse.json(
       { error: 'Failed to export offer' },
       { status: 500 }
