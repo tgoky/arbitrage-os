@@ -130,11 +130,13 @@ export default function GrowthPlanCreatorPage() {
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      setIsMounted(false);
-      cleanup();
-    };
-  }, [cleanup]);
+  setIsMounted(true); // Ensure it's set to true on mount
+  
+  return () => {
+    setIsMounted(false);
+    cleanup();
+  };
+}, []); 
 
   // Load templates on mount
   useEffect(() => {
@@ -344,48 +346,80 @@ export default function GrowthPlanCreatorPage() {
     }
   };
 
-  const onFinish = async (values: any) => {
-    try {
-      const inputData: Omit<GrowthPlanInput, 'userId'> = {
-        email: values.email?.trim() || 'user@example.com',
-        name: values.name?.trim() || '',
-        company: values.company?.trim() || '',
-        clientCompany: values.clientCompany?.trim() || '',
-        industry: values.industry || '',
-        contactName: values.contactName?.trim() || '',
-        contactRole: values.contactRole?.trim() || '',
-        expertise: Array.isArray(values.expertise) ? values.expertise.filter(Boolean) : [],
-        experience: values.experience?.trim() || '',
-        timeframe: timeframe as '3m' | '6m' | '12m',
-        transcript: values.transcript?.trim(),
-        caseStudies: Array.isArray(values.caseStudies) ? values.caseStudies : [],
-        focusAreas: Array.isArray(values.focusAreas) ? values.focusAreas : [],
-        budget: values.budget || undefined,
-        currentRevenue: values.currentRevenue || undefined,
-        targetRevenue: values.targetRevenue || undefined,
-        businessModel: values.businessModel || undefined,
-        teamSize: values.teamSize || undefined,
-        currentChannels: Array.isArray(values.currentChannels) ? values.currentChannels : [],
-        painPoints: Array.isArray(values.painPoints) ? values.painPoints : [],
-        objectives: Array.isArray(values.objectives) ? values.objectives : []
-      };
+const onFinish = async (values: any) => {
+  try {
+    console.log('🚀 Starting plan generation...');
+    
+    const inputData: Omit<GrowthPlanInput, 'userId'> = {
+      email: values.email?.trim() || 'user@example.com',
+      name: values.name?.trim() || '',
+      company: values.company?.trim() || '',
+      clientCompany: values.clientCompany?.trim() || '',
+      industry: values.industry || '',
+      contactName: values.contactName?.trim() || '',
+      contactRole: values.contactRole?.trim() || '',
+      expertise: Array.isArray(values.expertise) ? values.expertise.filter(Boolean) : [],
+      experience: values.experience?.trim() || '',
+      timeframe: timeframe as '3m' | '6m' | '12m',
+      transcript: values.transcript?.trim(),
+      caseStudies: Array.isArray(values.caseStudies) ? values.caseStudies : [],
+      focusAreas: Array.isArray(values.focusAreas) ? values.focusAreas : [],
+      budget: values.budget || undefined,
+      currentRevenue: values.currentRevenue || undefined,
+      targetRevenue: values.targetRevenue || undefined,
+      businessModel: values.businessModel || undefined,
+      teamSize: values.teamSize || undefined,
+      currentChannels: Array.isArray(values.currentChannels) ? values.currentChannels : [],
+      painPoints: Array.isArray(values.painPoints) ? values.painPoints : [],
+      objectives: Array.isArray(values.objectives) ? values.objectives : []
+    };
 
-      const plan = await generateGrowthPlan(inputData);
+    console.log('📋 Input data prepared for:', inputData.clientCompany);
+    console.log('📋 Industry:', inputData.industry);
+    console.log('📋 Timeframe:', inputData.timeframe);
+
+    const plan = await generateGrowthPlan(inputData);
+    
+    console.log('✅ Plan generated:', plan ? 'Success' : 'Failed');
+    console.log('📊 Current plan state:', currentPlan ? 'Set' : 'Not set');
+    console.log('🔍 Selected plan state:', selectedPlan ? 'Set' : 'Not set');
+    console.log('🎭 Current view mode:', viewMode);
+    console.log('🏠 Is mounted:', isMounted);
+    
+    if (plan && isMounted) {
+      console.log('🎯 Switching to view mode...');
+      setViewMode('view');
+      console.log('🔄 setViewMode("view") called');
       
-      if (plan && isMounted) {
-        setViewMode('view');
-      }
-    } catch (error) {
-      console.error('Generation error:', error);
-      if (isMounted) {
-        notification.error({
-          message: 'Generation Failed',
-          description: 'Please check your inputs and try again.',
-          placement: 'topRight',
-        });
-      }
+      // Check state after a brief delay
+      setTimeout(() => {
+        console.log('⏰ States after 100ms timeout:');
+        console.log('- Current plan:', currentPlan ? `Set (${currentPlan.id})` : 'Not set');
+        console.log('- Selected plan:', selectedPlan ? `Set (${selectedPlan.id})` : 'Not set');
+        console.log('- View mode:', viewMode);
+        console.log('- Plan data exists:', currentPlan?.plan ? 'Yes' : 'No');
+        if (currentPlan?.plan) {
+          console.log('- Executive summary length:', currentPlan.plan.executiveSummary?.length || 0);
+          console.log('- Has strategy:', !!currentPlan.plan.strategy);
+          console.log('- Has metrics:', !!currentPlan.plan.metrics);
+        }
+      }, 100);
+    } else {
+      console.log('❌ Cannot switch to view mode:');
+      console.log('- Plan exists:', !!plan);
+      console.log('- Is mounted:', isMounted);
     }
-  };
+  } catch (error) {
+    console.error('💥 Generation error:', error);
+    if (isMounted) {
+      notification.error({
+        message: 'Generation Failed',
+        description: 'Please check your inputs and try again.',
+        placement: 'topRight',
+      });
+    }
+  }
+};
 
   const handlePlanSelect = async (planId: string) => {
     try {

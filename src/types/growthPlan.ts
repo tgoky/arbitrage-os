@@ -264,13 +264,17 @@ export interface GrowthPlanAnalytics {
 }
 
 // Service response types
+// ✅ Update service response to be more flexible
 export interface GrowthPlanServiceResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
+  meta?: {
+    saved: boolean;  // ✅ Indicates if plan was saved to DB
+    temporary: boolean; // ✅ Indicates if this is a temporary generation
+  };
 }
-
 // API endpoint types
 export interface CreateGrowthPlanRequest {
   input: GrowthPlanInput;
@@ -278,7 +282,7 @@ export interface CreateGrowthPlanRequest {
 }
 
 export interface CreateGrowthPlanResponse {
-  planId: string;
+  planId?: string;
   plan: GeneratedGrowthPlan;
 }
 
@@ -347,6 +351,12 @@ export interface GrowthPlanFormState {
   };
   isSubmitting: boolean;
   isDirty: boolean;
+}
+
+//  Add a new response type for unsaved plans
+export interface GeneratedGrowthPlanResponse {
+  plan: GeneratedGrowthPlan;
+  // No planId since it's not saved
 }
 
 // Constants and enums

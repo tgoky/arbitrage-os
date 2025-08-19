@@ -1,4 +1,4 @@
-// hooks/useGrowthPlan.ts
+// hooks/useGrowthPlan.ts - FIXED ORDER
 import { useState, useEffect, useCallback } from 'react';
 import { message, notification } from 'antd';
 import {
@@ -46,91 +46,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     }
   }, [abortController]);
 
-  // Cleanup on unmount
-
-  useEffect(() => {
-  return () => {
-    if (abortController) {
-      abortController.abort();
-      setAbortController(null);
-    }
-  };
-}, []);
-
-  // Generate a new growth plan
-  const generateGrowthPlan = useCallback(async (input: Omit<GrowthPlanInput, 'userId'>): Promise<GeneratedGrowthPlan | null> => {
-    cleanup(); // Cancel any existing request
-    
-    const controller = new AbortController();
-    setAbortController(controller);
-    setGenerationLoading(true);
-    setError(null);
-    
-    try {
-      // Validate required fields before sending
-      if (!input.name || !input.clientCompany || !input.industry) {
-        throw new Error('Name, client company, and industry are required');
-      }
-
-      if (!input.expertise || input.expertise.length === 0) {
-        throw new Error('At least one expertise area is required');
-      }
-
-      const requestData: CreateGrowthPlanRequest = {
-        input,
-        workspaceId: options.workspaceId
-      };
-
-      const response = await fetch('/api/growth-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData),
-        signal: controller.signal
-      });
-
-      const result: GrowthPlanServiceResponse<CreateGrowthPlanResponse> = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || `Server error: ${response.status}`);
-      }
-
-      if (result.success && result.data) {
-        notification.success({
-          message: 'Growth Plan Generated!',
-          description: 'Your customized growth plan has been created successfully.',
-          placement: 'topRight',
-        });
-
-        // Refresh plans list
-        await fetchPlans();
-        
-        return result.data.plan;
-      } else {
-        throw new Error(result.error || 'Invalid response format');
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.log('Request was cancelled');
-        return null;
-      }
-      
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-      setError(errorMessage);
-      
-      notification.error({
-        message: 'Generation Failed',
-        description: errorMessage,
-        placement: 'topRight',
-      });
-      
-      throw err;
-    } finally {
-      setGenerationLoading(false);
-      setAbortController(null);
-    }
-  }, [options.workspaceId, cleanup]);
-
-  // Fetch growth plans list
+  // ✅ MOVE fetchPlans BEFORE generateGrowthPlan
   const fetchPlans = useCallback(async (filters?: {
     industry?: string;
     timeframe?: string;
@@ -170,6 +86,117 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       setLoading(false);
     }
   }, [options.workspaceId]);
+
+  // ✅ NOW generateGrowthPlan can reference fetchPlans
+  const generateGrowthPlan = useCallback(async (input: Omit<GrowthPlanInput, 'userId'>): Promise<GeneratedGrowthPlan | null> => {
+    cleanup(); // Cancel any existing request
+    
+    const controller = new AbortController();
+    setAbortController(controller);
+    setGenerationLoading(true);
+    setError(null);
+    
+    try {
+      // Validate required fields before sending
+      if (!input.name || !input.clientCompany || !input.industry) {
+        throw new Error('Name, client company, and industry are required');
+      }
+
+      if (!input.expertise || input.expertise.length === 0) {
+        throw new Error('At least one expertise area is required');
+      }
+
+      const requestData: CreateGrowthPlanRequest = {
+        input,
+        workspaceId: options.workspaceId
+      };
+
+      const response = await fetch('/api/growth-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+        signal: controller.signal
+      });
+
+      const result: GrowthPlanServiceResponse<CreateGrowthPlanResponse> = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || `Server error: ${response.status}`);
+      }
+
+      if (result.success && result.data) {
+        // ✅ Check if plan was saved or is temporary
+        const isSaved = result.meta?.saved === true;
+        
+        if (isSaved) {
+          notification.success({
+            message: 'Growth Plan Created!',
+            description: 'Your growth plan has been saved successfully.',
+            placement: 'topRight',
+          });
+          
+          // Refresh plans list only if saved
+          await fetchPlans();
+        } else {
+          notification.success({
+            message: 'Growth Plan Generated!',
+            description: 'Your growth plan was generated successfully. Note: Plans are not being saved currently.',
+            placement: 'topRight',
+          });
+          
+          // ✅ Create a temporary SavedGrowthPlan object for viewing
+          const tempPlan: SavedGrowthPlan = {
+            id: `temp-${Date.now()}`,
+            title: `Growth Plan - ${input.clientCompany}`,
+            plan: result.data.plan,
+            metadata: {
+              clientCompany: input.clientCompany,
+              industry: input.industry,
+              timeframe: input.timeframe,
+              contactName: input.contactName || '',
+              contactRole: input.contactRole || '',
+              generatedAt: new Date().toISOString(),
+              tokensUsed: result.data.plan.tokensUsed,
+              generationTime: result.data.plan.generationTime,
+              consultant: {
+                name: input.name,
+                company: input.company,
+                expertise: input.expertise
+              }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
+          // ✅ Set as current plan for viewing
+          setCurrentPlan(tempPlan);
+        }
+        
+        return result.data.plan;
+      } else {
+        throw new Error(result.error || 'Invalid response format');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Request was cancelled');
+        return null;
+      }
+      
+      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
+      setError(errorMessage);
+      
+      notification.error({
+        message: 'Generation Failed',
+        description: errorMessage,
+        placement: 'topRight',
+      });
+      
+      throw err;
+    } finally {
+      setGenerationLoading(false);
+      setAbortController(null);
+    }
+  }, [options.workspaceId, cleanup, fetchPlans]);
 
   // Fetch a specific growth plan
   const fetchPlan = useCallback(async (planId: string): Promise<SavedGrowthPlan | null> => {
@@ -544,6 +571,16 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
   // Clear error state
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortController) {
+        abortController.abort();
+        setAbortController(null);
+      }
+    };
   }, []);
 
   // Auto-fetch on mount if enabled

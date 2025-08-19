@@ -28,50 +28,66 @@ export class GrowthPlanService {
     });
   }
 
-  async generateGrowthPlan(input: GrowthPlanInput): Promise<GeneratedGrowthPlan> {
-    const startTime = Date.now();
-    
-    // Check cache first
-    const cacheKey = this.generateCacheKey(input);
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached as string);
+async generateGrowthPlan(input: GrowthPlanInput): Promise<GeneratedGrowthPlan> {
+  const startTime = Date.now();
+  
+  // Check cache first - FIX: Handle different Redis return types
+  const cacheKey = this.generateCacheKey(input);
+  const cached = await this.redis.get(cacheKey);
+  
+  if (cached) {
+    try {
+      // ✅ FIX: Handle both string and object returns from Redis
+      if (typeof cached === 'string') {
+        return JSON.parse(cached);
+      } else if (typeof cached === 'object' && cached !== null) {
+        // Redis sometimes returns parsed objects directly
+        return cached as GeneratedGrowthPlan;
+      }
+    } catch (error) {
+      console.warn('Failed to parse cached growth plan, regenerating:', error);
+      // Continue to generation if cache is corrupted
     }
-
-    // Build comprehensive prompt
-    const prompt = this.buildGrowthPlanPrompt(input);
-    
-    // Generate plan using AI
-    const response = await this.openRouterClient.complete({
-      model: 'anthropic/claude-3-sonnet',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert growth strategist and business consultant. Generate comprehensive, data-driven growth plans that are practical and actionable. Focus on measurable outcomes and realistic timelines.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 4000
-    });
-
-    const parsedPlan = this.parseGrowthPlanResponse(response.content, input);
-    
-    const growthPlan: GeneratedGrowthPlan = {
-      ...parsedPlan,
-      tokensUsed: response.usage.total_tokens,
-      generationTime: Date.now() - startTime
-    };
-
-    // Cache for 2 hours
-    await this.redis.set(cacheKey, JSON.stringify(growthPlan), { ex: 7200 });
-    
-    return growthPlan;
   }
 
+  // Build comprehensive prompt
+  const prompt = this.buildGrowthPlanPrompt(input);
+  
+  // Generate plan using AI
+  const response = await this.openRouterClient.complete({
+    model: 'openai/gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: `You are an expert growth strategist and business consultant. Generate comprehensive, data-driven growth plans that are practical and actionable. Focus on measurable outcomes and realistic timelines.`
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 4000
+  });
+
+  const parsedPlan = this.parseGrowthPlanResponse(response.content, input);
+  
+  const growthPlan: GeneratedGrowthPlan = {
+    ...parsedPlan,
+    tokensUsed: response.usage.total_tokens,
+    generationTime: Date.now() - startTime
+  };
+
+  // Cache for 2 hours - FIX: Always store as string
+  try {
+    await this.redis.set(cacheKey, JSON.stringify(growthPlan), { ex: 7200 });
+  } catch (cacheError) {
+    console.warn('Failed to cache growth plan:', cacheError);
+    // Don't fail the request if caching fails
+  }
+  
+  return growthPlan;
+}
   private buildGrowthPlanPrompt(input: GrowthPlanInput): string {
     return `
     GROWTH PLAN GENERATION REQUEST
