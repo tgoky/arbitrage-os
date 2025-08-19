@@ -1,4 +1,3 @@
-// app/dashboard/[workspace]/page.tsx
 "use client";
 
 import React, { useEffect } from 'react';
@@ -13,6 +12,7 @@ import ActivityFeed from '../components/activityfeed';
 import RecentDeliverables from '../components/recentdeliveries';
 import StatsOverview from '../components/statsoverview';
 import { AutomationItem, ActivityItem, Deliverable, AgentRecord, WorkflowRecord, DeliverableRecord } from '../components/types';
+import { EnhancedLoadingState } from '../../../components/loadingui/loading'; // Import the EnhancedLoadingState
 
 const { useBreakpoint } = Grid;
 
@@ -49,28 +49,28 @@ const WorkspaceDashboard = () => {
   }, [workspaceSlug, workspaces, currentWorkspace, isLoading, switchWorkspace, router]);
 
   // Fetch data with workspace context
-  const { data: clientsData } = useList({ 
+  const { data: clientsData, isLoading: isClientsLoading } = useList({ 
     resource: 'clients',
     filters: currentWorkspace ? [
       { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
     ] : []
   });
   
-  const { data: agentsData } = useList<AgentRecord>({ 
+  const { data: agentsData, isLoading: isAgentsLoading } = useList<AgentRecord>({ 
     resource: 'agents',
     filters: currentWorkspace ? [
       { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
     ] : []
   });
   
-  const { data: workflowsData } = useList<WorkflowRecord>({ 
+  const { data: workflowsData, isLoading: isWorkflowsLoading } = useList<WorkflowRecord>({ 
     resource: 'workflows',
     filters: currentWorkspace ? [
       { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
     ] : []
   });
   
-  const { data: deliverablesData } = useList<DeliverableRecord>({ 
+  const { data: deliverablesData, isLoading: isDeliverablesLoading } = useList<DeliverableRecord>({ 
     resource: 'deliverables',
     filters: currentWorkspace ? [
       { field: 'workspaceId', operator: 'eq', value: currentWorkspace.id }
@@ -147,12 +147,13 @@ const WorkspaceDashboard = () => {
     },
   ];
 
-  if (isLoading) {
+  // Check if any data is still loading
+  const isDataLoading = isLoading || isClientsLoading || isAgentsLoading || isWorkflowsLoading || isDeliverablesLoading;
+
+  if (isDataLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        theme === 'dark' ? 'bg-black' : 'bg-white'
-      }`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
+        <EnhancedLoadingState />
       </div>
     );
   }
@@ -187,26 +188,6 @@ const WorkspaceDashboard = () => {
         minHeight: '100vh',
       }}
     >
-      {/* Workspace Header */}
-      {/* <div className="mb-6">
-        <div className="flex items-center mb-2">
-          <div className={`w-8 h-8 ${currentWorkspace.color} rounded-lg flex items-center justify-center mr-3`}>
-            <span className="text-white font-semibold text-sm">
-              {currentWorkspace.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">{currentWorkspace.name}</h1>
-            {currentWorkspace.description && (
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {currentWorkspace.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </div> */}
-
-      {/* Dashboard Content */}
       <WelcomePanel
         clientsLength={clients.length}
         agentsLength={agents.length}
