@@ -1,6 +1,9 @@
-// Replace the loading section in your component with this enhanced version
+// components/loading.tsx
+interface EnhancedLoadingStateProps {
+  theme: 'light' | 'dark';
+}
 
-// Loading Component
+
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center space-x-2">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900"></div>
@@ -19,61 +22,7 @@ const LoadingCard = ({ delay = 0 }: { delay?: number }) => (
   </div>
 );
 
-const EnhancedLoadingState = () => (
-  <div className="p-4">
-    <div className="flex items-center justify-between mb-6">
-      <div className="animate-pulse bg-gray-300 h-8 w-64 rounded"></div>
-      <div className="animate-pulse bg-gray-300 h-10 w-40 rounded-md"></div>
-    </div>
-    
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      {/* Table Header Skeleton */}
-      <div className="bg-gray-50 border-b border-gray-200 p-4">
-        <div className="grid grid-cols-7 gap-4">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-300 h-4 rounded"></div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Table Rows Skeleton */}
-      <div className="divide-y divide-gray-200">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="p-4">
-            <div className="grid grid-cols-7 gap-4 items-center">
-              {Array.from({ length: 6 }).map((_, j) => (
-                <div key={j} className="animate-pulse bg-gray-200 h-4 rounded"></div>
-              ))}
-              <div className="flex gap-2">
-                <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
-                <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
-                <div className="animate-pulse bg-gray-200 h-8 w-32 rounded"></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-    
-    {/* Pagination Skeleton */}
-    <div className="mt-6 flex gap-2 items-center">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="animate-pulse bg-gray-200 h-8 w-10 rounded"></div>
-      ))}
-      <div className="animate-pulse bg-gray-200 h-4 w-32 rounded ml-4"></div>
-    </div>
-    
-    {/* Floating Loading Indicator */}
-    <div className="fixed bottom-8 right-8 bg-white rounded-full shadow-lg border border-gray-200 p-4">
-      <div className="flex items-center space-x-3">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-900 border-t-transparent"></div>
-        <span className="text-sm font-medium text-gray-700">Synching Arbitrage Operating System.</span>
-      </div>
-    </div>
-  </div>
-);
 
-// Alternative Minimal Loading State
 const MinimalLoadingState = () => (
   <div className="p-4">
     <div className="flex items-center justify-between mb-6">
@@ -103,6 +52,64 @@ const MinimalLoadingState = () => (
   </div>
 );
 
+
+
+
+const EnhancedLoadingState = ({ theme }: EnhancedLoadingStateProps) => (
+  <div className="p-4">
+    <div className="flex items-center justify-between mb-6">
+      <div className={`animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'} h-8 w-64 rounded`}></div>
+      <div className={`animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'} h-10 w-40 rounded-md`}></div>
+    </div>
+
+    <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg shadow-sm border overflow-hidden`}>
+      {/* Table Header Skeleton */}
+      <div className={`${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b p-4`}>
+        <div className="grid grid-cols-7 gap-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className={`animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'} h-4 rounded`}></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Table Rows Skeleton */}
+      <div className={`${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'} divide-y`}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="p-4">
+            <div className="grid grid-cols-7 gap-4 items-center">
+              {Array.from({ length: 6 }).map((_, j) => (
+                <div key={j} className={`animate-pulse ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} h-4 rounded`}></div>
+              ))}
+              <div className="flex gap-2">
+                <div className={`animate-pulse ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} h-8 w-16 rounded`}></div>
+                <div className={`animate-pulse ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} h-8 w-16 rounded`}></div>
+                <div className={`animate-pulse ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} h-8 w-32 rounded`}></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Pagination Skeleton */}
+    <div className="mt-6 flex gap-2 items-center">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className={`animate-pulse ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} h-8 w-10 rounded`}></div>
+      ))}
+      <div className={`animate-pulse ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} h-4 w-32 rounded ml-4`}></div>
+    </div>
+
+    {/* Floating Loading Indicator */}
+    <div className={`fixed bottom-8 right-8 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-full shadow-lg border p-4`}>
+      <div className="flex items-center space-x-3">
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-900 border-t-transparent"></div>
+        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+          Synching Arbitrage Operating System.
+        </span>
+      </div>
+    </div>
+  </div>
+);
 export {
   LoadingSpinner,
   LoadingCard,

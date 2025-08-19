@@ -150,14 +150,13 @@ const WorkspaceDashboard = () => {
   // Check if any data is still loading
   const isDataLoading = isLoading || isClientsLoading || isAgentsLoading || isWorkflowsLoading || isDeliverablesLoading;
 
-  if (isDataLoading) {
-    return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
-        <EnhancedLoadingState />
-      </div>
-    );
-  }
-
+ if (isDataLoading) {
+  return (
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
+      <EnhancedLoadingState theme={theme} />
+    </div>
+  );
+}
   if (!currentWorkspace) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${
