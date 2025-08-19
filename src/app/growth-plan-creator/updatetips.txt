@@ -1,0 +1,34 @@
+interface GrowthPlanLoadingOverlayProps {
+  visible: boolean;
+  action?: 'generate' | 'update' | 'delete' | 'export' | 'template' | 'fetch';
+}
+
+const actionTips: Record<string, string[]> = {
+  generate: [
+    'Analyzing industry trends...',
+    'Crafting strategic roadmap...',
+    'Optimizing growth projections...',
+  ],
+  update: ['Updating plan details...', 'Refining strategy...'],
+  delete: ['Removing plan...', 'Cleaning up data...'],
+  export: ['Preparing export file...', 'Formatting plan data...'],
+  template: ['Creating template...', 'Saving plan structure...'],
+  fetch: ['Fetching plans...', 'Loading analytics...'],
+};
+
+const GrowthPlanLoadingOverlay: React.FC<GrowthPlanLoadingOverlayProps> = ({ visible, action = 'generate' }) => {
+  const [currentTip, setCurrentTip] = useState(actionTips[action][0]);
+  // ... rest of the component
+  useEffect(() => {
+    if (!visible) {
+      setProgress(0);
+      return;
+    }
+    // ... progress logic
+    const tipInterval = setInterval(() => {
+      setCurrentTip(actionTips[action][Math.floor(Math.random() * actionTips[action].length)]);
+    }, 2000);
+    // ... cleanup
+  }, [visible, action]);
+  // ... rest of the component
+};

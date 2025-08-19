@@ -61,6 +61,8 @@ import {
   type GeneratedPricingPackage
 } from '../hooks/usePricingCalculator';
 
+import LoadingOverlay from './LoadingOverlay'; 
+
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
@@ -75,10 +77,13 @@ const PricingCalculator = () => {
   
   // Hooks
   const { generatePricing, quickCalculate, generating } = usePricingCalculator();
-  const { calculations, fetchCalculations } = useSavedCalculations();
-  const { benchmarks, fetchBenchmarks } = usePricingBenchmarks();
-  const { exportCalculation } = useCalculationExport();
+  const { calculations, fetchCalculations, loading: calculationsLoading } = useSavedCalculations();
+  const { benchmarks, fetchBenchmarks,  loading: benchmarksLoading  } = usePricingBenchmarks();
+  const { exportCalculation, loading: exportLoading } = useCalculationExport();
   const { validateInput, getBusinessInsights } = usePricingValidation();
+
+    // Unified loading state
+  const isLoading = generating;
 
   // Quick calculation results (real-time)
   const [quickResults, setQuickResults] = useState({
@@ -174,6 +179,7 @@ const PricingCalculator = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+        <LoadingOverlay visible={isLoading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <CalculatorOutlined className="mr-2 text-blue-600" />
@@ -424,6 +430,7 @@ const PricingCalculator = () => {
                     <Button
                       type="primary"
                       htmlType="submit"
+                       disabled={isLoading}
                       icon={<BulbOutlined />}
                       loading={generating}
                       size="large"
@@ -617,18 +624,21 @@ const PricingCalculator = () => {
                     <Button 
                       icon={<FileTextOutlined />} 
                       onClick={() => handleExport('proposal')}
+                          disabled={isLoading}
                     >
                       Proposal
                     </Button>
                     <Button 
                       icon={<  BarChartOutlined />} 
                       onClick={() => handleExport('presentation')}
+                          disabled={isLoading}
                     >
                       Presentation
                     </Button>
                     <Button 
                       icon={<ContainerOutlined />} 
                       onClick={() => handleExport('contract')}
+                          disabled={isLoading}
                     >
                       Contract
                     </Button>
@@ -636,6 +646,7 @@ const PricingCalculator = () => {
                       type="primary"
                       icon={<DownloadOutlined />} 
                       onClick={() => handleExport('complete')}
+                       disabled={isLoading}
                     >
                       Complete Package
                     </Button>

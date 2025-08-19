@@ -76,6 +76,7 @@ import {
 import { useGrowthPlan } from '../hooks/useGrowthPlan';
 import { GrowthPlanInput, SavedGrowthPlan, GrowthPlanSummary } from '@/types/growthPlan';
 import { debounce } from 'lodash';
+import LoadingOverlay from './LoadingOverlay';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -128,6 +129,7 @@ export default function GrowthPlanCreatorPage() {
     workspaceId: 'default' 
   });
 
+   const isLoading = generationLoading;
   // Cleanup on unmount
   useEffect(() => {
   setIsMounted(true); // Ensure it's set to true on mount
@@ -913,15 +915,16 @@ const onFinish = async (values: any) => {
         
         <div className="text-center">
           <Button 
-            type="primary" 
-            size="large" 
-            htmlType="submit"
-            loading={generationLoading}
-            icon={<ThunderboltOutlined />}
-            className="min-w-48"
-          >
-            {generationLoading ? 'Generating Plan...' : 'Generate Growth Plan'}
-          </Button>
+    type="primary" 
+    size="large" 
+    htmlType="submit"
+    loading={generationLoading}
+    icon={<ThunderboltOutlined />}
+    className="min-w-48"
+    disabled={isLoading} // Add this to disable during any loading operation
+  >
+    {generationLoading ? 'Generating Plan...' : 'Generate Growth Plan'}
+  </Button>
         </div>
       </Form>
     </Card>
@@ -1178,6 +1181,9 @@ const onFinish = async (values: any) => {
   // Main render
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+
+          <LoadingOverlay visible={isLoading} />
+
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <RocketOutlined className="mr-2 text-purple-600" />

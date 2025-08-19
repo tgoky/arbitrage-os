@@ -11,44 +11,39 @@ export const createClient = () => {
     {
       cookies: {
         get(name: string) {
+          if (typeof document === 'undefined') return undefined
+          
           try {
             const cookies = document.cookie.split(';')
             const cookie = cookies.find(c => c.trim().startsWith(`${name}=`))
             if (!cookie) return undefined
             
             const value = cookie.split('=')[1]
-            if (!value) return undefined
-            
-            // Validate the cookie value before returning
-            if (value.startsWith('base64-')) {
-              try {
-                const decoded = atob(value.substring(7))
-                JSON.parse(decoded) // Validate it's valid JSON
-                return value
-              } catch (e) {
-                console.warn(`Invalid cookie ${name}, clearing...`)
-                document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`
-                return undefined
-              }
-            }
-            return value
+            return value ? decodeURIComponent(value) : undefined
           } catch (error) {
             console.warn(`Error reading cookie ${name}:`, error)
             return undefined
           }
         },
         set(name: string, value: string, options: any) {
+          if (typeof document === 'undefined') return
+          
           try {
-            // Validate the value before setting
-            if (value.startsWith('base64-')) {
-              const decoded = atob(value.substring(7))
-              JSON.parse(decoded) // This will throw if invalid
-            }
+            let cookieString = `${name}=${encodeURIComponent(value)}`
             
-            let cookieString = `${name}=${value}; path=/`
-            if (options?.maxAge) cookieString += `; max-age=${options.maxAge}`
-            if (options?.sameSite) cookieString += `; samesite=${options.sameSite}`
-            if (options?.secure) cookieString += `; secure`
+            // Default options
+            cookieString += '; path=/'
+            cookieString += '; SameSite=Lax'
+            
+            if (options?.maxAge) {
+              cookieString += `; max-age=${options.maxAge}`
+            }
+            if (options?.expires) {
+              cookieString += `; expires=${options.expires.toUTCString()}`
+            }
+            if (options?.secure || window.location.protocol === 'https:') {
+              cookieString += '; secure'
+            }
             
             document.cookie = cookieString
           } catch (error) {
@@ -56,8 +51,24 @@ export const createClient = () => {
           }
         },
         remove(name: string, options: any) {
-          document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`
+          if (typeof document === 'undefined') return
+          
+          try {
+            let cookieString = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`
+            if (options?.domain) {
+              cookieString += `; domain=${options.domain}`
+            }
+            document.cookie = cookieString
+          } catch (error) {
+            console.error(`Error removing cookie ${name}:`, error)
+          }
         }
+      },
+      auth: {
+        // Ensure proper auth flow
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
       }
     }
   )
@@ -65,38 +76,19 @@ export const createClient = () => {
 
 export const supabaseBrowserClient = createClient()
 
-// Alternative: Force clear corrupted cookies on initialization
-export const clearCorruptedCookies = () => {
+// Utility to clear all auth-related cookies
+export const clearAuthCookies = () => {
   if (typeof window !== 'undefined') {
-    const cookiesToCheck = [
+    const authCookieNames = [
       'sb-access-token',
-      'sb-refresh-token', 
+      'sb-refresh-token',
       'supabase-auth-token',
       'supabase.auth.token'
     ]
     
-    cookiesToCheck.forEach(cookieName => {
-      const cookies = document.cookie.split(';')
-      const cookie = cookies.find(c => c.trim().startsWith(`${cookieName}=`))
-      
-      if (cookie) {
-        const value = cookie.split('=')[1]
-        if (value?.startsWith('base64-')) {
-          try {
-            const decoded = atob(value.substring(7))
-            JSON.parse(decoded)
-          } catch (e) {
-            console.warn(`Clearing corrupted cookie: ${cookieName}`)
-            document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`
-          }
-        }
-      }
+    authCookieNames.forEach(cookieName => {
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=${window.location.hostname}`
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`
     })
   }
 }
-
-// Debug: Log configuration (remove in production)
-console.log('🔧 Supabase Config:', {
-  url: supabaseUrl ? 'Set' : 'Missing',
-  key: supabaseAnonKey ? 'Set' : 'Missing'
-})

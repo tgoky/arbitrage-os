@@ -68,6 +68,8 @@ import {
   type GeneratedOfferPackage
 } from '../hooks/useOfferCreator';
 
+import LoadingOverlay from './LoadingOverlay';
+
 // FIX: Define proper interface
 interface Template {
   id: string;
@@ -107,13 +109,15 @@ export default function OfferCreatorPage() {
 
   // Hooks
   const { generateOffer, generating, quickValidate, calculateSavings } = useOfferCreator();
-  const { offers, fetchOffers, getOffer } = useSavedOffers();
-  const { optimizeOffer } = useOfferOptimization();
-  const { analyzeOffer } = useOfferAnalysis();
-  const { exportOffer } = useOfferExport();
-  const { benchmarks, fetchBenchmarks } = useOfferBenchmarks();
-  const { templates, fetchTemplates, applyTemplate } = useOfferTemplates();
+  const { offers, fetchOffers, getOffer, loading: savedOffersLoading  } = useSavedOffers();
+  const { optimizeOffer, loading: optimizationLoading  } = useOfferOptimization();
+  const { analyzeOffer,  loading: analysisLoading } = useOfferAnalysis();
+  const { exportOffer, loading: exportLoading } = useOfferExport();
+  const { benchmarks, fetchBenchmarks, loading: benchmarksLoading  } = useOfferBenchmarks();
+  const { templates, fetchTemplates, applyTemplate , loading: templatesLoading } = useOfferTemplates();
   const { validateInput, getOfferInsights } = useOfferValidation();
+
+    const isLoading = generating;
 
 useEffect(() => {
   const loadData = async () => {
@@ -380,6 +384,8 @@ const handleHistoricalExport = async (offerId: string) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+
+        <LoadingOverlay visible={isLoading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
@@ -930,17 +936,18 @@ const handleHistoricalExport = async (offerId: string) => {
               </Collapse>
 
               <div className="text-center mt-6">
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  htmlType="submit"
-                  loading={generating}
-                  icon={<RocketOutlined />}
-                  onClick={() => form.submit()}
-                  className="min-w-48"
-                >
-                  {generating ? 'Generating AI Offer...' : 'Generate Offer'}
-                </Button>
+             <Button
+  type="primary"
+  size="large"
+  htmlType="submit"
+  loading={generating}
+  icon={<RocketOutlined />}
+  onClick={() => form.submit()}
+  className="min-w-48"
+  disabled={isLoading}
+>
+  {generating ? 'Generating AI Offer...' : 'Generate Offer'}
+</Button>
               </div>
             </Col>
 
@@ -1064,12 +1071,14 @@ const handleHistoricalExport = async (offerId: string) => {
                     <Button 
                       icon={<ExperimentOutlined />} 
                       onClick={() => setOptimizationModalVisible(true)}
+                          disabled={isLoading}
                     >
                       Optimize
                     </Button>
                     <Button 
                       icon={<LineChartOutlined />} 
                       onClick={() => setAnalysisModalVisible(true)}
+                        disabled={isLoading}
                     >
                       Analyze
                     </Button>
@@ -1454,6 +1463,8 @@ const handleHistoricalExport = async (offerId: string) => {
                         size="small" 
                         type="link"
                           onClick={() => handleHistoricalExport(record.id)}
+
+                            disabled={isLoading}
                       >
                         Export
                       </Button>
@@ -1461,6 +1472,7 @@ const handleHistoricalExport = async (offerId: string) => {
                         size="small" 
                         type="link" 
                         onClick={() => setPerformanceModalVisible(true)}
+                          disabled={isLoading}
                       >
                         Performance
                       </Button>

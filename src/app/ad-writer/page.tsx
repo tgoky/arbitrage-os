@@ -42,6 +42,7 @@ import {
 } from 'antd';
 import { useAdWriter, type AdWriterInput, type GeneratedAd } from '../hooks/useAdWriter';
 import { LoadingAnimation, loadingMessages } from './Loading';
+import LoadingOverlay from './LoadingOverlay';
 
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,6 +67,8 @@ const AdWriter = () => {
   const [formData, setFormData] = useState<any>({});
 
   const { generateAds, optimizeAd, regeneratePlatformAds, loading, error, setError } = useAdWriter();
+
+    const isLoading = loading || regeneratingPlatforms.size > 0;
 
   // Platform configurations
   const platforms = [
@@ -1065,6 +1068,7 @@ const downloadAds = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+        <LoadingOverlay visible={loading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <RocketOutlined className="mr-2" />
@@ -1093,39 +1097,6 @@ const downloadAds = () => {
         </div>
       </div>
 
-      {/* ✅ DEBUG INFO - Remove this after fixing */}
-      {process.env.NODE_ENV === 'development' && currentStep === 2 && (
-        <Card className="mb-4 bg-yellow-50 border-yellow-200">
-          <Title level={5}>🐛 Debug Info (Development Only)</Title>
-          <div className="space-y-2 text-sm">
-            <div><strong>Current Form Values:</strong></div>
-            <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
-              {JSON.stringify(form.getFieldsValue(), null, 2)}
-            </pre>
-            <div><strong>Saved Form Data:</strong></div>
-            <pre className="bg-blue-100 p-2 rounded text-xs overflow-auto max-h-32">
-              {JSON.stringify(formData, null, 2)}
-            </pre>
-            <div><strong>Combined Data:</strong></div>
-            <pre className="bg-green-100 p-2 rounded text-xs overflow-auto max-h-32">
-              {JSON.stringify({ ...formData, ...form.getFieldsValue() }, null, 2)}
-            </pre>
-            <div><strong>Active Platforms:</strong> {JSON.stringify(activePlatforms)}</div>
-            <div><strong>Required Fields Status (from combined data):</strong></div>
-            <div className="grid grid-cols-2 gap-1 text-xs">
-              {['businessName', 'valueProposition', 'offerName', 'offerDescription', 'pricing', 'uniqueMechanism', 'idealCustomer', 'primaryPainPoint', 'coreResult', 'cta', 'url'].map(field => {
-                const combinedData = { ...formData, ...form.getFieldsValue() };
-                const value = combinedData[field];
-                return (
-                  <div key={field} className={value ? 'text-green-600' : 'text-red-600'}>
-                    {field}: {value ? '✓' : '✗'}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
       
       <Form
         form={form}
@@ -1170,10 +1141,12 @@ const downloadAds = () => {
           {currentStep === 3 && (
             <Button 
               type="primary"
+               disabled={isLoading} 
               onClick={() => {
                 setCurrentStep(0);
                 setGeneratedAds([]);
                 setOriginalFormData(null);
+                 
                 setFormData({}); // ✅ NEW: Clear saved form data
                 form.resetFields();
               }}

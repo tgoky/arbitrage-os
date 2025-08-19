@@ -7,12 +7,16 @@ import { supabaseBrowserClient as supabase } from "../../utils/supabase/client";
 export const authProviderClient: AuthProvider = {
   login: async ({ email, password }) => {
     try {
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      
       const { data, error } = await supabase.auth.signInWithPassword({ 
-        email, 
+        email: email.trim().toLowerCase(), 
         password 
       });
       
       if (error) {
+        console.error('Login error:', error);
         return {
           success: false,
           error: {
@@ -22,7 +26,7 @@ export const authProviderClient: AuthProvider = {
         };
       }
       
-      if (data?.user) {
+      if (data?.user && data?.session) {
         return { 
           success: true, 
           redirectTo: "/" 
@@ -33,10 +37,11 @@ export const authProviderClient: AuthProvider = {
         success: false, 
         error: {
           name: "LoginError",
-          message: "Invalid response from Supabase",
+          message: "Invalid response from authentication service",
         },
       };
     } catch (error: any) {
+      console.error('Login catch error:', error);
       return { 
         success: false, 
         error: {
@@ -49,33 +54,37 @@ export const authProviderClient: AuthProvider = {
 
   register: async ({ email, password, name }) => {
     try {
-      // First check if the email already exists
-      const { data: existingUser } = await supabase.auth.getUser();
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      
+      const trimmedEmail = email.trim().toLowerCase();
       
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
         options: { 
           data: { 
             full_name: name || "",
           },
-          emailRedirectTo: `${window.location.origin}/login`,
+          // Remove emailRedirectTo if it's causing issues
+          // emailRedirectTo: `${window.location.origin}/login`,
         },
       });
       
       if (error) {
+        console.error('Register error:', error);
         return { 
           success: false, 
           error: {
             name: "RegisterError",
-            message: error.message || "Signup failed",
+            message: error.message || "Registration failed",
           },
         };
       }
       
       if (data?.user) {
         // Check if email confirmation is required
-        if (data.user.identities?.length === 0) {
+        if (!data.session && data.user.identities?.length === 0) {
           return { 
             success: true, 
             successNotification: {
@@ -86,8 +95,21 @@ export const authProviderClient: AuthProvider = {
           };
         }
         
+        // If user is immediately signed in (email confirmation disabled)
+        if (data.session) {
+          return { 
+            success: true, 
+            redirectTo: "/" 
+          };
+        }
+        
+        // Default case - email confirmation required
         return { 
-          success: true, 
+          success: true,
+          successNotification: {
+            message: "Registration successful",
+            description: "Please check your email to verify your account before signing in.",
+          },
           redirectTo: "/login" 
         };
       }
@@ -96,15 +118,16 @@ export const authProviderClient: AuthProvider = {
         success: false, 
         error: {
           name: "RegisterError",
-          message: "Invalid response from Supabase",
+          message: "Registration failed - no user created",
         },
       };
     } catch (error: any) {
+      console.error('Register catch error:', error);
       return { 
         success: false, 
         error: {
           name: "RegisterError",
-          message: error.message || "Signup failed",
+          message: error.message || "Registration failed",
         },
       };
     }
@@ -115,6 +138,7 @@ export const authProviderClient: AuthProvider = {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error('Logout error:', error);
         return { 
           success: false, 
           error: {
@@ -129,6 +153,7 @@ export const authProviderClient: AuthProvider = {
         redirectTo: "/login" 
       };
     } catch (error: any) {
+      console.error('Logout catch error:', error);
       return { 
         success: false, 
         error: {
@@ -141,9 +166,18 @@ export const authProviderClient: AuthProvider = {
 
   check: async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (session) {
+      if (error) {
+        console.error('Session check error:', error);
+        return { 
+          authenticated: false, 
+          logout: true, 
+          redirectTo: "/login" 
+        };
+      }
+      
+      if (session?.user) {
         return { 
           authenticated: true 
         };
@@ -155,6 +189,7 @@ export const authProviderClient: AuthProvider = {
         redirectTo: "/login" 
       };
     } catch (error) {
+      console.error('Check catch error:', error);
       return { 
         authenticated: false, 
         logout: true, 
@@ -164,32 +199,45 @@ export const authProviderClient: AuthProvider = {
   },
 
   getPermissions: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.user_metadata?.roles || [];
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.user_metadata?.roles || [];
+    } catch (error) {
+      console.error('Get permissions error:', error);
+      return [];
+    }
   },
 
   getIdentity: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.full_name || user.email,
-        avatar: user.user_metadata?.avatar || "https://i.pravatar.cc/150?img=1",
-      };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          avatar: user.user_metadata?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`,
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Get identity error:', error);
+      return null;
     }
-    
-    return null;
   },
 
   onError: async (error) => {
-    if (error.status === 401) {
+    console.error('Auth error:', error);
+    
+    if (error.status === 401 || error.message?.includes('Invalid JWT')) {
       return { 
         logout: true, 
         redirectTo: "/login" 
       };
     }
+    
     return { error };
   },
 };

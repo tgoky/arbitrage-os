@@ -38,6 +38,7 @@ import {
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
 import { debounce } from 'lodash';
+import LoadingOverlay from './LoadingOverlay';
 
 interface FormValues {
   roles: string;
@@ -67,6 +68,8 @@ const NicheResearcher = () => {
   const [showReportsModal, setShowReportsModal] = useState(false);
   const [previousReports, setPreviousReports] = useState<any[]>([]);
   const [skillsSuggestions, setSkillsSuggestions] = useState<any>(null);
+  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
+   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
     const [formData, setFormData] = useState<any>({});
 
   const {
@@ -80,6 +83,8 @@ const NicheResearcher = () => {
     error,
     setError
   } = useNicheResearcher();
+
+   const isLoading = loading || isLoadingSkills || !!deletingReportId;
 
   const steps = [
     'Professional Background',
@@ -136,7 +141,7 @@ const NicheResearcher = () => {
   
   // Load skills suggestions on component mount
  // Load skills suggestions on component mount - ONLY ONCE
-const [isLoadingSkills, setIsLoadingSkills] = useState(false);
+
 
 const debouncedGetSkillsSuggestions = useCallback(
   debounce(async () => {
@@ -209,7 +214,7 @@ useEffect(() => {
     }
   };
 
-    const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+   
 
     
 
@@ -935,6 +940,7 @@ const onFinish = async (values: FormValues) => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+        <LoadingOverlay visible={isLoading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <UserOutlined className="mr-2" />
@@ -1038,6 +1044,7 @@ const onFinish = async (values: FormValues) => {
                   <Button 
                     type="primary" 
                     onClick={() => setShowReportsModal(false)}
+                         disabled={isLoading}
                   >
                     Create Your First Report
                   </Button>
