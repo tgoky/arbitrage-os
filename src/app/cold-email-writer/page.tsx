@@ -43,6 +43,7 @@ import {
 } from 'antd';
 import { useColdEmail } from '../hooks/useColdEmail';
 import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput, ColdEmailOptimizationType } from '@/types/coldEmail';
+import LoadingOverlay from './LoadingOverlay';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -55,6 +56,7 @@ const ColdEmailWriter = () => {
   const [generatedEmails, setGeneratedEmails] = useState<GeneratedEmail[]>([]);
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
+  
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [optimizedEmails, setOptimizedEmails] = useState<{[key: number]: GeneratedEmail}>({});
 
@@ -497,6 +499,7 @@ const ColdEmailWriter = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+           <LoadingOverlay visible={loading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <MailOutlined className="mr-2" />
@@ -1086,13 +1089,14 @@ const ColdEmailWriter = () => {
 
         {/* ✅ Submit button is now inside the Form */}
         <div className="text-center mt-6">
-          <Button 
+        <Button 
             type="primary" 
             size="large" 
             htmlType="submit"
-            loading={loading}
+            loading={loading} // This controls the button's loading state
             icon={<ArrowRightOutlined />}
             className="min-w-48"
+            disabled={loading} // Disable button during loading
           >
             {loading ? 'Generating AI Email...' : 'Generate AI Email'}
           </Button>
