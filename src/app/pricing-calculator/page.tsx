@@ -46,7 +46,8 @@ import {
   notification,
   Collapse,
   List,
-  Badge
+  Badge,
+  InputNumber
 } from 'antd';
 
 // Import our custom hooks
@@ -255,12 +256,14 @@ const PricingCalculator = () => {
                       { type: 'number', min: 1000, message: 'Minimum $1,000' }
                     ]}
                   >
-                    <Input
-                      prefix="$"
-                      type="number"
-                      placeholder="100000"
-                      size="large"
-                    />
+                   <InputNumber
+  prefix="$"
+  placeholder="100000"
+  size="large"
+  style={{ width: '100%' }}
+  formatter={(value) => `${value}`.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')}
+  parser={(value) => value!.replace(/\\$\\s?|(,*)/g, '')}
+/>
                   </Form.Item>
 
                   <Form.Item
