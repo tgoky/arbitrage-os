@@ -217,23 +217,7 @@ export const AuthPage = (props: AuthPageProps) => {
                 </div>
               </div>
               <div className="p-4 bg-gray-200">
-                {props.type === "login" && (
-                  <>
-                    <button
-                      onClick={() => setShowCreds(!showCreds)}
-                      className="w-full mb-4 px-4 py-2 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900"
-                    >
-                      {showCreds ? "Hide Demo Credentials" : "Show Demo Credentials"}
-                    </button>
-                    {showCreds && (
-                      <div className="mb-4 p-3 bg-blue-100 border-2 border-blue-300 text-blue-800">
-                        <p className="font-bold">Demo Account:</p>
-                        <p>Username: demo@refine.dev</p>
-                        <p>Password: demodemo</p>
-                      </div>
-                    )}
-                  </>
-                )}
+               
                 <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
                   {/* FIXED: Remove CSS that hides auth buttons and simplify props */}
                   <AuthPageBase 
@@ -245,7 +229,10 @@ export const AuthPage = (props: AuthPageProps) => {
                       </div>
                     )}
                   />
-                  
+                 <p className="text-xs text-center">
+  check email for code if having trouble logging in after signup
+</p>
+
                   {/* Add manual navigation links */}
                   <div className="text-center mt-4 pt-4 border-t border-gray-300">
                     {props.type === "login" ? (
