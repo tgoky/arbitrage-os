@@ -1,5 +1,6 @@
 // app/api/workspaces/[id]/deliverables/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+// Or use a singleton pattern
 import { PrismaClient } from '@prisma/client';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
