@@ -218,40 +218,30 @@ export const AuthPage = (props: AuthPageProps) => {
               </div>
               <div className="p-4 bg-gray-200">
                
-                <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-                  {/* FIXED: Remove CSS that hides auth buttons and simplify props */}
-                  <AuthPageBase 
-                    {...props}
-                    renderContent={(content: any, title: any) => (
-                      <div>
-                        {title && <h2 className="text-xl font-bold mb-4 text-center">{title}</h2>}
-                        {content}
-                      </div>
-                    )}
-                  />
-                 <p className="text-xs text-center">
-  check email for code if having trouble logging in after signup
-</p>
-
-                  {/* Add manual navigation links */}
-                  <div className="text-center mt-4 pt-4 border-t border-gray-300">
-                    {props.type === "login" ? (
-                      <p className="text-sm">
-                        Do not have an account?{" "}
-                        <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                          Sign up
-                        </Link>
-                      </p>
-                    ) : (
-                      <p className="text-sm">
-                        Already have an account?{" "}
-                        <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                          Sign in
-                        </Link>
-                      </p>
-                    )}
-                  </div>
-                </div>
+             <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
+  <AuthPageBase {...props} />
+  <p className="text-xs text-center">
+    check email for code if having trouble logging in after signup
+  </p>
+  
+  <div className="text-center mt-4 pt-4 border-t border-gray-300">
+    {props.type === "login" ? (
+      <p className="text-sm">
+        Do not have an account?{" "}
+        <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
+          Sign up
+        </Link>
+      </p>
+    ) : (
+      <p className="text-sm">
+        Already have an account?{" "}
+        <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
+          Sign in
+        </Link>
+      </p>
+    )}
+  </div>
+</div>
                 <div className="mt-4 flex justify-between items-center">
                   <button 
                     className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
