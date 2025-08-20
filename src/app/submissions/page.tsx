@@ -13,7 +13,6 @@ import {
 } from '@ant-design/icons';
 import { 
   Card, 
-  Table, 
   Tag, 
   Button, 
   Grid, 
@@ -124,45 +123,6 @@ const DashboardPage = () => {
     </Menu>
   );
 
-  const columns = [
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      sorter: (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-    },
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => getStatusTag(status),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (text: string, record: any) => (
-        <Dropdown overlay={menu(record)} trigger={['click']}>
-          <Button type="text" icon={<EllipsisOutlined />} />
-        </Dropdown>
-      ),
-    },
-  ];
-
   return (
     <div style={getContainerStyles()}>
       {/* Header */}
@@ -257,39 +217,246 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      {/* Submissions Table */}
-      <Card
-        styles={getCardStyles()}
-        style={{ 
-          marginBottom: 24,
-          borderRadius: '8px'
+      {/* CSS to remove all black borders */}
+      <style>{`
+        .custom-table table {
+          border: none !important;
+          border-collapse: separate !important;
+          border-spacing: 0 !important;
+        }
+        .custom-table th,
+        .custom-table td {
+          border-left: none !important;
+          border-right: none !important;
+          border-top: none !important;
+        }
+        .custom-table thead tr {
+          border: none !important;
+        }
+        .custom-table tbody tr {
+          border: none !important;
+        }
+      `}</style>
+
+      {/* Beautiful Modern Table */}
+      <div 
+        className="custom-table"
+        style={{
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          borderRadius: '12px',
+          boxShadow: theme === 'dark' 
+            ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)' 
+            : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
+          overflow: 'hidden',
+          marginBottom: 24
         }}
       >
-        <Table
-          columns={columns}
-          dataSource={submissionData}
-          rowSelection={{
-            type: 'checkbox',
-          }}
-          pagination={false}
-          scroll={{ x: true }}
-          style={{ 
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-          }}
-        />
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          marginTop: 16
-        }}>
-          <Pagination 
-            total={85} 
-            showSizeChanger 
-            showQuickJumper
-            showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} items`}
-          />
+        {/* Table Container */}
+        <div style={{ overflowX: 'auto', overflowY: 'visible', maxWidth: '100%' }}>
+          <table style={{ minWidth: '100%', width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+            {/* Table Header */}
+            <thead>
+              <tr
+                style={{
+                  background: theme === 'dark' 
+                    ? 'linear-gradient(to right, #1f2937, #374151)' 
+                    : 'linear-gradient(to right, #f9fafb, #f3f4f6)',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10
+                }}
+              >
+                <th style={{ 
+                  padding: '16px 24px', 
+                  textAlign: 'left', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  color: theme === 'dark' ? '#f9fafb' : '#374151',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+                }}>
+                  Date
+                </th>
+                <th style={{ 
+                  padding: '16px 24px', 
+                  textAlign: 'left', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  color: theme === 'dark' ? '#f9fafb' : '#374151',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+                }}>
+                  Type
+                </th>
+                <th style={{ 
+                  padding: '16px 24px', 
+                  textAlign: 'left', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  color: theme === 'dark' ? '#f9fafb' : '#374151',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+                }}>
+                  Name
+                </th>
+                <th style={{ 
+                  padding: '16px 24px', 
+                  textAlign: 'left', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  color: theme === 'dark' ? '#f9fafb' : '#374151',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+                }}>
+                  Email
+                </th>
+                <th style={{ 
+                  padding: '16px 24px', 
+                  textAlign: 'left', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  color: theme === 'dark' ? '#f9fafb' : '#374151',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+                }}>
+                  Status
+                </th>
+                <th style={{ 
+                  padding: '16px 24px', 
+                  textAlign: 'left', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  color: theme === 'dark' ? '#f9fafb' : '#374151',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+                }}>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            {/* Table Body */}
+            <tbody style={{ backgroundColor: theme === 'dark' ? '#111827' : '#ffffff' }}>
+              {submissionData.map((record, index) => (
+                <tr
+                  key={record.key}
+                  style={{
+                    backgroundColor: index % 2 === 0 
+                      ? (theme === 'dark' ? '#111827' : '#ffffff')
+                      : (theme === 'dark' ? '#1f2937' : 'rgba(249, 250, 251, 0.5)'),
+                    transition: 'all 0.15s ease',
+                    height: '73px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#374151' : '#f0f9ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = index % 2 === 0 
+                      ? (theme === 'dark' ? '#111827' : '#ffffff')
+                      : (theme === 'dark' ? '#1f2937' : 'rgba(249, 250, 251, 0.5)');
+                  }}
+                >
+                  <td style={{ 
+                    padding: '16px 24px', 
+                    fontSize: '14px', 
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    verticalAlign: 'middle',
+                    borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #f3f4f6'
+                  }}>
+                    {record.date}
+                  </td>
+                  <td style={{ 
+                    padding: '16px 24px', 
+                    fontSize: '14px', 
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    verticalAlign: 'middle',
+                    borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #f3f4f6'
+                  }}>
+                    {record.type}
+                  </td>
+                  <td style={{ 
+                    padding: '16px 24px', 
+                    fontSize: '14px', 
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    verticalAlign: 'middle',
+                    borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #f3f4f6'
+                  }}>
+                    {record.name}
+                  </td>
+                  <td style={{ 
+                    padding: '16px 24px', 
+                    fontSize: '14px', 
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    verticalAlign: 'middle',
+                    borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #f3f4f6'
+                  }}>
+                    {record.email}
+                  </td>
+                  <td style={{ 
+                    padding: '16px 24px', 
+                    fontSize: '14px', 
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    verticalAlign: 'middle',
+                    borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #f3f4f6'
+                  }}>
+                    {getStatusTag(record.status)}
+                  </td>
+                  <td style={{ 
+                    padding: '16px 24px', 
+                    fontSize: '14px', 
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    verticalAlign: 'middle',
+                    borderBottom: theme === 'dark' ? '1px solid #374151' : '1px solid #f3f4f6'
+                  }}>
+                    <Dropdown overlay={menu(record)} trigger={['click']}>
+                      <Button type="text" icon={<EllipsisOutlined />} />
+                    </Dropdown>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </Card>
+
+        {/* Beautiful Pagination Footer */}
+        <div 
+          style={{ 
+            background: theme === 'dark' 
+              ? 'linear-gradient(to right, #1f2937, #374151)' 
+              : 'linear-gradient(to right, #f9fafb, #f3f4f6)',
+            padding: '16px 24px', 
+            borderTop: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+          }}
+        >
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end'
+          }}>
+            <Pagination 
+              total={85} 
+              showSizeChanger 
+              showQuickJumper
+              showTotal={(total, range) => 
+                <span style={{ color: theme === 'dark' ? '#e5e7eb' : '#6b7280' }}>
+                  {range[0]}-{range[1]} of {total} items
+                </span>
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

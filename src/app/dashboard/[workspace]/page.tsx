@@ -10,7 +10,7 @@ import WelcomePanel from '../components/welcomepanel';
 import QuickStartActions from '../components/quickactions';
 import ActivityFeed from '../components/activityfeed';
 import RecentDeliverables from '../components/recentdeliveries';
-import StatsOverview from '../components/statsoverview';
+// import StatsOverview from '../components/statsoverview';
 import { AutomationItem, ActivityItem, Deliverable, AgentRecord, WorkflowRecord, DeliverableRecord } from '../components/types';
 import { EnhancedLoadingState } from '../../../components/loadingui/loading'; // Import the EnhancedLoadingState
 
@@ -192,6 +192,7 @@ const WorkspaceDashboard = () => {
         agentsLength={agents.length}
         workflowsLength={workflows.length}
         workspaceName={currentWorkspace.name}  
+           deliverablesLength={deliverables.length}
       />
       
       <QuickStartActions />
@@ -208,12 +209,12 @@ const WorkspaceDashboard = () => {
         <RecentDeliverables deliverables={recentDeliverables} />
       </div>
       
-      <StatsOverview
+      {/* <StatsOverview
         clientsLength={clients.length}
         agentsLength={agents.length}
-        workflowsLength={workflows.length}
+      
         deliverablesLength={deliverables.length}
-      />
+      /> */}
     </div>
   );
 };

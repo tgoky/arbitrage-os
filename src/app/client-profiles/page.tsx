@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import { Card, Table, Tag, Button, Grid, Typography, Space, Avatar, List, Input, Select, Empty } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useRouter } from "next/navigation";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -25,6 +26,7 @@ const DashboardPage = () => {
   const { theme } = useTheme();
 
   const clients = clientsData?.data || [];
+    const router = useRouter();
 
   // Theme-aware style generators
   const getCardStyles = () => ({
@@ -77,6 +79,7 @@ const DashboardPage = () => {
         <Button 
           type="primary" 
           icon={<PlusOutlined />}
+           onClick={() => router.push('/client-profiles/create')}
           style={{
             backgroundColor: theme === 'dark' ? '#6d28d9' : '#6d28d9',
             borderColor: theme === 'dark' ? '#7c3aed' : '#6d28d9'
