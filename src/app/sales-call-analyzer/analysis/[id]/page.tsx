@@ -33,8 +33,9 @@ import {
   message,
   Spin
 } from 'antd';
-import { useGo, useParams } from "@refinedev/core";
+import { useGo } from "@refinedev/core";
 import { useSalesCallAnalyzer } from '../../../hooks/useSalesCallAnalyzer';
+import { useParams } from "next/navigation";
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
