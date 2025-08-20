@@ -74,19 +74,22 @@ import LoadingOverlay from './LoadingOverlay';
 interface Template {
   id: string;
   name: string;
-  offerType: string;
+  offerType: 'discount' | 'bonus' | 'trial' | 'guarantee'; // Make it more specific
   industry: string;
+  headline: string;          // Add missing property
   description: string;
-  example?: {
-    headline?: string;
+  conversionRate: string;    // Note: this is string, not number in OfferTemplate
+  bestFor: string;           // Add missing property
+  example: {                 // Note: required, not optional in OfferTemplate
+    headline: string;
+    subheadline: string;
     discount?: number;
     bonusValue?: string;
     trialPeriod?: number;
-    guarantee?: boolean;
-    urgency?: string;
+    guarantee?: string;
+    urgency: string;
   };
 }
-
 
 
 const { Title, Text, Paragraph } = Typography;
@@ -551,7 +554,7 @@ const handleHistoricalExport = async (offerId: string) => {
                     </div>
                   </div>
                   
-                  <Form.Item
+             <Form.Item
   name="offerType"
   rules={[{ required: true, message: 'Please select an offer type!' }]}
 >
@@ -571,8 +574,7 @@ const handleHistoricalExport = async (offerId: string) => {
           className="h-auto p-0 border-0"
         >
           <Card
-            hoverable
-            className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2' : ''}`}
+            className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2 bg-blue-50' : 'border-gray-300'} transition-none`}
           >
             <div className="flex items-start">
               <div className="p-2 bg-blue-50 rounded-full mr-3">

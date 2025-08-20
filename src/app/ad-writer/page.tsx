@@ -3,7 +3,6 @@
 
 import React, { useState } from 'react';
 import { 
-  RocketOutlined,
   UserOutlined,
   BulbOutlined,
   TeamOutlined,
@@ -47,6 +46,31 @@ import LoadingOverlay from './LoadingOverlay';
 
 import { motion, AnimatePresence } from "framer-motion";
 
+interface FormData {
+  businessName?: string;
+  personalTitle?: string;
+  valueProposition?: string;
+  offerName?: string;
+  offerDescription?: string;
+  features?: string[];
+  pricing?: string;
+  uniqueMechanism?: string;
+  idealCustomer?: string;
+  primaryPainPoint?: string;
+  failedSolutions?: string;
+  coreResult?: string;
+  secondaryBenefits?: string[];
+  timeline?: string;
+  adType?: string;
+  tone?: string;
+  caseStudy1?: string;
+  credentials?: string;
+  cta?: string;
+  url?: string;
+  urgency?: string;
+  leadMagnet?: string;
+}
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -62,9 +86,10 @@ const AdWriter = () => {
   const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
   const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
   const [generatingAds, setGeneratingAds] = useState(false);
+
   
   // ✅ NEW: Store all form data across steps
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<FormData>({});
 
   const { generateAds, optimizeAd, regeneratePlatformAds, loading, error, setError } = useAdWriter();
 
@@ -651,7 +676,7 @@ const downloadAds = () => {
         return (
           <Card className="mb-6">
             <Title level={4} className="flex items-center mb-4">
-              <RocketOutlined className="mr-2" />
+       
               Ad Strategy
             </Title>
             
@@ -997,7 +1022,7 @@ const downloadAds = () => {
                           <Title level={5} className="mb-2">Visual Suggestions</Title>
                           <div className="space-y-2">
                             {ad.visualSuggestions.map((suggestion: string, i: number) => (
-                              <Card key={i} className="bg-gray-50">
+                              <Card key={i} >
                                 <Text>{suggestion}</Text>
                               </Card>
                             ))}
@@ -1071,8 +1096,8 @@ const downloadAds = () => {
         <LoadingOverlay visible={loading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
-          <RocketOutlined className="mr-2" />
-          AI Ad Writer
+        
+          ArbitrageOS Ad Writer
         </Title>
         <Text type="secondary" className="text-lg">
           Generate high-converting ad copy tailored to your business and audience

@@ -191,33 +191,36 @@ export const Menu = () => {
       `}
     >
       <div className="relative">
-        <WorkspaceHeader
-          collapsed={collapsed}
-          currentWorkspace={currentWorkspace?.name || "No Workspace"}
-          workspaceDropdownOpen={workspaceDropdownOpen}
-          setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-          workspaces={workspaces.map(ws => ({ name: ws.name, color: ws.color }))}
-        />
+       <WorkspaceHeader
+  collapsed={collapsed}
+  currentWorkspace={currentWorkspace?.name || "No Workspace"}
+  workspaceDropdownOpen={workspaceDropdownOpen}
+  setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
+  workspaces={workspaces.map(ws => ({ 
+    name: ws.name, 
+    color: ws.color || '#6366f1' // Provide default color when null
+  }))}
+/>
 
         {workspaceDropdownOpen && (
-          <WorkspaceDropdown
-            workspaceDropdownOpen={workspaceDropdownOpen}
-            workspaces={workspaces.map(ws => ({ 
-              name: ws.name, 
-              color: ws.color,
-              slug: ws.slug 
-            }))}
-            currentWorkspace={currentWorkspace?.name || ""}
-            switchWorkspace={(workspaceName) => {
-              const workspace = workspaces.find(ws => ws.name === workspaceName);
-              if (workspace) {
-                handleSwitchWorkspace(workspace.slug);
-              }
-            }}
-            setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
-            setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-          />
-        )}
+  <WorkspaceDropdown
+    workspaceDropdownOpen={workspaceDropdownOpen}
+    workspaces={workspaces.map(ws => ({ 
+      name: ws.name, 
+      color: ws.color || '#6366f1', // Provide default color when null
+      slug: ws.slug 
+    }))}
+    currentWorkspace={currentWorkspace?.name || ""}
+    switchWorkspace={(workspaceName) => {
+      const workspace = workspaces.find(ws => ws.name === workspaceName);
+      if (workspace) {
+        handleSwitchWorkspace(workspace.slug);
+      }
+    }}
+    setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
+    setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
+  />
+)}
       </div>
 
       <Controls collapsed={collapsed} setCollapsed={setCollapsed} />

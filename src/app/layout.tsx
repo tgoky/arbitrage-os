@@ -75,7 +75,7 @@ export default function RootLayout({
                           },
                         },
                         {
-                          name: "Niche_Researcher",
+                          name: "Niche_Research_Report",
                           list: "/niche-researcher",
                           create: "/niche-researcher/create",
                           edit: "/niche-researcher/edit/:id",

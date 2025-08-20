@@ -940,8 +940,8 @@ const onFinish = async (values: any) => {
     return (
       <div className="space-y-8">
         {/* Header */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+<Card >
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
               <Button 
                 type="text" 

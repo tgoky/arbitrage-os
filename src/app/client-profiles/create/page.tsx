@@ -119,7 +119,7 @@ const NewClientPage = () => {
     theme === 'dark' ? dark : light;
 
   const cardStyle = {
-    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+ 
     borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
     borderRadius: 8,
   };
@@ -135,14 +135,14 @@ const NewClientPage = () => {
     margin: '4px 0',
     padding: '8px 12px',
     borderRadius: '6px',
-    backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+   
     border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
     transition: 'all 0.2s ease'
   };
 
   return (
     <div style={{ 
-      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+    
       minHeight: '100vh',
       padding: '24px'
     }}>
@@ -197,7 +197,7 @@ const NewClientPage = () => {
             {/* Core Information Card */}
             <Card
               title={
-                <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+                <span >
                   <TeamOutlined style={{ marginRight: 8 }} />
                   Core Information
                 </span>
@@ -399,7 +399,7 @@ const NewClientPage = () => {
             {/* Services & Products Card */}
             <Card
               title={
-                <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+                <span >
                   <RocketOutlined style={{ marginRight: 8 }} />
                   Services & Products
                 </span>
@@ -465,7 +465,7 @@ const NewClientPage = () => {
       </span>
     }
     key="1"
-    style={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff' }}
+ 
   >
     <Form.Item
       name="marketingChannels"

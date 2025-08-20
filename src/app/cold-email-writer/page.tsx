@@ -632,36 +632,37 @@ const ColdEmailWriter = () => {
               </Text>
             </div>
             
-            <Form.Item
-              name="method"
-              initialValue="direct"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {emailMethods.map((method) => (
-                  <Card
-                    key={method.value}
-                    hoverable
-                    onClick={() => setEmailMethod(method.value)}
-                    className={`cursor-pointer transition-all ${emailMethod === method.value ? 'border-blue-500 border-2 shadow-md' : 'hover:shadow-sm'}`}
-                  >
-                    <div className="flex items-start">
-                      <div className="p-2 bg-blue-50 rounded-full mr-3">
-                        {method.icon}
-                      </div>
-                      <div>
-                        <div className="font-medium">{method.label}</div>
-                        <div className="text-gray-500 text-sm mb-2">{method.description}</div>
-                        <div className="flex flex-wrap gap-2">
-                          <Tag color="blue">{method.effectiveness}</Tag>
-                          <Tag color="geekblue">{method.bestFor}</Tag>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </Form.Item>
-
+         <Form.Item
+  name="method"
+  initialValue="direct"
+>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {emailMethods.map((method) => (
+      <Card
+        key={method.value}
+        onClick={() => {
+          setEmailMethod(method.value);
+          form.setFieldValue('method', method.value);
+        }}
+        className={`cursor-pointer ${emailMethod === method.value ? 'border-blue-500 border-2 bg-blue-50' : 'border-gray-300'} transition-none`}
+      >
+        <div className="flex items-start">
+          <div className="p-2 bg-blue-50 rounded-full mr-3">
+            {method.icon}
+          </div>
+          <div>
+            <div className="font-medium">{method.label}</div>
+            <div className="text-gray-500 text-sm mb-2">{method.description}</div>
+            <div className="flex flex-wrap gap-2">
+              <Tag color="blue">{method.effectiveness}</Tag>
+              <Tag color="geekblue">{method.bestFor}</Tag>
+            </div>
+          </div>
+        </div>
+      </Card>
+    ))}
+  </div>
+</Form.Item>
             <Divider />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

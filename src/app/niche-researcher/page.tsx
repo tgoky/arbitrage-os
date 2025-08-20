@@ -55,6 +55,21 @@ interface FormValues {
   otherConstraints?: string;
 }
 
+interface FormData {
+  roles?: string;
+  skills?: string[];
+  competencies?: string;
+  interests?: string;
+  connections?: string;
+  audienceAccess?: string;
+  problems?: string;
+  trends?: string;
+  time?: '5-10' | '10-20' | '20-30' | '30+';
+  budget?: '0-1k' | '1k-5k' | '5k-10k' | '10k+';
+  location?: 'remote-only' | 'local-focused' | 'hybrid';
+  otherConstraints?: string;
+}
+
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
@@ -70,7 +85,7 @@ const NicheResearcher = () => {
   const [skillsSuggestions, setSkillsSuggestions] = useState<any>(null);
   const [isLoadingSkills, setIsLoadingSkills] = useState(false);
    const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
-    const [formData, setFormData] = useState<any>({});
+    const [formData, setFormData] = useState<FormData>({});
 
   const {
     generateNicheReport,
@@ -775,7 +790,7 @@ const onFinish = async (values: FormValues) => {
                     </div>
                     
                     <div className="text-center mt-6">
-                      <div className="inline-block bg-blue-50 p-6 rounded-lg">
+                      <div className="inline-block  p-6 rounded-lg">
                         <Title level={4} className="mb-2">Overall Confidence Score</Title>
                         <div className="text-4xl font-bold text-blue-600">
                           {reportData.personalFit.confidenceScore}%
@@ -798,7 +813,7 @@ const onFinish = async (values: FormValues) => {
                     
                     <Card title="Short-term Goals (1-3 Months)" size="small">
                       {reportData.actionPlan.shortTerm.map((item: any, i: number) => (
-                        <div key={i} className="mb-3 p-3 bg-gray-50 rounded">
+                        <div key={i} className="mb-3 p-3  rounded">
                           <div className="font-medium text-sm">{item.action}</div>
                           <div className="text-xs text-gray-600">Timeline: {item.timeline}</div>
                         </div>
@@ -807,7 +822,7 @@ const onFinish = async (values: FormValues) => {
                     
                     <Card title="Long-term Objectives (6-12 Months)" size="small">
                       {reportData.actionPlan.longTerm.map((item: any, i: number) => (
-                        <div key={i} className="mb-3 p-3 bg-gray-50 rounded">
+                        <div key={i} className="mb-3 p-3  rounded">
                           <div className="font-medium text-sm">{item.goal}</div>
                           <div className="text-xs text-gray-600">Target: {item.timeline}</div>
                           <div className="text-xs text-gray-500 mt-1">
@@ -944,7 +959,7 @@ const onFinish = async (values: FormValues) => {
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <UserOutlined className="mr-2" />
-          Niche Researcher
+          Niche Research Report
         </Title>
         <Text type="secondary" className="text-lg">
           Discover your perfect business niche based on your unique background, skills, and market opportunities

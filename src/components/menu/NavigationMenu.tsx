@@ -68,7 +68,7 @@ const menuGroups: MenuGroupConfig[] = [
     label: "Arbitrage",
     icon: <HomeIcon className="h-4 w-4" />,
     items: [
-      "Niche_Researcher",
+      "Niche_Research_Report",
       "Top_50_Niches",
       "Offer_Creator",
       "Cold_Email_Writer",
