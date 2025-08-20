@@ -374,7 +374,7 @@ const WorkspaceHomePage = () => {
                           <div>
                             <h3 className="font-bold text-sm">{workspace.name}</h3>
                             <p className="text-xs text-gray-600">
-                              Created {new Date(workspace.created_at).toLocaleDateString()}
+                             Created {workspace.created_at ? new Date(workspace.created_at).toLocaleDateString() : 'Recently'}
                             </p>
                           </div>
                         </div>
