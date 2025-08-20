@@ -16,6 +16,9 @@ import {
   GrowthPlanServiceResponse 
 } from '@/types/growthPlan';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const growthPlanService = new GrowthPlanService();
 
 // ✅ ROBUST AUTHENTICATION (same as cold email)
