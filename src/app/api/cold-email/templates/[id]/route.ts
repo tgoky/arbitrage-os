@@ -2,9 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { ColdEmailService } from '@/services/coldEmail.service';
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
+import { ColdEmailService, Template } from '@/services/coldEmail.service';
+import { logUsage } from '@/lib/usage';
+import { rateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
 
 const templateSchema = z.object({
@@ -37,7 +37,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ Add rate limiting - 50 individual template fetches per minute
+    // Add rate limiting - 50 individual template fetches per minute
     const rateLimitResult = await rateLimit(user.id, 50, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -54,6 +54,8 @@ export async function GET(
     
     // Get all user templates and find the specific one
     const templates = await coldEmailService.getUserTemplates(user.id, { includePublic: true });
+    
+    // Fix: Now TypeScript knows the type, no explicit typing needed
     const template = templates.find(t => t.id === templateId);
 
     if (!template) {
@@ -63,7 +65,7 @@ export async function GET(
       );
     }
 
-    // ✅ Log template fetch usage
+    // Log template fetch usage
     await logUsage({
       userId: user.id,
       feature: 'template_fetch_single',
@@ -110,7 +112,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ Add rate limiting - 20 template updates per minute
+    // Add rate limiting - 20 template updates per minute
     const rateLimitResult = await rateLimit(user.id, 20, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -148,7 +150,7 @@ export async function PUT(
       );
     }
 
-    // ✅ Log template update usage
+    // Log template update usage
     await logUsage({
       userId: user.id,
       feature: 'template_update',
@@ -196,7 +198,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ Add rate limiting - 10 template deletions per minute
+    // Add rate limiting - 10 template deletions per minute
     const rateLimitResult = await rateLimit(user.id, 10, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -219,7 +221,7 @@ export async function DELETE(
       );
     }
 
-    // ✅ Log template deletion usage
+    // Log template deletion usage
     await logUsage({
       userId: user.id,
       feature: 'template_delete',
