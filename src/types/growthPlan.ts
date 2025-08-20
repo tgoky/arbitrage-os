@@ -277,9 +277,10 @@ export interface GrowthPlanServiceResponse<T = any> {
 }
 // API endpoint types
 export interface CreateGrowthPlanRequest {
-  input: GrowthPlanInput;
+  input: Omit<GrowthPlanInput, 'userId'>; // Remove userId - server will add it
   workspaceId?: string;
 }
+
 
 export interface CreateGrowthPlanResponse {
   planId?: string;
