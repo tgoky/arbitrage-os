@@ -34,7 +34,7 @@ import {
   Spin
 } from 'antd';
 import { useGo, useParams } from "@refinedev/core";
-import { useSalesCallAnalyzer } from '@/hooks/useSalesCallAnalyzer';
+import { useSalesCallAnalyzer } from '../../../hooks/useSalesCallAnalyzer';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
