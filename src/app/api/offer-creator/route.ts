@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { OfferCreatorService } from '../../../services/offerCreator.service';
+import { OfferCreatorService, UserOffer } from '../../../services/offerCreator.service';
 import { validateOfferCreatorInput } from '../../validators/offerCreator.validator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
@@ -382,7 +382,7 @@ export async function GET(req: NextRequest) {
     const offerType = searchParams.get('offerType');
 
     console.log('📋 Fetching offers for user:', user.id);
-    let offers;
+    let offers: UserOffer[];
     try {
       const offerService = new OfferCreatorService();
       offers = await offerService.getUserOffers(user.id, workspaceId || undefined);

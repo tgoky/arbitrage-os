@@ -23,6 +23,29 @@ import {
   getIndustrySpecificTips
 } from '@/utils/offerCreator.utils';
 
+// Add these interfaces after your imports
+export interface UserOffer {
+  id: string;
+  title: string;
+  offerName?: string;
+  offerType?: string;
+  targetIndustry?: string;
+  conversionScore?: number;
+  expiryDate?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  workspace?: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    user_id: string | null;
+    color?: string | null;
+    created_at: Date | null;
+    updated_at: Date | null;
+  } | null;
+}
+
 export class OfferCreatorService {
   private openRouterClient: OpenRouterClient;
   private redis: Redis;
@@ -581,7 +604,7 @@ async saveOffer(userId: string, workspaceId: string, offer: GeneratedOfferPackag
   }
 }
 
-  async getUserOffers(userId: string, workspaceId?: string) {
+  async getUserOffers(userId: string, workspaceId?: string): Promise<UserOffer[]> {
     try {
       const { prisma } = await import('@/lib/prisma');
       
