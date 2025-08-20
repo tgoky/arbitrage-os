@@ -13,65 +13,6 @@ interface TemplateMetadata {
   isPublic?: boolean;
 }
 
-// ✅ NEW: Proper Template interface for return types
-export interface Template {
-  id: string;
-  name: string;
-  subject: string;
-  body: string;
-  category: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
-  description: string;
-  variables: string[];
-  tags: string[];
-  isPublic: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// ✅ NEW: Email Generation interface
-export interface EmailGeneration {
-  id: string;
-  title: string;
-  method?: string;
-  targetCompany?: string;
-  targetFirstName?: string;
-  targetRole?: string;
-  targetIndustry?: string;
-  emailCount?: number;
-  senderName?: string;
-  companyName?: string;
-  tone?: string;
-  emailLength?: string;
-  tokensUsed?: number;
-  generationTime?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  workspace?: {
-    id: string;
-    name: string;
-  } | null;
-}
-
-// ✅ NEW: Detailed Email Generation interface
-export interface DetailedEmailGeneration {
-  id: string;
-  title: string;
-  emails: ColdEmailResponse;
-  metadata: any;
-  createdAt: Date;
-  updatedAt: Date;
-  workspace?: {
-    id: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    user_id: string | null;  // ✅ Fixed: Allow null to match Prisma schema
-    color?: string | null;   // ✅ Added: Include color field from Prisma
-    created_at: Date | null; // ✅ Fixed: Allow null to match Prisma schema
-    updated_at: Date | null; // ✅ Fixed: Allow null to match Prisma schema
-  } | null;
-}
-
 // Type guard to check if metadata is a valid object
 function isValidMetadata(metadata: any): metadata is TemplateMetadata {
   return metadata && typeof metadata === 'object';
@@ -161,8 +102,8 @@ export class ColdEmailService {
     }
   }
 
-  // ✅ NEW: Method to get user's email generations with proper return type
-  async getUserEmailGenerations(userId: string, workspaceId?: string): Promise<EmailGeneration[]> {
+  // ✅ NEW: Method to get user's email generations
+  async getUserEmailGenerations(userId: string, workspaceId?: string) {
     try {
       const { prisma } = await import('@/lib/prisma');
       
@@ -222,8 +163,8 @@ export class ColdEmailService {
     }
   }
 
-  // ✅ NEW: Method to get specific email generation with proper return type
-  async getEmailGeneration(userId: string, generationId: string): Promise<DetailedEmailGeneration | null> {
+  // ✅ NEW: Method to get specific email generation
+  async getEmailGeneration(userId: string, generationId: string) {
     try {
       const { prisma } = await import('@/lib/prisma');
       
@@ -511,12 +452,11 @@ ${input.workEmail}`;
     return key.toLowerCase().replace(/[^a-z0-9:]/g, '_');
   }
 
-  // TEMPLATE MANAGEMENT METHODS with proper return types
-  // ✅ FIXED: Added proper return type annotation
+  // TEMPLATE MANAGEMENT METHODS (unchanged)
   async getUserTemplates(userId: string, options?: {
     category?: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
     includePublic?: boolean;
-  }): Promise<Template[]> {
+  }) {
     try {
       // Get user's workspace
       const workspace = await this.getUserWorkspace(userId);
@@ -591,7 +531,6 @@ ${input.workEmail}`;
     }
   }
 
-  // ✅ FIXED: Added proper return type annotation
   async createTemplate(userId: string, templateData: {
     name: string;
     description?: string;
@@ -601,7 +540,7 @@ ${input.workEmail}`;
     tags?: string[];
     variables?: string[];
     isPublic?: boolean;
-  }): Promise<Template> {
+  }) {
     try {
       // Get user's workspace
       const workspace = await this.getUserWorkspace(userId);
@@ -634,7 +573,7 @@ ${input.workEmail}`;
         subject: templateData.subject,
         body: template.content,
         category: templateData.category,
-        description: templateData.description || '',
+        description: templateData.description,
         variables: templateData.variables || [],
         tags: template.tags,
         isPublic: templateData.isPublic || false,
@@ -648,7 +587,6 @@ ${input.workEmail}`;
     }
   }
 
-  // ✅ FIXED: Added proper return type annotation
   async updateTemplate(userId: string, templateId: string, updateData: Partial<{
     name: string;
     description?: string;
@@ -658,7 +596,7 @@ ${input.workEmail}`;
     tags?: string[];
     variables?: string[];
     isPublic?: boolean;
-  }>): Promise<Template | null> {
+  }>) {
     try {
       const { prisma } = await import('@/lib/prisma');
       
@@ -726,7 +664,7 @@ ${input.workEmail}`;
     }
   }
 
-  async deleteTemplate(userId: string, templateId: string): Promise<boolean> {
+  async deleteTemplate(userId: string, templateId: string) {
     try {
       const { prisma } = await import('@/lib/prisma');
       
