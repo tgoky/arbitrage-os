@@ -191,7 +191,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
   const tourStyles = {
     popover: (base: any) => ({
       ...base,
-      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+        backgroundColor: theme === 'dark' ? '#1f2937' : '#466d60',
       border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
       borderRadius: '12px',
       boxShadow: theme === 'dark'
