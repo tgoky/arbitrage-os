@@ -1,54 +1,13 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import { AuthPage as AuthPageBase } from "@refinedev/core";
+import type { AuthPageProps } from "@refinedev/core";
+import { useState, useEffect } from "react";
 import { HardDrive, File, Trash2, Edit, Brush, Clock } from "lucide-react";
+import Link from "next/link";
 
-// Mock AuthPageBase for debugging
-const MockAuthPageBase = ({ type }: { type: string }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  
-  const handleSubmit = () => {
-    console.log("Form submitted!", { type, email, password });
-    alert(`${type} form submitted with email: ${email}`);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Email
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-          placeholder="Enter your email"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Password
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-          placeholder="Enter your password"
-        />
-      </div>
-      <button
-        onClick={handleSubmit}
-        className="w-full px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-        style={{ zIndex: 1000, position: 'relative', cursor: 'pointer' }}
-      >
-        {type === "login" ? "Sign In" : "Sign Up"}
-      </button>
-    </div>
-  );
-};
-
-export default function AuthPage({ type = "login" }: { type?: string }) {
+export const AuthPage = (props: AuthPageProps) => {
+  const [showCreds, setShowCreds] = useState(false);
   const [activeWindow, setActiveWindow] = useState("auth");
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -64,7 +23,7 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
       {/* Desktop Background */}
-      <div className="flex-1 relative bg-gradient-to-br from-teal-600 to-teal-800 p-4 overflow-hidden">
+      <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
         {/* Desktop Icons Container */}
         <div className="absolute left-0 top-0 p-6 space-y-8 flex flex-col">
           {/* My Computer Icon */}
@@ -172,21 +131,75 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
               Recycle Bin
             </span>
           </div>
+
+          {/* Notepad Icon */}
+          <div
+            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+            onDoubleClick={() => setActiveWindow("notepad")}
+          >
+            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+              <svg
+                width="56"
+                height="56"
+                viewBox="0 0 56 56"
+                className="transition-transform group-hover:scale-110"
+              >
+                <rect x="10" y="10" width="36" height="36" fill="#FFFFFF" stroke="#000" strokeWidth="1.5" />
+                <path
+                  d="M16 18H40V42H16V18Z"
+                  fill="none"
+                  stroke="#000"
+                  strokeWidth="1"
+                />
+                <rect x="18" y="22" width="20" height="2" fill="#000" />
+                <rect x="18" y="26" width="16" height="2" fill="#000" />
+                <rect x="18" y="30" width="18" height="2" fill="#000" />
+                <rect x="18" y="34" width="14" height="2" fill="#000" />
+              </svg>
+            </div>
+            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+              Notepad
+            </span>
+          </div>
+
+          {/* MS Paint Icon */}
+          <div
+            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
+            onDoubleClick={() => setActiveWindow("paint")}
+          >
+            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
+              <svg
+                width="56"
+                height="56"
+                viewBox="0 0 56 56"
+                className="transition-transform group-hover:scale-110"
+              >
+                <rect x="10" y="10" width="36" height="36" fill="#FFFFFF" stroke="#000" strokeWidth="1.5" />
+                <rect x="16" y="16" width="24" height="24" fill="#F0F0F0" stroke="#000" strokeWidth="1" />
+                <circle cx="20" cy="20" r="2" fill="red" />
+                <circle cx="24" cy="20" r="2" fill="yellow" />
+                <circle cx="28" cy="20" r="2" fill="blue" />
+                <path d="M16 28L40 28" stroke="#000" strokeWidth="1" />
+                <path d="M16 32L40 32" stroke="#000" strokeWidth="1" />
+                <rect x="20" y="36" width="12" height="4" fill="#000" />
+              </svg>
+            </div>
+            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
+              Paint
+            </span>
+          </div>
         </div>
 
         {/* Auth Window */}
         {activeWindow === "auth" && (
-          <div 
-            className="absolute inset-0 flex items-center justify-center p-4"
-            style={{ zIndex: 100 }}
-          >
+          <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
               <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
                   </svg>
-                  <span className="font-bold">Arbitrage-OS {type === "login" ? "Login" : "Register"}</span>
+                  <span className="font-bold">Arbitrage-OS {props.type === "login" ? "Login" : "Register"}</span>
                 </div>
                 <div className="flex space-x-1">
                   <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
@@ -196,7 +209,7 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
                     <span className="text-xs">□</span>
                   </div>
                   <div
-                    className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                    className="w-5 h-5 border-2 border-gray-300	bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                     onClick={() => setActiveWindow("")}
                   >
                     <span className="text-xs">×</span>
@@ -204,45 +217,34 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
                 </div>
               </div>
               <div className="p-4 bg-gray-200">
-                <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-                  {/* Debug: Using MockAuthPageBase instead of real one */}
-                  <h2 className="text-xl font-bold mb-4 text-center">
-                    {type === "login" ? "Sign In" : "Sign Up"}
-                  </h2>
-                  
-                  <MockAuthPageBase type={type} />
-                  
-                  <p className="text-xs text-center text-gray-600">
-                    check email for code if having trouble logging in after signup
-                  </p>
-                  
-                  <div className="text-center mt-4 pt-4 border-t border-gray-300">
-                    {type === "login" ? (
-                      <p className="text-sm">
-                        Do not have an account?{" "}
-                        <button 
-                          onClick={() => alert("Navigate to /register")}
-                          className="text-blue-600 hover:text-blue-800 underline font-bold cursor-pointer"
-                        >
-                          Sign up
-                        </button>
-                      </p>
-                    ) : (
-                      <p className="text-sm">
-                        Already have an account?{" "}
-                        <button 
-                          onClick={() => alert("Navigate to /login")}
-                          className="text-blue-600 hover:text-blue-800 underline font-bold cursor-pointer"
-                        >
-                          Sign in
-                        </button>
-                      </p>
-                    )}
-                  </div>
-                </div>
+               
+             <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
+  <AuthPageBase {...props} />
+  <p className="text-xs text-center">
+    check email for code if having trouble logging in after signup
+  </p>
+  
+  <div className="text-center mt-4 pt-4 border-t border-gray-300">
+    {props.type === "login" ? (
+      <p className="text-sm">
+        Do not have an account?{" "}
+        <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
+          Sign up
+        </Link>
+      </p>
+    ) : (
+      <p className="text-sm">
+        Already have an account?{" "}
+        <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
+          Sign in
+        </Link>
+      </p>
+    )}
+  </div>
+</div>
                 <div className="mt-4 flex justify-between items-center">
                   <button 
-                    className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 cursor-pointer"
+                    className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
                     onClick={() => setActiveWindow("")}
                   >
                     Cancel
@@ -254,7 +256,8 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
           </div>
         )}
 
-        {/* Other Windows */}
+        {/* Other Windows remain the same... */}
+        {/* My Computer Window */}
         {activeWindow === "my-computer" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
             <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
@@ -263,6 +266,12 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
                 <span className="font-bold">My Computer</span>
               </div>
               <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
                 <div
                   className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                   onClick={() => setActiveWindow("")}
@@ -286,7 +295,7 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
           </div>
         )}
 
-        {/* Documents Window */}
+        {/* My Documents Window */}
         {activeWindow === "documents" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
             <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
@@ -295,6 +304,12 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
                 <span className="font-bold">My Documents</span>
               </div>
               <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
                 <div
                   className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                   onClick={() => setActiveWindow("")}
@@ -318,6 +333,12 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
                 <span className="font-bold">Recycle Bin</span>
               </div>
               <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
                 <div
                   className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                   onClick={() => setActiveWindow("")}
@@ -328,6 +349,72 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
             </div>
             <div className="p-4 bg-gray-200">
               <p className="text-sm">Recycle Bin is empty.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Notepad Window */}
+        {activeWindow === "notepad" && (
+          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
+            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+              <div className="flex items-center">
+                <Edit className="w-4 h-4 mr-2" />
+                <span className="font-bold">Notepad</span>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
+                <div
+                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                  onClick={() => setActiveWindow("")}
+                >
+                  <span className="text-xs">×</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-200">
+              <textarea
+                className="w-full h-40 px-2 py-1 border-2 border-gray-400 bg-white focus:outline-none focus:border-blue-500"
+                placeholder="Type your notes here..."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* MS Paint Window */}
+        {activeWindow === "paint" && (
+          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
+            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+              <div className="flex items-center">
+                <Brush className="w-4 h-4 mr-2" />
+                <span className="font-bold">Paint</span>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
+                </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
+                </div>
+                <div
+                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                  onClick={() => setActiveWindow("")}
+                >
+                  <span className="text-xs">×</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-200">
+              <div className="flex space-x-2 mb-2">
+                <button className="w-6 h-6 bg-red-500 border-2 border-gray-400"></button>
+                <button className="w-6 h-6 bg-yellow-500 border-2 border-gray-400"></button>
+                <button className="w-6 h-6 bg-blue-500 border-2 border-gray-400"></button>
+              </div>
+              <canvas className="w-full h-40 border-2 border-gray-400 bg-white" />
             </div>
           </div>
         )}
@@ -342,13 +429,14 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
           Start
         </button>
 
+        {/* Taskbar Programs */}
         <div className="flex-1 flex space-x-1 mx-2">
           {activeWindow === "auth" && (
             <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
               <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
               </svg>
-              Arbitrage-OS {type === "login" ? "Login" : "Register"}
+              Arbitrage-OS {props.type === "login" ? "Login" : "Register"}
             </button>
           )}
           {activeWindow === "my-computer" && (
@@ -369,8 +457,21 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
               Recycle Bin
             </button>
           )}
+          {activeWindow === "notepad" && (
+            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
+              <Edit className="w-4 h-4 mr-1" />
+              Notepad
+            </button>
+          )}
+          {activeWindow === "paint" && (
+            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
+              <Brush className="w-4 h-4 mr-1" />
+              Paint
+            </button>
+          )}
         </div>
 
+        {/* System Tray */}
         <div className="flex items-center space-x-1">
           <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
             <Clock className="w-4 h-4 mr-1" />
@@ -380,4 +481,4 @@ export default function AuthPage({ type = "login" }: { type?: string }) {
       </div>
     </div>
   );
-}
+};
