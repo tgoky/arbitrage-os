@@ -644,10 +644,10 @@ const ColdEmailWriter = () => {
           setEmailMethod(method.value);
           form.setFieldValue('method', method.value);
         }}
-        className={`cursor-pointer ${emailMethod === method.value ? 'border-blue-500 border-2 bg-blue-50' : 'border-gray-300'} transition-none`}
+        className={`cursor-pointer ${emailMethod === method.value ? 'border-blue-500 border-2 ' : 'border-gray-300'} transition-none`}
       >
         <div className="flex items-start">
-          <div className="p-2 bg-blue-50 rounded-full mr-3">
+          <div className="p-2  rounded-full mr-3">
             {method.icon}
           </div>
           <div>

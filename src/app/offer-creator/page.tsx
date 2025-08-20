@@ -574,10 +574,10 @@ const handleHistoricalExport = async (offerId: string) => {
           className="h-auto p-0 border-0"
         >
           <Card
-            className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2 bg-blue-50' : 'border-gray-300'} transition-none`}
+            className={`cursor-pointer ${offerType === type.value ? 'border-blue-500 border-2 ' : 'border-gray-300'} transition-none`}
           >
             <div className="flex items-start">
-              <div className="p-2 bg-blue-50 rounded-full mr-3">
+              <div className="p-2  rounded-full mr-3">
                 {type.icon}
               </div>
               <div>
