@@ -5,6 +5,7 @@ import { Button, Card, Space, Input, Select, Avatar, Tag } from 'antd';
 import { Typography } from 'antd';
 import { Lead } from '../leads/leads';
 import { useTheme } from '../../../providers/ThemeProvider';
+import { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -21,6 +22,7 @@ interface LeadsTabProps {
   selectedCompanySize: string;
   setSelectedCompanySize: (size: string) => void;
   filteredLeads: Lead[];
+  leadColumns: ColumnsType<Lead>;
 }
 
 export const LeadsTab: React.FC<LeadsTabProps> = ({
