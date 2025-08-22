@@ -51,6 +51,7 @@ export interface PainPoint {
 export interface Competitor {
   name: string;
   description: string;
+  strength?: 'Strong' | 'Medium' | 'Weak'; // Added optional strength property
 }
 
 export interface CompetitiveLandscape {

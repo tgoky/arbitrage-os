@@ -21,30 +21,30 @@ import {
   Radio,
   Checkbox,
   Row,
-  Col
+  Col,
+  Avatar
 } from 'antd';
 import { 
   UserOutlined, 
   SolutionOutlined, 
   StarOutlined, 
-  HeartOutlined, 
-  TeamOutlined, 
+DollarCircleOutlined,
   BulbOutlined, 
-  ClockCircleOutlined, 
+ FileAddOutlined,
   DollarOutlined, 
-  EnvironmentOutlined,
+RiseOutlined,
   FileTextOutlined,
   DownloadOutlined,
+  WarningOutlined,
   EyeOutlined,
   DeleteOutlined,
   ReloadOutlined,
   RocketOutlined,
+  TagOutlined,
   BarChartOutlined,
   CustomerServiceOutlined,
-  ShopOutlined,
-  GlobalOutlined,
-  SafetyOutlined,
-  ThunderboltOutlined
+  WalletOutlined,
+
 } from '@ant-design/icons';
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
@@ -704,229 +704,465 @@ const getRequiredFieldsForStep = (step: number): string[] => {
             </Card>
           </>
         );
-      case 5:
-        return (
-          <div className="report-container">
-            {reportGenerated && reportData ? (
-              <>
-                <Card className="mb-6">
-                  <div className="text-center mb-6">
-                    <Title level={3}>Your Niche Research Report</Title>
-                    <Text type="secondary">Generated based on your inputs</Text>
-                    {currentReportId && (
-                      <div className="mt-4">
-                        <Space>
-                          <Button 
-                            icon={<DownloadOutlined />}
-                            onClick={() => currentReportId && handleExportReport(currentReportId, 'html')}
-                          >
-                            Download HTML Report
-                          </Button>
-                          <Button 
-                            icon={<DownloadOutlined />}
-                            onClick={() => currentReportId && handleExportReport(currentReportId, 'json')}
-                          >
-                            Download JSON Data
-                          </Button>
-                        </Space>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Niche Overview */}
-                  <Card title="1. Niche Overview" className="mb-4">
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <Title level={5}>{reportData.nicheOverview?.name}</Title>
-                        <Text>{reportData.nicheOverview?.summary}</Text>
-                      </Col>
-                      <Col span={12}>
-                        <Title level={5}>Why This Niche Fits Your Inputs</Title>
-                        <Text>{reportData.nicheOverview?.whyItFits}</Text>
-                      </Col>
-                    </Row>
-                  </Card>
-                  
-                  {/* Market Demand Snapshot */}
-                  <Card title="2. Market Demand Snapshot" className="mb-4">
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <Title level={5}>Market Size</Title>
-                        <Text>{reportData.marketDemand?.marketSize}</Text>
-                      </Col>
-                      <Col span={8}>
-                        <Title level={5}>Trend Signal</Title>
-                        <Tag color={reportData.marketDemand?.trend === 'growing' ? 'green' : 
-                                  reportData.marketDemand?.trend === 'plateauing' ? 'orange' : 'red'}>
-                          {reportData.marketDemand?.trend}
-                        </Tag>
-                      </Col>
-                      <Col span={8}>
-                        <Title level={5}>Willingness to Pay</Title>
-                        <Text>{reportData.marketDemand?.willingnessToPay}</Text>
-                      </Col>
-                    </Row>
-                  </Card>
-                  
-                  {/* Customer Pain Points */}
-                  <Card title="3. Customer Pain Points" className="mb-4">
-                    <ol>
-                      {reportData.painPoints?.map((point, index) => (
-                        <li key={index} className="mb-2">
-                          <Text strong>{point.problem}</Text> - {point.intensity} intensity
-                        </li>
-                      ))}
-                    </ol>
-                  </Card>
-                  
-                  {/* Competitive Landscape */}
-                  <Card title="4. Competitive Landscape" className="mb-4">
-                    <Title level={5}>Top Competitors</Title>
-                    <ul>
-                      {reportData.competitiveLandscape?.competitors.map((competitor, index) => (
-                        <li key={index} className="mb-2">
-                          <Text strong>{competitor.name}</Text>: {competitor.description}
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    <Title level={5} className="mt-4">Gap Analysis</Title>
-                    <Text>{reportData.competitiveLandscape?.gapAnalysis}</Text>
-                    
-                    <Title level={5} className="mt-4">Barrier to Entry</Title>
-                    <Tag color={reportData.competitiveLandscape?.barrierToEntry === 'Low' ? 'green' : 
-                              reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 'orange' : 'red'}>
-                      {reportData.competitiveLandscape?.barrierToEntry}
-                    </Tag>
-                  </Card>
-                  
-                  {/* Arbitrage Opportunity */}
-                  <Card title="5. Arbitrage Opportunity" className="mb-4">
-                    <Text>{reportData.arbitrageOpportunity?.explanation}</Text>
-                    <div className="mt-2 p-3 bg-blue-50 rounded">
-                      <Text strong>Concrete Angle:</Text> {reportData.arbitrageOpportunity?.concreteAngle}
-                    </div>
-                  </Card>
-                  
-                  {/* Suggested Entry Offers */}
-                  <Card title="6. Suggested Entry Offers" className="mb-4">
-                    {reportData.entryOffers?.map((offer, index) => (
-                      <Card key={index} type="inner" title={offer.positioning} className="mb-2">
-                        <Row gutter={16}>
-                          <Col span={8}>
-                            <Text strong>Business Model:</Text> {offer.businessModel}
-                          </Col>
-                          <Col span={8}>
-                            <Text strong>Price Point:</Text> {offer.pricePoint}
-                          </Col>
-                        </Row>
-                      </Card>
-                    ))}
-                  </Card>
-                  
-                  {/* Go-To-Market Strategy */}
-                  <Card title="7. Go-To-Market Strategy" className="mb-4">
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <Title level={5}>Primary Channel</Title>
-                        <Text>{reportData.gtmStrategy?.primaryChannel}</Text>
-                      </Col>
-                      <Col span={12}>
-                        <Title level={5}>Justification</Title>
-                        <Text>{reportData.gtmStrategy?.justification}</Text>
-                      </Col>
-                    </Row>
-                  </Card>
-                  
-                  {/* Scalability & Exit Potential */}
-                  <Card title="8. Scalability & Exit Potential" className="mb-4">
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <Title level={5}>Scalability Score</Title>
-                        <Tag color={reportData.scalabilityExit?.scalabilityScore === 'High' ? 'green' : 
-                                  reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 'orange' : 'blue'}>
-                          {reportData.scalabilityExit?.scalabilityScore}
-                        </Tag>
-                      </Col>
-                      <Col span={12}>
-                        <Title level={5}>Exit Potential</Title>
-                        <Text>{reportData.scalabilityExit?.exitPotential}</Text>
-                      </Col>
-                    </Row>
-                  </Card>
-                  
-                  {/* Risk Factors & Constraints */}
-                  <Card title="9. Risk Factors & Constraints" className="mb-4">
-                    <ul>
-                      {reportData.riskFactors?.map((risk, index) => (
-                        <li key={index} className="mb-2">
-                          <Text strong>{risk.risk}</Text> - {risk.impact}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                  
-                  {/* Difficulty vs Reward Scorecard */}
-                  <Card title="10. Difficulty vs Reward Scorecard">
-                    <Row gutter={16}>
-                      <Col span={6}>
-                        <Title level={5}>Market Demand</Title>
-                        <Tag color={reportData.scorecard?.marketDemand === 'High' ? 'green' : 
-                                  reportData.scorecard?.marketDemand === 'Medium' ? 'orange' : 'red'}>
-                          {reportData.scorecard?.marketDemand}
-                        </Tag>
-                      </Col>
-                      <Col span={6}>
-                        <Title level={5}>Competition Intensity</Title>
-                        <Tag color={reportData.scorecard?.competition === 'High' ? 'red' : 
-                                  reportData.scorecard?.competition === 'Medium' ? 'orange' : 'green'}>
-                          {reportData.scorecard?.competition}
-                        </Tag>
-                      </Col>
-                      <Col span={6}>
-                        <Title level={5}>Ease of Entry</Title>
-                        <Tag color={reportData.scorecard?.easeOfEntry === 'High' ? 'green' : 
-                                  reportData.scorecard?.easeOfEntry === 'Medium' ? 'orange' : 'red'}>
-                          {reportData.scorecard?.easeOfEntry}
-                        </Tag>
-                      </Col>
-                      <Col span={6}>
-                        <Title level={5}>Profitability Potential</Title>
-                        <Tag color={reportData.scorecard?.profitability === 'High' ? 'green' : 
-                                  reportData.scorecard?.profitability === 'Medium' ? 'orange' : 'red'}>
-                          {reportData.scorecard?.profitability}
-                        </Tag>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Card>
-                
-                <div className="text-center">
+     case 5:
+  return (
+    <div className="report-container">
+      {reportGenerated && reportData ? (
+        <>
+          <Card className="mb-6 report-header-card">
+            <div className="text-center mb-6">
+              <Title level={2} style={{ color: '#1890ff', marginBottom: '8px' }}>
+                Your Niche Research Report
+              </Title>
+              <Text type="secondary" style={{ fontSize: '16px' }}>
+                Generated based on your inputs
+              </Text>
+              {currentReportId && (
+                <div className="mt-4">
                   <Space>
                     <Button 
-                      type="primary" 
-                      size="large"
-                      onClick={() => {
-                        setCurrentStep(0);
-                        setReportGenerated(false);
-                        setReportData(null);
-                        setCurrentReportId(null);
-                        form.resetFields();
-                      }}
+                      icon={<DownloadOutlined />}
+                      onClick={() => currentReportId && handleExportReport(currentReportId, 'html')}
+                      type="primary"
                     >
-                      Generate New Report
+                      Download HTML Report
                     </Button>
                     <Button 
-                      size="large"
-                      onClick={loadPreviousReports}
-                      icon={<EyeOutlined />}
+                      icon={<DownloadOutlined />}
+                      onClick={() => currentReportId && handleExportReport(currentReportId, 'json')}
                     >
-                      View Previous Reports
+                      Download JSON Data
                     </Button>
                   </Space>
                 </div>
-              </>
-            ) : (
+              )}
+            </div>
+          </Card>
+          
+          {/* Niche Overview */}
+          <Card title="1. Niche Overview" className="mb-4 section-card" 
+                extra={<Tag color="blue">Overview</Tag>}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <div className="niche-header">
+                  <Title level={4} style={{ color: '#1890ff' }}>
+                    {reportData.nicheOverview?.name}
+                  </Title>
+                  <Text>{reportData.nicheOverview?.summary}</Text>
+                </div>
+              </Col>
+              <Col span={12}>
+                <div className="fit-reason">
+                  <Title level={5}>Why This Niche Fits Your Inputs</Title>
+                  <div className="highlight-box">
+                    <Text>{reportData.nicheOverview?.whyItFits}</Text>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Market Demand Snapshot */}
+          <Card title="2. Market Demand Snapshot" className="mb-4 section-card"
+                extra={<Tag color="green">Demand</Tag>}>
+            <Row gutter={16}>
+              <Col span={8}>
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <DollarOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+                  </div>
+                  <Title level={5}>Market Size</Title>
+                  <Text className="metric-value">{reportData.marketDemand?.marketSize}</Text>
+                </div>
+              </Col>
+              <Col span={8}>
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <RiseOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+                  </div>
+                  <Title level={5}>Trend Signal</Title>
+                  <Tag color={reportData.marketDemand?.trend === 'growing' ? 'green' : 
+                            reportData.marketDemand?.trend === 'plateauing' ? 'orange' : 'red'}
+                       className="trend-tag">
+                    {reportData.marketDemand?.trend?.toUpperCase()}
+                  </Tag>
+                </div>
+              </Col>
+              <Col span={8}>
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <WalletOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                  </div>
+                  <Title level={5}>Willingness to Pay</Title>
+                  <Text className="metric-value">{reportData.marketDemand?.willingnessToPay}</Text>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Customer Pain Points */}
+          <Card title="3. Customer Pain Points" className="mb-4 section-card"
+                extra={<Tag color="volcano">Pain Points</Tag>}>
+            <Row gutter={16}>
+              {reportData.painPoints?.map((point, index) => (
+                <Col span={8} key={index}>
+                  <div className="pain-point-card">
+                    <div className="intensity-indicator">
+                      <div 
+                        className={`intensity-level intensity-${point.intensity?.toLowerCase()}`}
+                        title={`${point.intensity} intensity`}
+                      ></div>
+                    </div>
+                    <Text strong>{point.problem}</Text>
+                    <div className="intensity-tag">
+                      <Tag color={
+                        point.intensity?.toLowerCase() === 'high' ? 'red' : 
+                        point.intensity?.toLowerCase() === 'medium' ? 'orange' : 'blue'
+                      }>
+                        {point.intensity} intensity
+                      </Tag>
+                    </div>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+          
+        {/* Competitive Landscape */}
+<Card title="4. Competitive Landscape" className="mb-4 section-card"
+      extra={<Tag color="purple">Competition</Tag>}>
+  <Title level={4}>Top Competitors</Title>
+  <Row gutter={16} className="competitor-cards">
+    {reportData.competitiveLandscape?.competitors.map((competitor, index) => (
+      <Col span={8} key={index}>
+        <Card 
+          className="competitor-card" 
+          size="small"
+          actions={[
+            <span key="position">Market Position: {index + 1}</span>,
+            <span key="strength">Strength: {competitor.strength || 'Unknown'}</span>
+          ]}
+        >
+          <Card.Meta
+            avatar={
+              <Avatar 
+                size="large" 
+                style={{ backgroundColor: ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae'][index % 4] }}
+              >
+                {competitor.name.charAt(0)}
+              </Avatar>
+            }
+            title={competitor.name}
+            description={
+              <Text ellipsis={{ tooltip: competitor.description }}>
+                {competitor.description}
+              </Text>
+            }
+          />
+        </Card>
+      </Col>
+    ))}
+  </Row>
+  
+  <Row gutter={16} className="mt-4">
+    <Col span={12}>
+      <Title level={4}>Gap Analysis</Title>
+      <div className="highlight-box">
+        <Text>{reportData.competitiveLandscape?.gapAnalysis}</Text>
+      </div>
+    </Col>
+    <Col span={12}>
+      <Title level={4}>Barrier to Entry</Title>
+      <div className="barrier-indicator">
+        <Progress 
+          percent={
+            reportData.competitiveLandscape?.barrierToEntry === 'High' ? 80 : 
+            reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 50 : 20
+          } 
+          showInfo={false}
+          status={
+            reportData.competitiveLandscape?.barrierToEntry === 'High' ? 'exception' : 
+            reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 'active' : 'success'
+          }
+        />
+        <Tag 
+          color={
+            reportData.competitiveLandscape?.barrierToEntry === 'High' ? 'red' : 
+            reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 'orange' : 'green'
+          } 
+          className="barrier-tag"
+        >
+          {reportData.competitiveLandscape?.barrierToEntry}
+        </Tag>
+      </div>
+    </Col>
+  </Row>
+</Card>
+          
+          {/* Arbitrage Opportunity */}
+          <Card title="5. Arbitrage Opportunity" className="mb-4 section-card"
+                extra={<Tag color="cyan">Opportunity</Tag>}>
+            <Text>{reportData.arbitrageOpportunity?.explanation}</Text>
+            <div className="mt-3 p-3 opportunity-highlight">
+              <Title level={5}>Concrete Angle:</Title> 
+              <Text>{reportData.arbitrageOpportunity?.concreteAngle}</Text>
+            </div>
+          </Card>
+          
+          {/* Suggested Entry Offers */}
+          <Card title="6. Suggested Entry Offers" className="mb-4 section-card"
+                extra={<Tag color="gold">Offers</Tag>}>
+            <Row gutter={16}>
+              {reportData.entryOffers?.map((offer, index) => (
+                <Col span={12} key={index}>
+                  <Card 
+                    className="offer-card" 
+                    type="inner" 
+                    title={
+                      <span>
+                        <StarOutlined /> {offer.positioning}
+                      </span>
+                    }
+                  >
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <div className="offer-detail">
+                          <DollarCircleOutlined className="offer-icon" />
+                          <div>
+                            <Text strong>Business Model:</Text>
+                            <br />
+                            <Text>{offer.businessModel}</Text>
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={12}>
+                        <div className="offer-detail">
+                          <TagOutlined className="offer-icon" />
+                          <div>
+                            <Text strong>Price Point:</Text>
+                            <br />
+                            <Text>{offer.pricePoint}</Text>
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+          
+          {/* Go-To-Market Strategy */}
+          <Card title="7. Go-To-Market Strategy" className="mb-4 section-card"
+                extra={<Tag color="lime">GTM</Tag>}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <div className="strategy-card primary">
+                  <Title level={5}>Primary Channel</Title>
+                  <Text className="channel-name">{reportData.gtmStrategy?.primaryChannel}</Text>
+                </div>
+              </Col>
+              <Col span={12}>
+                <div className="strategy-card">
+                  <Title level={5}>Justification</Title>
+                  <Text>{reportData.gtmStrategy?.justification}</Text>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Scalability & Exit Potential */}
+          <Card title="8. Scalability & Exit Potential" className="mb-4 section-card"
+                extra={<Tag color="magenta">Growth</Tag>}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <div className="scalability-card">
+                  <Title level={5}>Scalability Score</Title>
+                  <div className="score-display">
+                    <Progress 
+                      type="circle" 
+                      percent={
+                        reportData.scalabilityExit?.scalabilityScore === 'High' ? 80 : 
+                        reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 50 : 30
+                      } 
+                      width={80}
+                      status={
+                        reportData.scalabilityExit?.scalabilityScore === 'High' ? 'success' : 
+                        reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 'normal' : 'exception'
+                      }
+                    />
+                    <Tag color={reportData.scalabilityExit?.scalabilityScore === 'High' ? 'green' : 
+                              reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 'orange' : 'blue'}
+                         className="score-tag">
+                      {reportData.scalabilityExit?.scalabilityScore}
+                    </Tag>
+                  </div>
+                </div>
+              </Col>
+              <Col span={12}>
+                <div className="exit-card">
+                  <Title level={5}>Exit Potential</Title>
+                  <div className="highlight-box">
+                    <Text>{reportData.scalabilityExit?.exitPotential}</Text>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          
+          {/* Risk Factors & Constraints */}
+          <Card title="9. Risk Factors & Constraints" className="mb-4 section-card"
+                extra={<Tag color="red">Risks</Tag>}>
+            <Row gutter={16}>
+              {reportData.riskFactors?.map((risk, index) => (
+                <Col span={8} key={index}>
+                  <div className="risk-card">
+                    <WarningOutlined className="risk-icon" />
+                    <Text strong>{risk.risk}</Text>
+                    <div className="risk-impact">
+                      <Tag color={
+                        risk.impact?.toLowerCase().includes('high') ? 'red' : 
+                        risk.impact?.toLowerCase().includes('medium') ? 'orange' : 'blue'
+                      }>
+                        Impact: {risk.impact}
+                      </Tag>
+                    </div>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+          
+          {/* Difficulty vs Reward Scorecard */}
+          <Card title="10. Difficulty vs Reward Scorecard" className="mb-4 section-card"
+                extra={<Tag color="geekblue">Scorecard</Tag>}>
+            <Row gutter={16}>
+              <Col span={6}>
+                <div className="scorecard-metric">
+                  <Title level={5}>Market Demand</Title>
+                  <div className="score-indicator">
+                    <Progress 
+                      percent={
+                        reportData.scorecard?.marketDemand === 'High' ? 90 : 
+                        reportData.scorecard?.marketDemand === 'Medium' ? 60 : 30
+                      } 
+                      showInfo={false}
+                      status="active"
+                      strokeColor={
+                        reportData.scorecard?.marketDemand === 'High' ? '#52c41a' : 
+                        reportData.scorecard?.marketDemand === 'Medium' ? '#faad14' : '#f5222d'
+                      }
+                    />
+                    <Tag color={reportData.scorecard?.marketDemand === 'High' ? 'green' : 
+                              reportData.scorecard?.marketDemand === 'Medium' ? 'orange' : 'red'}
+                         className="scorecard-tag">
+                      {reportData.scorecard?.marketDemand}
+                    </Tag>
+                  </div>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div className="scorecard-metric">
+                  <Title level={5}>Competition Intensity</Title>
+                  <div className="score-indicator">
+                    <Progress 
+                      percent={
+                        reportData.scorecard?.competition === 'High' ? 90 : 
+                        reportData.scorecard?.competition === 'Medium' ? 60 : 30
+                      } 
+                      showInfo={false}
+                      status="active"
+                      strokeColor={
+                        reportData.scorecard?.competition === 'High' ? '#f5222d' : 
+                        reportData.scorecard?.competition === 'Medium' ? '#faad14' : '#52c41a'
+                      }
+                    />
+                    <Tag color={reportData.scorecard?.competition === 'High' ? 'red' : 
+                              reportData.scorecard?.competition === 'Medium' ? 'orange' : 'green'}
+                         className="scorecard-tag">
+                      {reportData.scorecard?.competition}
+                    </Tag>
+                  </div>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div className="scorecard-metric">
+                  <Title level={5}>Ease of Entry</Title>
+                  <div className="score-indicator">
+                    <Progress 
+                      percent={
+                        reportData.scorecard?.easeOfEntry === 'High' ? 90 : 
+                        reportData.scorecard?.easeOfEntry === 'Medium' ? 60 : 30
+                      } 
+                      showInfo={false}
+                      status="active"
+                      strokeColor={
+                        reportData.scorecard?.easeOfEntry === 'High' ? '#52c41a' : 
+                        reportData.scorecard?.easeOfEntry === 'Medium' ? '#faad14' : '#f5222d'
+                      }
+                    />
+                    <Tag color={reportData.scorecard?.easeOfEntry === 'High' ? 'green' : 
+                              reportData.scorecard?.easeOfEntry === 'Medium' ? 'orange' : 'red'}
+                         className="scorecard-tag">
+                      {reportData.scorecard?.easeOfEntry}
+                    </Tag>
+                  </div>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div className="scorecard-metric">
+                  <Title level={5}>Profitability Potential</Title>
+                  <div className="score-indicator">
+                    <Progress 
+                      percent={
+                        reportData.scorecard?.profitability === 'High' ? 90 : 
+                        reportData.scorecard?.profitability === 'Medium' ? 60 : 30
+                      } 
+                      showInfo={false}
+                      status="active"
+                      strokeColor={
+                        reportData.scorecard?.profitability === 'High' ? '#52c41a' : 
+                        reportData.scorecard?.profitability === 'Medium' ? '#faad14' : '#f5222d'
+                      }
+                    />
+                    <Tag color={reportData.scorecard?.profitability === 'High' ? 'green' : 
+                              reportData.scorecard?.profitability === 'Medium' ? 'orange' : 'red'}
+                         className="scorecard-tag">
+                      {reportData.scorecard?.profitability}
+                    </Tag>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+          
+          <div className="text-center action-buttons">
+            <Space>
+              <Button 
+                type="primary" 
+                size="large"
+                onClick={() => {
+                  setCurrentStep(0);
+                  setReportGenerated(false);
+                  setReportData(null);
+                  setCurrentReportId(null);
+                  form.resetFields();
+                }}
+                icon={<FileAddOutlined />}
+              >
+                Generate New Report
+              </Button>
+              <Button 
+                size="large"
+                onClick={loadPreviousReports}
+                icon={<EyeOutlined />}
+              >
+                View Previous Reports
+              </Button>
+            </Space>
+          </div>
+        </>
+      ) : (
               <div className="text-center py-10">
                 <Title level={4}>Ready to Generate Your Niche Report</Title>
                 <Text type="secondary">Review your information and click below to analyze</Text>
