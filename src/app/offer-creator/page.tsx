@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   ThunderboltOutlined,
   DollarOutlined,
@@ -18,6 +18,8 @@ import {
   ShopOutlined,
   SettingOutlined,
   GlobalOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -41,7 +43,23 @@ import {
   Col,
   message,
   Steps,
+  Spin,
+  Empty,
+  Tooltip,
+  Modal,
 } from "antd";
+
+// Import the hooks and types
+import {
+  useOfferCreator,
+  useSavedOffers,
+  useOfferValidation,
+  useOfferExport,
+  type OfferCreatorInput,
+  type GeneratedOfferPackage,
+  type UserOffer,
+} from "../hooks/useOfferCreator";
+
 import {
   FounderInputs,
   MarketInputs,
@@ -50,7 +68,16 @@ import {
   VoiceInputs,
   GeneratedOffer,
   LivePreview,
-} from "./types/offerCreator"; // Adjust path to your types file
+  SignatureOffer,
+  calculateLivePreview,
+} from "@/types/offerCreator";
+
+// Hook to get current user ID - replace with your auth system
+const useCurrentUser = () => {
+  // This is a placeholder - replace with your actual auth hook
+  // For example: const { user } = useAuth(); return user?.id;
+  return "current-user-id"; // Replace with actual implementation
+};
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -62,10 +89,18 @@ const { Step } = Steps;
 export default function OfferCreatorPage() {
   const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState<"inputs" | "outputs" | "history">("inputs");
-  const [generatedOffer, setGeneratedOffer] = useState<GeneratedOffer | null>(null);
+  const [generatedOffer, setGeneratedOffer] = useState<GeneratedOfferPackage | null>(null);
   const [savedOfferId, setSavedOfferId] = useState<string | null>(null);
   const [activePanels, setActivePanels] = useState<string[]>(["1", "2", "3", "4", "5"]);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Get current user ID
+  const currentUserId = useCurrentUser();
+
+  // Hook implementations
+  const { generateOffer, generating, error: generateError, quickValidate, getBusinessInsights } = useOfferCreator();
+  const { offers, loading: offersLoading, fetchOffers, deleteOffer, getOffer } = useSavedOffers();
+  const { validateInput, getOfferInsights, calculateCapacityMetrics } = useOfferValidation();
+  const { exportOffer, loading: exportLoading } = useOfferExport();
 
   // Form sections initialized empty
   const [founderInputs, setFounderInputs] = useState<FounderInputs>({
@@ -103,57 +138,106 @@ export default function OfferCreatorPage() {
     differentiators: [],
   });
 
-  // Live preview calculation
-  const calculateLivePreview = useMemo<LivePreview | null>(() => {
-    if (
-      !founderInputs.signatureResults.length ||
-      !founderInputs.coreStrengths.length ||
-      !founderInputs.processes.length ||
-      !founderInputs.industries.length ||
-      !marketInputs.targetMarket ||
-      !marketInputs.buyerRole ||
-      !marketInputs.pains.length ||
-      !marketInputs.outcomes.length ||
-      !businessInputs.deliveryModel.length
-    ) {
-      return null;
-    }
+  // Load saved offers on component mount
+  useEffect(() => {
+    fetchOffers();
+  }, [fetchOffers]);
 
-    // Placeholder for actual logic (implement based on inputs)
+  // Fix the tab change handler type issue
+  const handleTabChange = (activeKey: string) => {
+    setActiveTab(activeKey as "inputs" | "outputs" | "history");
+  };
+
+  // Create the complete input object for validation and submission
+  const completeInput: Partial<OfferCreatorInput> = useMemo(() => {
     return {
-      offerStrength: 0,
-      confidenceScore: 0,
-      recommendations: [],
+      founder: founderInputs,
+      market: marketInputs,
+      business: businessInputs,
+      pricing: pricingInputs,
+      voice: voiceInputs,
     };
   }, [founderInputs, marketInputs, businessInputs, pricingInputs, voiceInputs]);
 
-  const onFinish = async () => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement actual API call to generate offers
-      // Example:
-      // const response = await fetch('/api/generate-offer', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ founderInputs, marketInputs, businessInputs, pricingInputs, voiceInputs }),
-      // });
-      // const data = await response.json() as GeneratedOffer;
-      // setGeneratedOffer(data);
+  // Live preview calculation using the imported function
+  const livePreview = useMemo<LivePreview | null>(() => {
+    return calculateLivePreview({
+      founder: founderInputs,
+      market: marketInputs,
+      business: businessInputs,
+      pricing: pricingInputs,
+      voice: voiceInputs,
+    });
+  }, [founderInputs, marketInputs, businessInputs, pricingInputs, voiceInputs]);
 
-      throw new Error("API not implemented");
+  // Validation results
+  const validationResults = useMemo(() => {
+    return validateInput(completeInput);
+  }, [completeInput, validateInput]);
 
-      setSavedOfferId(`offer-${Date.now()}`);
-      setActiveTab("outputs");
-      notification.success({
-        message: "Offer Created Successfully",
-        description: "Your signature offers have been generated and are ready to use.",
-      });
-    } catch (error) {
-      message.error("Failed to generate offers. Please try again.");
-    } finally {
-      setIsLoading(false);
+  // Business insights
+  const businessInsights = useMemo(() => {
+    if (!completeInput.founder || !completeInput.market || !completeInput.business || 
+        !completeInput.pricing || !completeInput.voice) {
+      return null;
     }
-  };
+    return getBusinessInsights(completeInput as OfferCreatorInput);
+  }, [completeInput, getBusinessInsights]);
+
+  // Capacity metrics
+  const capacityMetrics = useMemo(() => {
+    if (!completeInput.founder || !completeInput.market || !completeInput.business || 
+        !completeInput.pricing || !completeInput.voice) {
+      return null;
+    }
+    return calculateCapacityMetrics(completeInput as OfferCreatorInput);
+  }, [completeInput, calculateCapacityMetrics]);
+
+ 
+
+const onFinish = async () => {
+  try {
+    // Final validation before submission
+    if (!validationResults.isValid) {
+      message.error("Please fix validation errors before generating offers");
+      return;
+    }
+
+ 
+    const offerInput: Partial<OfferCreatorInput> = {
+      founder: founderInputs,
+      market: marketInputs,
+      business: businessInputs,
+      pricing: pricingInputs,
+      voice: voiceInputs,
+      // userId is intentionally omitted
+    };
+
+    console.log("🚀 Generating signature offers with input:", offerInput);
+
+    // Ensure generateOffer in useOfferCreator hook accepts Partial<OfferCreatorInput> or adjust the type here
+    // Cast to OfferCreatorInput if the hook expects it, knowing userId will be added by the API
+    const result = await generateOffer(offerInput as unknown as OfferCreatorInput); 
+
+    if (result) {
+      setGeneratedOffer(result.offer);
+      setSavedOfferId(result.offerId);
+      setActiveTab("outputs");
+      
+      // Refresh the offers list
+      await fetchOffers(); // This will also use the authenticated user's ID
+      
+      notification.success({
+        message: "Signature Offers Generated Successfully",
+        description: "Your signature offers have been created and are ready to use.",
+        duration: 5,
+      });
+    }
+  } catch (error) {
+    console.error("Generation error:", error);
+    message.error("Failed to generate offers. Please try again.");
+  }
+};
 
   const handleInputChange = (
     section: "founder" | "market" | "business" | "pricing" | "voice",
@@ -181,28 +265,129 @@ export default function OfferCreatorPage() {
     }
   };
 
-  const handleExport = (format: string) => {
-    message.success(`Exported offer package as ${format.toUpperCase()}`);
+  const handleExport = async (format: 'json' | 'html') => {
+    if (!savedOfferId) {
+      message.error("No offer to export. Please generate an offer first.");
+      return;
+    }
+
+    try {
+      await exportOffer(savedOfferId, format);
+    } catch (error) {
+      console.error("Export error:", error);
+      message.error(`Failed to export as ${format.toUpperCase()}`);
+    }
   };
+
+  const handleDeleteOffer = async (offerId: string) => {
+    Modal.confirm({
+      title: "Delete Offer",
+      content: "Are you sure you want to delete this offer? This action cannot be undone.",
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        const success = await deleteOffer(offerId);
+        if (success) {
+          // If we're viewing the deleted offer, clear it
+          if (savedOfferId === offerId) {
+            setGeneratedOffer(null);
+            setSavedOfferId(null);
+            setActiveTab("inputs");
+          }
+        }
+      },
+    });
+  };
+
+  const handleLoadOffer = async (offerId: string) => {
+    try {
+      const offerData = await getOffer(offerId);
+      if (offerData && offerData.offer) {
+        // Parse the offer content and populate the form
+        const offerContent = offerData.offer;
+        
+        // If we have the original input data, populate the form
+        if (offerContent.originalInput) {
+          const input = offerContent.originalInput;
+          setFounderInputs(input.founder || {
+            signatureResults: [],
+            coreStrengths: [],
+            processes: [],
+            industries: [],
+            proofAssets: [],
+          });
+          setMarketInputs(input.market || {
+            targetMarket: "",
+            buyerRole: "",
+            pains: [],
+            outcomes: [],
+          });
+          setBusinessInputs(input.business || {
+            deliveryModel: [],
+            capacity: "",
+            monthlyHours: "",
+            acv: "",
+            fulfillmentStack: [],
+          });
+          setPricingInputs(input.pricing || {
+            pricePosture: "value-priced",
+            contractStyle: "month-to-month",
+            guarantee: "none",
+          });
+          setVoiceInputs(input.voice || {
+            brandTone: "consultative",
+            positioning: "ROI",
+            differentiators: [],
+          });
+        }
+        
+        setGeneratedOffer(offerContent);
+        setSavedOfferId(offerId);
+        setActiveTab("outputs");
+        
+        message.success("Offer loaded successfully");
+      } else {
+        message.error("Offer data not found");
+      }
+    } catch (error) {
+      console.error("Load offer error:", error);
+      message.error("Failed to load offer");
+    }
+  };
+
+  const isFormValid = validationResults.isValid;
+  const hasMinimumData = founderInputs.signatureResults.length > 0 && 
+                        marketInputs.targetMarket && 
+                        businessInputs.deliveryModel.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
-          Offer Creator Blueprint
+          Signature Offer Creator
         </Title>
         <Text type="secondary" className="text-lg">
-          Transform your expertise into compelling signature offers
+          Transform your expertise into compelling signature offers that sell themselves
         </Text>
       </div>
 
-      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" size="large">
+      {/* Show generation error if any */}
+      {generateError && (
+        <div className="mb-4">
+          <Card>
+            <Text type="danger">Error: {generateError}</Text>
+          </Card>
+        </div>
+      )}
+
+      <Tabs activeKey={activeTab} onChange={handleTabChange} type="card" size="large">
         <TabPane
           tab={
             <span>
               <EditOutlined />
               Inputs
+              {!isFormValid && hasMinimumData && <Badge dot style={{ marginLeft: 8 }} />}
             </span>
           }
           key="inputs"
@@ -215,6 +400,8 @@ export default function OfferCreatorPage() {
                     <div className="flex items-center">
                       <UserOutlined className="mr-2" />
                       <span className="font-medium">Founder/Team Credibility</span>
+                      {validationResults.errors['founder.signatureResults'] && 
+                       <Badge status="error" style={{ marginLeft: 8 }} />}
                     </div>
                   }
                   key="1"
@@ -227,8 +414,15 @@ export default function OfferCreatorPage() {
                         placeholder="3-5 bullet outcomes you've produced (with numbers if possible)"
                         rows={3}
                         value={founderInputs.signatureResults.join("\n")}
-                        onChange={(e) => handleInputChange("founder", "signatureResults", e.target.value.split("\n"))}
+                        onChange={(e) => handleInputChange("founder", "signatureResults", 
+                          e.target.value.split("\n").filter(line => line.trim()))}
+                        status={validationResults.errors['founder.signatureResults'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['founder.signatureResults'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['founder.signatureResults']}
+                        </Text>
+                      )}
                     </div>
                     <div>
                       <Text strong>Core strengths/skills (required)</Text>
@@ -238,7 +432,13 @@ export default function OfferCreatorPage() {
                         placeholder="e.g., workflow automation, sales ops, media buying"
                         value={founderInputs.coreStrengths}
                         onChange={(value) => handleInputChange("founder", "coreStrengths", value)}
+                        status={validationResults.errors['founder.coreStrengths'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['founder.coreStrengths'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['founder.coreStrengths']}
+                        </Text>
+                      )}
                     </div>
                     <div>
                       <Text strong>Repeatable processes you own (required)</Text>
@@ -248,7 +448,13 @@ export default function OfferCreatorPage() {
                         placeholder="SOP names / frameworks"
                         value={founderInputs.processes}
                         onChange={(value) => handleInputChange("founder", "processes", value)}
+                        status={validationResults.errors['founder.processes'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['founder.processes'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['founder.processes']}
+                        </Text>
+                      )}
                     </div>
                     <div>
                       <Text strong>Industry knowledge (required)</Text>
@@ -258,7 +464,14 @@ export default function OfferCreatorPage() {
                         placeholder="Pick 1-3 industries you understand"
                         value={founderInputs.industries}
                         onChange={(value) => handleInputChange("founder", "industries", value)}
+                        maxTagCount={3}
+                        status={validationResults.errors['founder.industries'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['founder.industries'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['founder.industries']}
+                        </Text>
+                      )}
                     </div>
                     <div>
                       <Text strong>Proof assets (optional)</Text>
@@ -266,7 +479,8 @@ export default function OfferCreatorPage() {
                         placeholder="Links or text: case studies, logos, testimonials, certifications, awards"
                         rows={2}
                         value={founderInputs.proofAssets.join("\n")}
-                        onChange={(e) => handleInputChange("founder", "proofAssets", e.target.value.split("\n"))}
+                        onChange={(e) => handleInputChange("founder", "proofAssets", 
+                          e.target.value.split("\n").filter(line => line.trim()))}
                       />
                     </div>
                   </div>
@@ -277,6 +491,8 @@ export default function OfferCreatorPage() {
                     <div className="flex items-center">
                       <ShopOutlined className="mr-2" />
                       <span className="font-medium">Market & Buyer</span>
+                      {(validationResults.errors['market.targetMarket'] || validationResults.errors['market.buyerRole']) && 
+                       <Badge status="error" style={{ marginLeft: 8 }} />}
                     </div>
                   }
                   key="2"
@@ -289,7 +505,13 @@ export default function OfferCreatorPage() {
                         placeholder="e.g., SMB services, clinics, trades, agencies, local retail"
                         value={marketInputs.targetMarket}
                         onChange={(e) => handleInputChange("market", "targetMarket", e.target.value)}
+                        status={validationResults.errors['market.targetMarket'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['market.targetMarket'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['market.targetMarket']}
+                        </Text>
+                      )}
                     </div>
                     <div>
                       <Text strong>Ideal buyer role (required)</Text>
@@ -297,7 +519,13 @@ export default function OfferCreatorPage() {
                         placeholder="e.g., owner/operator, practice manager, GM, director"
                         value={marketInputs.buyerRole}
                         onChange={(e) => handleInputChange("market", "buyerRole", e.target.value)}
+                        status={validationResults.errors['market.buyerRole'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['market.buyerRole'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['market.buyerRole']}
+                        </Text>
+                      )}
                     </div>
                     <div>
                       <Text strong>Top 3 buyer pains (required)</Text>
@@ -307,18 +535,30 @@ export default function OfferCreatorPage() {
                         placeholder="Bullet points of customer pains"
                         value={marketInputs.pains}
                         onChange={(value) => handleInputChange("market", "pains", value)}
-                        maxTagCount={3}
+                        maxTagCount={5}
+                        status={validationResults.errors['market.pains'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['market.pains'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['market.pains']}
+                        </Text>
+                      )}
                     </div>
                     <div>
-                      <Text strong>Outcomes they'll pay for (required)</Text>
+                      <Text strong>Outcomes they will pay for (required)</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
                         placeholder="e.g., revenue lift, cost cut, time saved, compliance, lead volume"
                         value={marketInputs.outcomes}
                         onChange={(value) => handleInputChange("market", "outcomes", value)}
+                        status={validationResults.errors['market.outcomes'] ? 'error' : undefined}
                       />
+                      {validationResults.errors['market.outcomes'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['market.outcomes']}
+                        </Text>
+                      )}
                     </div>
                   </div>
                 </Panel>
@@ -328,6 +568,8 @@ export default function OfferCreatorPage() {
                     <div className="flex items-center">
                       <SettingOutlined className="mr-2" />
                       <span className="font-medium">Business Model & Capacity</span>
+                      {(validationResults.errors['business.deliveryModel'] || validationResults.errors['business.capacity']) && 
+                       <Badge status="error" style={{ marginLeft: 8 }} />}
                     </div>
                   }
                   key="3"
@@ -338,9 +580,10 @@ export default function OfferCreatorPage() {
                       <Select
                         mode="multiple"
                         style={{ width: "100%" }}
-                        placeholder="Choose 2-3 options"
+                        placeholder="Choose 1-3 options"
                         value={businessInputs.deliveryModel}
                         onChange={(value) => handleInputChange("business", "deliveryModel", value)}
+                        status={validationResults.errors['business.deliveryModel'] ? 'error' : undefined}
                       >
                         <Option value="productized-service">Productized Service</Option>
                         <Option value="monthly-retainer">Monthly Retainer</Option>
@@ -349,31 +592,54 @@ export default function OfferCreatorPage() {
                         <Option value="advisory">Advisory</Option>
                         <Option value="licensing">Licensing</Option>
                       </Select>
+                      {validationResults.errors['business.deliveryModel'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['business.deliveryModel']}
+                        </Text>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Text strong>Capacity constraints</Text>
+                        <Text strong>Capacity (required)</Text>
                         <Input
                           placeholder="Max concurrent clients"
                           value={businessInputs.capacity}
                           onChange={(e) => handleInputChange("business", "capacity", e.target.value)}
+                          status={validationResults.errors['business.capacity'] ? 'error' : undefined}
                         />
+                        {validationResults.errors['business.capacity'] && (
+                          <Text type="danger" className="text-sm">
+                            {validationResults.errors['business.capacity']}
+                          </Text>
+                        )}
                       </div>
                       <div>
-                        <Text strong>Monthly hours</Text>
+                        <Text strong>Monthly hours (required)</Text>
                         <Input
                           placeholder="Monthly hours available"
                           value={businessInputs.monthlyHours}
                           onChange={(e) => handleInputChange("business", "monthlyHours", e.target.value)}
+                          status={validationResults.errors['business.monthlyHours'] ? 'error' : undefined}
                         />
+                        {validationResults.errors['business.monthlyHours'] && (
+                          <Text type="danger" className="text-sm">
+                            {validationResults.errors['business.monthlyHours']}
+                          </Text>
+                        )}
                       </div>
                       <div>
-                        <Text strong>Preferred ACV</Text>
+                        <Text strong>Preferred ACV (required)</Text>
                         <Input
-                          placeholder="Annual Contract Value"
+                          placeholder="e.g., $50,000"
                           value={businessInputs.acv}
                           onChange={(e) => handleInputChange("business", "acv", e.target.value)}
+                          status={validationResults.errors['business.acv'] ? 'error' : undefined}
                         />
+                        {validationResults.errors['business.acv'] && (
+                          <Text type="danger" className="text-sm">
+                            {validationResults.errors['business.acv']}
+                          </Text>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -386,115 +652,152 @@ export default function OfferCreatorPage() {
                         onChange={(value) => handleInputChange("business", "fulfillmentStack", value)}
                       />
                     </div>
+
+                    {/* Show capacity metrics if available */}
+                    {capacityMetrics && (
+                      <div className="mt-4 p-4  rounded-lg">
+                        <Text strong>Capacity Analysis:</Text>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                          <div>
+                            <Text className="text-sm">Hours/Client</Text>
+                            <div className="font-bold">{capacityMetrics.hoursPerClient}h</div>
+                            <div className="text-xs text-gray-500">{capacityMetrics.recommendations.hoursPerClient}</div>
+                          </div>
+                          <div>
+                            <Text className="text-sm">Monthly Rate</Text>
+                            <div className="font-bold">${capacityMetrics.monthlyRate}</div>
+                            <div className="text-xs text-gray-500">{capacityMetrics.recommendations.monthlyRate}</div>
+                          </div>
+                          <div>
+                            <Text className="text-sm">Potential Revenue</Text>
+                            <div className="font-bold">${capacityMetrics.potentialRevenue.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{capacityMetrics.recommendations.potentialRevenue}</div>
+                          </div>
+                          <div>
+                            <Text className="text-sm">Utilization</Text>
+                            <div className="font-bold">{capacityMetrics.utilizationRate}%</div>
+                            <div className="text-xs text-gray-500">Target: 80-90%</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Panel>
 
-           <Panel
-  header={
-    <div className="flex items-center">
-      <DollarOutlined className="mr-2" />
-      <span className="font-medium">Pricing & Terms</span>
-    </div>
-  }
-  key="4"
->
-  <div className="space-y-6">
-    <div>
-      <Text strong className="block mb-2">Price posture</Text>
-      <Select
-        value={pricingInputs.pricePosture}
-        onChange={(value) => handleInputChange("pricing", "pricePosture", value)}
-        style={{ width: "100%" }}
-        placeholder="Select price posture"
-      >
-        <Option value="value-priced">Value-Priced</Option>
-        <Option value="market-priced">Market-Priced</Option>
-        <Option value="premium">Premium</Option>
-      </Select>
-    </div>
-    <div>
-      <Text strong className="block mb-2">Contract style</Text>
-      <Select
-        value={pricingInputs.contractStyle}
-        onChange={(e) => handleInputChange("pricing", "contractStyle", e)}
-        style={{ width: "100%" }}
-        placeholder="Select contract style"
-      >
-        <Option value="month-to-month">Month-to-Month</Option>
-        <Option value="3-month-min">3-Month Minimum</Option>
-        <Option value="6-month-min">6-Month Minimum</Option>
-        <Option value="project">Project-Based</Option>
-      </Select>
-    </div>
-    <div>
-      <Text strong className="block mb-2">Guarantee posture</Text>
-      <Select
-        value={pricingInputs.guarantee}
-        onChange={(value) => handleInputChange("pricing", "guarantee", value)}
-        style={{ width: "100%" }}
-        placeholder="Select guarantee posture"
-      >
-        <Option value="none">None</Option>
-        <Option value="conditional">Conditional</Option>
-        <Option value="strong-guarantee">Strong Guarantee</Option>
-      </Select>
-    </div>
-  </div>
-</Panel>
+                <Panel
+                  header={
+                    <div className="flex items-center">
+                      <DollarOutlined className="mr-2" />
+                      <span className="font-medium">Pricing & Terms</span>
+                    </div>
+                  }
+                  key="4"
+                >
+                  <div className="space-y-6">
+                    <div>
+                      <Text strong className="block mb-2">Price posture</Text>
+                      <Select
+                        value={pricingInputs.pricePosture}
+                        onChange={(value) => handleInputChange("pricing", "pricePosture", value)}
+                        style={{ width: "100%" }}
+                        placeholder="Select price posture"
+                      >
+                        <Option value="value-priced">Value-Priced (ROI focus)</Option>
+                        <Option value="market-priced">Market-Priced (Competitive)</Option>
+                        <Option value="premium">Premium (Premium positioning)</Option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Text strong className="block mb-2">Contract style</Text>
+                      <Select
+                        value={pricingInputs.contractStyle}
+                        onChange={(value) => handleInputChange("pricing", "contractStyle", value)}
+                        style={{ width: "100%" }}
+                        placeholder="Select contract style"
+                      >
+                        <Option value="month-to-month">Month-to-Month</Option>
+                        <Option value="3-month-min">3-Month Minimum</Option>
+                        <Option value="6-month-min">6-Month Minimum</Option>
+                        <Option value="project">Project-Based</Option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Text strong className="block mb-2">Guarantee posture</Text>
+                      <Select
+                        value={pricingInputs.guarantee}
+                        onChange={(value) => handleInputChange("pricing", "guarantee", value)}
+                        style={{ width: "100%" }}
+                        placeholder="Select guarantee posture"
+                      >
+                        <Option value="none">None</Option>
+                        <Option value="conditional">Conditional (if client follows process)</Option>
+                        <Option value="strong-guarantee">Strong Guarantee (results or refund)</Option>
+                      </Select>
+                    </div>
+                  </div>
+                </Panel>
 
-<Panel
-  header={
-    <div className="flex items-center">
-      <GlobalOutlined className="mr-2" />
-      <span className="font-medium">Voice & Packaging</span>
-    </div>
-  }
-  key="5"
->
-  <div className="space-y-6">
-    <div>
-      <Text strong className="block mb-2">Brand tone</Text>
-      <Select
-        value={voiceInputs.brandTone}
-        onChange={(value) => handleInputChange("voice", "brandTone", value)}
-        style={{ width: "100%" }}
-        placeholder="Select brand tone"
-      >
-        <Option value="assertive">Assertive</Option>
-        <Option value="consultative">Consultative</Option>
-        <Option value="friendly">Friendly</Option>
-        <Option value="elite">Elite</Option>
-      </Select>
-    </div>
-    <div>
-      <Text strong className="block mb-2">Positioning angle</Text>
-      <Select
-        value={voiceInputs.positioning}
-        onChange={(value) => handleInputChange("voice", "positioning", value)}
-        style={{ width: "100%" }}
-        placeholder="Select positioning angle"
-      >
-        <Option value="speed">Speed</Option>
-        <Option value="certainty">Certainty</Option>
-        <Option value="specialization">Specialization</Option>
-        <Option value="done-for-you">Done-For-You</Option>
-        <Option value="ROI">ROI</Option>
-      </Select>
-    </div>
-    <div className="mt-6">
-      <Text strong className="block mb-2">Differentiators (required)</Text>
-      <Select
-        mode="tags"
-        style={{ width: "100%" }}
-        placeholder="3 unique differentiators"
-        value={voiceInputs.differentiators}
-        onChange={(value) => handleInputChange("voice", "differentiators", value)}
-        maxTagCount={3}
-        className="w-full"
-      />
-    </div>
-  </div>
-</Panel>
+                <Panel
+                  header={
+                    <div className="flex items-center">
+                      <GlobalOutlined className="mr-2" />
+                      <span className="font-medium">Voice & Positioning</span>
+                      {validationResults.errors['voice.differentiators'] && 
+                       <Badge status="error" style={{ marginLeft: 8 }} />}
+                    </div>
+                  }
+                  key="5"
+                >
+                  <div className="space-y-6">
+                    <div>
+                      <Text strong className="block mb-2">Brand tone</Text>
+                      <Select
+                        value={voiceInputs.brandTone}
+                        onChange={(value) => handleInputChange("voice", "brandTone", value)}
+                        style={{ width: "100%" }}
+                        placeholder="Select brand tone"
+                      >
+                        <Option value="assertive">Assertive (Confident, direct)</Option>
+                        <Option value="consultative">Consultative (Advisory, helpful)</Option>
+                        <Option value="friendly">Friendly (Approachable, warm)</Option>
+                        <Option value="elite">Elite (Exclusive, premium)</Option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Text strong className="block mb-2">Positioning angle</Text>
+                      <Select
+                        value={voiceInputs.positioning}
+                        onChange={(value) => handleInputChange("voice", "positioning", value)}
+                        style={{ width: "100%" }}
+                        placeholder="Select positioning angle"
+                      >
+                        <Option value="speed">Speed (Fast results, quick turnaround)</Option>
+                        <Option value="certainty">Certainty (Guaranteed outcomes)</Option>
+                        <Option value="specialization">Specialization (Deep expertise)</Option>
+                        <Option value="done-for-you">Done-For-You (Hands-off solution)</Option>
+                        <Option value="ROI">ROI (Return on investment focus)</Option>
+                      </Select>
+                    </div>
+                    <div className="mt-6">
+                      <Text strong className="block mb-2">Differentiators (required)</Text>
+                      <Select
+                        mode="tags"
+                        style={{ width: "100%" }}
+                        placeholder="3-5 unique differentiators that set you apart"
+                        value={voiceInputs.differentiators}
+                        onChange={(value) => handleInputChange("voice", "differentiators", value)}
+                        maxTagCount={5}
+                        className="w-full"
+                        status={validationResults.errors['voice.differentiators'] ? 'error' : undefined}
+                      />
+                      {validationResults.errors['voice.differentiators'] && (
+                        <Text type="danger" className="text-sm">
+                          {validationResults.errors['voice.differentiators']}
+                        </Text>
+                      )}
+                    </div>
+                  </div>
+                </Panel>
               </Collapse>
 
               <div className="text-center mt-6">
@@ -502,12 +805,20 @@ export default function OfferCreatorPage() {
                   type="primary"
                   size="large"
                   onClick={onFinish}
-                  loading={isLoading}
+                  loading={generating}
                   icon={<RocketOutlined />}
                   className="min-w-48"
+                  disabled={!isFormValid}
                 >
-                  {isLoading ? "Generating Offers..." : "Generate Signature Offers"}
+                  {generating ? "Generating Offers..." : "Generate Signature Offers"}
                 </Button>
+                {!isFormValid && hasMinimumData && (
+                  <div className="mt-2">
+                    <Text type="danger" className="text-sm">
+                      Please fix validation errors above before generating
+                    </Text>
+                  </div>
+                )}
               </div>
             </Col>
 
@@ -521,18 +832,18 @@ export default function OfferCreatorPage() {
                   </div>
                 }
               >
-                {calculateLivePreview ? (
+                {livePreview ? (
                   <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+                    <div className=" p-4 rounded-lg">
                       <Statistic
                         title="Offer Strength Score"
-                        value={calculateLivePreview.offerStrength}
+                        value={livePreview.offerStrength}
                         precision={0}
                         suffix="/100"
                         valueStyle={{ color: "#3f8600", fontSize: "1.5em" }}
                       />
                       <Progress
-                        percent={calculateLivePreview.offerStrength}
+                        percent={livePreview.offerStrength}
                         status="active"
                         strokeColor={{
                           "0%": "#108ee9",
@@ -542,14 +853,14 @@ export default function OfferCreatorPage() {
                     </div>
                     <div>
                       <Text strong>Confidence Score: </Text>
-                      <Text>{calculateLivePreview.confidenceScore}%</Text>
-                      <Progress percent={calculateLivePreview.confidenceScore} size="small" status="active" />
+                      <Text>{livePreview.confidenceScore}%</Text>
+                      <Progress percent={livePreview.confidenceScore} size="small" status="active" />
                     </div>
                     <div>
                       <Text strong>Recommendations:</Text>
                       <ul className="mt-2 text-sm space-y-1">
-                        {calculateLivePreview.recommendations.length ? (
-                          calculateLivePreview.recommendations.map((rec, idx) => (
+                        {livePreview.recommendations.length ? (
+                          livePreview.recommendations.map((rec, idx) => (
                             <li key={idx}>• {rec}</li>
                           ))
                         ) : (
@@ -585,6 +896,44 @@ export default function OfferCreatorPage() {
                   </div>
                 )}
               </Card>
+
+              {/* Business Insights Card */}
+              {businessInsights && (
+                <Card title="Business Insights" className="mb-6">
+                  <div className="space-y-3">
+                    {businessInsights.strengths.length > 0 && (
+                      <div>
+                        <Text strong className="text-green-600">Strengths:</Text>
+                        <ul className="mt-1 text-sm">
+                          {businessInsights.strengths.map((strength, idx) => (
+                            <li key={idx} className="text-green-700">✓ {strength}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {businessInsights.opportunities.length > 0 && (
+                      <div>
+                        <Text strong className="text-blue-600">Opportunities:</Text>
+                        <ul className="mt-1 text-sm">
+                          {businessInsights.opportunities.map((opp, idx) => (
+                            <li key={idx} className="text-blue-700">→ {opp}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {businessInsights.recommendations.length > 0 && (
+                      <div>
+                        <Text strong className="text-orange-600">Recommendations:</Text>
+                        <ul className="mt-1 text-sm">
+                          {businessInsights.recommendations.map((rec, idx) => (
+                            <li key={idx} className="text-orange-700">• {rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
 
               <Card title="Input Summary">
                 <div className="space-y-3">
@@ -654,7 +1003,7 @@ export default function OfferCreatorPage() {
           tab={
             <span>
               <FileTextOutlined />
-              Outputs
+              Generated Offers
               {generatedOffer && <Badge dot style={{ marginLeft: 8 }} />}
             </span>
           }
@@ -676,14 +1025,19 @@ export default function OfferCreatorPage() {
                     >
                       Copy JSON
                     </Button>
-                    <Button icon={<DownloadOutlined />} onClick={() => handleExport("html")}>
+                    <Button 
+                      icon={<DownloadOutlined />} 
+                      onClick={() => handleExport("html")}
+                      loading={exportLoading}
+                    >
                       Export HTML
                     </Button>
-                    <Button icon={<DownloadOutlined />} onClick={() => handleExport("pdf")}>
-                      Export PDF
-                    </Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={() => handleExport("json")}>
-                      Save Package
+                    <Button 
+                      icon={<DownloadOutlined />} 
+                      onClick={() => handleExport("json")}
+                      loading={exportLoading}
+                    >
+                      Export JSON
                     </Button>
                   </Space>
                 </div>
@@ -692,20 +1046,32 @@ export default function OfferCreatorPage() {
               <Card title="Signature Offers">
                 <Tabs type="card">
                   <TabPane tab="Starter" key="starter">
-                    <OfferPreview offer={generatedOffer.signatureOffers.starter} pricing={generatedOffer.pricing.starter} />
+                    <OfferPreview 
+                      offer={generatedOffer.primaryOffer.signatureOffers.starter} 
+                      pricing={generatedOffer.primaryOffer.pricing.starter} 
+                    />
                   </TabPane>
                   <TabPane tab="Core" key="core">
-                    <OfferPreview offer={generatedOffer.signatureOffers.core} pricing={generatedOffer.pricing.core} />
+                    <OfferPreview 
+                      offer={generatedOffer.primaryOffer.signatureOffers.core} 
+                      pricing={generatedOffer.primaryOffer.pricing.core} 
+                    />
                   </TabPane>
                   <TabPane tab="Premium" key="premium">
-                    <OfferPreview offer={generatedOffer.signatureOffers.premium} pricing={generatedOffer.pricing.premium} />
+                    <OfferPreview 
+                      offer={generatedOffer.primaryOffer.signatureOffers.premium} 
+                      pricing={generatedOffer.primaryOffer.pricing.premium} 
+                    />
                   </TabPane>
                 </Tabs>
               </Card>
 
-              <Card title="Offer Comparison">
+              <Card title="Feature Comparison">
                 <Table
-                  dataSource={generatedOffer.comparisonTable.features}
+                  dataSource={generatedOffer.primaryOffer.comparisonTable.features.map((feature, idx) => ({
+                    ...feature,
+                    key: idx,
+                  }))}
                   pagination={false}
                   columns={[
                     {
@@ -761,26 +1127,58 @@ export default function OfferCreatorPage() {
                   <div className="text-center p-4 border rounded">
                     <Title level={4}>Starter</Title>
                     <Title level={2} className="text-blue-600">
-                      {generatedOffer.pricing.starter}
+                      {generatedOffer.primaryOffer.pricing.starter}
                     </Title>
-                    <Text type="secondary">{generatedOffer.signatureOffers.starter.term}</Text>
+                    <Text type="secondary">{generatedOffer.primaryOffer.signatureOffers.starter.term}</Text>
                   </div>
-                  <div className="text-center p-4 border rounded bg-blue-50">
-                    <Title level={4}>Core</Title>
+                  <div className="text-center p-4 border rounded">
+                    <Title level={4}>Core (Recommended)</Title>
                     <Title level={2} className="text-blue-800">
-                      {generatedOffer.pricing.core}
+                      {generatedOffer.primaryOffer.pricing.core}
                     </Title>
-                    <Text type="secondary">{generatedOffer.signatureOffers.core.term}</Text>
+                    <Text type="secondary">{generatedOffer.primaryOffer.signatureOffers.core.term}</Text>
                   </div>
                   <div className="text-center p-4 border rounded">
                     <Title level={4}>Premium</Title>
                     <Title level={2} className="text-purple-600">
-                      {generatedOffer.pricing.premium}
+                      {generatedOffer.primaryOffer.pricing.premium}
                     </Title>
-                    <Text type="secondary">{generatedOffer.signatureOffers.premium.term}</Text>
+                    <Text type="secondary">{generatedOffer.primaryOffer.signatureOffers.premium.term}</Text>
                   </div>
                 </div>
               </Card>
+
+              {/* Analysis Results */}
+              {generatedOffer.analysis && (
+                <Card title="Offer Analysis">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Text strong>Conversion Potential Score</Text>
+                      <div className="mt-2">
+                        <Progress 
+                          percent={generatedOffer.analysis.conversionPotential.score} 
+                          status="active"
+                          strokeColor="#52c41a"
+                        />
+                        <Text>{generatedOffer.analysis.conversionPotential.score}%</Text>
+                      </div>
+                    </div>
+                    <div>
+                      <Text strong>Key Factors</Text>
+                      <ul className="mt-2 text-sm">
+                        {generatedOffer.analysis.conversionPotential.factors.map((factor, idx) => (
+                          <li key={idx} className={`
+                            ${factor.impact === 'High' ? 'text-green-700' : 
+                              factor.impact === 'Medium' ? 'text-yellow-700' : 'text-red-700'}
+                          `}>
+                            {factor.factor} ({factor.impact})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </Card>
+              )}
 
               <Card title="Next Steps">
                 <Steps progressDot current={0} direction="vertical">
@@ -798,6 +1196,11 @@ export default function OfferCreatorPage() {
                 No Offers Generated Yet
               </Title>
               <Text type="secondary">Fill out the input form and generate your signature offers to see them here.</Text>
+              <div className="mt-4">
+                <Button type="primary" onClick={() => setActiveTab("inputs")}>
+                  Go to Inputs
+                </Button>
+              </div>
             </div>
           )}
         </TabPane>
@@ -807,18 +1210,121 @@ export default function OfferCreatorPage() {
             <span>
               <HistoryOutlined />
               History
+              {offers.length > 0 && <Badge count={offers.length} style={{ marginLeft: 8 }} />}
             </span>
           }
           key="history"
         >
-          <Card title="Your Saved Offers">
-            <div className="text-center py-12">
-              <HistoryOutlined style={{ fontSize: "48px", color: "#ccc" }} />
-              <Title level={4} type="secondary">
-                No Saved Offers Yet
-              </Title>
-              <Text type="secondary">Your generated offers will appear here once you save them.</Text>
-            </div>
+         <Card 
+  title="Your Saved Offers" 
+  extra={
+    <Button 
+      icon={<ReloadOutlined />} 
+      onClick={() => fetchOffers()} // Wrap in an arrow function
+      loading={offersLoading}
+    >
+      Refresh
+    </Button>
+  }
+>
+            {offersLoading ? (
+              <div className="text-center py-8">
+                <Spin size="large" />
+                <div className="mt-4">Loading your offers...</div>
+              </div>
+            ) : offers.length > 0 ? (
+              <div className="space-y-4">
+                {offers.map((offer) => (
+                  <Card 
+                    key={offer.id} 
+                    size="small"
+                    className="border-l-4 border-l-blue-500"
+                    title={
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <Text strong>{offer.title}</Text>
+                          <div className="text-sm text-gray-500">
+                            {offer.metadata?.targetMarket && (
+                              <Tag color="blue">{offer.metadata.targetMarket}</Tag>
+                            )}
+                            {offer.metadata?.pricePosture && (
+                              <Tag color="green">{offer.metadata.pricePosture}</Tag>
+                            )}
+                          </div>
+                        </div>
+                        <Space>
+                          <Tooltip title="Load this offer">
+                            <Button 
+                              size="small" 
+                              icon={<EyeOutlined />}
+                              onClick={() => handleLoadOffer(offer.id)}
+                            >
+                              Load
+                            </Button>
+                          </Tooltip>
+                          <Tooltip title="Delete this offer">
+                            <Button 
+                              size="small" 
+                              danger 
+                              icon={<DeleteOutlined />}
+                              onClick={() => handleDeleteOffer(offer.id)}
+                            >
+                              Delete
+                            </Button>
+                          </Tooltip>
+                        </Space>
+                      </div>
+                    }
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Text className="text-sm font-medium">Industries:</Text>
+                        <div className="mt-1">
+                          {offer.metadata?.industries?.map((industry, idx) => (
+                            <Tag key={idx}  color="purple">
+                              {industry}
+                            </Tag>
+                          )) || <Text type="secondary">Not specified</Text>}
+                        </div>
+                      </div>
+                      <div>
+                        <Text className="text-sm font-medium">Created:</Text>
+                        <div className="mt-1 text-sm">
+                          {new Date(offer.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div>
+                        <Text className="text-sm font-medium">Conversion Score:</Text>
+                        <div className="mt-1">
+                          {offer.metadata?.conversionScore ? (
+                            <Progress 
+                              percent={offer.metadata.conversionScore} 
+                              size="small"
+                              showInfo={false}
+                            />
+                          ) : (
+                            <Text type="secondary">Not analyzed</Text>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <HistoryOutlined style={{ fontSize: "48px", color: "#ccc" }} />
+                <Title level={4} type="secondary">
+                  No Saved Offers Yet
+                </Title>
+                <Text type="secondary">Your generated offers will appear here once you save them.</Text>
+                <div className="mt-4">
+                  <Button type="primary" onClick={() => setActiveTab("inputs")}>
+                    Create Your First Offer
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </TabPane>
       </Tabs>
@@ -826,7 +1332,7 @@ export default function OfferCreatorPage() {
   );
 }
 
-function OfferPreview({ offer, pricing }: { offer: GeneratedOffer["signatureOffers"]["starter"]; pricing: string }) {
+function OfferPreview({ offer, pricing }: { offer: SignatureOffer; pricing: string }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -839,7 +1345,7 @@ function OfferPreview({ offer, pricing }: { offer: GeneratedOffer["signatureOffe
         <Button type="primary">Use This Offer</Button>
       </div>
       <div>
-        <Text strong>Who it&apos;s for:</Text>
+        <Text strong>Who this is for:</Text>
         <Paragraph>{offer.for}</Paragraph>
       </div>
       <div>

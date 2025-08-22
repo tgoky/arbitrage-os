@@ -1,11 +1,13 @@
-// app/api/offer-creator/[id]/performance/route.ts - WITH RATE LIMITING & USAGE
+// app/api/offer-creator/[id]/performance/route.ts - UPDATED TO MATCH NEW STRUCTURE
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { OfferCreatorService } from '../../../../../services/offerCreator.service';
 import { validatePerformanceData } from '../../../../validators/offerCreator.validator';
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
+import { ApiResponse, PerformanceMetrics, OfferPerformance } from '@/types/offerCreator';
 
 const RATE_LIMITS = {
   PERFORMANCE_UPDATE: {
@@ -18,162 +20,543 @@ const RATE_LIMITS = {
   }
 };
 
+// ✅ Enhanced authentication function (matches main route)
+async function getAuthenticatedUser(request: NextRequest) {
+  try {
+    const cookieStore = cookies();
+    
+    // Method 1: Try with route handler client
+    try {
+      const supabase = createRouteHandlerClient({
+        cookies: () => cookieStore
+      });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (!error && user) {
+        console.log('✅ Auth Method 1 (route handler) succeeded for user:', user.id);
+        return { user, error: null };
+      }
+      
+      console.log('⚠️ Route handler auth failed:', error?.message);
+    } catch (helperError) {
+      console.warn('⚠️ Route handler client failed:', helperError);
+    }
+    
+    // Method 2: Try with authorization header
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        console.log('🔍 Trying token auth for performance...');
+        
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              get: () => undefined,
+            },
+          }
+        );
+        
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (!error && user) {
+          console.log('✅ Auth Method 2 (token) succeeded for user:', user.id);
+          return { user, error: null };
+        }
+        
+        console.log('⚠️ Token auth failed:', error?.message);
+      } catch (tokenError) {
+        console.warn('⚠️ Token auth error:', tokenError);
+      }
+    }
+    
+    // Method 3: Try with cookie validation
+    const supabaseSSR = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            try {
+              const cookie = cookieStore.get(name);
+              if (!cookie?.value) return undefined;
+              
+              // Validate base64 cookies
+              if (cookie.value.startsWith('base64-')) {
+                try {
+                  const decoded = atob(cookie.value.substring(7));
+                  JSON.parse(decoded); // Validate JSON
+                  return cookie.value;
+                } catch (e) {
+                  console.warn(`Invalid cookie ${name}, skipping...`);
+                  return undefined;
+                }
+              }
+              return cookie.value;
+            } catch (error) {
+              console.warn(`Error reading cookie ${name}:`, error);
+              return undefined;
+            }
+          },
+        },
+      }
+    );
+    
+    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    
+    if (!error && user) {
+      console.log('✅ Auth Method 3 (SSR cookies) succeeded for user:', user.id);
+    } else {
+      console.log('⚠️ SSR cookie auth failed:', error?.message);
+    }
+    
+    return { user, error };
+    
+  } catch (error) {
+    console.error('💥 All authentication methods failed:', error);
+    return { user: null, error };
+  }
+}
+
+// POST method for updating signature offer performance
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({
-      cookies: () => cookieStore
-    });
+    console.log('🚀 Signature Offer Performance Update API called for offer:', params.id);
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    // ✅ Enhanced authentication
+    const { user, error: authError } = await getAuthenticatedUser(req);
 
-    if (error || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !user) {
+      console.error('❌ Auth failed in performance update:', authError);
+      
+      const response = NextResponse.json(
+        { 
+          success: false,
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          code: 'AUTH_REQUIRED'
+        } as ApiResponse<never>,
+        { status: 401 }
+      );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', {
+          expires: new Date(0),
+          path: '/',
+        });
+      });
+      
+      return response;
     }
 
-    // ✅ ADD RATE LIMITING for performance updates
+    console.log('✅ User authenticated successfully:', user.id);
+
+    // Rate limiting for performance updates
+    console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(
-      `offer_performance_update:${user.id}`,
+      `signature_offer_performance_update:${user.id}`,
       RATE_LIMITS.PERFORMANCE_UPDATE.limit,
       RATE_LIMITS.PERFORMANCE_UPDATE.window
     );
     if (!rateLimitResult.success) {
+      console.log('❌ Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
-          error: 'Performance update rate limit exceeded.',
+          success: false,
+          error: 'Performance update rate limit exceeded. Please try again later.',
           retryAfter: rateLimitResult.reset
-        },
+        } as ApiResponse<never>,
         { status: 429 }
       );
     }
+    console.log('✅ Rate limit check passed');
 
     const offerId = params.id;
-    const body = await req.json();
-
-    const validation = validatePerformanceData(body);
-    if (!validation.success) {
+    
+    // Validate offer ID format
+    if (!offerId || offerId.length < 10) {
+      console.error('❌ Invalid offer ID:', offerId);
       return NextResponse.json(
-        { error: 'Invalid performance data', details: validation.errors },
+        { 
+          success: false,
+          error: 'Invalid offer ID format' 
+        } as ApiResponse<never>,
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate request body
+    console.log('📥 Parsing performance data...');
+    const body = await req.json();
+    
+    // Add offer ID to the validation data
+    const performanceDataWithId = {
+      ...body,
+      offerId
+    };
+
+    console.log('🔍 Performance data structure:');
+    console.log('- metrics keys:', body.metrics ? Object.keys(body.metrics) : 'missing');
+    console.log('- date range:', body.dateRange ? 'present' : 'missing');
+
+    // Validate performance data using our updated validator
+    const validation = validatePerformanceData(performanceDataWithId);
+    if (!validation.success) {
+      console.error('❌ Performance data validation failed:', validation.errors);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Invalid performance data', 
+          details: validation.errors,
+          debug: {
+            receivedFields: Object.keys(body),
+            expectedStructure: {
+              metrics: {
+                inquiries: 'number',
+                proposals: 'number', 
+                conversions: 'number',
+                avgDealSize: 'number',
+                timeToClose: 'number'
+              },
+              dateRange: {
+                start: 'string (ISO date)',
+                end: 'string (ISO date)'
+              }
+            }
+          }
+        } as ApiResponse<never>,
         { status: 400 }
       );
     }
 
     if (!validation.data) {
+      console.error('❌ No valid performance data provided');
       return NextResponse.json(
-        { error: 'No valid performance data provided' },
+        { 
+          success: false,
+          error: 'No valid performance data provided' 
+        } as ApiResponse<never>,
         { status: 400 }
       );
     }
 
-    const offerService = new OfferCreatorService();
-    await offerService.updateOfferPerformance(user.id, offerId, validation.data);
+    // ✅ Update offer performance with error handling
+    console.log('💾 Updating signature offer performance...');
+    try {
+      const offerService = new OfferCreatorService();
+      await offerService.updateOfferPerformance(
+        user.id, 
+        offerId, 
+        {
+          inquiries: validation.data.metrics.inquiries,
+          proposals: validation.data.metrics.proposals,
+          conversions: validation.data.metrics.conversions,
+          avgDealSize: validation.data.metrics.avgDealSize,
+          timeToClose: validation.data.metrics.timeToClose,
+          dateRange: validation.data.dateRange
+        }
+      );
+      console.log('✅ Performance data updated successfully');
+    } catch (updateError) {
+      console.error('💥 Error updating performance:', updateError);
+      
+      if (updateError instanceof Error && updateError.message.includes('not found')) {
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Signature offer not found or access denied',
+            code: 'OFFER_NOT_FOUND'
+          } as ApiResponse<never>,
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Failed to update performance data. Please try again.',
+          debug: updateError instanceof Error ? updateError.message : 'Unknown update error'
+        } as ApiResponse<never>,
+        { status: 500 }
+      );
+    }
 
     // Get updated performance data with insights
-    const performanceData = await offerService.getOfferPerformance(user.id, offerId);
+    console.log('📊 Fetching updated performance insights...');
+    let performanceData: OfferPerformance;
+    try {
+      const offerService = new OfferCreatorService();
+      performanceData = await offerService.getOfferPerformance(user.id, offerId);
+      console.log('✅ Performance insights generated successfully');
+    } catch (fetchError) {
+      console.error('💥 Error fetching performance insights:', fetchError);
+      // Return success for the update but without insights
+      return NextResponse.json(
+        { 
+          success: true,
+          data: { updated: true },
+          meta: {
+            remaining: rateLimitResult.remaining,
+            insightsError: 'Performance updated but insights unavailable'
+          }
+        } as ApiResponse<any>
+      );
+    }
 
-    // ✅ LOG USAGE for performance update - Using correct types
-    await logUsage({
-      userId: user.id,
-      feature: 'offer_performance_update',
-      tokens: 0, // No AI tokens for data update
-      timestamp: new Date(),
-      metadata: {
-        offerId,
-        metricsUpdated: Object.keys(validation.data),
-        conversionRate: performanceData?.summary?.averageConversionRate || 0,
-        totalConversions: performanceData?.summary?.totalConversions || 0,
-        totalRevenue: performanceData?.summary?.totalRevenue || 0,
-        trend: performanceData?.summary?.trend || 'no-data'
-      }
-    });
+    // ✅ Log usage for performance update with enhanced metadata
+    console.log('📊 Logging usage...');
+    try {
+      await logUsage({
+        userId: user.id,
+        feature: 'signature_offer_performance_update',
+        tokens: 0, // No AI tokens for data update
+        timestamp: new Date(),
+        metadata: {
+          offerId,
+          metricsUpdated: Object.keys(validation.data.metrics),
+          conversionRate: performanceData.summary.averageConversionRate,
+          proposalRate: performanceData.summary.averageProposalRate,
+          totalConversions: performanceData.summary.totalConversions,
+          totalRevenue: performanceData.summary.totalRevenue,
+          avgDealSize: performanceData.summary.averageDealSize,
+          trend: performanceData.summary.trend,
+          dataPoints: performanceData.summary.dataPoints,
+          insightsGenerated: performanceData.insights.length,
+          dateRange: validation.data.dateRange
+        }
+      });
+      console.log('✅ Usage logged successfully');
+    } catch (logError) {
+      // Don't fail the request if logging fails
+      console.error('⚠️ Usage logging failed (non-critical):', logError);
+    }
 
+    console.log('🎉 Signature offer performance update completed successfully');
     return NextResponse.json({
       success: true,
       data: performanceData,
       meta: {
-        remaining: rateLimitResult.remaining
+        offerId,
+        metricsUpdated: Object.keys(validation.data.metrics),
+        remaining: rateLimitResult.remaining,
+        insightsGenerated: performanceData.insights.length
       }
-    });
+    } as ApiResponse<OfferPerformance>);
 
   } catch (error) {
-    console.error('Performance Tracking Error:', error);
+    console.error('💥 Unexpected Performance Update Error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { error: 'Failed to record performance data' },
+      { 
+        success: false,
+        error: 'Failed to update performance data. Please try again.',
+        debug: error instanceof Error ? error.message : 'Unknown error'
+      } as ApiResponse<never>,
       { status: 500 }
     );
   }
 }
 
+// GET method for retrieving signature offer performance
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({
-      cookies: () => cookieStore
-    });
+    console.log('🚀 Signature Offer Performance Get API called for offer:', params.id);
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    // ✅ Enhanced authentication
+    const { user, error: authError } = await getAuthenticatedUser(req);
 
-    if (error || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !user) {
+      console.error('❌ Auth failed in performance get:', authError);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Authentication required',
+          code: 'AUTH_REQUIRED'
+        } as ApiResponse<never>,
+        { status: 401 }
+      );
     }
 
-    // ✅ ADD RATE LIMITING for performance gets
+    console.log('✅ User authenticated successfully:', user.id);
+
+    // Rate limiting for performance gets
+    console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(
-      `offer_performance_get:${user.id}`,
+      `signature_offer_performance_get:${user.id}`,
       RATE_LIMITS.PERFORMANCE_GET.limit,
       RATE_LIMITS.PERFORMANCE_GET.window
     );
     if (!rateLimitResult.success) {
+      console.log('❌ Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
-          error: 'Performance fetch rate limit exceeded.',
+          success: false,
+          error: 'Performance fetch rate limit exceeded. Please try again later.',
           retryAfter: rateLimitResult.reset
-        },
+        } as ApiResponse<never>,
         { status: 429 }
       );
     }
+    console.log('✅ Rate limit check passed');
 
     const offerId = params.id;
-    const offerService = new OfferCreatorService();
-    const performanceData = await offerService.getOfferPerformance(user.id, offerId);
+    
+    // Validate offer ID format
+    if (!offerId || offerId.length < 10) {
+      console.error('❌ Invalid offer ID:', offerId);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Invalid offer ID format' 
+        } as ApiResponse<never>,
+        { status: 400 }
+      );
+    }
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const period = searchParams.get('period') || 'all'; // all, 30d, 90d, 1y
+    const includeInsights = searchParams.get('insights') !== 'false';
+
+    console.log('📊 Fetching performance data for offer:', offerId);
+    console.log('🔍 Parameters - period:', period, 'insights:', includeInsights);
+
+    // ✅ Get signature offer performance data
+    let performanceData: OfferPerformance;
+    try {
+      const offerService = new OfferCreatorService();
+      performanceData = await offerService.getOfferPerformance(user.id, offerId);
+      
+      console.log('✅ Performance data retrieved successfully');
+      console.log('📊 Summary - conversions:', performanceData.summary.totalConversions, 
+                  'revenue:', performanceData.summary.totalRevenue,
+                  'trend:', performanceData.summary.trend);
+    } catch (fetchError) {
+      console.error('💥 Error fetching performance data:', fetchError);
+      
+      if (fetchError instanceof Error && fetchError.message === 'Offer not found') {
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Signature offer not found or access denied',
+            code: 'OFFER_NOT_FOUND'
+          } as ApiResponse<never>,
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Failed to fetch performance data. Please try again.',
+          debug: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
+        } as ApiResponse<never>,
+        { status: 500 }
+      );
+    }
 
     if (!performanceData) {
+      console.error('❌ Performance data not found for offer:', offerId);
       return NextResponse.json(
-        { error: 'Performance data not found' },
+        { 
+          success: false,
+          error: 'Performance data not found for this signature offer',
+          code: 'PERFORMANCE_DATA_NOT_FOUND'
+        } as ApiResponse<never>,
         { status: 404 }
       );
     }
 
-    // ✅ LOG USAGE for performance fetch
-    await logUsage({
-      userId: user.id,
-      feature: 'offer_performance_view',
-      tokens: 0, // No AI tokens for viewing
-      timestamp: new Date(),
-      metadata: {
-        offerId,
-        action: 'view_performance'
+    // Filter performance history by period if requested
+    let filteredData = performanceData;
+    if (period !== 'all' && performanceData.performanceHistory.length > 0) {
+      const now = new Date();
+      let cutoffDate: Date;
+      
+      switch (period) {
+        case '30d':
+          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '1y':
+          cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoffDate = new Date(0); // All time
       }
-    });
+      
+      filteredData = {
+        ...performanceData,
+        performanceHistory: performanceData.performanceHistory.filter(entry => 
+          new Date(entry.dateRange.start) >= cutoffDate
+        )
+      };
+    }
 
+    // ✅ Log usage for performance fetch
+    console.log('📊 Logging usage...');
+    try {
+      await logUsage({
+        userId: user.id,
+        feature: 'signature_offer_performance_view',
+        tokens: 0, // No AI tokens for viewing
+        timestamp: new Date(),
+        metadata: {
+          offerId,
+          action: 'view_performance',
+          period,
+          includeInsights,
+          dataPointsReturned: filteredData.performanceHistory.length,
+          hasLatestMetrics: !!filteredData.latestMetrics,
+          trend: filteredData.summary.trend
+        }
+      });
+      console.log('✅ Usage logged successfully');
+    } catch (logError) {
+      // Don't fail the request if logging fails
+      console.error('⚠️ Usage logging failed (non-critical):', logError);
+    }
+
+    console.log('🎉 Performance data fetch completed successfully');
     return NextResponse.json({
       success: true,
-      data: performanceData,
+      data: filteredData,
       meta: {
+        offerId,
+        period,
+        dataPoints: filteredData.performanceHistory.length,
+        hasInsights: filteredData.insights.length > 0,
+        lastUpdated: filteredData.latestMetrics ? 'recently' : 'no recent data',
         remaining: rateLimitResult.remaining
       }
-    });
+    } as ApiResponse<OfferPerformance>);
 
   } catch (error) {
-    console.error('Performance Fetch Error:', error);
+    console.error('💥 Unexpected Performance Fetch Error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { error: 'Failed to fetch performance data' },
+      { 
+        success: false,
+        error: 'Failed to fetch performance data. Please try again.',
+        debug: error instanceof Error ? error.message : 'Unknown error'
+      } as ApiResponse<never>,
       { status: 500 }
     );
   }
