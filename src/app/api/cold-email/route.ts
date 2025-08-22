@@ -168,6 +168,14 @@ export async function POST(req: NextRequest) {
     // Parse and validate request body
     console.log('📥 Parsing request body...');
     const body = await req.json();
+
+    console.log('🔍 Backend received body keys:', Object.keys(body));
+console.log('🔍 Backend body sample:', {
+  firstName: body.firstName,
+  method: body.method,
+  generateFollowUps: body.generateFollowUps
+});
+
     
     // ✅ COMPREHENSIVE DEBUG LOGGING
     console.log('🔍 RECEIVED BODY:', JSON.stringify(body, null, 2));

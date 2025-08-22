@@ -236,9 +236,21 @@ export class ColdEmailService {
     // Check cache first
     const cacheKey = this.generateCacheKey(processedInput);
     const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached as string);
+   if (cached) {
+  try {
+    // Ensure cached is a string and valid JSON
+    if (typeof cached === 'string') {
+      return JSON.parse(cached);
+    } else {
+      console.warn('Invalid cache data type:', typeof cached);
+      // Clear invalid cache
+      await this.redis.del(cacheKey);
     }
+  } catch (parseError) {
+    console.warn('Invalid cached data, clearing cache:', parseError);
+    await this.redis.del(cacheKey);
+  }
+}
 
     // Build comprehensive prompt
     const prompt = this.buildEmailPrompt(processedInput);

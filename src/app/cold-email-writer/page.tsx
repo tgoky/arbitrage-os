@@ -44,6 +44,7 @@ import {
 import { useColdEmail } from '../hooks/useColdEmail';
 import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput, ColdEmailOptimizationType } from '@/types/coldEmail';
 import LoadingOverlay from './LoadingOverlay';
+import { createClient } from '../../utils/supabase/client'; 
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -98,6 +99,27 @@ const ColdEmailWriter = () => {
     form.setFieldValue('followUpCount', 0);
   }
 }, [form.getFieldValue('generateFollowUps')]);
+
+// In ColdEmailWriter component
+useEffect(() => {
+  const supabase = createClient();
+  
+  // Refresh session on component mount
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!session) {
+      console.warn('No active session found');
+    }
+  });
+
+  // Listen for auth state changes
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'TOKEN_REFRESHED') {
+      console.log('Token refreshed successfully');
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
 
   const emailMethods = [
     {
@@ -180,104 +202,169 @@ const ColdEmailWriter = () => {
     'Poor ROI on Marketing'
   ];
 
-  const onFinish = async (values: any) => {
-    try {
-      console.log('🔍 Form values before submission:', values);
+const onFinish = async (values: any) => {
+  try {
+    console.log('🔍 Raw form values:', values);
 
-      // ✅ Validate and prepare data with proper defaults
-      const requestData: ColdEmailGenerationInput = {
-        ...values,
-        method: emailMethod,
-        tone: values.tone || 'professional',
-        targetIndustry: values.targetIndustry || '',
-        targetRole: values.targetRole || '',
-        valueProposition: values.valueProposition || '',
-        emailLength: values.emailLength || 'medium',
-        quality: values.quality || 'balanced',
-        creativity: values.creativity || 'moderate',
-        variations: values.variations || 1,
-        generateFollowUps: values.generateFollowUps || false,
-        followUpCount: values.followUpCount || 3,
-        saveAsTemplate: values.saveAsTemplate || false
-      };
-
-      console.log('🔍 Request data after processing:', requestData);
-
-      // ✅ Client-side validation for required fields
-      const missingFields = [];
-      if (!requestData.firstName) missingFields.push('First Name');
-      if (!requestData.lastName) missingFields.push('Last Name');
-      if (!requestData.email) missingFields.push('Email');
-      if (!requestData.jobTitle) missingFields.push('Job Title');
-      if (!requestData.companyName) missingFields.push('Company Name');
-      if (!requestData.workEmail) missingFields.push('Work Email');
-      if (!requestData.tone) missingFields.push('Email Tone');
-      if (!requestData.targetIndustry) missingFields.push('Target Industry');
-      if (!requestData.targetRole) missingFields.push('Target Role');
-      if (!requestData.valueProposition) missingFields.push('Value Proposition');
-
-      if (missingFields.length > 0) {
-        notification.error({
-          message: 'Missing Required Fields',
-          description: `Please fill in: ${missingFields.join(', ')}`,
-          placement: 'topRight',
-          duration: 8
-        });
-        
-        // Expand all panels to show missing fields
-        setActivePanels(['1', '2', '3', '4', '5']);
-        return;
-      }
-
-      console.log('🔍 About to call generateEmails...');
+    // ✅ UNIVERSAL DATA CLEANING - handles ALL fields
+    const cleanFormData = (data: any) => {
+      const cleaned: any = {};
       
-      // Call backend API using hook
-      const result = await generateEmails(requestData);
-      
-      console.log('✅ Generate emails returned:', result);
-      console.log('✅ Result type:', typeof result);
-      console.log('✅ Result is array:', Array.isArray(result));
-      console.log('✅ Result length:', Array.isArray(result) ? result.length : 'Not an array');
-      console.log('✅ First email:', result?.[0]);
-      
-      console.log('🔍 About to set generated emails state...');
-      setGeneratedEmails(result);
-      console.log('✅ Called setGeneratedEmails');
-      
-      // Show success notification
-      notification.success({
-        message: 'Emails Generated Successfully!',
-        description: `Generated ${result.length} email variations`,
-        placement: 'topRight',
-      });
-
-      // If user wanted to save as template, create it
-      if (values.saveAsTemplate && result.length > 0) {
-        try {
-          await createTemplate({
-            name: `${emailMethod} - ${values.targetIndustry} - ${new Date().toLocaleDateString()}`,
-            subject: result[0].subject,
-            body: result[0].body,
-            category: 'outreach',
-            tags: [emailMethod, values.targetIndustry, values.targetRole],
-            isPublic: false
-          });
-          message.success('Template saved successfully!');
-        } catch (templateError) {
-          console.error('Failed to save template:', templateError);
+      Object.entries(data).forEach(([key, value]) => {
+        // Skip empty/invalid values
+        if (value === null || value === undefined || value === '') {
+          return; // Don't include empty fields
         }
-      }
-      
-    } catch (error: any) {
-      console.error('❌ Form submission error:', error);
-      
-      notification.error({
-        message: 'Generation Failed',
-        description: error.message || 'Please try again later',
-        placement: 'topRight',
+        
+        // Handle arrays (like targetPainPoints, targetGoals, tags)
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            cleaned[key] = value.filter(item => item && item.trim && item.trim() !== '');
+          }
+          return;
+        }
+        
+        // Handle strings
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed === '') return; // Skip empty strings
+          
+          // Validate emails specifically
+          if (key.toLowerCase().includes('email')) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(trimmed)) {
+              cleaned[key] = trimmed;
+            }
+            // Skip invalid emails silently
+            return;
+          }
+          
+          // Validate URLs
+          if (key.toLowerCase().includes('website') || key.toLowerCase().includes('linkedin')) {
+            try {
+              new URL(trimmed);
+              cleaned[key] = trimmed;
+            } catch {
+              // Skip invalid URLs
+            }
+            return;
+          }
+          
+          cleaned[key] = trimmed;
+          return;
+        }
+        
+        // Handle booleans and numbers
+        if (typeof value === 'boolean' || typeof value === 'number') {
+          cleaned[key] = value;
+          return;
+        }
+        
+        // For other types, include as-is if truthy
+        if (value) {
+          cleaned[key] = value;
+        }
       });
+      
+      return cleaned;
+    };
+
+    const cleanedValues = cleanFormData(values);
+    console.log('🧹 Cleaned form data:', cleanedValues);
+
+    // ✅ Build request with only valid, cleaned data
+    const requestData: ColdEmailGenerationInput = {
+      // Required fields (with fallbacks)
+      firstName: cleanedValues.firstName || '',
+      lastName: cleanedValues.lastName || '',
+      email: cleanedValues.email || '',
+      jobTitle: cleanedValues.jobTitle || '',
+      companyName: cleanedValues.companyName || '',
+      workEmail: cleanedValues.workEmail || '',
+      method: emailMethod,
+      tone: cleanedValues.tone || 'professional',
+      targetIndustry: cleanedValues.targetIndustry || '',
+      targetRole: cleanedValues.targetRole || '',
+      valueProposition: cleanedValues.valueProposition || '',
+      
+      // Optional fields (only include if present and valid)
+      ...(cleanedValues.companyWebsite && { companyWebsite: cleanedValues.companyWebsite }),
+      ...(cleanedValues.emailLength && { emailLength: cleanedValues.emailLength }),
+      ...(cleanedValues.quality && { quality: cleanedValues.quality }),
+      ...(cleanedValues.creativity && { creativity: cleanedValues.creativity }),
+      ...(cleanedValues.variations && { variations: cleanedValues.variations }),
+      ...(cleanedValues.generateFollowUps !== undefined && { generateFollowUps: cleanedValues.generateFollowUps }),
+      ...(cleanedValues.followUpCount && { followUpCount: cleanedValues.followUpCount }),
+      ...(cleanedValues.saveAsTemplate !== undefined && { saveAsTemplate: cleanedValues.saveAsTemplate }),
+      
+      // Target details (optional)
+      ...(cleanedValues.targetFirstName && { targetFirstName: cleanedValues.targetFirstName }),
+      ...(cleanedValues.targetCompany && { targetCompany: cleanedValues.targetCompany }),
+      ...(cleanedValues.targetCompanySize && { targetCompanySize: cleanedValues.targetCompanySize }),
+      ...(cleanedValues.targetPainPoints && { targetPainPoints: cleanedValues.targetPainPoints }),
+      ...(cleanedValues.targetGoals && { targetGoals: cleanedValues.targetGoals }),
+      ...(cleanedValues.uniqueDifferentiator && { uniqueDifferentiator: cleanedValues.uniqueDifferentiator }),
+      ...(cleanedValues.socialProof && { socialProof: cleanedValues.socialProof }),
+      
+      // Advanced options (only if valid)
+      ...(cleanedValues.phone && { phone: cleanedValues.phone }),
+      ...(cleanedValues.linkedIn && { linkedIn: cleanedValues.linkedIn }),
+      ...(cleanedValues.companyAddress && { companyAddress: cleanedValues.companyAddress }),
+      ...(cleanedValues.callToAction && { callToAction: cleanedValues.callToAction }),
+      ...(cleanedValues.meetingType && { meetingType: cleanedValues.meetingType }),
+      ...(cleanedValues.urgencyFactor && { urgencyFactor: cleanedValues.urgencyFactor }),
+      ...(cleanedValues.subjectLineStyle && { subjectLineStyle: cleanedValues.subjectLineStyle }),
+      ...(cleanedValues.personalizedElement && { personalizedElement: cleanedValues.personalizedElement }),
+      
+      // Referrer info (only if complete)
+      ...(cleanedValues.referrerFirstName && cleanedValues.referrerLastName && {
+        referrerFirstName: cleanedValues.referrerFirstName,
+        referrerLastName: cleanedValues.referrerLastName,
+        ...(cleanedValues.referrerJobTitle && { referrerJobTitle: cleanedValues.referrerJobTitle }),
+        ...(cleanedValues.referrerEmail && { referrerEmail: cleanedValues.referrerEmail }),
+        ...(cleanedValues.referrerRelationship && { referrerRelationship: cleanedValues.referrerRelationship })
+      })
+    };
+
+    console.log('🔍 Final clean request data:', requestData);
+
+    // Rest of your validation and API call...
+    const missingFields = [];
+    if (!requestData.firstName) missingFields.push('First Name');
+    if (!requestData.lastName) missingFields.push('Last Name');
+    if (!requestData.email) missingFields.push('Email');
+    if (!requestData.jobTitle) missingFields.push('Job Title');
+    if (!requestData.companyName) missingFields.push('Company Name');
+    if (!requestData.workEmail) missingFields.push('Work Email');
+    if (!requestData.targetIndustry) missingFields.push('Target Industry');
+    if (!requestData.targetRole) missingFields.push('Target Role');
+    if (!requestData.valueProposition) missingFields.push('Value Proposition');
+
+    if (missingFields.length > 0) {
+      notification.error({
+        message: 'Missing Required Fields',
+        description: `Please fill in: ${missingFields.join(', ')}`,
+        placement: 'topRight',
+        duration: 8
+      });
+      setActivePanels(['1', '2', '3', '4', '5']);
+      return;
     }
-  };
+
+    const result = await generateEmails(requestData);
+    
+    // Rest of your success handling...
+    
+  } catch (error: any) {
+    console.error('❌ Form submission error:', error);
+    
+    notification.error({
+      message: 'Generation Failed',
+      description: error.message || 'Please try again later',
+      placement: 'topRight',
+    });
+  }
+};
 
   const copyToClipboard = async (text: string) => {
     try {

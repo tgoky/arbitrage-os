@@ -13,84 +13,169 @@ export function useColdEmail() {
   const [error, setError] = useState<string | null>(null);
 
   // ✅ Simplified API call (same as pricing calculator)
-  const handleApiCall = async <T>(
-    url: string, 
-    options: RequestInit,
-    errorMessage: string = 'Operation failed'
-  ): Promise<T> => {
-    try {
-      console.log(`Making API call to: ${url}`);
-      
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      });
-
-      console.log(`API Response status: ${response.status}`);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || errorMessage);
-      }
-
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || errorMessage);
-      }
-
-      return data.data;
-    } catch (err) {
-      console.error(`API Error for ${url}:`, err);
-      throw err;
-    }
-  };
-
-  const generateEmails = async (input: ColdEmailGenerationInput): Promise<GeneratedEmail[]> => {
-    setLoading(true);
-    setError(null);
+// ✅ Enhanced handleApiCall with token refresh and better auth handling
+const handleApiCall = async <T>(
+  url: string, 
+  options: RequestInit,
+  errorMessage: string = 'Operation failed'
+): Promise<T> => {
+  try {
+    console.log(`🚀 handleApiCall starting for: ${url}`);
+    console.log(`🚀 Method: ${options.method}`);
+    console.log(`🚀 Body preview:`, options.body?.toString().substring(0, 200));
+    
+    // ✅ Add Supabase client and token refresh
+    let authHeaders = {};
     
     try {
-      console.log('Generating emails with input:', input);
+      console.log('🔐 Setting up authentication...');
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
       
-      const response = await handleApiCall<{
-        generationId: string;
-        emails: GeneratedEmail[];
-      }>(
-        '/api/cold-email',
-        {
-          method: 'POST',
-          body: JSON.stringify(input)
-        },
-        'Failed to generate emails'
-      );
-
-      console.log('✅ Received response from API:', response);
-      console.log('✅ Response has emails:', !!response.emails);
-      console.log('✅ Email count:', response.emails?.length || 0);
-
-      // ✅ Extract emails from the nested response structure
-      const emails = response.emails || [];
+      console.log('🔐 Getting session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (emails.length === 0) {
-        throw new Error('No emails were generated');
+      if (sessionError) {
+        console.warn('⚠️ Session error:', sessionError);
       }
-
-      message.success('Emails generated successfully!');
-      return emails;
-    } catch (err) {
-      console.error('❌ Generate emails error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-      setError(errorMessage);
-      message.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+      
+      if (session?.access_token) {
+        authHeaders = {
+          'Authorization': `Bearer ${session.access_token}`
+        };
+        console.log('✅ Added auth token');
+      } else {
+        console.warn('⚠️ No active session found');
+      }
+    } catch (authError) {
+      console.warn('⚠️ Auth setup failed:', authError);
     }
-  };
+    
+    console.log('🌐 Making fetch request...');
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+        ...options.headers
+      }
+    });
+
+    console.log(`📡 Response status: ${response.status}`);
+    console.log(`📡 Response ok: ${response.ok}`);
+
+    if (!response.ok) {
+      console.error('❌ Response not ok');
+      
+      let errorData;
+      try {
+        const errorText = await response.text();
+        console.log('📄 Error response text:', errorText);
+        
+        try {
+          errorData = JSON.parse(errorText);
+          console.log('📄 Parsed error:', errorData);
+        } catch (parseError) {
+          errorData = { error: errorText };
+        }
+      } catch (readError) {
+        console.error('❌ Could not read error response:', readError);
+        errorData = { error: 'Unknown error' };
+      }
+      
+      if (response.status === 401) {
+        throw new Error('Session expired. Please refresh the page and sign in again.');
+      }
+      
+      throw new Error(errorData.error || errorMessage);
+    }
+
+    console.log('📄 Parsing response...');
+    let data;
+    try {
+      const responseText = await response.text();
+      console.log('📄 Response text length:', responseText.length);
+      console.log('📄 Response preview:', responseText.substring(0, 500));
+      
+      data = JSON.parse(responseText);
+      console.log('📄 Parsed data keys:', Object.keys(data));
+      console.log('📄 Success flag:', data.success);
+    } catch (parseError) {
+      console.error('❌ Parse error:', parseError);
+      throw new Error('Invalid response format from server');
+    }
+    
+    if (!data.success) {
+      console.error('❌ API returned success: false');
+      console.error('❌ Error from API:', data.error);
+      throw new Error(data.error || errorMessage);
+    }
+
+    console.log('✅ API call successful');
+    console.log('✅ Returning data:', data.data);
+    return data.data;
+  } catch (err) {
+    console.error(`💥 handleApiCall error:`, err);
+    throw err;
+  }
+};
+
+const generateEmails = async (input: ColdEmailGenerationInput): Promise<GeneratedEmail[]> => {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    console.log('🚀 generateEmails called with input:', input);
+    console.log('🚀 Input keys:', Object.keys(input));
+    console.log('🚀 Input firstName:', input.firstName);
+    console.log('🚀 Input method:', input.method);
+    
+    const response = await handleApiCall<{
+      generationId: string;
+      emails: GeneratedEmail[];
+    }>(
+      '/api/cold-email',
+      {
+        method: 'POST',
+        body: JSON.stringify(input)
+      },
+      'Failed to generate emails'
+    );
+
+    console.log('✅ handleApiCall returned successfully');
+    console.log('✅ Response type:', typeof response);
+    console.log('✅ Response:', response);
+    console.log('✅ Response has emails:', !!response.emails);
+    console.log('✅ Email count:', response.emails?.length || 0);
+
+    // ✅ Extract emails from the nested response structure
+    const emails = response.emails || [];
+    
+    if (emails.length === 0) {
+      console.error('❌ No emails in response');
+      throw new Error('No emails were generated');
+    }
+
+    console.log('✅ About to return emails:', emails);
+    message.success('Emails generated successfully!');
+    return emails;
+  } catch (err) {
+    console.error('❌ Generate emails error:', err);
+    console.error('❌ Error type:', typeof err);
+    console.error('❌ Error instanceof Error:', err instanceof Error);
+    
+    const errorMessage = err instanceof Error ? err.message : 'Generation failed';
+    console.error('❌ Final error message:', errorMessage);
+    
+    setError(errorMessage);
+    message.error(errorMessage);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const optimizeEmail = async (
     emailContent: string, 
