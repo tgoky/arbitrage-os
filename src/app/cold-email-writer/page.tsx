@@ -354,6 +354,41 @@ const onFinish = async (values: any) => {
     const result = await generateEmails(requestData);
     
     // Rest of your success handling...
+
+// ✅ ADD THIS MISSING SUCCESS HANDLING:
+console.log('✅ Generate emails returned:', result);
+console.log('✅ Result type:', typeof result);
+console.log('✅ Result is array:', Array.isArray(result));
+console.log('✅ Result length:', Array.isArray(result) ? result.length : 'Not an array');
+console.log('✅ First email:', result?.[0]);
+
+console.log('🔍 About to set generated emails state...');
+setGeneratedEmails(result);
+console.log('✅ Called setGeneratedEmails');
+
+// Show success notification
+notification.success({
+  message: 'Emails Generated Successfully!',
+  description: `Generated ${result.length} email variations`,
+  placement: 'topRight',
+});
+
+// If user wanted to save as template, create it
+if (values.saveAsTemplate && result.length > 0) {
+  try {
+    await createTemplate({
+      name: `${emailMethod} - ${values.targetIndustry} - ${new Date().toLocaleDateString()}`,
+      subject: result[0].subject,
+      body: result[0].body,
+      category: 'outreach',
+      tags: [emailMethod, values.targetIndustry, values.targetRole],
+      isPublic: false
+    });
+    message.success('Template saved successfully!');
+  } catch (templateError) {
+    console.error('Failed to save template:', templateError);
+  }
+}
     
   } catch (error: any) {
     console.error('❌ Form submission error:', error);
