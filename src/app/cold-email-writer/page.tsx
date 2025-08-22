@@ -58,7 +58,7 @@ const ColdEmailWriter = () => {
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [optimizedEmails, setOptimizedEmails] = useState<{[key: number]: GeneratedEmail}>({});
+ const [optimizedEmails, setOptimizedEmails] = useState<{[key: string]: GeneratedEmail}>({});
 
   const {
     generateEmails,
@@ -69,7 +69,7 @@ const ColdEmailWriter = () => {
     error,
     setError
   } = useColdEmail();
-  const [optimizationLoading, setOptimizationLoading] = useState<{[key: number]: boolean}>({});
+ const [optimizationLoading, setOptimizationLoading] = useState<{[key: string]: boolean}>({});
   const [templatesLoading, setTemplatesLoading] = useState(false);
 
   // ✅ Debug: Monitor state changes and auto-scroll to results
@@ -319,76 +319,85 @@ const ColdEmailWriter = () => {
     }
   };
 
-  const handleOptimizeEmail = async (
-    emailIndex: number, 
-    emailContent: string, 
-    optimizationType: ColdEmailOptimizationType
-  ) => {
-    setOptimizationLoading(prev => ({ ...prev, [emailIndex]: true }));
+const handleOptimizeEmail = async (
+  emailIndex: string | number, 
+  emailContent: string, 
+  optimizationType: ColdEmailOptimizationType
+) => {
+  setOptimizationLoading(prev => ({ ...prev, [emailIndex]: true }));
+  
+  try {
+    const optimizedContent = await optimizeEmail(emailContent, optimizationType);
     
-    try {
-      const optimizedContent = await optimizeEmail(emailContent, optimizationType);
-      
-      const lines = optimizedContent.split('\n');
-      let subject = '';
-      let body = '';
-      let signature = '';
-      let currentSection = '';
-      
-      for (const line of lines) {
-        if (line.startsWith('Subject:')) {
-          subject = line.replace('Subject:', '').trim();
-        } else if (line.includes('Best regards') || line.includes('Sincerely')) {
-          currentSection = 'signature';
-          signature += line + '\n';
-        } else if (currentSection === 'signature') {
-          signature += line + '\n';
-        } else if (line.trim()) {
-          body += line + '\n';
-        }
+    const lines = optimizedContent.split('\n');
+    let subject = '';
+    let body = '';
+    let signature = '';
+    let currentSection = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('Subject:')) {
+        subject = line.replace('Subject:', '').trim();
+      } else if (line.includes('Best regards') || line.includes('Sincerely')) {
+        currentSection = 'signature';
+        signature += line + '\n';
+      } else if (currentSection === 'signature') {
+        signature += line + '\n';
+      } else if (line.trim()) {
+        body += line + '\n';
       }
-      
-      const originalEmail = generatedEmails[emailIndex];
-      const optimizedEmail: GeneratedEmail = {
-        ...originalEmail,
-        subject: subject || originalEmail.subject,
-        body: body.trim() || optimizedContent,
-        signature: signature.trim() || originalEmail.signature,
-        metadata: {
-          ...originalEmail.metadata,
-          targetIndustry: originalEmail.metadata?.targetIndustry || '',
-          targetRole: originalEmail.metadata?.targetRole || '',
-          generatedAt: originalEmail.metadata?.generatedAt || new Date().toISOString(),
-          optimizationType,
-          optimizedAt: new Date().toISOString()
-        }
-      };
-      
-      setOptimizedEmails(prev => ({
-        ...prev,
-        [emailIndex]: optimizedEmail
-      }));
-      
-      notification.success({
-        message: 'Email Optimized!',
-        description: `Optimized for ${optimizationType}`,
-        placement: 'topRight',
-      });
-      
-      return optimizedEmail;
-    } catch (error) {
-      console.error('Optimization error:', error);
-      notification.error({
-        message: 'Optimization Failed',
-        description: 'Please try again later',
-        placement: 'topRight',
-      });
-      return null;
-    } finally {
-      setOptimizationLoading(prev => ({ ...prev, [emailIndex]: false }));
     }
-  };
-
+    
+    // Determine if this is a main email or follow-up based on the index type
+    const isFollowUp = typeof emailIndex === 'string' && emailIndex.includes('-');
+    let originalEmail: GeneratedEmail;
+    
+    if (isFollowUp) {
+      const [mainIndex, followUpIndex] = emailIndex.split('-').map(Number);
+      originalEmail = generatedEmails[mainIndex].followUpSequence![followUpIndex];
+    } else {
+      originalEmail = generatedEmails[Number(emailIndex)];
+    }
+    
+    const optimizedEmail: GeneratedEmail = {
+      ...originalEmail,
+      subject: subject || originalEmail.subject,
+      body: body.trim() || optimizedContent,
+      signature: signature.trim() || originalEmail.signature,
+      metadata: {
+        ...originalEmail.metadata,
+        targetIndustry: originalEmail.metadata?.targetIndustry || '',
+        targetRole: originalEmail.metadata?.targetRole || '',
+        generatedAt: originalEmail.metadata?.generatedAt || new Date().toISOString(),
+        optimizationType,
+        optimizedAt: new Date().toISOString()
+      }
+    };
+    
+    setOptimizedEmails(prev => ({
+      ...prev,
+      [emailIndex]: optimizedEmail
+    }));
+    
+    notification.success({
+      message: 'Email Optimized!',
+      description: `Optimized for ${optimizationType}`,
+      placement: 'topRight',
+    });
+    
+    return optimizedEmail;
+  } catch (error) {
+    console.error('Optimization error:', error);
+    notification.error({
+      message: 'Optimization Failed',
+      description: 'Please try again later',
+      placement: 'topRight',
+    });
+    return null;
+  } finally {
+    setOptimizationLoading(prev => ({ ...prev, [emailIndex]: false }));
+  }
+};
   const fetchTemplates = async () => {
     try {
       setTemplatesLoading(true);
@@ -1125,147 +1134,260 @@ const ColdEmailWriter = () => {
           pagination={{ pageSize: 5 }}
         />
       </Modal>
+   {generatedEmails.length > 0 && (
+  <div id="email-results" className="mt-8">
+    {generatedEmails.map((email, index) => {
+      console.log(`🔍 Rendering main email ${index + 1}:`, email);
+      console.log(`🔍 Main email follow-up sequence:`, email.followUpSequence);
 
-      {generatedEmails.length > 0 && (
-        <div id="email-results" className="mt-8">
-          {generatedEmails.map((email, index) => {
-            console.log(`🔍 Rendering email ${index + 1}:`, email);
-            
-            // Show optimized version if available, otherwise show original
-            const displayEmail = optimizedEmails[index] || email;
-            const isOptimizationLoading = optimizationLoading[index] || false;
-            
-            return (
-              <Card key={index} className="mb-4">
-                <div className="flex justify-between items-center mb-4">
-                  <Title level={4}>
-                    Generated Email {index + 1}
-                    {optimizedEmails[index] && (
-                      <Tag color="green" className="ml-2">
-                        Optimized for {optimizedEmails[index].metadata?.optimizationType}
-                      </Tag>
-                    )}
-                  </Title>
-                  <Space>
-                    <Button 
-                      onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'personalization')}
-                      loading={isOptimizationLoading}
-                      disabled={loading}
-                    >
-                      Optimize Personalization
-                    </Button>
-                    <Button 
-                      onClick={() => handleOptimizeEmail(index, `${email.subject}\n\n${email.body}\n\n${email.signature}`, 'value')}
-                      loading={isOptimizationLoading}
-                      disabled={loading}
-                    >
-                      Optimize Value
-                    </Button>
-                    <Button 
-                      icon={<DownloadOutlined />}
-                      onClick={() => downloadEmail(displayEmail)}
-                      disabled={loading}
-                    >
-                      Download
-                    </Button>
-                    <Button 
-                      type="primary" 
-                      onClick={() => copyToClipboard(`${displayEmail.subject}\n\n${displayEmail.body}\n\n${displayEmail.signature}`)}
-                      disabled={loading}
-                    >
-                      Copy to Clipboard
-                    </Button>
-                  </Space>
-                </div>
-                
-                {/* Show optimization status */}
-                {optimizedEmails[index] && (
-                  <Alert
-                    message="Email Optimized"
-                    description={`This email has been optimized for ${optimizedEmails[index].metadata?.optimizationType}. Showing the optimized version below.`}
-                    type="success"
-                    showIcon
-                    className="mb-4"
-                    action={
-                      <Button 
-                        size="small" 
-                        onClick={() => {
-                          // Remove optimization to show original
-                          setOptimizedEmails(prev => {
-                            const newState = { ...prev };
-                            delete newState[index];
-                            return newState;
-                          });
-                        }}
-                      >
-                        Show Original
-                      </Button>
-                    }
-                  />
-                )}
-                
-                <Alert 
-                  message="Pro Tip" 
-                  description={
-                    <div>
-                      <p>Personalize this further by:</p>
-                      <ul className="list-disc pl-5">
-                        <li>Adding specific details about the recipient company</li>
-                        <li>Referencing recent news about their industry</li>
-                        <li>Including a personalized compliment</li>
-                        <li>Mentioning mutual connections if any</li>
-                      </ul>
-                    </div>
-                  } 
-                  type="info" 
-                  showIcon 
-                  className="mb-4"
-                />
-                
-                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                  <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-                    Subject: {displayEmail.subject}
-                    {'\n\n'}
-                    {displayEmail.body}
-                    {'\n\n'}
-                    {displayEmail.signature}
-                  </pre>
-                </div>
-                
-                {displayEmail.followUpSequence && displayEmail.followUpSequence.length > 0 && (
-                  <>
-                    <Divider />
-                    <Title level={5} className="mb-2">Follow-Up Sequence</Title>
-                    <List
-                      grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
-                      dataSource={displayEmail.followUpSequence}
-                      renderItem={(followUp: GeneratedEmail) => (
-                        <List.Item>
-                          <Card>
-                            <Title level={5} className="flex items-center">
-                              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">
-                                {followUp.metadata?.sequenceNumber || 1}
-                              </span>
-                              Follow-Up (Day {followUp.metadata?.dayInterval || 1})
-                            </Title>
-                            <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-                              Subject: {followUp.subject}
-                              {'\n\n'}
-                              {followUp.body}
-                              {'\n\n'}
-                              {followUp.signature}
-                            </pre>
-                          </Card>
-                        </List.Item>
-                      )}
-                    />
-                  </>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      const displayEmail = optimizedEmails[index] || email;
+      const isOptimizationLoading = optimizationLoading[index] || false;
+
+      return (
+        <Card key={index} className="mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <Title level={4}>
+              Generated Email {index + 1}
+              {optimizedEmails[index] && (
+                <Tag color="green" className="ml-2">
+                  Optimized for {optimizedEmails[index].metadata?.optimizationType}
+                </Tag>
+              )}
+            </Title>
+            <Space>
+              <Button
+                onClick={() => {
+                  console.log(`Optimizing main email ${index} for personalization`);
+                  handleOptimizeEmail(
+                    index,
+                    `${email.subject}\n\n${email.body}\n\n${email.signature}`,
+                    'personalization'
+                  );
+                }}
+                loading={isOptimizationLoading}
+                disabled={loading}
+              >
+                Optimize Personalization
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log(`Optimizing main email ${index} for value`);
+                  handleOptimizeEmail(
+                    index,
+                    `${email.subject}\n\n${email.body}\n\n${email.signature}`,
+                    'value'
+                  );
+                }}
+                loading={isOptimizationLoading}
+                disabled={loading}
+              >
+                Optimize Value
+              </Button>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={() => {
+                  console.log(`Downloading main email ${index}`);
+                  downloadEmail(displayEmail);
+                }}
+                disabled={loading}
+              >
+                Download
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => {
+                  console.log(`Copying main email ${index} to clipboard`);
+                  copyToClipboard(`${displayEmail.subject}\n\n${displayEmail.body}\n\n${displayEmail.signature}`);
+                }}
+                disabled={loading}
+              >
+                Copy to Clipboard
+              </Button>
+            </Space>
+          </div>
+
+          {optimizedEmails[index] && (
+            <Alert
+              message="Email Optimized"
+              description={`This email has been optimized for ${optimizedEmails[index].metadata?.optimizationType}. Showing the optimized version below.`}
+              type="success"
+              showIcon
+              className="mb-4"
+              action={
+                <Button
+                  size="small"
+                  onClick={() => {
+                    console.log(`Reverting main email ${index} to original`);
+                    setOptimizedEmails((prev) => {
+                      const newState = { ...prev };
+                      delete newState[index];
+                      return newState;
+                    });
+                  }}
+                >
+                  Show Original
+                </Button>
+              }
+            />
+          )}
+
+          <Alert
+            message="Pro Tip"
+            description={
+              <div>
+                <p>Personalize this further by:</p>
+                <ul className="list-disc pl-5">
+                  <li>Adding specific details about the recipient company</li>
+                  <li>Referencing recent news about their industry</li>
+                  <li>Including a personalized compliment</li>
+                  <li>Mentioning mutual connections if any</li>
+                </ul>
+              </div>
+            }
+            type="info"
+            showIcon
+            className="mb-4"
+          />
+
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+              Subject: {displayEmail.subject}
+              {'\n\n'}
+              {displayEmail.body}
+              {'\n\n'}
+              {displayEmail.signature}
+            </pre>
+          </div>
+
+          {Array.isArray(displayEmail.followUpSequence) && displayEmail.followUpSequence.length > 0 ? (
+            <>
+              <Divider />
+              <Title level={5} className="mb-2">
+                Follow-Up Sequence
+              </Title>
+              <List
+                grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 3 }}
+                dataSource={displayEmail.followUpSequence}
+                renderItem={(followUp: GeneratedEmail, followUpIndex: number) => {
+                  console.log(`🔍 Rendering follow-up ${index}-${followUpIndex}:`, followUp);
+                  const followUpKey = `${index}-${followUpIndex}`;
+                  const followUpDisplay = optimizedEmails[followUpKey] || followUp;
+                  const isFollowUpOptimizationLoading = optimizationLoading[followUpKey] || false;
+
+                  return (
+                    <List.Item>
+                      <Card>
+                        <div className="flex justify-between items-center mb-4">
+                          <Title level={5} className="flex items-center">
+                            <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">
+                              {followUp.metadata?.sequenceNumber || followUpIndex + 1}
+                            </span>
+                            Follow-Up (Day {followUp.metadata?.dayInterval || followUpIndex + 1})
+                          </Title>
+                          <Space wrap>
+                            <Button
+                              onClick={() => {
+                                console.log(`Optimizing follow-up ${followUpKey} for personalization`);
+                                handleOptimizeEmail(
+                                  followUpKey,
+                                  `${followUp.subject}\n\n${followUp.body}\n\n${followUp.signature}`,
+                                  'personalization'
+                                );
+                              }}
+                              loading={isFollowUpOptimizationLoading}
+                              disabled={loading}
+                            >
+                              Optimize Personalization
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                console.log(`Optimizing follow-up ${followUpKey} for value`);
+                                handleOptimizeEmail(
+                                  followUpKey,
+                                  `${followUp.subject}\n\n${followUp.body}\n\n${followUp.signature}`,
+                                  'value'
+                                );
+                              }}
+                              loading={isFollowUpOptimizationLoading}
+                              disabled={loading}
+                            >
+                              Optimize Value
+                            </Button>
+                            <Button
+                              icon={<DownloadOutlined />}
+                              onClick={() => {
+                                console.log(`Downloading follow-up ${followUpKey}`);
+                                downloadEmail(followUpDisplay);
+                              }}
+                              disabled={loading}
+                            >
+                              Download
+                            </Button>
+                            <Button
+                              type="primary"
+                              onClick={() => {
+                                console.log(`Copying follow-up ${followUpKey} to clipboard`);
+                                copyToClipboard(`${followUpDisplay.subject}\n\n${followUpDisplay.body}\n\n${followUpDisplay.signature}`);
+                              }}
+                              disabled={loading}
+                            >
+                              Copy to Clipboard
+                            </Button>
+                          </Space>
+                        </div>
+                        {optimizedEmails[followUpKey] && (
+                          <Alert
+                            message="Follow-Up Optimized"
+                            description={`This follow-up email has been optimized for ${optimizedEmails[followUpKey].metadata?.optimizationType}. Showing the optimized version below.`}
+                            type="success"
+                            showIcon
+                            className="mb-4"
+                            action={
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  console.log(`Reverting follow-up ${followUpKey} to original`);
+                                  setOptimizedEmails((prev) => {
+                                    const newState = { ...prev };
+                                    delete newState[followUpKey];
+                                    return newState;
+                                  });
+                                }}
+                              >
+                                Show Original
+                              </Button>
+                            }
+                          />
+                        )}
+                        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                          <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                            Subject: {followUpDisplay.subject}
+                            {'\n\n'}
+                            {followUpDisplay.body}
+                            {'\n\n'}
+                            {followUpDisplay.signature}
+                          </pre>
+                        </div>
+                      </Card>
+                    </List.Item>
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <Alert
+              message="No Follow-Ups Generated"
+              description="No follow-up emails were generated. Ensure 'Generate Follow-up Sequence' is enabled and try again."
+              type="warning"
+              showIcon
+              className="mt-4"
+            />
+          )}
+        </Card>
+      );
+    })}
+  </div>
+)}
     </div>
   );
 };
