@@ -165,10 +165,14 @@ const NicheResearcher = () => {
 
   // Save form data function
   const saveCurrentStepData = () => {
-    const currentValues = form.getFieldsValue();
-    setFormData(prev => ({ ...prev, ...currentValues }));
-  };
-
+  const currentValues = form.getFieldsValue();
+  console.log('💾 Saving step data:', currentValues);
+  setFormData(prev => {
+    const merged = { ...prev, ...currentValues };
+    console.log('💾 Merged form data:', merged);
+    return merged;
+  });
+};
   // Load previous reports
   const loadPreviousReports = async () => {
     try {
@@ -224,66 +228,141 @@ const NicheResearcher = () => {
   };
 
   // Form submission
-  const onFinish = async (values: FormValues) => {
-    try {
-      saveCurrentStepData();
-      const allData = { ...formData, ...form.getFieldsValue() };
+  // Form submission
+const onFinish = async (values: FormValues) => {
+  try {
+    console.log('🔍 Form submission started');
+    console.log('🔍 Current form values:', values);
+    console.log('🔍 Stored form data:', formData);
+    
+    // ✅ FIXED: Properly merge all collected data
+    const allFormData = form.getFieldsValue();
+    const mergedData = { ...formData, ...allFormData, ...values };
+    
+    console.log('🔍 Merged data before cleaning:', mergedData);
+    
+    // ✅ FIXED: Create properly typed request data
+    const requestData: NicheResearchInput = {
+      // Required fields
+      primaryObjective: mergedData.primaryObjective as 'cashflow' | 'equity-exit' | 'lifestyle' | 'audience-build' | 'saas' | 'agency' | 'ecomm',
+      riskAppetite: mergedData.riskAppetite as 'low' | 'medium' | 'high',
+      marketType: mergedData.marketType as 'b2b-saas' | 'b2c-consumer' | 'professional-services' | 'local-business' | 'info-education',
+      customerSize: mergedData.customerSize as 'startups' | 'smb' | 'enterprise' | 'consumers' | 'government',
+      budget: mergedData.budget as '<10k' | '10k-50k' | '50k-250k' | '250k+',
       
-      const requestData = {
-        primaryObjective: allData.primaryObjective || '',
-        riskAppetite: allData.riskAppetite || '',
-        marketType: allData.marketType || '',
-        customerSize: allData.customerSize || '',
-        industries: Array.isArray(allData.industries) ? allData.industries : [],
-        geographicFocus: allData.geographicFocus || '',
-        budget: allData.budget || '',
-        teamSize: allData.teamSize || '',
-        skills: Array.isArray(allData.skills) ? allData.skills : [],
-        timeCommitment: allData.timeCommitment || '',
-        problems: allData.problems || '',
-        excludedIndustries: Array.isArray(allData.excludedIndustries) ? allData.excludedIndustries : [],
-        monetizationPreference: allData.monetizationPreference || '',
-        acquisitionChannels: Array.isArray(allData.acquisitionChannels) ? allData.acquisitionChannels : [],
-        validationData: Array.isArray(allData.validationData) ? allData.validationData : [],
-        competitionPreference: allData.competitionPreference || '',
-        scalabilityPreference: allData.scalabilityPreference || ''
-      };
-
-      const result = await generateNicheReport(requestData);
-      
-      setReportData(result.report);
-      setCurrentReportId(result.reportId);
-      setReportGenerated(true);
-      setCurrentStep(5);
-      
-      notification.success({
-        message: 'Niche Research Report Generated!',
-        description: `Found your perfect niche opportunities`,
-        placement: 'topRight',
-      });
-      
-    } catch (error: any) {
-      console.error('Error generating niche report:', error);
+      // Optional fields - only include if they have actual values
+      ...(Array.isArray(mergedData.industries) && mergedData.industries.length > 0 && { 
+        industries: mergedData.industries 
+      }),
+      ...(mergedData.geographicFocus && { 
+        geographicFocus: mergedData.geographicFocus as 'local' | 'regional' | 'us-only' | 'global' 
+      }),
+      ...(mergedData.teamSize && { 
+        teamSize: mergedData.teamSize as 'solo' | 'small-team' | 'established-team' 
+      }),
+      ...(Array.isArray(mergedData.skills) && mergedData.skills.length > 0 && { 
+        skills: mergedData.skills 
+      }),
+      ...(mergedData.timeCommitment && { 
+        timeCommitment: mergedData.timeCommitment as '5-10' | '10-20' | '20-30' | '30+' 
+      }),
+      ...(mergedData.problems && mergedData.problems.trim() && { 
+        problems: mergedData.problems 
+      }),
+      ...(Array.isArray(mergedData.excludedIndustries) && mergedData.excludedIndustries.length > 0 && { 
+        excludedIndustries: mergedData.excludedIndustries 
+      }),
+      ...(mergedData.monetizationPreference && { 
+        monetizationPreference: mergedData.monetizationPreference as 'high-ticket' | 'subscription' | 'low-ticket' | 'ad-supported' 
+      }),
+      ...(Array.isArray(mergedData.acquisitionChannels) && mergedData.acquisitionChannels.length > 0 && { 
+        acquisitionChannels: mergedData.acquisitionChannels 
+      }),
+      ...(Array.isArray(mergedData.validationData) && mergedData.validationData.length > 0 && { 
+        validationData: mergedData.validationData 
+      }),
+      ...(mergedData.competitionPreference && { 
+        competitionPreference: mergedData.competitionPreference as 'low-competition' | 'high-potential' 
+      }),
+      ...(mergedData.scalabilityPreference && { 
+        scalabilityPreference: mergedData.scalabilityPreference as 'stay-small' | 'grow-fast' | 'build-exit' 
+      })
+    };
+    
+    console.log('🔍 Final typed request data:', requestData);
+    
+    // ✅ Check required fields before submitting
+    const requiredFields: (keyof NicheResearchInput)[] = ['primaryObjective', 'riskAppetite', 'marketType', 'customerSize', 'budget'];
+    const missingFields = requiredFields.filter(field => !requestData[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('❌ Missing required fields:', missingFields);
       notification.error({
-        message: 'Generation Failed',
-        description: error.message || 'Please try again later',
+        message: 'Missing Required Fields',
+        description: `Please fill in: ${missingFields.join(', ')}`,
         placement: 'topRight',
       });
+      return;
     }
-  };
+
+    const result = await generateNicheReport(requestData);
+    
+    setReportData(result.report);
+    setCurrentReportId(result.reportId);
+    setReportGenerated(true);
+    setCurrentStep(5);
+    
+    notification.success({
+      message: 'Niche Research Report Generated!',
+      description: `Found your perfect niche opportunities`,
+      placement: 'topRight',
+    });
+    
+  } catch (error: any) {
+    console.error('Error generating niche report:', error);
+    notification.error({
+      message: 'Generation Failed',
+      description: error.message || 'Please try again later',
+      placement: 'topRight',
+    });
+  }
+};
 
   // Navigation functions
-  const nextStep = () => {
-    saveCurrentStepData();
-    form.validateFields().then(() => {
+ const nextStep = () => {
+  saveCurrentStepData();
+  
+  // ✅ FIXED: Only validate current step's required fields
+  const fieldsToValidate = getRequiredFieldsForStep(currentStep);
+  
+  if (fieldsToValidate.length > 0) {
+    form.validateFields(fieldsToValidate).then(() => {
       setCurrentStep(currentStep + 1);
-    }).catch(() => {
+    }).catch((errorInfo) => {
+      console.log('Validation failed:', errorInfo);
       notification.error({
         message: 'Validation Error',
         description: 'Please fill in all required fields before continuing',
       });
     });
-  };
+  } else {
+    setCurrentStep(currentStep + 1);
+  }
+};
+
+// ✅ Add this helper function
+const getRequiredFieldsForStep = (step: number): string[] => {
+  switch (step) {
+    case 0: return ['primaryObjective', 'riskAppetite'];
+    case 1: return ['marketType', 'customerSize'];
+    case 2: return ['budget'];
+    case 3: return [];
+    case 4: return [];
+    default: return [];
+  }
+};
+
+
 
   const prevStep = () => {
     saveCurrentStepData();
@@ -350,6 +429,12 @@ const NicheResearcher = () => {
       )
     }
   ];
+
+  useEffect(() => {
+  console.log('🔍 Current step:', currentStep);
+  console.log('🔍 Current form data:', formData);
+  console.log('🔍 Current form values:', form.getFieldsValue());
+}, [currentStep, formData]);
 
   // Render step content based on current step
   const renderStepContent = () => {

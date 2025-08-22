@@ -1,5 +1,4 @@
-
-// hooks/useNicheResearcher.ts - SIMPLIFIED VERSION (matching working pattern)
+// hooks/useNicheResearcher.ts - UPDATED TO MATCH NEW API STRUCTURE
 import { useState } from 'react';
 import { message } from 'antd';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
@@ -7,12 +6,13 @@ import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearche
 export interface NicheReportSummary {
   id: string;
   title: string;
-  topNiches: Array<{
-    name: string;
-    matchScore: number;
-    category: string;
-  }>;
-  skills: string[];
+  nicheName: string;
+  marketSize: string;
+  primaryObjective: string;
+  marketType: string;
+  budget: string;
+  tokensUsed: number;
+  generationTime: number;
   createdAt: string;
   updatedAt: string;
   workspace?: {
@@ -25,7 +25,7 @@ export function useNicheResearcher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Simplified API call (exactly same as cold email)
+  // ✅ Simplified API call helper (same pattern as working implementations)
   const handleApiCall = async <T>(
     url: string, 
     options: RequestInit,
@@ -193,19 +193,41 @@ export function useNicheResearcher() {
     }
   };
 
+  // ✅ UPDATED MARKET ANALYSIS TO MATCH NEW STRUCTURE
   const analyzeMarket = async (options: {
     niche: string;
     skills: string[];
-    location: 'remote-only' | 'local-focused' | 'hybrid';
-    budget: '0-1k' | '1k-5k' | '5k-10k' | '10k+';
-    analysisType?: 'competitive' | 'opportunity' | 'validation';
+    analysisType?: 'competitive' | 'opportunity' | 'validation' | 'trends';
+    
+    // New structure fields (matching your niche research)
+    primaryObjective?: 'cashflow' | 'equity-exit' | 'lifestyle' | 'audience-build' | 'saas' | 'agency' | 'ecomm';
+    riskAppetite?: 'low' | 'medium' | 'high';
+    marketType?: 'b2b-saas' | 'b2c-consumer' | 'professional-services' | 'local-business' | 'info-education';
+    customerSize?: 'startups' | 'smb' | 'enterprise' | 'consumers' | 'government';
+    budget: '<10k' | '10k-50k' | '50k-250k' | '250k+';
+    geographicFocus?: 'local' | 'regional' | 'us-only' | 'global';
+    timeCommitment?: '5-10' | '10-20' | '20-30' | '30+';
+    teamSize?: 'solo' | 'small-team' | 'established-team';
+    industries?: string[];
+    excludedIndustries?: string[];
+    
+    // Analysis options
+    includeCompetitors?: boolean;
+    includeTrends?: boolean;
+    includeValidation?: boolean;
   }) => {
     try {
       return await handleApiCall<any>(
         '/api/niche-research/market-analysis',
         {
           method: 'POST',
-          body: JSON.stringify(options)
+          body: JSON.stringify({
+            ...options,
+            analysisType: options.analysisType || 'opportunity',
+            includeCompetitors: options.includeCompetitors ?? true,
+            includeTrends: options.includeTrends ?? true,
+            includeValidation: options.includeValidation ?? false
+          })
         },
         'Market analysis failed'
       );
@@ -216,33 +238,151 @@ export function useNicheResearcher() {
     }
   };
 
-  const getSkillsSuggestions = async (category?: string) => {
+  // ✅ UPDATED SKILLS SUGGESTIONS TO MATCH NEW API
+  const getSkillsSuggestions = async (options?: {
+    category?: string;
+    search?: string;
+  }) => {
     try {
       const params = new URLSearchParams();
-      if (category) params.set('category', category);
+      if (options?.category) params.set('category', options.category);
+      if (options?.search) params.set('search', options.search);
 
-      const url = `/api/niche-research/skills-suggestions${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `/api/niche-research/skills${params.toString() ? `?${params.toString()}` : ''}`;
       
       return await handleApiCall<any>(
         url,
         { method: 'GET' },
-        'Failed to fetch skills'
+        'Failed to fetch skills suggestions'
       );
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch skills';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch skills suggestions';
       message.error(errorMessage);
       throw err;
     }
   };
 
+  // ✅ NEW: VALIDATE SKILLS BASED ON NICHE CONTEXT
+  const validateSkills = async (options: {
+    currentSkills: string[];
+    primaryObjective?: string;
+    marketType?: string;
+    customerSize?: string;
+    budget?: string;
+    suggestComplementary?: boolean;
+  }) => {
+    try {
+      return await handleApiCall<any>(
+        '/api/niche-research/skills',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            ...options,
+            suggestComplementary: options.suggestComplementary ?? true
+          })
+        },
+        'Skills validation failed'
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Skills validation failed';
+      message.error(errorMessage);
+      throw err;
+    }
+  };
+
+  // ✅ NEW: UPDATE REPORT METADATA (title, tags, etc.)
+  const updateNicheReport = async (
+    reportId: string,
+    updates: {
+      title?: string;
+      tags?: string[];
+    }
+  ) => {
+    try {
+      return await handleApiCall<any>(
+        `/api/niche-research/${reportId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(updates)
+        },
+        'Failed to update report'
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update report';
+      message.error(errorMessage);
+      throw err;
+    }
+  };
+
+  // ✅ NEW: QUICK COMPETITIVE ANALYSIS
+  const quickCompetitiveAnalysis = async (options: {
+    niche: string;
+    skills: string[];
+    budget: '<10k' | '10k-50k' | '50k-250k' | '250k+';
+    marketType?: 'b2b-saas' | 'b2c-consumer' | 'professional-services' | 'local-business' | 'info-education';
+  }) => {
+    return analyzeMarket({
+      ...options,
+      analysisType: 'competitive',
+      includeCompetitors: true,
+      includeTrends: false,
+      includeValidation: false
+    });
+  };
+
+  // ✅ NEW: QUICK OPPORTUNITY ANALYSIS  
+  const quickOpportunityAnalysis = async (options: {
+    niche: string;
+    skills: string[];
+    budget: '<10k' | '10k-50k' | '50k-250k' | '250k+';
+    primaryObjective?: 'cashflow' | 'equity-exit' | 'lifestyle' | 'audience-build' | 'saas' | 'agency' | 'ecomm';
+  }) => {
+    return analyzeMarket({
+      ...options,
+      analysisType: 'opportunity',
+      includeCompetitors: false,
+      includeTrends: true,
+      includeValidation: false
+    });
+  };
+
+  // ✅ NEW: NICHE VALIDATION ANALYSIS
+  const validateNicheIdea = async (options: {
+    niche: string;
+    skills: string[];
+    budget: '<10k' | '10k-50k' | '50k-250k' | '250k+';
+    riskAppetite?: 'low' | 'medium' | 'high';
+    marketType?: 'b2b-saas' | 'b2c-consumer' | 'professional-services' | 'local-business' | 'info-education';
+  }) => {
+    return analyzeMarket({
+      ...options,
+      analysisType: 'validation',
+      includeCompetitors: true,
+      includeTrends: true,
+      includeValidation: true
+    });
+  };
+
   return {
+    // Core niche research functions
     generateNicheReport,
     getNicheReport,
     getUserReports,
     deleteNicheReport,
+    updateNicheReport,
     exportNicheReport,
+    
+    // Market analysis functions (updated structure)
     analyzeMarket,
+    quickCompetitiveAnalysis,
+    quickOpportunityAnalysis,
+    validateNicheIdea,
+    
+    // Skills functions (updated endpoints)
     getSkillsSuggestions,
+    validateSkills,
+    
+    // State
     loading,
     error,
     setError

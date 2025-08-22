@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { NicheResearcherService } from '@/services/nicheResearcher.service';
-import { validateNicheResearchInput } from '@/validators/nicheResearcher.validator';
+import { validateNicheResearchInput } from '../../validators/nicheResearcher.validator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
