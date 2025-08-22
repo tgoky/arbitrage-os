@@ -265,36 +265,122 @@ export class ColdEmailService {
     return response;
   }
 
-  private async generateEmailVariation(
-    basePrompt: string,
-    input: ColdEmailGenerationInput,
-    variation: number
-  ): Promise<{ email: GeneratedEmail; tokensUsed: number }> {
-    const variationPrompt = `${basePrompt}\n\nGenerate email variation #${variation}. Make it unique while maintaining the core message.`;
+ private async generateEmailVariation(
+  basePrompt: string,
+  input: ColdEmailGenerationInput,
+  variation: number
+): Promise<{ email: GeneratedEmail; tokensUsed: number }> {
+  const variationPrompt = `${basePrompt}\n\nGenerate email variation #${variation}. Make it unique while maintaining the core message.`;
+  
+  const response = await this.openRouterClient.complete({
+    model: 'openai/gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: `You are an expert cold email copywriter. Generate personalized, high-converting cold emails that feel authentic and valuable to the recipient.`
+      },
+      {
+        role: 'user',
+        content: variationPrompt
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 1000
+  });
+
+  const parsedEmail = this.parseEmailResponse(response.content, input, variation, 1, 0);
+  
+  let totalTokensUsed = response.usage.total_tokens;
+
+  if (input.generateFollowUps && variation === 1) { // Only generate follow-ups for first variation
+  const followUps = await this.generateFollowUpSequence(
+    parsedEmail, 
+    input, 
+    input.followUpCount || 3  // Add || 3 to provide default value
+  );
+  parsedEmail.followUpSequence = followUps.emails;
+  totalTokensUsed += followUps.tokensUsed;
+}
+
+  return {
+    email: parsedEmail,
+    tokensUsed: totalTokensUsed
+  };
+}
+
+private async generateFollowUpSequence(
+  originalEmail: GeneratedEmail,
+  input: ColdEmailGenerationInput,
+  count: number
+): Promise<{ emails: GeneratedEmail[]; tokensUsed: number }> {
+  const followUps: GeneratedEmail[] = [];
+  let totalTokens = 0;
+  
+  for (let sequenceIndex = 0; sequenceIndex < count; sequenceIndex++) {
+    const followUpPrompt = this.buildFollowUpPrompt(originalEmail, input, sequenceIndex + 1);
     
     const response = await this.openRouterClient.complete({
       model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
-          content: `You are an expert cold email copywriter. Generate personalized, high-converting cold emails that feel authentic and valuable to the recipient.`
+          content: 'You are an expert at writing follow-up emails that maintain engagement without being pushy.'
         },
         {
           role: 'user',
-          content: variationPrompt
+          content: followUpPrompt
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 800
     });
-
-    const parsedEmail = this.parseEmailResponse(response.content, input, variation);
     
-    return {
-      email: parsedEmail,
-      tokensUsed: response.usage.total_tokens
-    };
+    const followUpEmail = this.parseEmailResponse(
+      response.content, 
+      input, 
+      1, 
+      sequenceIndex + 2,  // sequenceNumber (2, 3, 4...)
+      (sequenceIndex + 1) * 3  // dayInterval (3, 6, 9 days...)
+    );
+    
+    followUps.push(followUpEmail);
+    totalTokens += response.usage.total_tokens;
   }
+  
+  return { emails: followUps, tokensUsed: totalTokens };
+}
+
+private buildFollowUpPrompt(originalEmail: GeneratedEmail, input: ColdEmailGenerationInput, followUpNumber: number): string {
+  const strategies = [
+    'Add value with a helpful resource or insight',
+    'Create gentle urgency or mention limited availability', 
+    'Use social proof or mention other clients\' success'
+  ];
+  
+  const strategy = strategies[followUpNumber - 1] || 'Provide a final, soft ask';
+  
+  return `
+Original email subject: ${originalEmail.subject}
+Original email body: ${originalEmail.body}
+
+Generate follow-up email #${followUpNumber} for ${input.targetFirstName || 'the prospect'}.
+
+Strategy: ${strategy}
+Tone: ${input.tone}
+Wait time: ${followUpNumber * 3} days after previous email
+
+Keep it shorter than the original, reference the previous email subtly, and ${strategy.toLowerCase()}.
+
+Format as:
+SUBJECT: [subject line]
+
+BODY:
+[email body]
+
+SIGNATURE:
+[signature]
+  `;
+}
 
   private buildEmailPrompt(input: ColdEmailGenerationInput): string {
     return `
@@ -362,7 +448,7 @@ export class ColdEmailService {
     `;
   }
 
-  private parseEmailResponse(content: string, input: ColdEmailGenerationInput, variation: number): GeneratedEmail {
+  private parseEmailResponse(content: string, input: ColdEmailGenerationInput, variation: number, sequenceNumber?: number, dayInterval?: number ): GeneratedEmail {
     const lines = content.split('\n');
     let subject = '';
     let body = '';
@@ -402,7 +488,9 @@ ${input.workEmail}`;
         targetIndustry: input.targetIndustry,
         targetRole: input.targetRole,
         generatedAt: new Date().toISOString(),
-        variationIndex: variation
+        variationIndex: variation,
+        sequenceNumber: sequenceNumber || 1, 
+         dayInterval: dayInterval || 0  
       }
     };
   }

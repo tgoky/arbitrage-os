@@ -92,6 +92,13 @@ const ColdEmailWriter = () => {
     }
   }, [generatedEmails]);
 
+  useEffect(() => {
+  const generateFollowUps = form.getFieldValue('generateFollowUps');
+  if (!generateFollowUps) {
+    form.setFieldValue('followUpCount', 0);
+  }
+}, [form.getFieldValue('generateFollowUps')]);
+
   const emailMethods = [
     {
       value: 'interview',
