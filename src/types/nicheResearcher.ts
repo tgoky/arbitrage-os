@@ -1,98 +1,117 @@
-// types/nicheResearcher.ts
+// types/nicheResearcher.ts - UPDATED TO MATCH FRONTEND
 export interface NicheResearchInput {
-  // Professional Background
-  roles: string;
-  skills: string[];
-  competencies: string;
+  // Business & Strategic Goals
+  primaryObjective: 'cashflow' | 'equity-exit' | 'lifestyle' | 'audience-build' | 'saas' | 'agency' | 'ecomm';
+  riskAppetite: 'low' | 'medium' | 'high';
   
-  // Personal Interests & Network
-  interests: string;
-  connections: string;
-  audienceAccess?: string;
+  // Target Customer Preferences
+  marketType: 'b2b-saas' | 'b2c-consumer' | 'professional-services' | 'local-business' | 'info-education';
+  customerSize: 'startups' | 'smb' | 'enterprise' | 'consumers' | 'government';
+  industries?: string[];
+  geographicFocus?: 'local' | 'regional' | 'us-only' | 'global';
   
-  // Market Insights & Constraints
-  problems: string;
-  trends: string;
-  time: '5-10' | '10-20' | '20-30' | '30+';
-  budget: '0-1k' | '1k-5k' | '5k-10k' | '10k+';
-  location: 'remote-only' | 'local-focused' | 'hybrid';
-  otherConstraints?: string;
+  // Constraints & Resources
+  budget: '<10k' | '10k-50k' | '50k-250k' | '250k+';
+  teamSize?: 'solo' | 'small-team' | 'established-team';
+  skills?: string[];
+  timeCommitment?: '5-10' | '10-20' | '20-30' | '30+';
+  
+  // Market Directional Inputs
+  problems?: string;
+  excludedIndustries?: string[];
+  monetizationPreference?: 'high-ticket' | 'subscription' | 'low-ticket' | 'ad-supported';
+  acquisitionChannels?: string[];
+  
+  // Validation & Scalability Factors
+  validationData?: string[];
+  competitionPreference?: 'low-competition' | 'high-potential';
+  scalabilityPreference?: 'stay-small' | 'grow-fast' | 'build-exit';
   
   // System field
   userId?: string;
 }
 
-export interface NicheOpportunity {
+export interface NicheOverview {
   name: string;
-  matchScore: number;
-  category: string;
-  reasons: string[];
+  summary: string;
+  whyItFits: string;
+}
+
+export interface MarketDemand {
   marketSize: string;
-  growthRate: string;
-  competition: {
-    level: 'Low' | 'Moderate' | 'High';
-    score: number;
-    description: string;
-  };
-  resourcesNeeded: string[];
-  startupCosts: {
-    min: number;
-    max: number;
-    breakdown: Array<{
-      category: string;
-      amount: number;
-      description: string;
-    }>;
-  };
-  timeToMarket: string;
-  skillsRequired: string[];
-  networkLeverage: string[];
-  riskFactors: string[];
-  monetizationModels: string[];
-  targetCustomers: string[];
-  keyMetrics: string[];
-  nextSteps: string[];
+  trend: 'growing' | 'plateauing' | 'declining';
+  willingnessToPay: string;
 }
 
-export interface MarketAnalysis {
-  trends: Array<{
-    trend: string;
-    relevance: 'High' | 'Medium' | 'Low';
-    impact: string;
-    timeline: string;
-  }>;
-  gaps: Array<{
-    gap: string;
-    severity: 'High' | 'Medium' | 'Low';
-    opportunity: string;
-  }>;
-  competitorLandscape: {
-    overview: string;
-    keyPlayers: string[];
-    barriers: string[];
-    advantages: string[];
-  };
+export interface PainPoint {
+  problem: string;
+  intensity: 'High' | 'Medium' | 'Low';
 }
 
-export interface PersonalFitAnalysis {
-  strengths: string[];
-  skillGaps: string[];
-  networkAdvantages: string[];
-  constraintImpacts: Array<{
-    constraint: string;
-    impact: string;
-    mitigation: string;
-  }>;
-  confidenceScore: number;
-  developmentAreas: string[];
+export interface Competitor {
+  name: string;
+  description: string;
+}
+
+export interface CompetitiveLandscape {
+  competitors: Competitor[];
+  gapAnalysis: string;
+  barrierToEntry: 'Low' | 'Medium' | 'High';
+}
+
+export interface ArbitrageOpportunity {
+  explanation: string;
+  concreteAngle: string;
+}
+
+export interface EntryOffer {
+  positioning: string;
+  businessModel: string;
+  pricePoint: string;
+}
+
+export interface GtmStrategy {
+  primaryChannel: string;
+  justification: string;
+}
+
+export interface ScalabilityExit {
+  scalabilityScore: 'High' | 'Medium' | 'Low';
+  exitPotential: string;
+}
+
+export interface RiskFactor {
+  risk: string;
+  impact: 'High' | 'Medium' | 'Low';
+}
+
+export interface Scorecard {
+  marketDemand: 'High' | 'Medium' | 'Low';
+  competition: 'High' | 'Medium' | 'Low';
+  easeOfEntry: 'High' | 'Medium' | 'Low';
+  profitability: 'High' | 'Medium' | 'Low';
+}
+
+export interface GeneratedNicheReport {
+  nicheOverview: NicheOverview;
+  marketDemand: MarketDemand;
+  painPoints: PainPoint[];
+  competitiveLandscape: CompetitiveLandscape;
+  arbitrageOpportunity: ArbitrageOpportunity;
+  entryOffers: EntryOffer[];
+  gtmStrategy: GtmStrategy;
+  scalabilityExit: ScalabilityExit;
+  riskFactors: RiskFactor[];
+  scorecard: Scorecard;
+  tokensUsed: number;
+  generationTime: number;
 }
 
 export interface NicheReportMetadata {
-  skills: string[];
-  interests: string;
-  timeCommitment: string;
+  primaryObjective: string;
+  marketType: string;
+  customerSize: string;
   budget: string;
-  location: string;
   generatedAt: string;
   tokensUsed: number;
   generationTime: number;
@@ -101,44 +120,5 @@ export interface NicheReportMetadata {
     matchScore: number;
     category: string;
   }>;
-  [key: string]: any; // For additional metadata fields
-}
-
-export interface GeneratedNicheReport {
-  executiveSummary: string;
-  recommendedNiches: NicheOpportunity[];
-  marketAnalysis: MarketAnalysis;
-  personalFit: PersonalFitAnalysis;
-  actionPlan: {
-    immediateSteps: string[];
-    shortTerm: Array<{
-      action: string;
-      timeline: string;
-      resources: string[];
-    }>;
-    longTerm: Array<{
-      goal: string;
-      timeline: string;
-      milestones: string[];
-    }>;
-  };
-  riskAssessment: Array<{
-    risk: string;
-    probability: 'High' | 'Medium' | 'Low';
-    impact: 'High' | 'Medium' | 'Low';
-    mitigation: string;
-  }>;
-  financialProjections: Array<{
-    niche: string;
-    timeline: string;
-    revenue: {
-      conservative: number;
-      optimistic: number;
-      realistic: number;
-    };
-    costs: number;
-    profitability: number;
-  }>;
-  tokensUsed: number;
-  generationTime: number;
+  [key: string]: any;
 }

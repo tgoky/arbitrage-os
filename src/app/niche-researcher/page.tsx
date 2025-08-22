@@ -17,7 +17,11 @@ import {
   Table,
   Space,
   Tooltip,
-  message
+  message,
+  Radio,
+  Checkbox,
+  Row,
+  Col
 } from 'antd';
 import { 
   UserOutlined, 
@@ -33,7 +37,14 @@ import {
   DownloadOutlined,
   EyeOutlined,
   DeleteOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  RocketOutlined,
+  BarChartOutlined,
+  CustomerServiceOutlined,
+  ShopOutlined,
+  GlobalOutlined,
+  SafetyOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
@@ -41,33 +52,52 @@ import { debounce } from 'lodash';
 import LoadingOverlay from './LoadingOverlay';
 
 interface FormValues {
-  roles: string;
-  skills: string[];
-  competencies: string;
-  interests: string;
-  connections: string;
-  audienceAccess?: string;
-  problems: string;
-  trends: string;
-  time: '5-10' | '10-20' | '20-30' | '30+';
-  budget: '0-1k' | '1k-5k' | '5k-10k' | '10k+';
-  location: 'remote-only' | 'local-focused' | 'hybrid';
-  otherConstraints?: string;
+  // Business & Strategic Goals
+  primaryObjective: 'cashflow' | 'equity-exit' | 'lifestyle' | 'audience-build' | 'saas' | 'agency' | 'ecomm';
+  riskAppetite: 'low' | 'medium' | 'high';
+  
+  // Target Customer Preferences
+  marketType: 'b2b-saas' | 'b2c-consumer' | 'professional-services' | 'local-business' | 'info-education';
+  customerSize: 'startups' | 'smb' | 'enterprise' | 'consumers' | 'government';
+  industries?: string[];
+  geographicFocus?: 'local' | 'regional' | 'us-only' | 'global';
+  
+  // Constraints & Resources
+  budget: '<10k' | '10k-50k' | '50k-250k' | '250k+';
+  teamSize?: 'solo' | 'small-team' | 'established-team';
+  skills?: string[];
+  timeCommitment?: '5-10' | '10-20' | '20-30' | '30+';
+  
+  // Market Directional Inputs
+  problems?: string;
+  excludedIndustries?: string[];
+  monetizationPreference?: 'high-ticket' | 'subscription' | 'low-ticket' | 'ad-supported';
+  acquisitionChannels?: string[];
+  
+  // Validation & Scalability Factors
+  validationData?: string[];
+  competitionPreference?: 'low-competition' | 'high-potential';
+  scalabilityPreference?: 'stay-small' | 'grow-fast' | 'build-exit';
 }
 
 interface FormData {
-  roles?: string;
+  primaryObjective?: string;
+  riskAppetite?: string;
+  marketType?: string;
+  customerSize?: string;
+  industries?: string[];
+  geographicFocus?: string;
+  budget?: string;
+  teamSize?: string;
   skills?: string[];
-  competencies?: string;
-  interests?: string;
-  connections?: string;
-  audienceAccess?: string;
+  timeCommitment?: string;
   problems?: string;
-  trends?: string;
-  time?: '5-10' | '10-20' | '20-30' | '30+';
-  budget?: '0-1k' | '1k-5k' | '5k-10k' | '10k+';
-  location?: 'remote-only' | 'local-focused' | 'hybrid';
-  otherConstraints?: string;
+  excludedIndustries?: string[];
+  monetizationPreference?: string;
+  acquisitionChannels?: string[];
+  validationData?: string[];
+  competitionPreference?: string;
+  scalabilityPreference?: string;
 }
 
 const { Title, Text } = Typography;
@@ -82,10 +112,8 @@ const NicheResearcher = () => {
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [showReportsModal, setShowReportsModal] = useState(false);
   const [previousReports, setPreviousReports] = useState<any[]>([]);
-  const [skillsSuggestions, setSkillsSuggestions] = useState<any>(null);
-  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
-   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
-    const [formData, setFormData] = useState<FormData>({});
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<FormData>({});
 
   const {
     generateNicheReport,
@@ -93,119 +121,55 @@ const NicheResearcher = () => {
     getUserReports,
     deleteNicheReport,
     exportNicheReport,
-    getSkillsSuggestions,
     loading,
     error,
     setError
   } = useNicheResearcher();
 
-   const isLoading = loading || isLoadingSkills || !!deletingReportId;
+  const isLoading = loading;
 
   const steps = [
-    'Professional Background',
-    'Personal Interests & Network',
-    'Market Insights & Constraints',
+    'Business Goals',
+    'Target Customers',
+    'Resources & Constraints',
+    'Market Direction',
+    'Validation Preferences',
     'Generate Report'
   ];
 
-    // ✅ ADD: Save form data function (like AdWriter)
+  // Industry options
+  const industryOptions = [
+    'Healthcare', 'Finance', 'Marketing', 'Logistics', 'Real Estate',
+    'Education', 'Technology', 'Retail', 'Manufacturing', 'Construction',
+    'Hospitality', 'Entertainment', 'Agriculture', 'Energy', 'Transportation'
+  ];
+
+  // Skill options
+  const skillOptions = [
+    'Tech Development', 'Marketing', 'Sales', 'Operations', 'Design',
+    'Content Creation', 'Customer Support', 'Data Analysis', 'Project Management',
+    'Finance', 'Legal/Compliance', 'AI/ML', 'SEO', 'Social Media'
+  ];
+
+  // Acquisition channel options
+  const acquisitionChannelOptions = [
+    'Outbound Sales', 'Paid Ads', 'SEO/Content', 'Partnerships', 'Social/Influencer',
+    'Email Marketing', 'Referral Programs', 'Events/Webinars', 'Affiliate Marketing'
+  ];
+
+  // Validation data options
+  const validationDataOptions = [
+    'Trends Data', 'Search Volumes', 'Competitor Mapping', 'Funding Data',
+    'Market Reports', 'Customer Surveys', 'Industry Analysis'
+  ];
+
+  // Save form data function
   const saveCurrentStepData = () => {
     const currentValues = form.getFieldsValue();
     setFormData(prev => ({ ...prev, ...currentValues }));
-    console.log('💾 Saved current step data:', currentValues);
-    console.log('💾 Total saved data:', { ...formData, ...currentValues });
   };
 
-
-   // 5. Safe array rendering with proper null checks
-  const renderReasons = (reasons?: string[]) => {
-    if (!reasons || !Array.isArray(reasons) || reasons.length === 0) {
-      return <li className="text-sm text-gray-500">No reasons available</li>;
-    }
-
-    return reasons.map((reason: string, i: number) => (
-      <li key={i} className="text-sm">
-        {typeof reason === 'string' ? reason : 'Invalid reason'}
-      </li>
-    ));
-  };
-
-  const renderTargetCustomers = (customers?: string[]) => {
-    if (!customers || !Array.isArray(customers) || customers.length === 0) {
-      return <Tag>No customers defined</Tag>;
-    }
-
-    return customers.slice(0, 3).map((customer: string, i: number) => (
-      <Tag key={i}>
-        {typeof customer === 'string' ? customer : 'Invalid customer'}
-      </Tag>
-    ));
-  };
-
-  const renderNextSteps = (steps?: string[]) => {
-    if (!steps || !Array.isArray(steps) || steps.length === 0) {
-      return <li className="text-sm text-gray-500">No steps available</li>;
-    }
-
-    return steps.slice(0, 3).map((step: string, i: number) => (
-      <li key={i} className="text-sm">
-        {typeof step === 'string' ? step : 'Invalid step'}
-      </li>
-    ));
-  };
-  
-  // Load skills suggestions on component mount
- // Load skills suggestions on component mount - ONLY ONCE
-
-
-const debouncedGetSkillsSuggestions = useCallback(
-  debounce(async () => {
-    if (isLoadingSkills || skillsSuggestions) {
-      console.log('🛑 Skills already loading or loaded, skipping...');
-      return;
-    }
-
-    setIsLoadingSkills(true);
-    try {
-      console.log('🔄 Loading debounced skills suggestions...');
-      const suggestions = await getSkillsSuggestions();
-      setSkillsSuggestions(suggestions);
-      console.log('✅ Skills loaded successfully:', suggestions);
-    } catch (error) {
-      console.error('❌ Failed to load skills:', error);
-      setSkillsSuggestions({
-        all: {
-          fallback: [
-            'Project Management', 'Sales', 'Marketing', 'Data Analysis',
-            'Product Development', 'Consulting', 'Software Development', 'Business Strategy'
-          ]
-        }
-      });
-    } finally {
-      setIsLoadingSkills(false);
-    }
-  }, 500), // 500ms debounce
-  [getSkillsSuggestions, skillsSuggestions, isLoadingSkills]
-);
-
-useEffect(() => {
-  let mounted = true;
-  console.log('🔄 NicheResearcher component mounted');
-
-  const loadSkills = async () => {
-    if (!mounted) return;
-    await debouncedGetSkillsSuggestions();
-  };
-
-  loadSkills();
-
-  return () => {
-    mounted = false;
-    debouncedGetSkillsSuggestions.cancel();
-    console.log('🔄 NicheResearcher component unmounted');
-  };
-}, [debouncedGetSkillsSuggestions]); // ✅ Empty dependency array - only run once
-
+  // Load previous reports
   const loadPreviousReports = async () => {
     try {
       const reports = await getUserReports();
@@ -216,37 +180,30 @@ useEffect(() => {
     }
   };
 
+  // Handle view report
   const handleViewReport = async (reportId: string) => {
     try {
       const report = await getNicheReport(reportId);
       setReportData(report.report);
       setCurrentReportId(reportId);
       setReportGenerated(true);
-      setCurrentStep(3);
+      setCurrentStep(5);
       setShowReportsModal(false);
     } catch (error) {
       console.error('Failed to load report:', error);
     }
   };
 
-   
-
-    
-
+  // Handle delete report
   const handleDeleteReport = useCallback(async (reportId: string) => {
     setDeletingReportId(reportId);
     try {
       await deleteNicheReport(reportId);
-      
-      // Optimistically update UI first
       setPreviousReports(prev => prev.filter(report => report.id !== reportId));
-      
-      // Then refresh from server to ensure consistency
       try {
         const reports = await getUserReports();
         setPreviousReports(reports);
       } catch (refreshError) {
-        // If refresh fails, log but don't revert optimistic update
         console.error('Failed to refresh reports after delete:', refreshError);
       }
     } catch (error) {
@@ -257,7 +214,7 @@ useEffect(() => {
     }
   }, [deleteNicheReport, getUserReports]);
 
-
+  // Handle export report
   const handleExportReport = async (reportId: string, format: 'html' | 'json' = 'html') => {
     try {
       await exportNicheReport(reportId, format);
@@ -266,74 +223,47 @@ useEffect(() => {
     }
   };
 
-   // Updated onFinish function with proper typing
-const onFinish = async (values: FormValues) => {
+  // Form submission
+  const onFinish = async (values: FormValues) => {
     try {
-      console.log('🔍 FORM onFinish called');
-      
-      // Save current step data first
       saveCurrentStepData();
-      
-      // Combine all saved data with current form values (like AdWriter)
       const allData = { ...formData, ...form.getFieldsValue() };
       
-      console.log('🔍 RAW FORM VALUES:', values);
-      console.log('🔍 SAVED FORM DATA:', formData);
-      console.log('🔍 COMBINED DATA:', allData);
-      
-      // ✅ CLEAN THE DATA BEFORE SENDING (use combined data)
       const requestData = {
-        roles: allData.roles || '',
+        primaryObjective: allData.primaryObjective || '',
+        riskAppetite: allData.riskAppetite || '',
+        marketType: allData.marketType || '',
+        customerSize: allData.customerSize || '',
+        industries: Array.isArray(allData.industries) ? allData.industries : [],
+        geographicFocus: allData.geographicFocus || '',
+        budget: allData.budget || '',
+        teamSize: allData.teamSize || '',
         skills: Array.isArray(allData.skills) ? allData.skills : [],
-        competencies: allData.competencies || '',
-        interests: allData.interests || '',
-        connections: allData.connections || '',
-        audienceAccess: allData.audienceAccess || '',
+        timeCommitment: allData.timeCommitment || '',
         problems: allData.problems || '',
-        trends: allData.trends || '',
-        time: allData.time,
-        budget: allData.budget,
-        location: allData.location,
-        otherConstraints: allData.otherConstraints || ''
+        excludedIndustries: Array.isArray(allData.excludedIndustries) ? allData.excludedIndustries : [],
+        monetizationPreference: allData.monetizationPreference || '',
+        acquisitionChannels: Array.isArray(allData.acquisitionChannels) ? allData.acquisitionChannels : [],
+        validationData: Array.isArray(allData.validationData) ? allData.validationData : [],
+        competitionPreference: allData.competitionPreference || '',
+        scalabilityPreference: allData.scalabilityPreference || ''
       };
 
-      console.log('🔍 CLEANED REQUEST DATA:', requestData);
-      
-      // Validate required fields
-      const requiredFields = ['roles', 'skills', 'competencies', 'interests', 'connections', 'problems', 'trends', 'time', 'budget', 'location'];
-      const missingFields = requiredFields.filter(field => {
-        const value = requestData[field as keyof typeof requestData];
-        return !value || (Array.isArray(value) && value.length === 0);
-      });
-      
-      if (missingFields.length > 0) {
-        console.error('❌ Missing fields:', missingFields);
-        notification.error({
-          message: 'Form Validation Error',
-          description: `Please fill in: ${missingFields.join(', ')}`,
-          placement: 'topRight',
-        });
-        return;
-      }
-
-      console.log('✅ All validation passed, sending to API...');
-      
       const result = await generateNicheReport(requestData);
       
       setReportData(result.report);
       setCurrentReportId(result.reportId);
       setReportGenerated(true);
-      setCurrentStep(3);
+      setCurrentStep(5);
       
       notification.success({
         message: 'Niche Research Report Generated!',
-        description: `Found ${result.report.recommendedNiches.length} personalized niche opportunities`,
+        description: `Found your perfect niche opportunities`,
         placement: 'topRight',
       });
       
     } catch (error: any) {
-      console.error('💥 Error generating niche report:', error);
-      
+      console.error('Error generating niche report:', error);
       notification.error({
         message: 'Generation Failed',
         description: error.message || 'Please try again later',
@@ -342,11 +272,9 @@ const onFinish = async (values: FormValues) => {
     }
   };
 
-  // ✅ FIXED: nextStep function with data saving (like AdWriter)
+  // Navigation functions
   const nextStep = () => {
-    // ✅ CRITICAL: Save current step data before moving to next step
     saveCurrentStepData();
-    
     form.validateFields().then(() => {
       setCurrentStep(currentStep + 1);
     }).catch(() => {
@@ -357,14 +285,12 @@ const onFinish = async (values: FormValues) => {
     });
   };
 
-  // ✅ FIXED: prevStep function with data saving (like AdWriter)
   const prevStep = () => {
-    // ✅ Save current step data before going back
     saveCurrentStepData();
     setCurrentStep(currentStep - 1);
   };
 
-
+  // Report columns for modal
   const reportColumns = [
     {
       title: 'Report',
@@ -374,25 +300,17 @@ const onFinish = async (values: FormValues) => {
         <div>
           <div className="font-medium">{text}</div>
           <div className="text-sm text-gray-500">
-            Skills: {record.skills.slice(0, 3).join(', ')}
-            {record.skills.length > 3 && ` +${record.skills.length - 3} more`}
+            {record.nicheName}
           </div>
         </div>
       )
     },
     {
-      title: 'Top Niches',
-      dataIndex: 'topNiches',
-      key: 'topNiches',
-      render: (niches: any[]) => (
-        <div className="space-y-1">
-          {niches.slice(0, 2).map((niche, i) => (
-            <div key={i} className="flex items-center">
-              <Tag color="blue">{niche.matchScore}%</Tag>
-              <span className="text-sm">{niche.name}</span>
-            </div>
-          ))}
-        </div>
+      title: 'Market',
+      dataIndex: 'marketSize',
+      key: 'marketSize',
+      render: (size: string) => (
+        <Tag color="blue">{size}</Tag>
       )
     },
     {
@@ -433,6 +351,7 @@ const onFinish = async (values: FormValues) => {
     }
   ];
 
+  // Render step content based on current step
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
@@ -451,67 +370,36 @@ const onFinish = async (values: FormValues) => {
             
             <Card className="mb-6">
               <Title level={4} className="flex items-center">
-                <SolutionOutlined className="mr-2" />
-                Professional Experience
+                <RocketOutlined className="mr-2" />
+                Business & Strategic Goals
               </Title>
+              
               <Form.Item
-                name="roles"
-                label="Describe your past roles and industries"
-                rules={[{ required: true, message: 'Please describe your professional background' }]}
+                name="primaryObjective"
+                label="Primary Business Objective"
+                rules={[{ required: true, message: 'Please select your primary objective' }]}
               >
-                <TextArea 
-                  rows={4} 
-                  placeholder="e.g. 5 years in HR tech, operations manager at SaaS company, led team of 12 in digital transformation projects..."
-                  showCount
-                  maxLength={1000}
-                />
+                <Select placeholder="Select your main goal">
+                  <Option value="cashflow">Cashflow (Immediate revenue)</Option>
+                  <Option value="equity-exit">Equity/Exit (Build to sell)</Option>
+                  <Option value="lifestyle">Lifestyle Business (Work-life balance)</Option>
+                  <Option value="audience-build">Audience Building (Grow audience first)</Option>
+                  <Option value="saas">SaaS (Recurring revenue)</Option>
+                  <Option value="agency">Agency (Service business)</Option>
+                  <Option value="ecomm">E-commerce (Product sales)</Option>
+                </Select>
               </Form.Item>
               
               <Form.Item
-                name="skills"
-                label="List your strongest skills (select up to 10)"
-                rules={[{ required: true, message: 'Please select your skills' }]}
+                name="riskAppetite"
+                label="Risk Appetite"
+                rules={[{ required: true, message: 'Please select your risk appetite' }]}
               >
-                <Select
-                  mode="multiple"
-                  placeholder="Search and select skills"
-                  showSearch
-                  maxTagCount={10}
-                  options={skillsSuggestions?.all ? 
-                    Object.values(skillsSuggestions.all).flat().map((skill: any) => ({
-                      value: skill,
-                      label: skill
-                    })) : [
-                      { value: 'project-management', label: 'Project Management' },
-                      { value: 'sales', label: 'Sales' },
-                      { value: 'marketing', label: 'Marketing' },
-                      { value: 'data-analysis', label: 'Data Analysis' },
-                      { value: 'product-development', label: 'Product Development' },
-                      { value: 'consulting', label: 'Consulting' },
-                      { value: 'software-development', label: 'Software Development' },
-                      { value: 'business-strategy', label: 'Business Strategy' }
-                    ]
-                  }
-                />
-              </Form.Item>
-            </Card>
-            
-            <Card>
-              <Title level={4} className="flex items-center">
-                <StarOutlined className="mr-2" />
-                Core Competencies
-              </Title>
-              <Form.Item
-                name="competencies"
-                label="What unique value can you offer that others can't?"
-                rules={[{ required: true, message: 'Please describe your unique competencies' }]}
-              >
-                <TextArea 
-                  rows={3} 
-                  placeholder="e.g. Deep understanding of HR pain points combined with technical background, ability to bridge business and technology teams..."
-                  showCount
-                  maxLength={500}
-                />
+                <Select placeholder="Select your risk tolerance">
+                  <Option value="low">Low - Steady, proven industries</Option>
+                  <Option value="medium">Medium - Growing markets with some uncertainty</Option>
+                  <Option value="high">High - Bleeding edge, emerging markets</Option>
+                </Select>
               </Form.Item>
             </Card>
           </>
@@ -521,49 +409,59 @@ const onFinish = async (values: FormValues) => {
           <>
             <Card className="mb-6">
               <Title level={4} className="flex items-center">
-                <HeartOutlined className="mr-2" />
-                Personal Passions
+                <CustomerServiceOutlined className="mr-2" />
+                Target Customer Preferences
               </Title>
+              
               <Form.Item
-                name="interests"
-                label="What are you genuinely interested in outside of work?"
-                rules={[{ required: true, message: 'Please describe your interests' }]}
+                name="marketType"
+                label="Preferred Market Type"
+                rules={[{ required: true, message: 'Please select your market type' }]}
               >
-                <TextArea 
-                  rows={3} 
-                  placeholder="e.g. Sustainability, personal development, AI applications, health and wellness, education technology..."
-                  showCount
-                  maxLength={500}
-                />
+                <Select placeholder="Select market type">
+                  <Option value="b2b-saas">B2B SaaS</Option>
+                  <Option value="b2c-consumer">B2C Consumer Products</Option>
+                  <Option value="professional-services">Professional Services</Option>
+                  <Option value="local-business">Local Business</Option>
+                  <Option value="info-education">Information/Education</Option>
+                </Select>
               </Form.Item>
-            </Card>
-            
-            <Card>
-              <Title level={4} className="flex items-center">
-                <TeamOutlined className="mr-2" />
-                Strategic Network
-              </Title>
+              
               <Form.Item
-                name="connections"
-                label="Who do you know in specific industries? (Name or describe)"
-                rules={[{ required: true, message: 'Please describe your network connections' }]}
+                name="customerSize"
+                label="Customer Size Preference"
+                rules={[{ required: true, message: 'Please select your customer size preference' }]}
               >
-                <TextArea 
-                  rows={3} 
-                  placeholder="e.g. Commercial real estate broker friend, mentor in SaaS space, former colleagues in Fortune 500 companies..."
-                  showCount
-                  maxLength={500}
+                <Select placeholder="Select customer size">
+                  <Option value="startups">Startups</Option>
+                  <Option value="smb">SMBs (Small & Medium Businesses)</Option>
+                  <Option value="enterprise">Enterprise</Option>
+                  <Option value="consumers">Consumers</Option>
+                  <Option value="government">Government/Public Sector</Option>
+                </Select>
+              </Form.Item>
+              
+              <Form.Item
+                name="industries"
+                label="Industry Spaces of Interest (Optional)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select industries of interest"
+                  options={industryOptions.map(industry => ({ value: industry, label: industry }))}
                 />
               </Form.Item>
               
               <Form.Item
-                name="audienceAccess"
-                label="Do you have access to any specific audience groups?"
+                name="geographicFocus"
+                label="Geographic Focus (Optional)"
               >
-                <Input 
-                  placeholder="e.g. 500 LinkedIn connections in tech, local business owner group, industry newsletter subscribers..."
-                  maxLength={300}
-                />
+                <Select placeholder="Select geographic focus">
+                  <Option value="local">Local</Option>
+                  <Option value="regional">Regional</Option>
+                  <Option value="us-only">US-only</Option>
+                  <Option value="global">Global</Option>
+                </Select>
               </Form.Item>
             </Card>
           </>
@@ -573,103 +471,163 @@ const onFinish = async (values: FormValues) => {
           <>
             <Card className="mb-6">
               <Title level={4} className="flex items-center">
-                <BulbOutlined className="mr-2" />
-                Market Opportunities
+                <SolutionOutlined className="mr-2" />
+                Constraints & Resources
               </Title>
+              
               <Form.Item
-                name="problems"
-                label="What problems have you noticed businesses or people facing?"
-                rules={[{ required: true, message: 'Please describe problems you\'ve observed' }]}
+                name="budget"
+                label="Budget Available"
+                rules={[{ required: true, message: 'Please select your budget range' }]}
               >
-                <TextArea 
-                  rows={4} 
-                  placeholder="e.g. HR teams struggling with remote onboarding, small businesses lacking affordable automation, inefficient manual processes in operations..."
-                  showCount
-                  maxLength={1000}
+                <Select placeholder="Select budget">
+                  <Option value="<10k">Less than $10k</Option>
+                  <Option value="10k-50k">$10k - $50k</Option>
+                  <Option value="50k-250k">$50k - $250k</Option>
+                  <Option value="250k+">$250k+</Option>
+                </Select>
+              </Form.Item>
+              
+              <Form.Item
+                name="teamSize"
+                label="Team Size / Capabilities (Optional)"
+              >
+                <Select placeholder="Select team size">
+                  <Option value="solo">Solo Founder</Option>
+                  <Option value="small-team">Small Team (2-5 people)</Option>
+                  <Option value="established-team">Established Team (5+ people)</Option>
+                </Select>
+              </Form.Item>
+              
+              <Form.Item
+                name="skills"
+                label="Key Skills Available (Select all that apply)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select skills available"
+                  options={skillOptions.map(skill => ({ value: skill, label: skill }))}
                 />
               </Form.Item>
               
               <Form.Item
-                name="trends"
-                label="What emerging trends excite you?"
-                rules={[{ required: true, message: 'Please describe trends that interest you' }]}
+                name="timeCommitment"
+                label="Time Commitment (Optional)"
               >
-                <TextArea 
-                  rows={3} 
-                  placeholder="e.g. AI democratization, sustainable business practices, remote work transformation, no-code tools adoption..."
-                  showCount
-                  maxLength={500}
-                />
-              </Form.Item>
-            </Card>
-            
-            <Card>
-              <Title level={4} className="flex items-center">
-                <FileTextOutlined className="mr-2" />
-                Personal Constraints
-              </Title>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Form.Item
-                  name="time"
-                  label={<span><ClockCircleOutlined className="mr-1" /> Weekly Hours Available</span>}
-                  rules={[{ required: true, message: 'Please select time commitment' }]}
-                >
-                  <Select placeholder="Select">
-                    <Option value="5-10">5-10 hours</Option>
-                    <Option value="10-20">10-20 hours</Option>
-                    <Option value="20-30">20-30 hours</Option>
-                    <Option value="30+">30+ hours</Option>
-                  </Select>
-                </Form.Item>
-                
-                <Form.Item
-                  name="budget"
-                  label={<span><DollarOutlined className="mr-1" /> Startup Budget</span>}
-                  rules={[{ required: true, message: 'Please select budget range' }]}
-                >
-                  <Select placeholder="Select">
-                    <Option value="0-1k">$0-$1,000</Option>
-                    <Option value="1k-5k">$1k-$5k</Option>
-                    <Option value="5k-10k">$5k-$10k</Option>
-                    <Option value="10k+">$10k+</Option>
-                  </Select>
-                </Form.Item>
-                
-                <Form.Item
-                  name="location"
-                  label={<span><EnvironmentOutlined className="mr-1" /> Location Flexibility</span>}
-                  rules={[{ required: true, message: 'Please select location preference' }]}
-                >
-                  <Select placeholder="Select">
-                    <Option value="remote-only">Fully remote</Option>
-                    <Option value="local-focused">Local market focus</Option>
-                    <Option value="hybrid">Hybrid options</Option>
-                  </Select>
-                </Form.Item>
-              </div>
-              
-              <Form.Item
-                name="otherConstraints"
-                label="Any other limitations or requirements?"
-              >
-                <TextArea 
-                  rows={2} 
-                  placeholder="e.g. Must be family-friendly schedule, need health insurance coverage, geographic restrictions..."
-                  maxLength={300}
-                />
+                <Select placeholder="Select time commitment">
+                  <Option value="5-10">5-10 hours/week</Option>
+                  <Option value="10-20">10-20 hours/week</Option>
+                  <Option value="20-30">20-30 hours/week</Option>
+                  <Option value="30+">30+ hours/week</Option>
+                </Select>
               </Form.Item>
             </Card>
           </>
         );
       case 3:
         return (
+          <>
+            <Card className="mb-6">
+              <Title level={4} className="flex items-center">
+                <BulbOutlined className="mr-2" />
+                Market Directional Inputs
+              </Title>
+              
+              <Form.Item
+                name="problems"
+                label="Problems You're Passionate About Solving (Optional)"
+              >
+                <TextArea 
+                  rows={3} 
+                  placeholder="e.g. Small business inefficiencies, healthcare access issues, educational gaps..."
+                  maxLength={500}
+                />
+              </Form.Item>
+              
+              <Form.Item
+                name="excludedIndustries"
+                label="Industries You Will NOT Touch (Optional)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select industries to exclude"
+                  options={industryOptions.map(industry => ({ value: industry, label: industry }))}
+                />
+              </Form.Item>
+              
+              <Form.Item
+                name="monetizationPreference"
+                label="Monetization Preference (Optional)"
+              >
+                <Select placeholder="Select monetization preference">
+                  <Option value="high-ticket">High-Ticket Services/Products</Option>
+                  <Option value="subscription">Subscription/Recurring Revenue</Option>
+                  <Option value="low-ticket">Low-Ticket/Volume Business</Option>
+                  <Option value="ad-supported">Ad-Supported/Free Model</Option>
+                </Select>
+              </Form.Item>
+              
+              <Form.Item
+                name="acquisitionChannels"
+                label="Acquisition Channels You Prefer (Optional)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select preferred acquisition channels"
+                  options={acquisitionChannelOptions.map(channel => ({ value: channel, label: channel }))}
+                />
+              </Form.Item>
+            </Card>
+          </>
+        );
+      case 4:
+        return (
+          <>
+            <Card className="mb-6">
+              <Title level={4} className="flex items-center">
+                <BarChartOutlined className="mr-2" />
+                Validation & Scalability Factors
+              </Title>
+              
+              <Form.Item
+                name="validationData"
+                label="How important is validation data? (Optional)"
+              >
+                <Checkbox.Group options={validationDataOptions.map(option => ({ label: option, value: option }))} />
+              </Form.Item>
+              
+              <Form.Item
+                name="competitionPreference"
+                label="Do you prefer low-competition or high-potential markets? (Optional)"
+              >
+                <Radio.Group>
+                  <Radio value="low-competition">Low-Competition / Easy Entry</Radio>
+                  <Radio value="high-potential">High-Potential / Competitive Markets</Radio>
+                </Radio.Group>
+              </Form.Item>
+              
+              <Form.Item
+                name="scalabilityPreference"
+                label="Scalability Preference (Optional)"
+              >
+                <Select placeholder="Select scalability preference">
+                  <Option value="stay-small">Stay Small (Lifestyle business)</Option>
+                  <Option value="grow-fast">Grow Fast (Scale quickly)</Option>
+                  <Option value="build-exit">Build for Exit (Acquisition target)</Option>
+                </Select>
+              </Form.Item>
+            </Card>
+          </>
+        );
+      case 5:
+        return (
           <div className="report-container">
             {reportGenerated && reportData ? (
               <>
                 <Card className="mb-6">
                   <div className="text-center mb-6">
-                    <Title level={3}>Your Personalized Niche Report</Title>
-                    <Text type="secondary">Generated based on your unique profile</Text>
+                    <Title level={3}>Your Niche Research Report</Title>
+                    <Text type="secondary">Generated based on your inputs</Text>
                     {currentReportId && (
                       <div className="mt-4">
                         <Space>
@@ -690,210 +648,172 @@ const onFinish = async (values: FormValues) => {
                     )}
                   </div>
                   
-                  {/* Executive Summary */}
-                  <Alert
-                    message="Executive Summary"
-                    description={reportData.executiveSummary}
-                    type="info"
-                    showIcon
-                    className="mb-6"
-                  />
+                  {/* Niche Overview */}
+                  <Card title="1. Niche Overview" className="mb-4">
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Title level={5}>{reportData.nicheOverview?.name}</Title>
+                        <Text>{reportData.nicheOverview?.summary}</Text>
+                      </Col>
+                      <Col span={12}>
+                        <Title level={5}>Why This Niche Fits Your Inputs</Title>
+                        <Text>{reportData.nicheOverview?.whyItFits}</Text>
+                      </Col>
+                    </Row>
+                  </Card>
                   
-                  {/* Recommended Niches */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    {reportData.recommendedNiches.map((niche: any, index: number) => (
-                      <Card 
-                        key={index} 
-                        title={
-                          <div className="flex justify-between items-center">
-                            <span>{niche.name}</span>
-                            <Tag color={niche.matchScore > 85 ? 'green' : niche.matchScore > 70 ? 'blue' : 'orange'}>
-                              Match: {niche.matchScore}%
-                            </Tag>
-                          </div>
-                        }
-                        className="h-full"
-                      >
-                        <div className="space-y-4">
-                          <div>
-                            <Text strong>Why This Fits You:</Text>
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                             {renderReasons(niche.reasons)}
-                            </ul>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Text strong>Market Size:</Text>
-                              <div className="text-sm">{niche.marketSize}</div>
-                            </div>
-                            <div>
-                              <Text strong>Competition:</Text>
-                              <div className="text-sm">{niche.competition.level} ({niche.competition.score}/5)</div>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <Text strong>Startup Costs:</Text>
-                            <div className="text-sm">
-                              ${niche.startupCosts.min.toLocaleString()} - ${niche.startupCosts.max.toLocaleString()}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <Text strong>Target Customers:</Text>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                             {renderTargetCustomers(niche.targetCustomers)}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <Text strong>Next Steps:</Text>
-                            <ol className="list-decimal pl-5 mt-2 space-y-1">
-                              {renderNextSteps(niche.nextSteps)}
-                            </ol>
-                          </div>
-                        </div>
+                  {/* Market Demand Snapshot */}
+                  <Card title="2. Market Demand Snapshot" className="mb-4">
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Title level={5}>Market Size</Title>
+                        <Text>{reportData.marketDemand?.marketSize}</Text>
+                      </Col>
+                      <Col span={8}>
+                        <Title level={5}>Trend Signal</Title>
+                        <Tag color={reportData.marketDemand?.trend === 'growing' ? 'green' : 
+                                  reportData.marketDemand?.trend === 'plateauing' ? 'orange' : 'red'}>
+                          {reportData.marketDemand?.trend}
+                        </Tag>
+                      </Col>
+                      <Col span={8}>
+                        <Title level={5}>Willingness to Pay</Title>
+                        <Text>{reportData.marketDemand?.willingnessToPay}</Text>
+                      </Col>
+                    </Row>
+                  </Card>
+                  
+                  {/* Customer Pain Points */}
+                  <Card title="3. Customer Pain Points" className="mb-4">
+                    <ol>
+                      {reportData.painPoints?.map((point, index) => (
+                        <li key={index} className="mb-2">
+                          <Text strong>{point.problem}</Text> - {point.intensity} intensity
+                        </li>
+                      ))}
+                    </ol>
+                  </Card>
+                  
+                  {/* Competitive Landscape */}
+                  <Card title="4. Competitive Landscape" className="mb-4">
+                    <Title level={5}>Top Competitors</Title>
+                    <ul>
+                      {reportData.competitiveLandscape?.competitors.map((competitor, index) => (
+                        <li key={index} className="mb-2">
+                          <Text strong>{competitor.name}</Text>: {competitor.description}
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <Title level={5} className="mt-4">Gap Analysis</Title>
+                    <Text>{reportData.competitiveLandscape?.gapAnalysis}</Text>
+                    
+                    <Title level={5} className="mt-4">Barrier to Entry</Title>
+                    <Tag color={reportData.competitiveLandscape?.barrierToEntry === 'Low' ? 'green' : 
+                              reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 'orange' : 'red'}>
+                      {reportData.competitiveLandscape?.barrierToEntry}
+                    </Tag>
+                  </Card>
+                  
+                  {/* Arbitrage Opportunity */}
+                  <Card title="5. Arbitrage Opportunity" className="mb-4">
+                    <Text>{reportData.arbitrageOpportunity?.explanation}</Text>
+                    <div className="mt-2 p-3 bg-blue-50 rounded">
+                      <Text strong>Concrete Angle:</Text> {reportData.arbitrageOpportunity?.concreteAngle}
+                    </div>
+                  </Card>
+                  
+                  {/* Suggested Entry Offers */}
+                  <Card title="6. Suggested Entry Offers" className="mb-4">
+                    {reportData.entryOffers?.map((offer, index) => (
+                      <Card key={index} type="inner" title={offer.positioning} className="mb-2">
+                        <Row gutter={16}>
+                          <Col span={8}>
+                            <Text strong>Business Model:</Text> {offer.businessModel}
+                          </Col>
+                          <Col span={8}>
+                            <Text strong>Price Point:</Text> {offer.pricePoint}
+                          </Col>
+                        </Row>
                       </Card>
                     ))}
-                  </div>
+                  </Card>
                   
-                  <Divider />
+                  {/* Go-To-Market Strategy */}
+                  <Card title="7. Go-To-Market Strategy" className="mb-4">
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Title level={5}>Primary Channel</Title>
+                        <Text>{reportData.gtmStrategy?.primaryChannel}</Text>
+                      </Col>
+                      <Col span={12}>
+                        <Title level={5}>Justification</Title>
+                        <Text>{reportData.gtmStrategy?.justification}</Text>
+                      </Col>
+                    </Row>
+                  </Card>
                   
-                  {/* Personal Fit Analysis */}
-                  <div className="mb-6">
-                    <Title level={4}>Personal Fit Analysis</Title>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card title="Your Strengths" size="small">
-                        <ul className="list-disc pl-5 space-y-1">
-                          {reportData.personalFit.strengths.map((strength: string, i: number) => (
-                            <li key={i} className="text-sm">{strength}</li>
-                          ))}
-                        </ul>
-                      </Card>
-                      
-                      <Card title="Development Areas" size="small">
-                        <ul className="list-disc pl-5 space-y-1">
-                          {reportData.personalFit.skillGaps.map((gap: string, i: number) => (
-                            <li key={i} className="text-sm">{gap}</li>
-                          ))}
-                        </ul>
-                      </Card>
-                      
-                      <Card title="Network Advantages" size="small">
-                        <ul className="list-disc pl-5 space-y-1">
-                          {reportData.personalFit.networkAdvantages.map((advantage: string, i: number) => (
-                            <li key={i} className="text-sm">{advantage}</li>
-                          ))}
-                        </ul>
-                      </Card>
-                    </div>
-                    
-                    <div className="text-center mt-6">
-                      <div className="inline-block  p-6 rounded-lg">
-                        <Title level={4} className="mb-2">Overall Confidence Score</Title>
-                        <div className="text-4xl font-bold text-blue-600">
-                          {reportData.personalFit.confidenceScore}%
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Scalability & Exit Potential */}
+                  <Card title="8. Scalability & Exit Potential" className="mb-4">
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Title level={5}>Scalability Score</Title>
+                        <Tag color={reportData.scalabilityExit?.scalabilityScore === 'High' ? 'green' : 
+                                  reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 'orange' : 'blue'}>
+                          {reportData.scalabilityExit?.scalabilityScore}
+                        </Tag>
+                      </Col>
+                      <Col span={12}>
+                        <Title level={5}>Exit Potential</Title>
+                        <Text>{reportData.scalabilityExit?.exitPotential}</Text>
+                      </Col>
+                    </Row>
+                  </Card>
                   
-                  <Divider />
-                  
-                  {/* Action Plan */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card title="Immediate Steps (This Week)" size="small">
-                      <ol className="list-decimal pl-5 space-y-2">
-                        {reportData.actionPlan.immediateSteps.map((step: string, i: number) => (
-                          <li key={i} className="text-sm">{step}</li>
-                        ))}
-                      </ol>
-                    </Card>
-                    
-                    <Card title="Short-term Goals (1-3 Months)" size="small">
-                      {reportData.actionPlan.shortTerm.map((item: any, i: number) => (
-                        <div key={i} className="mb-3 p-3  rounded">
-                          <div className="font-medium text-sm">{item.action}</div>
-                          <div className="text-xs text-gray-600">Timeline: {item.timeline}</div>
-                        </div>
+                  {/* Risk Factors & Constraints */}
+                  <Card title="9. Risk Factors & Constraints" className="mb-4">
+                    <ul>
+                      {reportData.riskFactors?.map((risk, index) => (
+                        <li key={index} className="mb-2">
+                          <Text strong>{risk.risk}</Text> - {risk.impact}
+                        </li>
                       ))}
-                    </Card>
-                    
-                    <Card title="Long-term Objectives (6-12 Months)" size="small">
-                      {reportData.actionPlan.longTerm.map((item: any, i: number) => (
-                        <div key={i} className="mb-3 p-3  rounded">
-                          <div className="font-medium text-sm">{item.goal}</div>
-                          <div className="text-xs text-gray-600">Target: {item.timeline}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Milestones: {item.milestones.slice(0, 2).join(', ')}
-                          </div>
-                        </div>
-                      ))}
-                    </Card>
-                  </div>
+                    </ul>
+                  </Card>
                   
-                  <Divider />
-                  
-                  {/* Financial Projections */}
-                  <div className="mb-6">
-                    <Title level={4}>Financial Projections</Title>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {reportData.financialProjections.map((projection: any, i: number) => (
-                        <Card key={i} title={`${projection.niche} - ${projection.timeline}`} size="small">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-sm">Conservative:</span>
-                              <span className="font-medium">${projection.revenue.conservative.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Realistic:</span>
-                              <span className="font-medium text-blue-600">${projection.revenue.realistic.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Optimistic:</span>
-                              <span className="font-medium text-green-600">${projection.revenue.optimistic.toLocaleString()}</span>
-                            </div>
-                            <Divider className="my-2" />
-                            <div className="flex justify-between">
-                              <span className="text-sm">Investment:</span>
-                              <span className="text-red-600">${projection.costs.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm font-medium">Net Profit:</span>
-                              <span className="font-bold text-green-600">${projection.profitability.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Risk Assessment */}
-                  <div className="mb-6">
-                    <Title level={4}>Risk Assessment</Title>
-                    <div className="space-y-3">
-                      {reportData.riskAssessment.map((risk: any, i: number) => (
-                        <Card key={i} size="small" className={`border-l-4 ${
-                          risk.impact === 'High' ? 'border-red-500' : 
-                          risk.impact === 'Medium' ? 'border-yellow-500' : 'border-green-500'
-                        }`}>
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="font-medium">{risk.risk}</div>
-                              <div className="text-sm text-gray-600 mt-1">{risk.mitigation}</div>
-                            </div>
-                            <div className="text-right">
-                              <Tag color={risk.probability === 'High' ? 'red' : risk.probability === 'Medium' ? 'orange' : 'green'}>
-                                {risk.probability} Probability
-                              </Tag>
-                              <div className="text-xs mt-1">{risk.impact} Impact</div>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Difficulty vs Reward Scorecard */}
+                  <Card title="10. Difficulty vs Reward Scorecard">
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Title level={5}>Market Demand</Title>
+                        <Tag color={reportData.scorecard?.marketDemand === 'High' ? 'green' : 
+                                  reportData.scorecard?.marketDemand === 'Medium' ? 'orange' : 'red'}>
+                          {reportData.scorecard?.marketDemand}
+                        </Tag>
+                      </Col>
+                      <Col span={6}>
+                        <Title level={5}>Competition Intensity</Title>
+                        <Tag color={reportData.scorecard?.competition === 'High' ? 'red' : 
+                                  reportData.scorecard?.competition === 'Medium' ? 'orange' : 'green'}>
+                          {reportData.scorecard?.competition}
+                        </Tag>
+                      </Col>
+                      <Col span={6}>
+                        <Title level={5}>Ease of Entry</Title>
+                        <Tag color={reportData.scorecard?.easeOfEntry === 'High' ? 'green' : 
+                                  reportData.scorecard?.easeOfEntry === 'Medium' ? 'orange' : 'red'}>
+                          {reportData.scorecard?.easeOfEntry}
+                        </Tag>
+                      </Col>
+                      <Col span={6}>
+                        <Title level={5}>Profitability Potential</Title>
+                        <Tag color={reportData.scorecard?.profitability === 'High' ? 'green' : 
+                                  reportData.scorecard?.profitability === 'Medium' ? 'orange' : 'red'}>
+                          {reportData.scorecard?.profitability}
+                        </Tag>
+                      </Col>
+                    </Row>
+                  </Card>
                 </Card>
                 
                 <div className="text-center">
@@ -962,7 +882,7 @@ const onFinish = async (values: FormValues) => {
           Niche Research Report
         </Title>
         <Text type="secondary" className="text-lg">
-          Discover your perfect business niche based on your unique background, skills, and market opportunities
+          Discover your perfect business niche based on your goals, resources, and market opportunities
         </Text>
       </div>
       
@@ -988,23 +908,21 @@ const onFinish = async (values: FormValues) => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
-          onValuesChange={(changedValues, allValues) => {
-          // ✅ CRITICAL: Save form data on every change (like AdWriter)
+        onValuesChange={(changedValues, allValues) => {
           setFormData(prev => ({ ...prev, ...allValues }));
         }}
         className="dark:bg-white-900 rounded-lg"
       >
         {renderStepContent()}
            
-       
         <div className="flex justify-between mt-8 pb-8 px-4">
-          {currentStep > 0 && currentStep < 3 && (
+          {currentStep > 0 && currentStep < 5 && (
             <Button onClick={prevStep}>
               Back
             </Button>
           )}
           
-          {currentStep < 2 && (
+          {currentStep < 4 && (
             <Button 
               type="primary" 
               onClick={nextStep}
@@ -1014,7 +932,7 @@ const onFinish = async (values: FormValues) => {
             </Button>
           )}
           
-          {currentStep === 2 && !reportGenerated && (
+          {currentStep === 4 && !reportGenerated && (
             <Button 
               type="primary" 
               loading={loading}
@@ -1059,7 +977,7 @@ const onFinish = async (values: FormValues) => {
                   <Button 
                     type="primary" 
                     onClick={() => setShowReportsModal(false)}
-                         disabled={isLoading}
+                    disabled={isLoading}
                   >
                     Create Your First Report
                   </Button>

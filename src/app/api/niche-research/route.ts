@@ -1,20 +1,20 @@
-// app/api/niche-research/route.ts - UPDATED WITH FIXED AUTH
+// app/api/niche-research/route.ts - COMPLETELY UPDATED FOR NEW STRUCTURE
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { NicheResearcherService } from '@/services/nicheResearcher.service';
-import { validateNicheResearchInput } from '../../validators/nicheResearcher.validator';
+import { validateNicheResearchInput } from '@/validators/nicheResearcher.validator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ FIXED AUTH FUNCTION WITH BETTER COOKIE HANDLING
+// ✅ IMPROVED AUTH FUNCTION WITH BETTER ERROR HANDLING
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
-    // Method 1: Try with authorization header FIRST (most reliable)
+    // Method 1: Try with authorization header FIRST (most reliable for API calls)
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
@@ -44,7 +44,7 @@ async function getAuthenticatedUser(request: NextRequest) {
       }
     }
     
-    // Method 2: Try with cleaned SSR cookies
+    // Method 2: Try with SSR cookies (most reliable for web requests)
     const supabaseSSR = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -55,20 +55,19 @@ async function getAuthenticatedUser(request: NextRequest) {
               const cookie = cookieStore.get(name);
               if (!cookie?.value) return undefined;
               
-              // Handle base64 cookies more safely
+              // Handle base64 encoded cookies safely
               if (cookie.value.startsWith('base64-')) {
                 try {
                   const decoded = atob(cookie.value.substring(7));
-                  // Validate it's actually JSON
-                  const parsed = JSON.parse(decoded);
+                  JSON.parse(decoded); // Validate it's valid JSON
                   return cookie.value;
                 } catch (e) {
-                  console.warn(`🧹 Corrupted cookie ${name}, skipping...`);
+                  console.warn(`🧹 Corrupted base64 cookie ${name}, skipping...`);
                   return undefined;
                 }
               }
               
-              // For non-base64 cookies, validate they're proper JSON if they look like JSON
+              // For JSON-looking cookies, validate they're proper JSON
               if (cookie.value.startsWith('{') || cookie.value.startsWith('[')) {
                 try {
                   JSON.parse(cookie.value);
@@ -98,7 +97,7 @@ async function getAuthenticatedUser(request: NextRequest) {
       console.log('⚠️ SSR cookie auth failed:', error?.message);
     }
     
-    // Method 3: Try route handler as last resort (most prone to cookie issues)
+    // Method 3: Fallback to route handler client
     try {
       const supabase = createRouteHandlerClient({
         cookies: () => cookieStore
@@ -128,17 +127,16 @@ export async function POST(req: NextRequest) {
   console.log('🚀 Niche Research API Route called');
   
   try {
-    // ✅ USE FIXED AUTH FUNCTION
+    // ✅ AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
       console.error('❌ Auth failed in niche research:', authError);
       
-      // Clear corrupted cookies in response
       const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
@@ -163,9 +161,9 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Rate limiting - 3 reports per day
+    // ✅ RATE LIMITING - 3 reports per day
     console.log('🔍 Checking rate limits for user:', user.id);
-    const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 50, 86400); 
+    const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 3, 86400); 
     if (!rateLimitResult.success) {
       console.log('❌ Rate limit exceeded for user:', user.id);
       return NextResponse.json(
@@ -179,54 +177,39 @@ export async function POST(req: NextRequest) {
     }
     console.log('✅ Rate limit check passed');
 
-    // Parse and validate request body
+    // ✅ PARSE AND VALIDATE REQUEST BODY
     console.log('📥 Parsing request body...');
     const body = await req.json();
     
-    // ✅ DETAILED VALIDATION DEBUG
-    console.log('🔍 RECEIVED BODY:', JSON.stringify(body, null, 2));
-    console.log('🔍 BODY KEYS:', Object.keys(body));
+    console.log('🔍 RECEIVED NICHE RESEARCH INPUT:', JSON.stringify(body, null, 2));
+    console.log('🔍 INPUT KEYS:', Object.keys(body));
 
-    // Check each required field specifically
-    const requiredFields = [
-      'roles', 'skills', 'competencies', 'interests', 
-      'connections', 'problems', 'trends', 'time', 
-      'budget', 'location'
-    ];
-
-    console.log('🔍 FIELD-BY-FIELD CHECK:');
+    // Check required fields for new structure
+    const requiredFields = ['primaryObjective', 'riskAppetite', 'marketType', 'customerSize', 'budget'];
+    console.log('🔍 REQUIRED FIELD CHECK:');
     requiredFields.forEach(field => {
       const value = body[field];
       console.log(`  ${field}: ${JSON.stringify(value)} (${typeof value}) - ${value ? 'PRESENT' : 'MISSING'}`);
     });
 
-    console.log('🔍 Starting validation...');
+    console.log('🔍 Starting input validation...');
     const validation = validateNicheResearchInput(body);
         
     if (!validation.success) {
       console.error('❌ VALIDATION FAILED:');
-      console.error('Full validation object:', validation);
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
-      
-      // Show exactly which fields failed
-      validation.errors.forEach((error: any, index: number) => {
-        console.error(`Error ${index + 1}:`, {
-          field: error.path?.join('.') || 'unknown',
-          code: error.code,
-          message: error.message,
-          received: error.received
-        });
-      });
       
       return NextResponse.json(
         { 
           success: false,
-          error: 'Invalid input', 
+          error: 'Invalid input data', 
           details: validation.errors,
           debug: {
             receivedFields: Object.keys(body),
-            missingFields: requiredFields.filter(field => !body[field] || body[field] === ''),
-            emptyFields: requiredFields.filter(field => body[field] === '' || body[field] === null || body[field] === undefined)
+            missingRequiredFields: requiredFields.filter(field => !body[field] || body[field] === ''),
+            receivedValues: Object.fromEntries(
+              requiredFields.map(field => [field, body[field]])
+            )
           }
         },
         { status: 400 }
@@ -238,7 +221,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Invalid input data - validation.data is null' 
+          error: 'Invalid input data - validation failed' 
         },
         { status: 400 }
       );
@@ -246,7 +229,7 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Input validation passed');
 
-    // ✅ GET USER'S WORKSPACE with error handling
+    // ✅ GET OR CREATE USER'S WORKSPACE
     console.log('🔍 Getting/creating workspace for user:', user.id);
     let workspace;
     try {
@@ -280,38 +263,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ GENERATE NICHE REPORT with error handling
+    // ✅ GENERATE NICHE REPORT
     console.log('🤖 Starting niche research generation...');
     let result;
     try {
       const nicheService = new NicheResearcherService();
-      const researchInput = { ...validation.data, userId: user.id };
+      
+      // Prepare research input with validated data
+      const researchInput = { 
+        ...validation.data, 
+        userId: user.id 
+      };
 
-      console.log('🔍 Research input prepared:', Object.keys(researchInput));
-      console.log('🔍 Research input sample:', {
-        skills: researchInput.skills,
-        time: researchInput.time,
+      console.log('🔍 Research input prepared for service:', {
+        primaryObjective: researchInput.primaryObjective,
+        marketType: researchInput.marketType,
         budget: researchInput.budget,
-        location: researchInput.location
+        skillsCount: researchInput.skills?.length || 0
       });
 
-      // Generate report
-      const generatedReport = await nicheService.generateNicheReport(researchInput);
-      console.log('✅ Report generated, tokens used:', generatedReport.tokensUsed);
-
-      // Save to database
-      const reportId = await nicheService.saveNicheReport(
+      // ✅ USE NEW SERVICE METHOD
+      result = await nicheService.generateAndSaveNicheReport(
+        researchInput, 
         user.id, 
-        workspace.id, 
-        generatedReport, 
-        researchInput
+        workspace.id
       );
-      console.log('✅ Report saved with ID:', reportId);
-
-      result = {
-        reportId,
-        report: generatedReport
-      };
+      
+      console.log('✅ Report generated and saved:', {
+        reportId: result.reportId,
+        tokensUsed: result.report.tokensUsed,
+        nicheName: result.report.nicheOverview?.name
+      });
       
     } catch (serviceError) {
       console.error('💥 Service error during generation:', serviceError);
@@ -326,7 +308,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE for analytics/billing with error handling
+    // ✅ LOG USAGE
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -336,15 +318,15 @@ export async function POST(req: NextRequest) {
         timestamp: new Date(),
         metadata: {
           reportId: result.reportId,
-          skills: validation.data.skills,
-          timeCommitment: validation.data.time,
+          primaryObjective: validation.data.primaryObjective,
+          marketType: validation.data.marketType,
           budget: validation.data.budget,
-          nicheCount: result.report.recommendedNiches?.length || 0
+          skillsCount: validation.data.skills?.length || 0,
+          nicheName: result.report.nicheOverview?.name
         }
       });
       console.log('✅ Usage logged successfully');
     } catch (logError) {
-      // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
 
@@ -380,7 +362,7 @@ export async function GET(req: NextRequest) {
   console.log('🚀 Niche Research GET API Route called');
   
   try {
-    // ✅ USE FIXED AUTH FUNCTION
+    // ✅ AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
@@ -389,13 +371,12 @@ export async function GET(req: NextRequest) {
       const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
       
-      // Clear potentially corrupted cookies
       const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
       cookiesToClear.forEach(cookieName => {
         response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
@@ -425,11 +406,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // ✅ USE SERVICE METHOD
+    // ✅ USE NEW SERVICE METHOD
     const nicheService = new NicheResearcherService();
     const reports = await nicheService.getUserNicheReports(user.id, workspaceId || undefined);
 
-    // ✅ LOG USAGE for list access
+    // ✅ LOG USAGE
     try {
       await logUsage({
         userId: user.id,

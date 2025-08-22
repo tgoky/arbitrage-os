@@ -1,83 +1,61 @@
-// validators/nicheResearcher.validator.ts - RELAXED VERSION
+// validators/nicheResearcher.validator.ts - UPDATED TO MATCH NEW TYPES
 import { z } from 'zod';
 
 const nicheResearchSchema = z.object({
-  // Professional Background - RELAXED minimums
-  roles: z.string()
-    .min(5, 'Please provide some detail about your professional background')
-    .max(1000, 'Professional background description is too long'),
+  // Business & Strategic Goals - REQUIRED
+  primaryObjective: z.enum(['cashflow', 'equity-exit', 'lifestyle', 'audience-build', 'saas', 'agency', 'ecomm']),
+  riskAppetite: z.enum(['low', 'medium', 'high']),
   
-  skills: z.array(z.string())
-    .min(1, 'Please select at least one skill')
-    .max(10, 'Please select no more than 10 skills')
-    .refine(skills => skills.every(skill => skill.length > 0), 'Invalid skill selection'),
+  // Target Customer Preferences - REQUIRED
+  marketType: z.enum(['b2b-saas', 'b2c-consumer', 'professional-services', 'local-business', 'info-education']),
+  customerSize: z.enum(['startups', 'smb', 'enterprise', 'consumers', 'government']),
+  industries: z.array(z.string()).optional(),
+  geographicFocus: z.enum(['local', 'regional', 'us-only', 'global']).optional(),
   
-  competencies: z.string()
-    .min(5, 'Please describe your unique competencies')
-    .max(500, 'Competencies description is too long'),
-
-  // Personal Interests & Network - RELAXED minimums
-  interests: z.string()
-    .min(3, 'Please describe your interests')
-    .max(500, 'Interests description is too long'),
+  // Constraints & Resources - REQUIRED budget, others optional
+  budget: z.enum(['<10k', '10k-50k', '50k-250k', '250k+']),
+  teamSize: z.enum(['solo', 'small-team', 'established-team']).optional(),
+  skills: z.array(z.string()).max(15, 'Please select no more than 15 skills').optional(),
+  timeCommitment: z.enum(['5-10', '10-20', '20-30', '30+']).optional(),
   
-  connections: z.string()
-    .min(3, 'Please describe your network connections')
-    .max(500, 'Network description is too long'),
-  
-  audienceAccess: z.string()
-    .max(300, 'Audience access description is too long')
-    .optional(),
-
-  // Market Insights & Constraints - RELAXED minimums
+  // Market Directional Inputs - ALL OPTIONAL
   problems: z.string()
-    .min(5, 'Please describe business problems you\'ve noticed')
-    .max(1000, 'Problems description is too long'),
-  
-  trends: z.string()
-    .min(3, 'Please describe emerging trends that interest you')
-    .max(500, 'Trends description is too long'),
-  
-  // Enums - keep these strict
-  time: z.enum(['5-10', '10-20', '20-30', '30+']),
-  budget: z.enum(['0-1k', '1k-5k', '5k-10k', '10k+']),
-  location: z.enum(['remote-only', 'local-focused', 'hybrid']),
-  
-  otherConstraints: z.string()
-    .max(300, 'Other constraints description is too long')
+    .max(1000, 'Problems description is too long')
     .optional(),
-
-  // Optional fields
-  currentEmploymentStatus: z.enum(['employed', 'unemployed', 'freelancing', 'student', 'retired']).optional(),
-  industryExperience: z.array(z.string()).max(5).optional(),
-  educationLevel: z.enum(['high-school', 'bachelors', 'masters', 'phd', 'other']).optional(),
-  riskTolerance: z.enum(['low', 'medium', 'high']).optional(),
-  preferredBusinessModel: z.enum(['service', 'product', 'saas', 'ecommerce', 'marketplace', 'any']).optional()
+  excludedIndustries: z.array(z.string()).max(10).optional(),
+  monetizationPreference: z.enum(['high-ticket', 'subscription', 'low-ticket', 'ad-supported']).optional(),
+  acquisitionChannels: z.array(z.string()).max(10).optional(),
+  
+  // Validation & Scalability Factors - ALL OPTIONAL
+  validationData: z.array(z.string()).max(10).optional(),
+  competitionPreference: z.enum(['low-competition', 'high-potential']).optional(),
+  scalabilityPreference: z.enum(['stay-small', 'grow-fast', 'build-exit']).optional(),
+  
+  // System field
+  userId: z.string().optional()
 });
 
 export function validateNicheResearchInput(data: any): 
   | { success: true; data: z.infer<typeof nicheResearchSchema> }
   | { success: false; errors: any[] } {
   try {
-    // ✅ ADD PRE-VALIDATION CLEANUP
+    console.log('🔍 Validating niche research input:', data);
+    
+    // Clean up the data
     const cleanedData = {
       ...data,
-      // Ensure all string fields are strings, not undefined/null
-      roles: data.roles || '',
-      competencies: data.competencies || '',
-      interests: data.interests || '',
-      connections: data.connections || '',
-      problems: data.problems || '',
-      trends: data.trends || '',
-      audienceAccess: data.audienceAccess || '',
-      otherConstraints: data.otherConstraints || '',
-      // Ensure skills is an array
-      skills: Array.isArray(data.skills) ? data.skills : []
+      // Ensure arrays are arrays, not undefined
+      industries: Array.isArray(data.industries) ? data.industries : [],
+      excludedIndustries: Array.isArray(data.excludedIndustries) ? data.excludedIndustries : [],
+      skills: Array.isArray(data.skills) ? data.skills : [],
+      acquisitionChannels: Array.isArray(data.acquisitionChannels) ? data.acquisitionChannels : [],
+      validationData: Array.isArray(data.validationData) ? data.validationData : [],
+      // Clean string fields
+      problems: data.problems || undefined,
     };
 
-    console.log('🔍 Cleaned data for validation:', cleanedData);
-    
     const validated = nicheResearchSchema.parse(cleanedData);
+    console.log('✅ Validation successful');
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -89,7 +67,7 @@ export function validateNicheResearchInput(data: any):
   }
 }
 
-// Business logic validation
+// Business logic validation for better UX
 export function validateNicheResearchBusinessRules(data: z.infer<typeof nicheResearchSchema>): {
   isValid: boolean;
   warnings: string[];
@@ -98,151 +76,159 @@ export function validateNicheResearchBusinessRules(data: z.infer<typeof nicheRes
   const warnings: string[] = [];
   const suggestions: string[] = [];
 
-  // Time vs budget validation
-  const timeHours = {
-    '5-10': 7.5,
-    '10-20': 15,
-    '20-30': 25,
-    '30+': 35
-  } as const;
+  // Budget vs objective alignment
+  const budgetAmounts = {
+    '<10k': 5000,
+    '10k-50k': 30000,
+    '50k-250k': 150000,
+    '250k+': 500000
+  };
 
-  const budgetAmount = {
-    '0-1k': 500,
-    '1k-5k': 3000,
-    '5k-10k': 7500,
-    '10k+': 15000
-  } as const;
+  const estimatedBudget = budgetAmounts[data.budget];
 
-  const availableTime = timeHours[data.time];
-  const availableBudget = budgetAmount[data.budget];
-
-  // Low time + high expectations check
-  if (availableTime < 15 && availableBudget > 5000) {
-    warnings.push('High budget with limited time may require outsourcing or automation from the start');
-    suggestions.push('Consider niches that can be heavily automated or require minimal ongoing time investment');
+  // High-growth objectives need adequate funding
+  if ((data.primaryObjective === 'equity-exit' || data.primaryObjective === 'saas') && estimatedBudget < 30000) {
+    warnings.push('Building for equity/exit typically requires more capital for faster growth');
+    suggestions.push('Consider starting with cashflow focus and reinvesting profits for growth');
   }
 
-  // High time + low budget check
-  if (availableTime > 25 && availableBudget < 1000) {
-    suggestions.push('Your high time availability is an asset - consider service-based niches that are time-intensive but low-cost to start');
+  // Lifestyle business with high budget
+  if (data.primaryObjective === 'lifestyle' && estimatedBudget > 150000) {
+    suggestions.push('Your budget allows for premium lifestyle business opportunities or multiple revenue streams');
   }
 
-  // Skills diversity check
-  if (data.skills.length < 3) {
-    suggestions.push('Consider how you can combine your skills in unique ways for competitive advantage');
+  // Team size vs objectives
+  if (data.teamSize === 'solo' && (data.primaryObjective === 'saas' || data.primaryObjective === 'agency')) {
+    warnings.push('Solo founders in SaaS/Agency spaces face significant challenges scaling');
+    suggestions.push('Consider building strategic partnerships or planning for early hires');
   }
 
-  // Location vs business model alignment
-  if (data.location === 'local-focused') {
-    suggestions.push('Local-focused approach opens opportunities in service businesses, consulting, and location-based solutions');
-  } else if (data.location === 'remote-only') {
-    suggestions.push('Remote-only preference aligns well with digital products, online services, and global market opportunities');
+  // Time vs objectives
+  if (data.timeCommitment === '5-10' && data.primaryObjective === 'equity-exit') {
+    warnings.push('Building for exit typically requires significant time investment');
+    suggestions.push('Consider passive investment opportunities or automated business models');
   }
 
-  // Network leverage validation
-  const hasStrongNetwork = data.connections.length > 20 && 
-    (data.connections.toLowerCase().includes('industry') || 
-     data.connections.toLowerCase().includes('professional') ||
-     data.connections.toLowerCase().includes('business'));
+  // Market type vs customer size alignment
+  const misalignedCombos = [
+    { market: 'b2c-consumer', customer: 'enterprise' },
+    { market: 'professional-services', customer: 'consumers' }
+  ];
 
-  if (hasStrongNetwork) {
-    suggestions.push('Your strong professional network is a significant advantage for B2B opportunities');
-  } else {
-    suggestions.push('Consider building your network as part of your niche development strategy');
-  }
-
-  // Interest-skill alignment check
-  const skillsText = data.skills.join(' ').toLowerCase();
-  const interestsText = data.interests.toLowerCase();
-  
-  const hasAlignment = data.skills.some(skill => 
-    interestsText.includes(skill.toLowerCase()) || 
-    skill.toLowerCase().split(' ').some(word => interestsText.includes(word))
+  const hasMisalignment = misalignedCombos.some(combo => 
+    data.marketType === combo.market && data.customerSize === combo.customer
   );
 
-  if (!hasAlignment) {
-    suggestions.push('Look for ways to bridge your professional skills with your personal interests for more sustainable motivation');
+  if (hasMisalignment) {
+    warnings.push('Market type and customer size may not align optimally');
+    suggestions.push('Consider refining your target market definition');
   }
 
-  // Market awareness check
-  if (data.problems.length > 50 && data.trends.length > 20) {
-    suggestions.push('Your strong market awareness is valuable - consider thought leadership as part of your strategy');
+  // Geographic vs market type
+  if (data.geographicFocus === 'local' && data.marketType === 'b2b-saas') {
+    suggestions.push('Local focus with B2B SaaS is unusual - consider if this limits your addressable market');
+  }
+
+  // Skills analysis
+  if (data.skills && data.skills.length > 0) {
+    const techSkills = ['Tech Development', 'AI/ML', 'Data Analysis', 'SEO'];
+    const businessSkills = ['Marketing', 'Sales', 'Operations', 'Finance'];
+    
+    const hasTech = data.skills.some(skill => techSkills.includes(skill));
+    const hasBusiness = data.skills.some(skill => businessSkills.includes(skill));
+    
+    if (hasTech && hasBusiness) {
+      suggestions.push('Your tech-business skill combination is valuable for modern opportunities');
+    } else if (hasTech && !hasBusiness) {
+      suggestions.push('Consider developing business skills to complement your technical expertise');
+    } else if (!hasTech && hasBusiness) {
+      suggestions.push('Your business skills are strong - consider how to leverage technology for scaling');
+    }
+  }
+
+  // Risk appetite vs preferences
+  if (data.riskAppetite === 'low' && data.competitionPreference === 'high-potential') {
+    warnings.push('Low risk appetite typically conflicts with high-potential (competitive) markets');
+    suggestions.push('Consider focusing on proven markets with differentiation opportunities');
   }
 
   return {
-    isValid: true, // Business rules don't invalidate, just guide
+    isValid: true,
     warnings,
     suggestions
   };
 }
 
-// Helper function to extract insights from input
-export function extractNicheInsights(data: z.infer<typeof nicheResearchSchema>) {
+// Helper to extract key insights from validated input
+export function extractNicheInputInsights(data: z.infer<typeof nicheResearchSchema>) {
   const insights = {
-    primaryStrengths: [] as string[],
-    marketOpportunities: [] as string[],
-    constraintFactors: [] as string[],
-    recommendedDirection: ''
+    primaryFocus: '',
+    keyConstraints: [] as string[],
+    opportunities: [] as string[],
+    recommendations: [] as string[]
   };
 
-  // Analyze primary strengths
-  if (data.skills.length >= 3) {
-    insights.primaryStrengths.push('Diverse skill set enables multi-faceted approach');
+  // Primary focus based on objective
+  const focusMap = {
+    'cashflow': 'Immediate revenue generation',
+    'equity-exit': 'Building scalable, valuable business',
+    'lifestyle': 'Work-life balance optimization',
+    'audience-build': 'Community and audience development',
+    'saas': 'Recurring revenue software',
+    'agency': 'Service-based business model',
+    'ecomm': 'Product sales and commerce'
+  };
+
+  insights.primaryFocus = focusMap[data.primaryObjective];
+
+  // Key constraints
+  const budgetConstraint = {
+    '<10k': 'Bootstrap/lean startup approach required',
+    '10k-50k': 'Moderate initial investment available',
+    '50k-250k': 'Substantial funding for growth',
+    '250k+': 'Well-funded startup opportunity'
+  };
+
+  insights.keyConstraints.push(budgetConstraint[data.budget]);
+
+  if (data.timeCommitment) {
+    const timeConstraint = {
+      '5-10': 'Part-time commitment limits scope',
+      '10-20': 'Moderate time investment available',
+      '20-30': 'Significant time for business building',
+      '30+': 'Full-time entrepreneurial focus'
+    };
+    insights.keyConstraints.push(timeConstraint[data.timeCommitment]);
   }
 
-  const techSkills = ['software development', 'data analysis', 'digital marketing', 'seo', 'web development'];
-  const hasTechSkills = data.skills.some(skill => 
-    techSkills.some(tech => skill.toLowerCase().includes(tech))
-  );
-
-  if (hasTechSkills) {
-    insights.primaryStrengths.push('Technical expertise provides strong foundation for digital opportunities');
+  if (data.teamSize === 'solo') {
+    insights.keyConstraints.push('Solo founder requires efficient, manageable scope');
   }
 
-  const businessSkills = ['project management', 'sales', 'marketing', 'business development', 'consulting'];
-  const hasBusinessSkills = data.skills.some(skill => 
-    businessSkills.some(biz => skill.toLowerCase().includes(biz))
-  );
-
-  if (hasBusinessSkills) {
-    insights.primaryStrengths.push('Business acumen supports entrepreneurial ventures');
+  // Opportunities based on skills and preferences
+  if (data.skills && data.skills.length > 0) {
+    insights.opportunities.push(`Leverage ${data.skills.length} identified skills for competitive advantage`);
   }
 
-  // Analyze market opportunities from problems/trends
-  const problemKeywords = ['automation', 'efficiency', 'cost', 'time', 'remote', 'digital', 'sustainability'];
-  const hasMarketOpportunity = problemKeywords.some(keyword => 
-    data.problems.toLowerCase().includes(keyword) || data.trends.toLowerCase().includes(keyword)
-  );
-
-  if (hasMarketOpportunity) {
-    insights.marketOpportunities.push('Identified problems align with current market trends');
+  if (data.geographicFocus === 'global') {
+    insights.opportunities.push('Global focus expands addressable market significantly');
   }
 
-  // Analyze constraint factors
-  const timeCommitment = data.time;
-  const budget = data.budget;
-
-  if (timeCommitment === '5-10') {
-    insights.constraintFactors.push('Limited time requires efficient, scalable solutions');
-  } else if (timeCommitment === '30+') {
-    insights.constraintFactors.push('High time availability enables hands-on, service-intensive approaches');
+  if (data.acquisitionChannels && data.acquisitionChannels.length > 0) {
+    insights.opportunities.push('Clear acquisition strategy preferences identified');
   }
 
-  if (budget === '0-1k') {
-    insights.constraintFactors.push('Low budget favors service-based, knowledge-work opportunities');
-  } else if (budget === '10k+') {
-    insights.constraintFactors.push('Higher budget enables product development and marketing investment');
+  // Generate recommendations
+  if (data.riskAppetite === 'low' && data.budget === '<10k') {
+    insights.recommendations.push('Focus on service-based businesses with predictable revenue');
   }
 
-  // Generate recommended direction
-  if (hasTechSkills && hasBusinessSkills) {
-    insights.recommendedDirection = 'Tech-enabled business consulting or digital product development';
-  } else if (hasTechSkills) {
-    insights.recommendedDirection = 'Technical services or software solutions';
-  } else if (hasBusinessSkills) {
-    insights.recommendedDirection = 'Business consulting or service-based offerings';
-  } else {
-    insights.recommendedDirection = 'Leverage unique skill combination for specialized services';
+  if (data.primaryObjective === 'saas' && data.skills?.includes('Tech Development')) {
+    insights.recommendations.push('Technical background strongly supports SaaS development');
+  }
+
+  if (data.marketType === 'b2b-saas' && data.customerSize === 'smb') {
+    insights.recommendations.push('SMB B2B SaaS market offers good balance of opportunity and accessibility');
   }
 
   return insights;
