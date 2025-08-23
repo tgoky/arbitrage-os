@@ -83,6 +83,13 @@ const PricingCalculator = () => {
   const { exportCalculation, loading: exportLoading } = useCalculationExport();
   const { validateInput, getBusinessInsights } = usePricingValidation();
 
+  const calculatorDisabledStyle = {
+  pointerEvents: 'none' as const,
+  opacity: 0.6,
+  position: 'relative' as const
+};
+
+
   const [exportState, setExportState] = useState<{
   loading: boolean;
   type: string | null;
@@ -302,115 +309,170 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
         size="large"
       >
         <TabPane 
-          tab={
-            <span>
-              <CalculatorOutlined />
-              Calculator
-            </span>
-          } 
-          key="calculator"
-        >
-          <Row gutter={[24, 24]}>
-            <Col xs={24} lg={12}>
-              <Card>
-                <div className="flex justify-between items-center mb-4">
-                  <Title level={4} className="flex items-center mb-0">
-                    <DollarOutlined className="mr-2" />
-                    Pricing Inputs
-                  </Title>
-                  <Switch
-                    checkedChildren="Advanced"
-                    unCheckedChildren="Basic"
-                    checked={showAdvanced}
-                    onChange={setShowAdvanced}
-                  />
-                </div>
+  tab={
+    <span>
+      <CalculatorOutlined />
+      Calculator
+      {currentPackage && (
+        <Badge 
+          count="Results Generated" 
+          style={{ 
+            backgroundColor: '#52c41a',
+            marginLeft: 8,
+            fontSize: '10px',
+            height: '16px',
+            lineHeight: '16px'
+          }} 
+        />
+      )}
+    </span>
+  } 
+  key="calculator"
+>
+  <div style={currentPackage ? calculatorDisabledStyle : {}}>
+    {/* Show overlay message when calculator is disabled */}
+    {currentPackage && (
+      <Alert
+        message="Calculator Locked"
+        description={
+          <div>
+            <p>Your pricing strategy has been generated! The calculator is now locked to prevent accidental changes.</p>
+            <p>Click <strong>"Generate New Strategy"</strong> in the Results tab to create a new calculation.</p>
+          </div>
+        }
+        type="info"
+        showIcon
+        action={
+          <Button
+            type="primary"
+            onClick={() => {
+              setActiveTab('results');
+              setTimeout(() => {
+                const resultsElement = document.getElementById('pricing-results');
+                if (resultsElement) {
+                  resultsElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                  });
+                }
+              }, 100);
+            }}
+          >
+            Go to Results
+          </Button>
+        }
+        className="mb-6"
+        banner
+      />
+    )}
+    
+    <Row gutter={[24, 24]}>
+      <Col xs={24} lg={12}>
+        <Card>
+          <div className="flex justify-between items-center mb-4">
+            <Title level={4} className="flex items-center mb-0">
+              <DollarOutlined className="mr-2" />
+              Pricing Inputs
+              {currentPackage && (
+                <Tag color="green" className="ml-2">Completed</Tag>
+              )}
+            </Title>
+            <Switch
+              checkedChildren="Advanced"
+              unCheckedChildren="Basic"
+              checked={showAdvanced}
+              onChange={setShowAdvanced}
+              disabled={!!currentPackage} // ✅ Disable switch when results generated
+            />
+          </div>
 
-                <Form
-                  form={form}
-                  layout="vertical"
-                  onFinish={onFinish}
-                  onValuesChange={handleFormChange}
-                  initialValues={{
-                    annualSavings: 100000,
-                    hoursPerWeek: 20,
-                    roiMultiple: 5,
-                    experienceLevel: 'intermediate',
-                    deliveryRisk: 'medium',
-                    clientUrgency: 'medium',
-                    relationshipType: 'new',
-                    paymentTerms: 'monthly',
-                    marketDemand: 'medium',
-                    competitionLevel: 'medium'
-                  }}
-                >
-                  {/* Basic Fields */}
-                  <Form.Item
-                    name="annualSavings"
-                    label={
-                      <span>
-                        Annual Client Savings{' '}
-                        <Tooltip title="How much money will your services save/make the client per year?">
-                          <InfoCircleOutlined />
-                        </Tooltip>
-                      </span>
-                    }
-                    rules={[
-                      { required: true, message: 'Please input estimated savings!' },
-                      { type: 'number', min: 100, message: 'Minimum $100' }
-                    ]}
-                  >
-                   <InputNumber
-  prefix="$"
-  placeholder="100000"
-  size="large"
-  style={{ width: '100%' }}
-  formatter={(value) => `${value}`.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')}
-  parser={(value) => value!.replace(/\\$\\s?|(,*)/g, '')}
-/>
-                  </Form.Item>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            onValuesChange={handleFormChange}
+            disabled={!!currentPackage} // ✅ Disable entire form when results generated
+            initialValues={{
+              annualSavings: 100000,
+              hoursPerWeek: 20,
+              roiMultiple: 5,
+              experienceLevel: 'intermediate',
+              deliveryRisk: 'medium',
+              clientUrgency: 'medium',
+              relationshipType: 'new',
+              paymentTerms: 'monthly',
+              marketDemand: 'medium',
+              competitionLevel: 'medium',
+               guaranteeOffered: false,
+               seasonality: false,
+            }}
+          >
+            {/* Keep ALL your existing form fields exactly the same */}
+            <Form.Item
+              name="annualSavings"
+              label={
+                <span>
+                  Annual Client Savings{' '}
+                  <Tooltip title="How much money will your services save/make the client per year?">
+                    <InfoCircleOutlined />
+                  </Tooltip>
+                </span>
+              }
+              rules={[
+                { required: true, message: 'Please input estimated savings!' },
+                { type: 'number', min: 100, message: 'Minimum $100' }
+              ]}
+            >
+             <InputNumber
+                prefix="$"
+                placeholder="100000"
+                size="large"
+                style={{ width: '100%' }}
+                formatter={(value) => `${value}`.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')}
+                parser={(value) => value!.replace(/\\$\\s?|(,*)/g, '')}
+              />
+            </Form.Item>
 
-                  <Form.Item
-                    name="hoursPerWeek"
-                    label="Hours Worked Per Week"
-                    rules={[{ required: true, message: 'Please input hours!' }]}
-                  >
-                    <Slider
-                      min={5}
-                      max={40}
-                      marks={{
-                        5: '5h',
-                        20: '20h',
-                        40: '40h'
-                      }}
-                    />
-                  </Form.Item>
+            <Form.Item
+              name="hoursPerWeek"
+              label="Hours Worked Per Week"
+              rules={[{ required: true, message: 'Please input hours!' }]}
+            >
+              <Slider
+                min={5}
+                max={40}
+                marks={{
+                  5: '5h',
+                  20: '20h',
+                  40: '40h'
+                }}
+              />
+            </Form.Item>
 
-                  <Form.Item
-                    name="roiMultiple"
-                    label={
-                      <span>
-                        ROI Multiple{' '}
-                        <Tooltip title="How much of the value created should you capture? Higher multiples for specialized expertise.">
-                          <InfoCircleOutlined />
-                        </Tooltip>
-                      </span>
-                    }
-                    rules={[{ required: true, message: 'Please select ROI multiple!' }]}
-                  >
-                    <Slider
-                      min={2}
-                      max={15}
-                      step={0.5}
-                      marks={{
-                        2: '2x',
-                        5: '5x',
-                        10: '10x',
-                        15: '15x'
-                      }}
-                    />
-                  </Form.Item>
-
+            <Form.Item
+              name="roiMultiple"
+              label={
+                <span>
+                  ROI Multiple{' '}
+                  <Tooltip title="How much of the value created should you capture? Higher multiples for specialized expertise.">
+                    <InfoCircleOutlined />
+                  </Tooltip>
+                </span>
+              }
+              rules={[{ required: true, message: 'Please select ROI multiple!' }]}
+            >
+              <Slider
+                min={2}
+                max={15}
+                step={0.5}
+                marks={{
+                  2: '2x',
+                  5: '5x',
+                  10: '10x',
+                  15: '15x'
+                }}
+              />
+            </Form.Item>
                   {/* Advanced Fields */}
                   {showAdvanced && (
                     <>
@@ -531,19 +593,33 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                       icon={<ReloadOutlined />}
                       onClick={resetForm}
                       size="large"
+                       disabled={!!currentPackage}
                     >
                       Reset
                     </Button>
-                    <Button
-        type="primary"
-        htmlType="submit"
-        disabled={isGenerating} // ✅ Only disable during generation
-        icon={<BulbOutlined />}
-        loading={isGenerating} // ✅ Only loading during generation
-        size="large"
-      >
-        {isGenerating ? 'Generating AI Insights...' : 'Generate Pricing Strategy'}
-      </Button>
+                      {!currentPackage ? (
+                // ✅ Show generate button only when no results
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  disabled={isGenerating}
+                  icon={<BulbOutlined />}
+                  loading={isGenerating}
+                  size="large"
+                >
+                  {isGenerating ? 'Generating AI Insights...' : 'Generate Pricing Strategy'}
+                </Button>
+              ) : (
+                // ✅ Show locked message when results exist
+                <Button
+                  type="default"
+                  icon={<BulbOutlined />}
+                  onClick={() => setActiveTab('results')}
+                  size="large"
+                >
+                  View Generated Results
+                </Button>
+              )}
                   </div>
                 </Form>
               </Card>
@@ -706,8 +782,10 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
   </Card>
 )}
 
-            </Col>
-          </Row>
+
+              </Col> 
+          </Row> 
+        </div> 
         </TabPane>
 
         <TabPane 
@@ -753,34 +831,35 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
 >
   Contract
 </Button>
-        <Button 
+       <Button
   type="primary"
-  icon={<DownloadOutlined />} 
+  icon={<DownloadOutlined />}
   onClick={() => handleExport('complete')}
   disabled={isExporting}
   loading={isExporting && exportingType === 'complete'}
+  style={{ backgroundColor: '#28a745', borderColor: '#28a745' }} // Bootstrap green
 >
   Complete Package
 </Button>
+
           
           {/* ✅ NEW: Generate New Strategy Button */}
-          <Button
-            type="default"
-            icon={<BulbOutlined />}
-            onClick={() => {
-              // Reset to calculator tab and clear results
-              setActiveTab('calculator');
-              setCurrentPackage(null);
-              setSavedCalculationId(null);
-              // Optionally scroll back to top
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            disabled={isExporting || isGenerating} // Don't allow during operations
-            size="large"
-            className="ml-4" // Add some spacing
-          >
-            Generate New Strategy
-          </Button>
+       <Button
+  type="primary"   // ✅ makes it AntD blue
+  icon={<BulbOutlined />}
+  onClick={() => {
+    setActiveTab('calculator');
+    setCurrentPackage(null);
+    setSavedCalculationId(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }}
+  disabled={isExporting || isGenerating}
+  size="middle"
+  className="ml-4"
+>
+  Generate New Strategy
+</Button>
+
         </Space>
       </div>
     </Card>
@@ -1037,6 +1116,7 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
         </TabPane>
       </Tabs>
     </div>
+    
   );
 };
 
