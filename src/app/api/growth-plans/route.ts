@@ -1,9 +1,9 @@
-// app/api/growth-plans/route.ts - WITH ROBUST AUTHENTICATION
+// app/api/growth-plans/route.ts - WITH DATABASE SAVING ENABLED
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma'; // ✅ FIXED IMPORT
+import { prisma } from '@/lib/prisma';
 import { GrowthPlanService } from '@/services/growthPlan.service';
 import { validateGrowthPlanInput, validateGrowthPlanBusinessRules } from '../../validators/growthPlan.validator';
 import { rateLimit } from '@/lib/rateLimit';
@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ ROBUST AUTHENTICATION (same as cold email)
+// ✅ ROBUST AUTHENTICATION (same as before)
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -198,10 +198,6 @@ export async function POST(request: NextRequest) {
     console.log('📥 Parsing growth plan request body...');
     const body: CreateGrowthPlanRequest = await request.json();
     
-    // ✅ DEBUG LOGGING
-    console.log('🔍 GROWTH PLAN RECEIVED BODY:', JSON.stringify(body, null, 2));
-    console.log('🔍 GROWTH PLAN BODY KEYS:', Object.keys(body));
-    
     const { input, workspaceId } = body;
 
     if (!input) {
@@ -233,11 +229,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Validation failed',
-          data: validation.errors,
-          debug: {
-            receivedInput: input,
-            inputWithUserId: Object.keys(inputWithUserId)
-          }
+          data: validation.errors
         },
         { status: 400 }
       );
@@ -270,7 +262,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Growth plan input validation passed');
 
-    // ✅ GET USER'S WORKSPACE with error handling (same pattern as cold email)
+    // ✅ GET USER'S WORKSPACE with error handling
     console.log('🔍 Getting/creating workspace for growth plan user:', userId);
     let workspace;
     try {
@@ -323,28 +315,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ COMMENTED OUT: Save to database
-    // console.log('💾 Saving growth plan to database...');
-    // let planId;
-    // try {
-    //   planId = await growthPlanService.saveGrowthPlan(
-    //     userId, 
-    //     workspaceId || workspace.id, 
-    //     plan, 
-    //     inputWithUserId
-    //   );
-    //   console.log('✅ Growth plan saved with ID:', planId);
-    // } catch (saveError) {
-    //   console.error('💥 Error saving growth plan:', saveError);
-    //   return NextResponse.json(
-    //     { 
-    //       success: false,
-    //       error: 'Failed to save growth plan. Please try again.',
-    //       debug: saveError instanceof Error ? saveError.message : 'Unknown save error'
-    //     },
-    //     { status: 500 }
-    //   );
-    // }
+  if (!userId || typeof userId !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId)) {
+  console.error("🚨 INVALID USER ID DETECTED:", userId);
+  return NextResponse.json(
+    { success: false, error: "Authentication failed: Invalid user ID." },
+    { status: 401 } // 401 Unauthorized is appropriate for auth issues
+  );
+}
+
+// 2. Determine and Validate finalWorkspaceId
+let finalWorkspaceId: string;
+
+// Check if workspaceId from request body is a valid UUID string
+if (workspaceId && typeof workspaceId === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(workspaceId)) {
+  console.log("   Using workspaceId from request body");
+  finalWorkspaceId = workspaceId;
+} else {
+  // Fallback to the user's default workspace ID obtained from DB
+  console.log("   Using default workspace ID from DB lookup");
+  finalWorkspaceId = workspace.id;
+}
+
+// 3. Validate finalWorkspaceId (crucial check)
+if (!finalWorkspaceId || typeof finalWorkspaceId !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(finalWorkspaceId)) {
+   console.error("🚨 INVALID WORKSPACE ID DETECTED for saving:", finalWorkspaceId, "Type:", typeof finalWorkspaceId);
+   // Log the values for debugging
+   console.error("   workspaceId (from body):", workspaceId, "Type:", typeof workspaceId);
+   console.error("   workspace.id (from DB):", workspace.id, "Type:", typeof workspace.id);
+   return NextResponse.json(
+     { success: false, error: "Invalid workspace ID format provided or could not determine a valid workspace." },
+     { status: 400 } // 400 Bad Request for invalid input
+   );
+}
+
+// --- End of validation logic ---
+
+// Now use finalWorkspaceId in the save call
+console.log('💾 Saving growth plan to database...');
+console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWorkspaceId); // Extra debug log
+let planId;
+try {
+  planId = await growthPlanService.saveGrowthPlan(
+    userId,
+    finalWorkspaceId, // <-- Use the validated ID
+    plan,
+    inputWithUserId
+  );
+  console.log('✅ Growth plan saved with ID:', planId);
+} catch (saveError) {
+
+      console.error('💥 Error saving growth plan:', saveError);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Failed to save growth plan. Please try again.',
+          debug: saveError instanceof Error ? saveError.message : 'Unknown save error'
+        },
+        { status: 500 }
+      );
+    }
 
     // ✅ LOG USAGE: Track AI token consumption
     console.log('📊 Logging growth plan usage...');
@@ -355,7 +384,7 @@ export async function POST(request: NextRequest) {
         tokens: plan.tokensUsed,
         timestamp: new Date(),
         metadata: {
-          planId: undefined, // No real planId since not saved
+          planId,
           clientCompany: input.clientCompany,
           industry: input.industry,
           timeframe: input.timeframe,
@@ -371,13 +400,16 @@ export async function POST(request: NextRequest) {
     const response: GrowthPlanServiceResponse<CreateGrowthPlanResponse> = {
       success: true,
       data: {
-        // planId is optional, so we omit it when not saving to DB
+        planId,
         plan
       },
-      message: 'Growth plan generated successfully (not saved to database)',
+      message: 'Growth plan generated and saved successfully',
       meta: {
-        saved: false,
-        temporary: true
+        saved: true,
+        workspace: workspace.name,
+        planId,
+        tokensUsed: plan.tokensUsed,
+        generationTime: plan.generationTime
       }
     };
 
@@ -454,24 +486,76 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    
-    const workspaceId = searchParams.get('workspaceId');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const industry = searchParams.get('industry');
-    const timeframe = searchParams.get('timeframe');
+  const { searchParams } = new URL(request.url);
+// Get raw workspaceId from query params
+const rawWorkspaceId = searchParams.get('workspaceId'); // This could be 'default', a UUID, or null
+const limit = parseInt(searchParams.get('limit') || '20');
+const offset = parseInt(searchParams.get('offset') || '0');
+const industry = searchParams.get('industry');
+const timeframe = searchParams.get('timeframe');
 
-    console.log('🔍 Fetching growth plans for user:', userId);
-    
-    let plans;
-    try {
-      plans = await growthPlanService.getUserGrowthPlans(
-        userId, 
-        workspaceId || undefined
-      );
-      console.log('✅ Retrieved', plans.length, 'growth plans');
-    } catch (serviceError) {
+console.log('🔍 Fetching growth plans for user:', userId, 'Raw workspaceId from query:', rawWorkspaceId);
+
+// --- Add Robust Workspace ID Handling for GET ---
+let finalWorkspaceIdForFetch: string | undefined;
+
+// Validate the rawWorkspaceId from the query
+if (rawWorkspaceId && typeof rawWorkspaceId === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(rawWorkspaceId)) {
+  console.log("   Using valid workspaceId from query parameter");
+  finalWorkspaceIdForFetch = rawWorkspaceId;
+} else if (rawWorkspaceId === 'default' || !rawWorkspaceId) { // Handle 'default' string or missing ID
+  // Need to get the user's actual default workspace ID
+  console.log("   Need to resolve 'default' or missing workspaceId. Fetching user's default workspace...");
+  try {
+    const defaultWorkspace = await prisma.workspace.findFirst({
+      where: { user_id: userId, slug: 'default' } // Or find the one created for the user
+      // Or perhaps just: where: { user_id: userId } and take the first one if there's only one default-like
+      // Adjust this query based on how you identify the "default" workspace for the user.
+      // The safest way is to use the same logic as in POST to get the workspace.id
+    });
+
+    if (defaultWorkspace) {
+      console.log("   Resolved 'default' to workspace ID:", defaultWorkspace.id);
+      finalWorkspaceIdForFetch = defaultWorkspace.id;
+    } else {
+      console.warn("   User's default workspace not found. Fetching plans for all user workspaces or none?");
+      // Decide: Fetch for all user's workspaces? Or return empty?
+      // For now, let's pass undefined to potentially fetch all for the user, or handle as needed.
+      // You might want to refine this logic.
+      finalWorkspaceIdForFetch = undefined; // Or handle error
+      // Alternatively, if you *always* want a workspace, you could create it here too,
+      // but that's usually done in POST.
+    }
+  } catch (dbError) {
+    console.error('💥 Database error resolving default workspace ID for GET:', dbError);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Database error resolving workspace.',
+      },
+      { status: 500 }
+    );
+  }
+} else {
+  // rawWorkspaceId is a string but not a valid UUID nor 'default'
+  console.warn("   Invalid workspaceId format received in query:", rawWorkspaceId);
+  // Decide: Return error or ignore filter?
+  // Let's ignore the invalid filter for now and fetch for the user generally.
+  finalWorkspaceIdForFetch = undefined;
+}
+// --- End of Robust Workspace ID Handling for GET ---
+
+console.log('🔍 Fetching growth plans for user:', userId, 'Using resolved/final workspaceId:', finalWorkspaceIdForFetch);
+
+let plans;
+try {
+  // Pass the validated/resolved workspaceId
+  plans = await growthPlanService.getUserGrowthPlans(
+    userId,
+    finalWorkspaceIdForFetch // <-- Use the resolved ID here
+  );
+  console.log('✅ Retrieved', plans.length, 'growth plans');
+} catch (serviceError) {
       console.error('💥 Error fetching growth plans:', serviceError);
       return NextResponse.json(
         { 
@@ -504,7 +588,7 @@ export async function GET(request: NextRequest) {
         tokens: 0,
         timestamp: new Date(),
         metadata: {
-          workspaceId,
+            workspaceId: finalWorkspaceIdForFetch, 
           resultCount: paginatedPlans.length,
           totalCount: filteredPlans.length,
           filters: { industry, timeframe }

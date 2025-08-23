@@ -1,5 +1,5 @@
-// hooks/useGrowthPlan.ts - FIXED ORDER
-import { useState, useEffect, useCallback } from 'react';
+// hooks/useGrowthPlan.ts - ALL ISSUES FIXED
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { message, notification } from 'antd';
 import {
   GrowthPlanInput,
@@ -23,6 +23,19 @@ interface UseGrowthPlanOptions {
 }
 
 export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
+  // ✅ FIXED: Mounted state tracking
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const isMounted = () => isMountedRef.current;
+
+  // Loading states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
@@ -46,7 +59,40 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     }
   }, [abortController]);
 
-  // ✅ MOVE fetchPlans BEFORE generateGrowthPlan
+  // ✅ FIXED: fetchPlan DECLARED BEFORE generateGrowthPlan
+  const fetchPlan = useCallback(async (planId: string): Promise<SavedGrowthPlan | null> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/growth-plans/${planId}`);
+      const result: GrowthPlanServiceResponse<GetGrowthPlanResponse> = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch growth plan');
+      }
+
+      if (result.success && result.data && isMounted()) {
+        setCurrentPlan(result.data.plan);
+        return result.data.plan;
+      } else {
+        throw new Error(result.error || 'Invalid response format');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch plan';
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
+      return null;
+    } finally {
+      if (isMounted()) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  // ✅ FIXED: fetchPlans with isMounted checks
   const fetchPlans = useCallback(async (filters?: {
     industry?: string;
     timeframe?: string;
@@ -71,7 +117,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error(result.error || 'Failed to fetch growth plans');
       }
 
-      if (result.success && result.data) {
+      if (result.success && result.data && isMounted()) {
         setPlans(result.data.plans);
         return result.data.plans;
       } else {
@@ -79,17 +125,21 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch plans';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return [];
     } finally {
-      setLoading(false);
+      if (isMounted()) {
+        setLoading(false);
+      }
     }
   }, [options.workspaceId]);
 
-  // ✅ NOW generateGrowthPlan can reference fetchPlans
+  // ✅ FIXED: generateGrowthPlan with proper isMounted calls
   const generateGrowthPlan = useCallback(async (input: Omit<GrowthPlanInput, 'userId'>): Promise<GeneratedGrowthPlan | null> => {
-    cleanup(); // Cancel any existing request
+    cleanup();
     
     const controller = new AbortController();
     setAbortController(controller);
@@ -111,6 +161,12 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         workspaceId: options.workspaceId
       };
 
+      console.log('🚀 Generating growth plan with data:', {
+        clientCompany: input.clientCompany,
+        industry: input.industry,
+        timeframe: input.timeframe
+      });
+
       const response = await fetch('/api/growth-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,59 +176,82 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
 
       const result: GrowthPlanServiceResponse<CreateGrowthPlanResponse> = await response.json();
       
+      console.log('📊 Generation response:', {
+        ok: response.ok,
+        status: response.status,
+        success: result.success,
+        hasPlanId: !!result.data?.planId,
+        hasPlan: !!result.data?.plan
+      });
+      
       if (!response.ok) {
         throw new Error(result.error || `Server error: ${response.status}`);
       }
 
-      if (result.success && result.data) {
-        // ✅ Check if plan was saved or is temporary
-        const isSaved = result.meta?.saved === true;
+      if (result.success && result.data && isMounted()) {
+        const { planId, plan } = result.data;
         
-        if (isSaved) {
-          notification.success({
-            message: 'Growth Plan Created!',
-            description: 'Your growth plan has been saved successfully.',
-            placement: 'topRight',
-          });
-          
-          // Refresh plans list only if saved
-          await fetchPlans();
+        // ✅ SUCCESS: Plan was generated and saved to database
+        notification.success({
+          message: 'Growth Plan Created!',
+          description: `Your growth plan for ${input.clientCompany} has been saved successfully.`,
+          placement: 'topRight',
+        });
+        
+        console.log('✅ Plan created successfully:', {
+          planId,
+          saved: !!planId,
+          tokensUsed: plan.tokensUsed
+        });
+
+        // ✅ FIXED: Call isMounted as function
+        if (planId && isMounted()) {
+          console.log('🔄 Fetching full saved plan...');
+          try {
+            const savedPlan = await fetchPlan(planId);
+            if (savedPlan && isMounted()) {
+              console.log('✅ Full plan loaded, setting as current');
+              setCurrentPlan(savedPlan);
+            }
+          } catch (fetchError) {
+            console.warn('⚠️ Could not fetch saved plan, creating temporary:', fetchError);
+            
+            if (isMounted()) {
+              // ✅ Fallback: Create temporary plan object for viewing
+              const tempPlan: SavedGrowthPlan = {
+                id: planId,
+                title: `Growth Plan - ${input.clientCompany}`,
+                plan,
+                metadata: {
+                  clientCompany: input.clientCompany,
+                  industry: input.industry,
+                  timeframe: input.timeframe,
+                  contactName: input.contactName || '',
+                  contactRole: input.contactRole || '',
+                  generatedAt: new Date().toISOString(),
+                  tokensUsed: plan.tokensUsed,
+                  generationTime: plan.generationTime,
+                  consultant: {
+                    name: input.name,
+                    company: input.company,
+                    expertise: input.expertise
+                  }
+                },
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+              
+              setCurrentPlan(tempPlan);
+            }
+          }
         } else {
-          notification.success({
-            message: 'Growth Plan Generated!',
-            description: 'Your growth plan was generated successfully. Note: Plans are not being saved currently.',
-            placement: 'topRight',
-          });
-          
-          // ✅ Create a temporary SavedGrowthPlan object for viewing
-          const tempPlan: SavedGrowthPlan = {
-            id: `temp-${Date.now()}`,
-            title: `Growth Plan - ${input.clientCompany}`,
-            plan: result.data.plan,
-            metadata: {
-              clientCompany: input.clientCompany,
-              industry: input.industry,
-              timeframe: input.timeframe,
-              contactName: input.contactName || '',
-              contactRole: input.contactRole || '',
-              generatedAt: new Date().toISOString(),
-              tokensUsed: result.data.plan.tokensUsed,
-              generationTime: result.data.plan.generationTime,
-              consultant: {
-                name: input.name,
-                company: input.company,
-                expertise: input.expertise
-              }
-            },
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          
-          // ✅ Set as current plan for viewing
-          setCurrentPlan(tempPlan);
+          console.warn('⚠️ No planId returned, plan may not have been saved');
         }
         
-        return result.data.plan;
+        // ✅ Refresh the plans list
+        await fetchPlans();
+        
+        return plan;
       } else {
         throw new Error(result.error || 'Invalid response format');
       }
@@ -183,49 +262,24 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
       
       const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-      setError(errorMessage);
       
-      notification.error({
-        message: 'Generation Failed',
-        description: errorMessage,
-        placement: 'topRight',
-      });
+      if (isMounted()) {
+        setError(errorMessage);
+        notification.error({
+          message: 'Generation Failed',
+          description: errorMessage,
+          placement: 'topRight',
+        });
+      }
       
       throw err;
     } finally {
-      setGenerationLoading(false);
-      setAbortController(null);
-    }
-  }, [options.workspaceId, cleanup, fetchPlans]);
-
-  // Fetch a specific growth plan
-  const fetchPlan = useCallback(async (planId: string): Promise<SavedGrowthPlan | null> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/growth-plans/${planId}`);
-      const result: GrowthPlanServiceResponse<GetGrowthPlanResponse> = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch growth plan');
+      if (isMounted()) {
+        setGenerationLoading(false);
+        setAbortController(null);
       }
-
-      if (result.success && result.data) {
-        setCurrentPlan(result.data.plan);
-        return result.data.plan;
-      } else {
-        throw new Error(result.error || 'Invalid response format');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch plan';
-      setError(errorMessage);
-      message.error(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [options.workspaceId, cleanup, fetchPlans, fetchPlan]);
 
   // Update a growth plan
   const updatePlan = useCallback(async (
@@ -253,7 +307,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error(result.error || 'Failed to update growth plan');
       }
 
-      if (result.success && result.data) {
+      if (result.success && result.data && isMounted()) {
         notification.success({
           message: 'Plan Updated!',
           description: 'Your growth plan has been updated successfully.',
@@ -274,17 +328,21 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update plan';
-      setError(errorMessage);
       
-      notification.error({
-        message: 'Update Failed',
-        description: errorMessage,
-        placement: 'topRight',
-      });
+      if (isMounted()) {
+        setError(errorMessage);
+        notification.error({
+          message: 'Update Failed',
+          description: errorMessage,
+          placement: 'topRight',
+        });
+      }
       
       return null;
     } finally {
-      setUpdateLoading(false);
+      if (isMounted()) {
+        setUpdateLoading(false);
+      }
     }
   }, [currentPlan, fetchPlan, fetchPlans]);
 
@@ -304,7 +362,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error(result.error || 'Failed to delete growth plan');
       }
 
-      if (result.success) {
+      if (result.success && isMounted()) {
         message.success('Growth plan deleted successfully');
         
         // Remove from local state
@@ -321,11 +379,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete plan';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return false;
     } finally {
-      setDeleteLoading(prev => ({ ...prev, [planId]: false }));
+      if (isMounted()) {
+        setDeleteLoading(prev => ({ ...prev, [planId]: false }));
+      }
     }
   }, [currentPlan]);
 
@@ -345,7 +407,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error(result.error || 'Failed to export growth plan');
       }
 
-      if (result.success && result.data) {
+      if (result.success && result.data && isMounted()) {
         // Create download
         const blob = new Blob([result.data.content], { type: result.data.mimeType });
         const url = URL.createObjectURL(blob);
@@ -368,11 +430,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to export plan';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return null;
     } finally {
-      setExportLoading(prev => ({ ...prev, [planId]: false }));
+      if (isMounted()) {
+        setExportLoading(prev => ({ ...prev, [planId]: false }));
+      }
     }
   }, []);
 
@@ -411,11 +477,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Search failed';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return [];
     } finally {
-      setLoading(false);
+      if (isMounted()) {
+        setLoading(false);
+      }
     }
   }, [options.workspaceId]);
 
@@ -431,26 +501,44 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       params.set('timeframe', timeframe);
       if (options.workspaceId) params.set('workspaceId', options.workspaceId);
 
+      console.log('📊 Fetching real analytics from:', `/api/growth-plans/analytics?${params.toString()}`);
+      
       const response = await fetch(`/api/growth-plans/analytics?${params.toString()}`);
       const result: GrowthPlanServiceResponse<GrowthPlanAnalytics> = await response.json();
       
+      console.log('📊 Analytics response:', { 
+        ok: response.ok, 
+        status: response.status, 
+        success: result.success,
+        hasData: !!result.data,
+        totalPlans: result.data?.totalPlans
+      });
+      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch analytics');
+        console.warn('⚠️ Analytics API returned non-200 status:', response.status, result.error);
+        return null;
       }
 
-      if (result.success && result.data) {
+      if (result.success && result.data && isMounted()) {
+        console.log('✅ Real analytics loaded successfully:');
+        console.log('- Total plans:', result.data.totalPlans);
+        console.log('- Recent plans:', result.data.plansThisMonth);
+        console.log('- Top industries:', result.data.topIndustries?.length);
+        
         setAnalytics(result.data);
         return result.data;
       } else {
-        throw new Error(result.error || 'Invalid response format');
+        console.warn('⚠️ Analytics response format issue:', result);
+        return null;
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch analytics';
-      setError(errorMessage);
-      message.error(errorMessage);
+      console.warn('⚠️ Analytics fetch error (non-critical):', errorMessage);
       return null;
     } finally {
-      setLoading(false);
+      if (isMounted()) {
+        setLoading(false);
+      }
     }
   }, [options.workspaceId]);
 
@@ -472,7 +560,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error(result.error || 'Bulk delete failed');
       }
 
-      if (result.success && result.data) {
+      if (result.success && result.data && isMounted()) {
         message.success(`Successfully deleted ${result.data.deletedCount} plans`);
         
         // Remove from local state
@@ -489,11 +577,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Bulk delete failed';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return 0;
     } finally {
-      setLoading(false);
+      if (isMounted()) {
+        setLoading(false);
+      }
     }
   }, [currentPlan]);
 
@@ -519,7 +611,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error(result.error || 'Failed to create template');
       }
 
-      if (result.success && result.data) {
+      if (result.success && result.data && isMounted()) {
         message.success('Template created successfully');
         return result.data.templateId;
       } else {
@@ -527,11 +619,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return null;
     } finally {
-      setLoading(false);
+      if (isMounted()) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -560,11 +656,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
-      setError(errorMessage);
-      message.error(errorMessage);
+      if (isMounted()) {
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
       return [];
     } finally {
-      setLoading(false);
+      if (isMounted()) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -581,7 +681,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         setAbortController(null);
       }
     };
-  }, []);
+  }, [abortController]);
 
   // Auto-fetch on mount if enabled
   useEffect(() => {
@@ -589,6 +689,15 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       fetchPlans();
     }
   }, [options.autoFetch, fetchPlans]);
+
+  // ✅ FIXED: Analytics loading without dependencies issues
+  useEffect(() => {
+    if (options.autoFetch) {
+      fetchAnalytics('month').catch(error => {
+        console.warn('Background analytics load failed:', error);
+      });
+    }
+  }, [fetchAnalytics, options.autoFetch]);
 
   return {
     // State

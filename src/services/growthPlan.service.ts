@@ -658,70 +658,289 @@ private mergeWithExistingData(
   }
 
   // NEW: Analytics method for performance tracking
-  async getGrowthPlanAnalytics(userId: string, workspaceId?: string, timeframe: 'week' | 'month' | 'quarter' = 'month'): Promise<GrowthPlanAnalytics> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const dateFilter = new Date();
-      switch (timeframe) {
-        case 'week':
-          dateFilter.setDate(dateFilter.getDate() - 7);
-          break;
-        case 'month':
-          dateFilter.setMonth(dateFilter.getMonth() - 1);
-          break;
-        case 'quarter':
-          dateFilter.setMonth(dateFilter.getMonth() - 3);
-          break;
-      }
+async getGrowthPlanAnalytics(
+  userId: string, 
+  workspaceId?: string, 
+  timeframe: 'week' | 'month' | 'quarter' = 'month'
+): Promise<GrowthPlanAnalytics> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    console.log('📊 Starting analytics calculation for user:', userId, 'timeframe:', timeframe);
+    
+    // ✅ Calculate date filter based on timeframe
+    const now = new Date();
+    const dateFilter = new Date();
+    
+    switch (timeframe) {
+      case 'week':
+        dateFilter.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        dateFilter.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        dateFilter.setMonth(now.getMonth() - 3);
+        break;
+    }
 
-      const whereClause: any = {
-        user_id: userId,
-        type: 'growth_plan',
+    console.log('📅 Date filter:', dateFilter.toISOString(), 'to', now.toISOString());
+
+    // ✅ Build where clause
+    const whereClause: any = {
+      user_id: userId,
+      type: 'growth_plan'
+    };
+
+    if (workspaceId) {
+      whereClause.workspace_id = workspaceId;
+    }
+
+    console.log('🔍 Query where clause:', JSON.stringify(whereClause, null, 2));
+
+    // ✅ Get all plans for this user (for total count)
+    const allPlans = await prisma.deliverable.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        metadata: true,
+        created_at: true
+      }
+    });
+
+    console.log('📈 Found', allPlans.length, 'total growth plans');
+
+    // ✅ Get plans within timeframe (for period-specific stats)
+    const recentPlans = await prisma.deliverable.findMany({
+      where: {
+        ...whereClause,
         created_at: {
           gte: dateFilter
         }
-      };
-
-      if (workspaceId) {
-        whereClause.workspace_id = workspaceId;
+      },
+      select: {
+        id: true,
+        metadata: true,
+        created_at: true
       }
+    });
 
-      const plans = await prisma.deliverable.findMany({
-        where: whereClause,
-        select: {
-          metadata: true,
-          created_at: true
-        }
-      });
+    console.log('📅 Found', recentPlans.length, 'plans in', timeframe, 'period');
 
-      // Calculate analytics
-      const totalPlans = plans.length;
-      const industryDistribution = plans.reduce((acc, plan) => {
-        const industry = this.getMetadataField(plan.metadata, 'industry') || 'unknown';
-        acc[industry] = (acc[industry] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+    // ✅ Calculate industry distribution
+    const industryCount: Record<string, number> = {};
+    allPlans.forEach(plan => {
+      const industry = this.getMetadataField(plan.metadata, 'industry') || 'Unknown';
+      industryCount[industry] = (industryCount[industry] || 0) + 1;
+    });
 
-      const timeframeDistribution = plans.reduce((acc, plan) => {
-        const timeframe = this.getMetadataField(plan.metadata, 'timeframe') || 'unknown';
-        acc[timeframe] = (acc[timeframe] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+    console.log('🏭 Industry distribution:', industryCount);
 
-      return {
-        totalPlans,
-        industryDistribution,
-        timeframeDistribution,
-        timeframe,
-        topIndustries: this.getTopIndustries(plans),
-        insights: this.generatePlanInsights(plans)
-      };
-    } catch (error) {
-      console.error('Error generating growth plan analytics:', error);
-      throw error;
-    }
+    // ✅ Calculate timeframe distribution
+    const timeframeCount: Record<string, number> = { '3m': 0, '6m': 0, '12m': 0 };
+    allPlans.forEach(plan => {
+      const planTimeframe = this.getMetadataField(plan.metadata, 'timeframe') || '6m';
+      if (timeframeCount.hasOwnProperty(planTimeframe)) {
+        timeframeCount[planTimeframe]++;
+      }
+    });
+
+    console.log('⏰ Timeframe distribution:', timeframeCount);
+
+    // ✅ Calculate average metrics
+    let totalTokens = 0;
+    let totalGenerationTime = 0;
+    let validMetricsCount = 0;
+
+    allPlans.forEach(plan => {
+      const tokens = this.getMetadataField(plan.metadata, 'tokensUsed');
+      const generationTime = this.getMetadataField(plan.metadata, 'generationTime');
+      
+      if (typeof tokens === 'number' && tokens > 0) {
+        totalTokens += tokens;
+        validMetricsCount++;
+      }
+      
+      if (typeof generationTime === 'number' && generationTime > 0) {
+        totalGenerationTime += generationTime;
+      }
+    });
+
+    const averageTokens = validMetricsCount > 0 ? Math.round(totalTokens / validMetricsCount) : 0;
+    const averageGenerationTime = validMetricsCount > 0 ? Math.round(totalGenerationTime / validMetricsCount) : 0;
+
+    console.log('📊 Average tokens per plan:', averageTokens);
+    console.log('⏱️ Average generation time:', averageGenerationTime, 'ms');
+
+    // ✅ Create plans by date for charting
+    const plansByDate = this.createPlansByDateData(recentPlans, timeframe);
+
+    // ✅ Generate insights
+    const insights = this.generateAnalyticsInsights(allPlans, recentPlans, timeframe);
+
+    // ✅ Create top industries array
+    const topIndustries = Object.entries(industryCount)
+      .map(([industry, count]) => ({
+        industry,
+        count: Number(count),
+        percentage: allPlans.length > 0 ? Math.round((Number(count) / allPlans.length) * 100) : 0
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    console.log('🏆 Top industries:', topIndustries);
+
+    // ✅ Build final analytics response
+    const analytics: GrowthPlanAnalytics = {
+      totalPlans: allPlans.length,
+      plansThisMonth: recentPlans.length, // Plans in current timeframe
+      industryDistribution: industryCount, // ✅ ADD: Required property
+      topIndustries,
+      timeframeDistribution: timeframeCount,
+      timeframe, // ✅ ADD: Required property from parameter
+      averageMetrics: {
+        tokensPerPlan: averageTokens,
+        generationTime: averageGenerationTime
+      },
+      plansByDate,
+      insights
+    };
+
+    console.log('✅ Analytics calculation completed:');
+    console.log('- Total plans:', analytics.totalPlans);
+    console.log('- Recent plans:', analytics.plansThisMonth);
+    console.log('- Top industry:', topIndustries[0]?.industry || 'None');
+    console.log('- Insights count:', insights.length);
+
+    return analytics;
+
+  } catch (error) {
+    console.error('💥 Error calculating growth plan analytics:', error);
+    console.error('Analytics error stack:', error instanceof Error ? error.stack : 'No stack');
+    throw error;
   }
+}
+
+// ✅ Helper method to create plans by date data for charts
+private createPlansByDateData(plans: any[], timeframe: string): Array<{
+  date: string;
+  count: number;
+  cumulative: number;
+}> {
+  const dateMap: Record<string, number> = {};
+  
+  plans.forEach(plan => {
+    const date = new Date(plan.created_at);
+    let dateKey: string;
+    
+    if (timeframe === 'week') {
+      dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    } else {
+      dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+    }
+    
+    dateMap[dateKey] = (dateMap[dateKey] || 0) + 1;
+  });
+  
+  // Sort dates and create cumulative data
+  const sortedDates = Object.keys(dateMap).sort();
+  let cumulative = 0;
+  
+  return sortedDates.map(date => {
+    const count = dateMap[date];
+    cumulative += count;
+    return {
+      date,
+      count,
+      cumulative
+    };
+  });
+}
+
+
+
+// ✅ Helper method to generate insights
+private generateAnalyticsInsights(
+  allPlans: any[], 
+  recentPlans: any[], 
+  timeframe: string
+): string[] {
+  const insights: string[] = [];
+  
+  if (allPlans.length === 0) {
+    return [
+      'No growth plans created yet',
+      'Create your first plan to see detailed analytics',
+      'Analytics will show trends as you generate more plans'
+    ];
+  }
+  
+  // Total plans insight
+  insights.push(`You have created ${allPlans.length} growth plan${allPlans.length === 1 ? '' : 's'} total`);
+  
+  // Recent activity insight
+  if (recentPlans.length > 0) {
+    const timeframeName = timeframe === 'week' ? 'week' : timeframe === 'month' ? 'month' : 'quarter';
+    insights.push(`${recentPlans.length} plan${recentPlans.length === 1 ? '' : 's'} created in the last ${timeframeName}`);
+  } else {
+    const timeframeName = timeframe === 'week' ? 'week' : timeframe === 'month' ? 'month' : 'quarter';
+    insights.push(`No plans created in the last ${timeframeName}`);
+  }
+  
+  // ✅ FIXED: Industry insights with proper typing
+  const industries: Record<string, number> = {};
+  allPlans.forEach(plan => {
+    const industry = this.getMetadataField(plan.metadata, 'industry');
+    if (industry && typeof industry === 'string') {
+      industries[industry] = (industries[industry] || 0) + 1;
+    }
+  });
+  
+  const topIndustryEntry = Object.entries(industries)
+    .sort(([, countA], [, countB]) => countB - countA)[0];
+  
+  if (topIndustryEntry) {
+    const [industryName, count] = topIndustryEntry;
+    insights.push(`Most plans are for ${industryName} industry (${count} plan${count === 1 ? '' : 's'})`);
+  }
+  
+  // ✅ FIXED: Timeframe insights with proper typing
+  const timeframes: Record<string, number> = {};
+  allPlans.forEach(plan => {
+    const tf = this.getMetadataField(plan.metadata, 'timeframe');
+    if (tf && typeof tf === 'string') {
+      timeframes[tf] = (timeframes[tf] || 0) + 1;
+    }
+  });
+  
+  const topTimeframeEntry = Object.entries(timeframes)
+    .sort(([, countA], [, countB]) => countB - countA)[0];
+  
+  if (topTimeframeEntry) {
+    const [timeframeValue, count] = topTimeframeEntry;
+    const timeframeName = timeframeValue === '3m' ? '3-month' : 
+                         timeframeValue === '6m' ? '6-month' : '12-month';
+    insights.push(`${timeframeName} plans are most common (${count} plan${count === 1 ? '' : 's'})`);
+  }
+  
+  // ✅ FIXED: Performance insights with proper typing
+  const tokensUsed: number[] = [];
+  allPlans.forEach(plan => {
+    const tokens = this.getMetadataField(plan.metadata, 'tokensUsed');
+    if (typeof tokens === 'number' && tokens > 0) {
+      tokensUsed.push(tokens);
+    }
+  });
+    
+  if (tokensUsed.length > 0) {
+    const avgTokens = Math.round(tokensUsed.reduce((sum, tokens) => sum + tokens, 0) / tokensUsed.length);
+    insights.push(`Average ${avgTokens.toLocaleString()} tokens used per plan`);
+  }
+  
+  return insights;
+}
+
+
 
   async exportGrowthPlan(userId: string, planId: string, format: 'pdf' | 'word' | 'markdown' = 'markdown'): Promise<string> {
     const plan = await this.getGrowthPlan(userId, planId);
@@ -854,12 +1073,12 @@ ${planData.nextSteps?.map((step: string) => `1. ${step}`).join('\n') || ''}
   }
 
   // Helper method to safely extract metadata fields
-  private getMetadataField(metadata: any, field: string): any {
-    if (!metadata || typeof metadata !== 'object') {
-      return null;
-    }
-    return metadata[field] || null;
+ private getMetadataField(metadata: any, field: string): any {
+  if (!metadata || typeof metadata !== 'object') {
+    return null;
   }
+  return metadata[field] || null;
+}
 
   private getTopIndustries(plans: any[]): Array<{industry: string, plans: number}> {
     const industries = plans.reduce((acc, plan) => {

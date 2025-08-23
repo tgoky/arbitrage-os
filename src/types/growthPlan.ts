@@ -253,15 +253,27 @@ export interface GrowthPlanSuggestions {
 // Analytics types
 export interface GrowthPlanAnalytics {
   totalPlans: number;
+  plansThisMonth?: number;  // ✅ ADD: Plans in current timeframe
   industryDistribution: Record<string, number>;
   timeframeDistribution: Record<string, number>;
   timeframe: 'week' | 'month' | 'quarter';
   topIndustries: Array<{
     industry: string;
-    plans: number;
+    count: number;          // ✅ CHANGE: from 'plans' to 'count' to match service
+    percentage: number;     // ✅ ADD: Percentage of total
+  }>;
+  averageMetrics?: {        // ✅ ADD: Average performance metrics
+    tokensPerPlan: number;
+    generationTime: number;
+  };
+  plansByDate?: Array<{     // ✅ ADD: Data for charts
+    date: string;
+    count: number;
+    cumulative: number;
   }>;
   insights: string[];
 }
+
 
 // Service response types
 // ✅ Update service response to be more flexible
@@ -271,10 +283,16 @@ export interface GrowthPlanServiceResponse<T = any> {
   error?: string;
   message?: string;
   meta?: {
-    saved: boolean;  // ✅ Indicates if plan was saved to DB
-    temporary: boolean; // ✅ Indicates if this is a temporary generation
+    saved?: boolean;        // Indicates if plan was saved to DB
+    temporary?: boolean;    // Indicates if this is a temporary generation
+    workspace?: string;     // ✅ ADD: Workspace name or ID
+    planId?: string;        // ✅ ADD: Plan ID for reference
+    tokensUsed?: number;    // ✅ ADD: Token usage info
+    generationTime?: number; // ✅ ADD: Generation time info
+    [key: string]: any;     // ✅ ADD: Allow additional meta fields
   };
 }
+
 // API endpoint types
 export interface CreateGrowthPlanRequest {
   input: Omit<GrowthPlanInput, 'userId'>; // Remove userId - server will add it

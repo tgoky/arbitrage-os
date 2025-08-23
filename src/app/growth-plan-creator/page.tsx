@@ -140,6 +140,19 @@ export default function GrowthPlanCreatorPage() {
   };
 }, []); 
 
+// ✅ Add effect to automatically switch to view mode when currentPlan is set
+useEffect(() => {
+  console.log('🔄 Current plan changed:', currentPlan ? currentPlan.id : 'null');
+  console.log('🔄 View mode:', viewMode);
+  
+  // If we just got a current plan and we're in create mode, switch to view
+  if (currentPlan && viewMode === 'create' && isMounted) {
+    console.log('🎯 Auto-switching to view mode for new plan');
+    setViewMode('view');
+  }
+}, [currentPlan, viewMode, isMounted]);
+
+
   // Load templates on mount
   useEffect(() => {
     const loadTemplates = async () => {
@@ -383,29 +396,39 @@ const onFinish = async (values: any) => {
     const plan = await generateGrowthPlan(inputData);
     
     console.log('✅ Plan generated:', plan ? 'Success' : 'Failed');
-    console.log('📊 Current plan state:', currentPlan ? 'Set' : 'Not set');
-    console.log('🔍 Selected plan state:', selectedPlan ? 'Set' : 'Not set');
-    console.log('🎭 Current view mode:', viewMode);
-    console.log('🏠 Is mounted:', isMounted);
     
     if (plan && isMounted) {
-      console.log('🎯 Switching to view mode...');
-      setViewMode('view');
-      console.log('🔄 setViewMode("view") called');
+      console.log('🎯 Plan generation successful, checking current state...');
       
-      // Check state after a brief delay
+      // ✅ Wait a bit for the hook to set currentPlan
       setTimeout(() => {
-        console.log('⏰ States after 100ms timeout:');
-        console.log('- Current plan:', currentPlan ? `Set (${currentPlan.id})` : 'Not set');
-        console.log('- Selected plan:', selectedPlan ? `Set (${selectedPlan.id})` : 'Not set');
-        console.log('- View mode:', viewMode);
-        console.log('- Plan data exists:', currentPlan?.plan ? 'Yes' : 'No');
-        if (currentPlan?.plan) {
-          console.log('- Executive summary length:', currentPlan.plan.executiveSummary?.length || 0);
-          console.log('- Has strategy:', !!currentPlan.plan.strategy);
-          console.log('- Has metrics:', !!currentPlan.plan.metrics);
+        console.log('🔍 Checking states after plan generation:');
+        console.log('- Current plan exists:', !!currentPlan);
+        console.log('- Selected plan exists:', !!selectedPlan);
+        console.log('- Is mounted:', isMounted);
+        
+        if (currentPlan || selectedPlan) {
+          console.log('✅ Plan available, switching to view mode');
+          setViewMode('view');
+          
+          // Clear the form for next use
+          form.resetFields();
+          
+          // Reset form state
+          setTimeframe('6m');
+          setCurrentStage(0);
+          
+        } else {
+          console.warn('⚠️ Plan generated but not available for viewing yet');
+          // Show success message but stay in create mode
+          notification.info({
+            message: 'Plan Generated',
+            description: 'Your growth plan was created successfully. Check the plans list to view it.',
+            placement: 'topRight',
+          });
         }
-      }, 100);
+      }, 500); // Give the hook time to process the response
+      
     } else {
       console.log('❌ Cannot switch to view mode:');
       console.log('- Plan exists:', !!plan);
@@ -414,11 +437,8 @@ const onFinish = async (values: any) => {
   } catch (error) {
     console.error('💥 Generation error:', error);
     if (isMounted) {
-      notification.error({
-        message: 'Generation Failed',
-        description: 'Please check your inputs and try again.',
-        placement: 'topRight',
-      });
+      // Error notification will be handled by the hook
+      console.log('❌ Generation failed, staying in create mode');
     }
   }
 };
@@ -931,11 +951,59 @@ const onFinish = async (values: any) => {
   );
 
   // Render plan view
-  const renderPlanView = () => {
-    const plan = selectedPlan || currentPlan;
-    if (!plan) return <Empty description="No plan selected" />;
+const renderPlanView = () => {
+  const plan = selectedPlan || currentPlan;
+  
+  console.log('🖥️ Rendering plan view:', {
+    hasSelectedPlan: !!selectedPlan,
+    hasCurrentPlan: !!currentPlan,
+    planId: plan?.id,
+    planTitle: plan?.title
+  });
+  
+  if (!plan) {
+    console.warn('⚠️ No plan available for viewing');
+    return (
+      <div className="text-center py-12">
+        <Empty 
+          description="No plan selected" 
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        >
+          <Button 
+            type="primary" 
+            icon={<RocketOutlined />}
+            onClick={() => setViewMode('list')}
+          >
+            Browse Plans
+          </Button>
+        </Empty>
+      </div>
+    );
+  }
 
-    const planData = plan.plan;
+  const planData = plan.plan;
+
+  if (!planData) {
+    console.error('❌ Plan data is missing');
+    return (
+      <div className="text-center py-12">
+        <Alert
+          message="Invalid Plan Data"
+          description="The plan data appears to be corrupted. Please try generating a new plan."
+          type="error"
+          showIcon
+          action={
+            <Button 
+              size="small" 
+              onClick={() => setViewMode('list')}
+            >
+              Back to Plans
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
     return (
       <div className="space-y-8">
