@@ -4,7 +4,7 @@ import { z } from 'zod';
 const pricingCalculatorSchema = z.object({
   // Basic Calculation Inputs
   annualSavings: z.number()
-    .min(1000, 'Annual savings must be at least $1,000')
+    .min(100, 'Annual savings must be at least $100')
     .max(50000000, 'Annual savings seems unrealistically high'),
   
   hoursPerWeek: z.number()

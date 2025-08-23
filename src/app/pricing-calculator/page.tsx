@@ -83,8 +83,22 @@ const PricingCalculator = () => {
   const { exportCalculation, loading: exportLoading } = useCalculationExport();
   const { validateInput, getBusinessInsights } = usePricingValidation();
 
+  const [exportState, setExportState] = useState<{
+  loading: boolean;
+  type: string | null;
+}>({
+  loading: false,
+  type: null
+});
+
+// Then use these derived values:
+const isExporting = exportState.loading;
+const exportingType = exportState.type;
+
+
     // Unified loading state
-  const isLoading = generating;
+  const isGenerating = generating;
+
 
   // Quick calculation results (real-time)
   const [quickResults, setQuickResults] = useState({
@@ -96,10 +110,16 @@ const PricingCalculator = () => {
     monthlyHours: 0
   });
 
-  useEffect(() => {
-    fetchCalculations();
-    fetchBenchmarks();
-  }, [fetchCalculations, fetchBenchmarks]);
+
+// Update the useEffect to handle errors gracefully
+useEffect(() => {
+  fetchCalculations();
+  // Make benchmarks optional - don't block the UI if it fails
+  fetchBenchmarks().catch(err => {
+    console.warn('Benchmarks unavailable:', err);
+    // Don't show error to user, just log it
+  });
+}, [fetchCalculations, fetchBenchmarks]);
 
   // Real-time calculation updates
   const handleFormChange = () => {
@@ -142,31 +162,115 @@ const PricingCalculator = () => {
     }
   };
 
-  const resetForm = () => {
-    form.resetFields();
-    setQuickResults({
-      monthlySavings: 0,
-      recommendedRetainer: 0,
-      netSavings: 0,
-      roiPercentage: 0,
-      hourlyRate: 0,
-      monthlyHours: 0
-    });
-    setCurrentPackage(null);
-    setSavedCalculationId(null);
-  };
+ const resetForm = () => {
+  form.resetFields();
+  setQuickResults({
+    monthlySavings: 0,
+    recommendedRetainer: 0,
+    netSavings: 0,
+    roiPercentage: 0,
+    hourlyRate: 0,
+    monthlyHours: 0
+  });
+  setCurrentPackage(null);
+  setSavedCalculationId(null);
+  setActiveTab('calculator'); // ✅ Return to calculator tab
+  
 
-  const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | 'complete') => {
-    if (!savedCalculationId) {
+};
+
+const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | 'complete') => {
+  // Set loading state for the specific export type
+  setExportState({ loading: true, type: format });
+
+  try {
+    // Use current form values and quick results instead of requiring savedCalculationId
+    const values = form.getFieldsValue();
+    
+    if (!values.annualSavings || !values.hoursPerWeek || !values.roiMultiple) {
       notification.error({
-        message: 'No Calculation to Export',
-        description: 'Please generate a pricing calculation first.'
+        message: 'Incomplete Form',
+        description: 'Please fill in the basic pricing information before exporting.'
       });
       return;
     }
+
+    const calculationData = {
+      clientName: values.clientName || 'Valued Client',
+      projectName: values.projectName || 'AI Services Project',
+      industry: values.industry || 'Technology',
+      annualSavings: values.annualSavings,
+      recommendedRetainer: quickResults.recommendedRetainer,
+      netSavings: quickResults.netSavings,
+      roiPercentage: quickResults.roiPercentage,
+      hourlyRate: quickResults.hourlyRate,
+      monthlyHours: quickResults.monthlyHours
+    };
+
+    console.log('Exporting with data:', calculationData, 'format:', format);
     
-    await exportCalculation(savedCalculationId, format);
-  };
+    const response = await fetch('/api/pricing-calculator/export-linear', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        format,
+        calculationData
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    // Get filename from response headers
+    const contentDisposition = response.headers.get('content-disposition');
+    const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+    const filename = filenameMatch?.[1] || `pricing-${format}-${calculationData.clientName.toLowerCase().replace(/\s+/g, '-')}.html`;
+
+    const blob = await response.blob();
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    try {
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      notification.success({
+        message: 'Export Successful! 🎉',
+        description: `${format.charAt(0).toUpperCase() + format.slice(1)} has been downloaded successfully.`,
+        duration: 4
+      });
+    } finally {
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+    }
+    
+  } catch (err) {
+    console.error('Export error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    
+    notification.error({
+      message: 'Export Failed',
+      description: `Failed to export ${format}: ${errorMessage}`,
+      duration: 8
+    });
+  } finally {
+    // Always clear the loading state
+    setExportState({ loading: false, type: null });
+  }
+};
+
 
   const getBusinessInsightsForCurrent = () => {
     const values = form.getFieldsValue();
@@ -180,7 +284,7 @@ const PricingCalculator = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-        <LoadingOverlay visible={isLoading} />
+           <LoadingOverlay visible={isGenerating} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <CalculatorOutlined className="mr-2 text-blue-600" />
@@ -253,7 +357,7 @@ const PricingCalculator = () => {
                     }
                     rules={[
                       { required: true, message: 'Please input estimated savings!' },
-                      { type: 'number', min: 1000, message: 'Minimum $1,000' }
+                      { type: 'number', min: 100, message: 'Minimum $100' }
                     ]}
                   >
                    <InputNumber
@@ -431,15 +535,15 @@ const PricingCalculator = () => {
                       Reset
                     </Button>
                     <Button
-                      type="primary"
-                      htmlType="submit"
-                       disabled={isLoading}
-                      icon={<BulbOutlined />}
-                      loading={generating}
-                      size="large"
-                    >
-                      {generating ? 'Generating AI Insights...' : 'Generate Pricing Strategy'}
-                    </Button>
+        type="primary"
+        htmlType="submit"
+        disabled={isGenerating} // ✅ Only disable during generation
+        icon={<BulbOutlined />}
+        loading={isGenerating} // ✅ Only loading during generation
+        size="large"
+      >
+        {isGenerating ? 'Generating AI Insights...' : 'Generate Pricing Strategy'}
+      </Button>
                   </div>
                 </Form>
               </Card>
@@ -617,46 +721,69 @@ const PricingCalculator = () => {
           key="results"
           disabled={!currentPackage}
         >
-          {currentPackage ? (
-            <div className="space-y-6">
-              {/* Export Actions */}
-              <Card>
-                <div className="flex justify-between items-center">
-                  <Title level={4}>Export Your Pricing Package</Title>
-                  <Space>
-                    <Button 
-                      icon={<FileTextOutlined />} 
-                      onClick={() => handleExport('proposal')}
-                          disabled={isLoading}
-                    >
-                      Proposal
-                    </Button>
-                    <Button 
-                      icon={<  BarChartOutlined />} 
-                      onClick={() => handleExport('presentation')}
-                          disabled={isLoading}
-                    >
-                      Presentation
-                    </Button>
-                    <Button 
-                      icon={<ContainerOutlined />} 
-                      onClick={() => handleExport('contract')}
-                          disabled={isLoading}
-                    >
-                      Contract
-                    </Button>
-                    <Button 
-                      type="primary"
-                      icon={<DownloadOutlined />} 
-                      onClick={() => handleExport('complete')}
-                       disabled={isLoading}
-                    >
-                      Complete Package
-                    </Button>
-                  </Space>
-                </div>
-              </Card>
-
+        {currentPackage ? (
+  <div className="space-y-6">
+    {/* Export Actions */}
+    <Card>
+      <div className="flex justify-between items-center">
+        <Title level={4}>Export Your Pricing Package</Title>
+        <Space wrap>
+         <Button 
+  icon={<FileTextOutlined />} 
+  onClick={() => handleExport('proposal')}
+  disabled={isExporting}
+  loading={isExporting && exportingType === 'proposal'} // ✅ Specific loading
+>
+  Proposal
+</Button>
+        
+<Button 
+  icon={<BarChartOutlined />} 
+  onClick={() => handleExport('presentation')}
+  disabled={isExporting}
+  loading={isExporting && exportingType === 'presentation'}
+>
+  Presentation
+</Button>
+         <Button 
+  icon={<ContainerOutlined />} 
+  onClick={() => handleExport('contract')}
+  disabled={isExporting}
+  loading={isExporting && exportingType === 'contract'}
+>
+  Contract
+</Button>
+        <Button 
+  type="primary"
+  icon={<DownloadOutlined />} 
+  onClick={() => handleExport('complete')}
+  disabled={isExporting}
+  loading={isExporting && exportingType === 'complete'}
+>
+  Complete Package
+</Button>
+          
+          {/* ✅ NEW: Generate New Strategy Button */}
+          <Button
+            type="default"
+            icon={<BulbOutlined />}
+            onClick={() => {
+              // Reset to calculator tab and clear results
+              setActiveTab('calculator');
+              setCurrentPackage(null);
+              setSavedCalculationId(null);
+              // Optionally scroll back to top
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={isExporting || isGenerating} // Don't allow during operations
+            size="large"
+            className="ml-4" // Add some spacing
+          >
+            Generate New Strategy
+          </Button>
+        </Space>
+      </div>
+    </Card>
               {/* Pricing Summary */}
               <Card title="Pricing Summary">
                 <Row gutter={24}>

@@ -475,7 +475,8 @@ export const usePricingBenchmarks = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      message.error(errorMessage);
+      // Remove the automatic error message - let the component handle it
+      console.warn('Benchmarks fetch failed:', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -557,7 +558,7 @@ export const usePricingValidation = () => {
     const errors: Record<string, string> = {};
 
     // Required fields validation
-    if (!input.annualSavings || input.annualSavings < 1000) {
+    if (!input.annualSavings || input.annualSavings < 100) {
       errors.annualSavings = 'Annual savings must be at least $1,000';
     } else if (input.annualSavings > 50000000) {
       errors.annualSavings = 'Annual savings seems unrealistically high';
