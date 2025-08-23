@@ -20,6 +20,7 @@ import {
   SoundOutlined
 } from '@ant-design/icons';
 import { useGo } from "@refinedev/core";
+import { PhoneForwardedIcon } from 'lucide-react';
 
 const { Title, Text } = Typography;
 
@@ -35,45 +36,45 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
   const callOptions = [
     {
       key: 'live',
-      title: 'Join a live call',
-      description: 'Get real-time AI assistance during your call',
+      title: 'Advanced Call Analysis',
+      description: 'Sign up for TalkIQ for advanced call analysis',
       icon: <PhoneOutlined className="text-2xl text-blue-500" />,
-      badge: 'Live',
+      badge: 'pro',
       badgeColor: 'bg-green-500',
       action: () => {
         message.info('Live call feature coming soon!');
         onClose();
       }
     },
-    {
-      key: 'upload',
-      title: 'Review an existing call recording',
-      description: 'Upload audio/video to get detailed analysis',
-      icon: <UploadOutlined className="text-2xl text-purple-500" />,
-      action: () => {
-        go({ to: "/sales-call-analyzer/review-recording" });
-        onClose();
-      }
-    },
+    // {
+    //   key: 'upload',
+    //   title: '',
+    //   description: 'Sign up for TalkIQ for advanced call analysis',
+    //   icon: <UploadOutlined className="text-2xl text-purple-500" />,
+    //   action: () => {
+    //     go({ to: "/sales-call-analyzer/review-recording" });
+    //     onClose();
+    //   }
+    // },
+    // {
+    //   key: 'transcript',
+    //   title: '',
+    //   description: '',
+    //   icon: <PhoneOutlined className="text-2xl text-orange-500" />,
+    //   action: () => {
+    //     go({ to: "/sales-call-analyzer/review-recording" });
+    //     onClose();
+    //   }
+    // },
     {
       key: 'transcript',
-      title: 'Analyze a transcript',
+      title: 'Native Call Analysis',
       description: 'Paste or upload a text transcript for analysis',
-      icon: <EditOutlined className="text-2xl text-orange-500" />,
-      action: () => {
-        go({ to: "/sales-call-analyzer/review-recording" });
-        onClose();
-      }
-    },
-    {
-      key: 'meeting',
-      title: 'Connect meeting platform',
-      description: 'Auto-analyze calls from Zoom, Teams, or Meet',
-      icon: <LinkOutlined className="text-2xl text-green-500" />,
-      badge: 'Pro',
+      icon: <PhoneForwardedIcon className="text-2xl text-green-500" />,
+      badge: 'basic',
       badgeColor: 'bg-blue-500',
       action: () => {
-        message.info('Meeting platform integration coming soon!');
+         go({ to: "/sales-call-analyzer/review-recording" });
         onClose();
       }
     }
@@ -188,7 +189,7 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
       </div>
 
       {/* Quick Stats */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+      <div className="mt-6 p-4 rounded-lg">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-blue-600">95%</div>

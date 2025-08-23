@@ -1,6 +1,6 @@
 // hooks/useSalesCallAnalyzer.ts
 import { useState, useCallback } from 'react';
-import { SalesCallInput } from '../validators/salesCallAnalyzer.validator';
+import { SalesCallInput } from '@/types/salesCallAnalyzer';
 
 export interface AnalysisResponse {
   analysisId: string;
@@ -29,33 +29,36 @@ export interface BusinessInsights {
 export function useSalesCallAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+// In hooks/useSalesCallAnalyzer.ts
 
-  const analyzeCall = useCallback(async (input: SalesCallInput): Promise<AnalysisResponse> => {
-    setLoading(true);
-    setError(null);
+// Update the analyzeCall function:
+const analyzeCall = useCallback(async (input: Omit<SalesCallInput, 'userId'>): Promise<AnalysisResponse> => {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    // Remove userId from the input since it's handled by the API
+    const response = await fetch('/api/sales-call-analyzer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input) // Don't include userId here
+    });
+
+    const result = await response.json();
     
-    try {
-      const response = await fetch('/api/sales-call-analyzer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Analysis failed');
-      }
-
-      return result.data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+    if (!result.success) {
+      throw new Error(result.error || 'Analysis failed');
     }
-  }, []);
+
+    return result.data;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+    setError(errorMessage);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   const getAnalysis = useCallback(async (analysisId: string) => {
     setLoading(true);
@@ -252,9 +255,9 @@ const validateInput = useCallback((input: Partial<SalesCallInput>) => {
     errors.push('Call type is required');
   }
 
-  // Remove recordingFile since it's not in the schema
-  if (!input.transcript?.trim() && !input.recordingUrl) {
-    errors.push('Either transcript or recording URL is required');
+   // FIX: Remove recordingUrl check since we're text-only
+  if (!input.transcript?.trim()) {
+    errors.push('Transcript is required');
   }
 
   if (input.transcript && input.transcript.length < 50) {

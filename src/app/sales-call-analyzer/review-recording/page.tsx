@@ -23,7 +23,8 @@ import {
   EnvironmentOutlined,
   SoundOutlined,
   RobotOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+   FileTextOutlined, 
 } from '@ant-design/icons';
 import { useGo } from "@refinedev/core";
 import type { UploadChangeParam } from 'antd/es/upload';
@@ -41,63 +42,15 @@ const { Step } = Steps;
 export default function ReviewRecordingPage() {
   const go = useGo();
   const [form] = Form.useForm();
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [transcriptionData, setTranscriptionData] = useState<any>(null);
+
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [isTranscribing, setIsTranscribing] = useState(false);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { analyzeCall, validateInput } = useSalesCallAnalyzer();
 
-  const handleUpload = (info: UploadChangeParam<UploadFile>) => {
-    let fileList = [...info.fileList];
-    fileList = fileList.slice(-1); // Limit to 1 file
-    setFileList(fileList);
-    
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} file uploaded successfully`);
-    } else if (info.file.status === 'error') {
-      message.error(`${info.file.name} file upload failed.`);
-    }
-  };
-
-  const handleTranscribe = async () => {
-    if (fileList.length === 0) {
-      message.error('Please upload an audio file first');
-      return;
-    }
-
-    setIsTranscribing(true);
-    setCurrentStep(1);
-
-    try {
-      const formData = new FormData();
-      formData.append('audio', fileList[0].originFileObj as File);
-
-      const response = await fetch('/api/sales-call-analyzer/transcribe', {
-        method: 'POST',
-        body: formData
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setTranscriptionData(result.data);
-        form.setFieldsValue({ transcript: result.data.transcript });
-        message.success('Audio transcribed successfully!');
-        setCurrentStep(2);
-      } else {
-        throw new Error(result.error || 'Transcription failed');
-      }
-    } catch (error) {
-      console.error('Transcription error:', error);
-      message.error('Failed to transcribe audio. Please try again.');
-      setCurrentStep(0);
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
 
   const handleAnalyze = async (values: any) => {
     // Validate the input first
@@ -108,7 +61,7 @@ export default function ReviewRecordingPage() {
     }
 
     setIsAnalyzing(true);
-    setCurrentStep(3);
+setCurrentStep(2); // When starting analysis
 
     try {
       const analysisInput = {
@@ -136,7 +89,7 @@ export default function ReviewRecordingPage() {
       const result = await analyzeCall(analysisInput);
       setAnalysisData(result);
       message.success('Analysis completed successfully!');
-      setCurrentStep(4);
+       setCurrentStep(3); // ✅ Set step 3 only on success
       
       // Redirect to the analysis page after a brief delay
       setTimeout(() => {
@@ -146,44 +99,41 @@ export default function ReviewRecordingPage() {
     } catch (error) {
       console.error('Analysis error:', error);
       message.error('Failed to analyze call. Please try again.');
-      setCurrentStep(2);
+       setCurrentStep(1); // ✅ Go back to review step on error
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const steps = [
-    {
-      title: 'Upload',
-      icon: <UploadOutlined />,
-      description: 'Upload audio file'
-    },
-    {
-      title: 'Transcribe',
-      icon: <SoundOutlined />,
-      description: 'Convert to text'
-    },
-    {
-      title: 'Review',
-      icon: <UserOutlined />,
-      description: 'Add context & details'
-    },
-    {
-      title: 'Analyze',
-      icon: <RobotOutlined />,
-      description: 'AI analysis'
-    },
-    {
-      title: 'Complete',
-      icon: <CheckCircleOutlined />,
-      description: 'View results'
-    }
-  ];
+ 
+const steps = [
+  {
+    title: 'Input',
+    icon: <FileTextOutlined />, // Changed from UploadOutlined
+    description: 'Enter transcript'
+  },
+  {
+    title: 'Review',
+    icon: <UserOutlined />,
+    description: 'Add context & details'
+  },
+  {
+    title: 'Analyze',
+    icon: <RobotOutlined />,
+    description: 'AI analysis'
+  },
+  {
+    title: 'Complete',
+    icon: <CheckCircleOutlined />,
+    description: 'View results'
+  }
+];
+
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <Title level={3}>Review Sales Call Recording</Title>
+        <Title level={3}>Native Call Analysis</Title>
         <Button 
           icon={<CloseOutlined />} 
           onClick={() => go({ to: "/sales-call-analyzer" })}
@@ -196,22 +146,17 @@ export default function ReviewRecordingPage() {
         Upload your sales call recording to get AI-powered analysis and feedback.
       </Text>
 
-      {/* Progress Steps */}
-      <Card className="mb-6">
-        <Steps current={currentStep} items={steps} />
-        {isTranscribing && (
-          <div className="mt-4">
-            <Progress percent={50} status="active" />
-            <Text type="secondary">Transcribing audio...</Text>
-          </div>
-        )}
-        {isAnalyzing && (
-          <div className="mt-4">
-            <Progress percent={75} status="active" />
-            <Text type="secondary">Analyzing call with AI...</Text>
-          </div>
-        )}
-      </Card>
+    {/* Progress Steps */}
+<Card className="mb-6">
+  <Steps current={currentStep} items={steps} />
+  {isAnalyzing && (
+    <div className="mt-4">
+      <Progress percent={75} status="active" />
+      <Text type="secondary">Analyzing call with AI...</Text>
+    </div>
+  )}
+</Card>
+
 
       <Form
         form={form}
@@ -300,67 +245,30 @@ export default function ReviewRecordingPage() {
             </div>
           </Card>
         </div>
-        
-        <Card title="Upload Recording" className="mb-6">
-          <Upload.Dragger
-            fileList={fileList}
-            onChange={handleUpload}
-            beforeUpload={() => false}
-            accept=".mp3,.wav,.m4a,.aac,.ogg,.wma,.flac,.mp4,.mov"
-            maxCount={1}
-            className="py-8"
-          >
-            <p className="ant-upload-drag-icon">
-              <UploadOutlined className="text-3xl" />
-            </p>
-            <p className="ant-upload-text">Drag & drop your recording here, or click to select</p>
-            <p className="ant-upload-hint">
-              Supports audio/video files (MP3, WAV, M4A, MP4, etc.) up to 25MB
-            </p>
-          </Upload.Dragger>
-          
-          {fileList.length > 0 && currentStep === 0 && (
-            <div className="mt-4 text-center">
-              <Button 
-                type="primary" 
-                onClick={handleTranscribe}
-                loading={isTranscribing}
-                icon={<SoundOutlined />}
-              >
-                Transcribe Audio
-              </Button>
-            </div>
-          )}
+      
+      <Card title="Call Transcript" className="mb-6">
+  <Form.Item 
+    name="transcript" 
+    label="Paste your call transcript here"
+    rules={[
+      { required: true, message: 'Transcript is required' },
+      { min: 50, message: 'Transcript must be at least 50 characters' }
+    ]}
+  >
+    <TextArea 
+      rows={12} 
+      placeholder="Paste your call transcript here. Make sure to include speaker names like 'John:' or 'Sarah:' to help with analysis..."
+      showCount
+      maxLength={100000}
+    />
+  </Form.Item>
+  
+  <Text type="secondary" className="block mt-2">
+    💡 <strong>Tip:</strong> Include speaker names (e.g., John: Hello, thanks for joining) 
+    for better speaker analysis and insights.
+  </Text>
+</Card>
 
-          {transcriptionData && (
-            <div className="mt-4">
-              <Text strong>Transcription Quality:</Text>
-              <div className="flex items-center mt-2">
-                <Progress 
-                  percent={Math.round(transcriptionData.confidence * 100)} 
-                  size="small" 
-                  className="mr-4" 
-                />
-                <Text type="secondary">
-                  Duration: {Math.floor(transcriptionData.duration / 60)}:{String(transcriptionData.duration % 60).padStart(2, '0')} • 
-                  Words: {transcriptionData.wordCount} • 
-                  Language: {transcriptionData.language}
-                </Text>
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-4">
-            <Form.Item name="transcript" label="Transcript">
-              <TextArea 
-                rows={6} 
-                placeholder="Transcript will appear here after audio processing, or you can paste it manually..." 
-                disabled={isTranscribing}
-              />
-            </Form.Item>
-          </div>
-        </Card>
-        
         <Card title="Additional Context" className="mb-6">
           <Form.Item name="additionalContext" label="Context & Background">
             <TextArea 
@@ -392,20 +300,28 @@ export default function ReviewRecordingPage() {
           <Button onClick={() => go({ to: "/sales-call-analyzer" })}>
             Cancel
           </Button>
-          <Button 
-            type="primary" 
-            htmlType="submit"
-            loading={isAnalyzing}
-            disabled={!form.getFieldValue('transcript') || isTranscribing}
-            icon={<RobotOutlined />}
-          >
-            {isAnalyzing ? 'Analyzing...' : 'Analyze Call'}
-          </Button>
+    
+<Form.Item shouldUpdate>
+  {(form) => (
+    <div className="flex justify-end space-x-4">
+      
+      <Button 
+        type="primary" 
+        htmlType="submit"
+        loading={isAnalyzing}
+        disabled={!form.getFieldValue('transcript') || form.getFieldValue('transcript')?.length < 50 || isAnalyzing}
+        icon={<RobotOutlined />}
+      >
+        {isAnalyzing ? 'Analyzing...' : 'Analyze Call'}
+      </Button>
+    </div>
+  )}
+</Form.Item>
         </div>
       </Form>
 
       {/* Success State */}
-      {currentStep === 4 && analysisData && (
+      {currentStep === 3 && analysisData && (
         <Card className="mt-6 border-green-200">
           <div className="text-center">
             <CheckCircleOutlined className="text-4xl text-green-500 mb-4" />

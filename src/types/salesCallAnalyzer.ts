@@ -1,4 +1,4 @@
-// types/salesCallAnalyzer.ts
+// types/salesCallAnalyzer.ts - UPDATED VERSION
 export interface SalesCallInput {
   // Basic Call Information
   title: string;
@@ -6,10 +6,8 @@ export interface SalesCallInput {
   scheduledDate?: Date;
   actualDate?: Date;
   
-  // Recording/Transcript Input
-  recordingFile?: File;
-  recordingUrl?: string;
-  transcript?: string;
+  // Transcript Input (removed audio-related fields)
+  transcript: string; // Made required since we're text-only now
   
   // Prospect Information
   prospectName?: string;
@@ -40,7 +38,8 @@ export interface CallParticipant {
   email?: string;
   title?: string;
   role: 'host' | 'participant' | 'prospect' | 'interviewer';
-  speakingTimeSeconds?: number;
+  speakingTime?: number; // Changed from speakingTimeSeconds
+  speakingPercentage?: number; // Added this field
   linkedin?: string;
 }
 
@@ -57,48 +56,73 @@ export interface SalesCallAnalysis {
     speakingTime: number;
     percentage: number;
     keyPoints: string[];
+    toneAnalysis?: string;
+    engagement?: number;
   }>;
   
-  // Sales-Specific Analysis
+  // Sales-Specific Analysis - UPDATED field names to match service
   salesMetrics?: {
-    pain_points_identified: string[];
-    budget_discussed: boolean;
-    timeline_established: boolean;
-    decision_maker_identified: boolean;
-    next_steps_defined: boolean;
-    objections_raised: string[];
-    value_proposition_clarity: number; // 0-10
-    rapport_level: number; // 0-10
+    painPointsIdentified: string[];
+    budgetDiscussed: boolean;
+    timelineEstablished: boolean;
+    decisionMakerIdentified: boolean;
+    nextStepsDefined: boolean;
+    objectionsRaised: string[];
+    valuePropositionClarity: number; // 0-10
+    rapportLevel: number; // 0-10
+    urgencyCreated?: number;
+    competitorsMentioned?: string[];
+    buyingSignals?: string[];
+    riskFactors?: string[];
   };
   
-  // Interview-Specific Analysis
+  // Interview-Specific Analysis - UPDATED field names
   interviewMetrics?: {
-    questions_asked: number;
-    follow_up_questions: number;
-    customer_satisfaction_indicators: string[];
-    feature_requests: string[];
-    usability_feedback: string[];
-    pain_points: string[];
+    questionsAsked: number;
+    followUpQuestions: number;
+    customerSatisfactionIndicators: string[];
+    featureRequests: string[];
+    usabilityFeedback: string[];
+    painPointsUncovered: string[];
+    improvementSuggestions?: string[];
+    competitorInsights?: string[];
+    userJourneyInsights?: string[];
   };
   
-  // Discovery Call Analysis
+  // Discovery Call Analysis - UPDATED field names
   discoveryMetrics?: {
-    current_solution_identified: boolean;
-    challenges_uncovered: string[];
-    success_criteria_defined: boolean;
-    stakeholders_identified: string[];
-    technical_requirements: string[];
-    implementation_timeline: string;
+    currentSolutionIdentified: boolean;
+    challengesUncovered: string[];
+    successCriteriaDefined: boolean;
+    stakeholdersIdentified: string[];
+    technicalRequirements: string[];
+    implementationTimeline: string;
+    budgetRangeDiscussed?: boolean;
+    procurementProcess?: string;
+    currentVendors?: string[];
+    evaluationCriteria?: string[];
   };
   
-  // Podcast Analysis
+  // Podcast Analysis - UPDATED field names
   podcastMetrics?: {
-    content_quality: number; // 0-10
-    engagement_level: number; // 0-10
-    key_topics: string[];
-    memorable_quotes: string[];
-    audience_insights: string[];
-    content_suggestions: string[];
+    contentQuality: number; // 0-10
+    engagementLevel: number; // 0-10
+    keyTopics: string[];
+    memorableQuotes: string[];
+    audienceInsights: string[];
+    contentSuggestions: string[];
+    storytellingEffectiveness?: number;
+    educationalValue?: number;
+    entertainmentValue?: number;
+    shareableContent?: string[];
+  };
+
+  // General metrics for other call types
+  generalMetrics?: {
+    conversationFlow: number;
+    informationGathered: number;
+    relationshipBuilding: number;
+    objectivesAchieved: number;
   };
 }
 
@@ -152,13 +176,16 @@ export interface GeneratedCallPackage {
     riskMitigation: string[];
   };
   
-  // Performance Analytics
+  // Performance Analytics - UPDATED to match service output
   performanceMetrics: {
-    talkTime: number;
+    talkTime: number; // Changed from talkTimePercentage
     questionToStatementRatio: number;
     interruptionCount: number;
-    responseTime: number;
+    responseTime: number; // Changed from averageResponseTime
     engagementScore: number;
+    clarityScore?: number;
+    enthusiasmLevel?: number;
+    professionalismScore?: number;
   };
   
   tokensUsed: number;

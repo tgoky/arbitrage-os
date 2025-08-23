@@ -15,11 +15,11 @@ const salesCallInputSchema = z.object({
   actualDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
   
   // Recording/Transcript Input
-  recordingUrl: z.string().url().optional(),
+  // recordingUrl: z.string().url().optional(),
+
   transcript: z.string()
-    .min(50, 'Transcript must be at least 50 characters for meaningful analysis')
-    .max(100000, 'Transcript is too long')
-    .optional(),
+  .min(50, 'Transcript must be at least 50 characters for meaningful analysis')
+  .max(100000, 'Transcript is too long'),
   
   // Prospect Information
   prospectName: z.string()
@@ -119,8 +119,9 @@ export function validateCallBusinessRules(data: z.infer<typeof salesCallInputSch
   if (data.companyIndustry) completenessScore += 1;
   if (data.actualDate) completenessScore += 1;
   
-  // Check transcript quality
-  const transcriptLength = data.transcript?.length || 0;
+  // Check transcript quality - FIX: Uncomment and update this line
+  const transcriptLength = data.transcript.length; // Since transcript is now required, no need for optional chaining
+
   if (transcriptLength < 100) {
     warnings.push('Transcript is very short - analysis may be limited');
     qualityScore += 1;
@@ -272,7 +273,7 @@ export function extractCallInsights(data: z.infer<typeof salesCallInputSchema>) 
       hasCompanyInfo: !!(data.companyName && data.companyIndustry),
       hasGoals: !!(data.analysisGoals && data.analysisGoals.length > 0),
       hasQuestions: !!(data.specificQuestions && data.specificQuestions.length > 0),
-      transcriptLength: data.transcript?.length || 0
+      transcriptLength: data.transcript.length // Remove optional chaining
     },
     completeness: {
       prospect: [data.prospectName, data.prospectTitle, data.prospectEmail, data.prospectLinkedin].filter(Boolean).length,
@@ -280,15 +281,16 @@ export function extractCallInsights(data: z.infer<typeof salesCallInputSchema>) 
       context: [data.additionalContext, data.specificQuestions, data.analysisGoals].filter(x => x && (Array.isArray(x) ? x.length > 0 : true)).length
     },
     recommendations: {
-      shouldAnalyze: (data.transcript?.length || 0) >= 50,
+      shouldAnalyze: data.transcript.length >= 50, // Remove optional chaining
       needsMoreInfo: [data.prospectName, data.companyName, data.transcript].filter(Boolean).length < 2,
-      goodForAnalysis: (data.transcript?.length || 0) > 200 && data.prospectName && data.companyName,
-      complexAnalysisPossible: (data.transcript?.length || 0) > 1000 && data.additionalContext && (data.specificQuestions?.length || 0) > 0
+      goodForAnalysis: data.transcript.length > 200 && data.prospectName && data.companyName,
+      complexAnalysisPossible: data.transcript.length > 1000 && data.additionalContext && (data.specificQuestions?.length || 0) > 0
     }
   };
 
   return insights;
 }
+
 
 // Type exports
 export type SalesCallInput = z.infer<typeof salesCallInputSchema>;
