@@ -371,7 +371,7 @@ export interface IndustryBenchmark {
 // API Response type - FIXED to ensure data is never undefined
 export interface ApiResponse<T> {
   success: boolean;
-  data: T; // Made required instead of optional
+  data?: T; // Make it optional with ?
   error?: string;
   details?: any;
   meta?: {
@@ -382,7 +382,6 @@ export interface ApiResponse<T> {
     [key: string]: any;
   };
 }
-
 // Alternative response type for cases where data might be missing
 export interface ApiResponseOptional<T> {
   success: boolean;

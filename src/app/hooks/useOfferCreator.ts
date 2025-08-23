@@ -17,7 +17,7 @@ import type {
   BusinessRulesValidation,
   ApiResponse,
   ApiResponseOptional,
-  PerformanceData
+  PerformanceData,
 } from '@/types/offerCreator';
 
 export type {

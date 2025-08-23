@@ -71,13 +71,7 @@ import {
   SignatureOffer,
   calculateLivePreview,
 } from "@/types/offerCreator";
-
-// Hook to get current user ID - replace with your auth system
-const useCurrentUser = () => {
-  // This is a placeholder - replace with your actual auth hook
-  // For example: const { user } = useAuth(); return user?.id;
-  return "current-user-id"; // Replace with actual implementation
-};
+import LoadingOverlay from './LoadingOverlay'
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -93,14 +87,17 @@ export default function OfferCreatorPage() {
   const [savedOfferId, setSavedOfferId] = useState<string | null>(null);
   const [activePanels, setActivePanels] = useState<string[]>(["1", "2", "3", "4", "5"]);
 
-  // Get current user ID
-  const currentUserId = useCurrentUser();
+
+
 
   // Hook implementations
   const { generateOffer, generating, error: generateError, quickValidate, getBusinessInsights } = useOfferCreator();
   const { offers, loading: offersLoading, fetchOffers, deleteOffer, getOffer } = useSavedOffers();
   const { validateInput, getOfferInsights, calculateCapacityMetrics } = useOfferValidation();
   const { exportOffer, loading: exportLoading } = useOfferExport();
+
+
+  const isLoading = generating;
 
   // Form sections initialized empty
   const [founderInputs, setFounderInputs] = useState<FounderInputs>({
@@ -362,6 +359,7 @@ const onFinish = async () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+        <LoadingOverlay visible={isLoading} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
@@ -1332,77 +1330,147 @@ const onFinish = async () => {
   );
 }
 
+// Fixed OfferPreview component with proper type guards and fallbacks
+
 function OfferPreview({ offer, pricing }: { offer: SignatureOffer; pricing: string }) {
+  // Add type guards and fallbacks for all array properties
+  const safeScope = Array.isArray(offer.scope) ? offer.scope : [];
+  const safeProof = Array.isArray(offer.proof) ? offer.proof : [];
+  const safeMilestones = Array.isArray(offer.milestones) ? offer.milestones : [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <Title level={3}>{offer.name}</Title>
+          <Title level={3}>{offer.name || 'Untitled Offer'}</Title>
           <Title level={4} type="secondary">
-            {pricing}
+            {pricing || 'Price not set'}
           </Title>
         </div>
         <Button type="primary">Use This Offer</Button>
       </div>
-      <div>
-        <Text strong>Who this is for:</Text>
-        <Paragraph>{offer.for}</Paragraph>
-      </div>
-      <div>
-        <Text strong>Core promise:</Text>
-        <Paragraph>{offer.promise}</Paragraph>
-      </div>
-      <div>
-        <Text strong>What you do:</Text>
-        <ul className="list-disc pl-5 mt-2">
-          {offer.scope.map((item, idx) => (
-            <li key={idx}>{item}</li>
-          ))}
-        </ul>
-      </div>
-      <div>
-        <Text strong>Proof & differentiators:</Text>
-        <ul className="list-disc pl-5 mt-2">
-          {offer.proof.map((item, idx) => (
-            <li key={idx}>{item}</li>
-          ))}
-        </ul>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <Text strong>Setup timeline:</Text>
-          <Paragraph>{offer.timeline}</Paragraph>
+      
+      <div className="flex items-start gap-2">
+        <div className="mt-1 text-green-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
         </div>
         <div>
-          <Text strong>Success milestones:</Text>
+          <Text strong>Who this is for:</Text>
+          <div className="block mt-1">
+            <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
+              {offer.for || 'Target audience not specified'}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-start gap-2">
+        <div className="mt-1 text-green-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        </div>
+        <div>
+          <Text strong>Core promise:</Text>
+          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 mt-2">
+            <p className="text-purple-800 font-medium">{offer.promise || 'Promise not defined'}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <Text strong>What you do:</Text>
+        {safeScope.length > 0 ? (
           <ul className="list-disc pl-5 mt-2">
-            {offer.milestones.map((item, idx) => (
+            {safeScope.map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
           </ul>
-        </div>
+        ) : (
+          <p className="text-gray-500 mt-2">Scope not defined</p>
+        )}
       </div>
+      
+      <div>
+        <Text strong>Proof & differentiators:</Text>
+        {safeProof.length > 0 ? (
+          <ul className="list-disc pl-5 mt-2">
+            {safeProof.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500 mt-2">Proof elements not defined</p>
+        )}
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <Text strong>Pricing model:</Text>
-          <Paragraph>{offer.pricing}</Paragraph>
+          <Text strong>Setup timeline:</Text>
+          <div className="bg-gradient-to-r from-green-100 to-emerald-100 p-4 rounded-lg border-l-4 border-green-500 mt-2">
+            <p className="text-green-800 font-medium">{offer.timeline || 'Timeline not specified'}</p>
+          </div>
         </div>
         <div>
-          <Text strong>Term:</Text>
-          <Paragraph>{offer.term}</Paragraph>
+          <Text strong>Success milestones:</Text>
+          {safeMilestones.length > 0 ? (
+            <ul className="list-disc pl-5 mt-2">
+              {safeMilestones.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 mt-2">Milestones not defined</p>
+          )}
         </div>
       </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-blue-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <Text strong>Pricing model:</Text>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <p className="text-blue-700 font-medium">{offer.pricing || 'Pricing model not specified'}</p>
+          </div>
+        </div>
+
+        <div className="text-center py-4">
+          <div className="flex justify-center items-center mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <Text strong className="text-lg font-semibold">
+              Term:
+            </Text>
+          </div>
+          <Paragraph className="text-xl font-bold">
+            {offer.term || 'Term not specified'}
+          </Paragraph>
+        </div>
+      </div>
+      
       <div>
         <Text strong>Guarantee:</Text>
-        <Paragraph>{offer.guarantee}</Paragraph>
+        <Paragraph>{offer.guarantee || 'Guarantee not specified'}</Paragraph>
       </div>
+      
       <div>
         <Text strong>Client lift estimate:</Text>
-        <Paragraph>{offer.clientLift}</Paragraph>
+        <Paragraph>{offer.clientLift || 'Client impact not specified'}</Paragraph>
       </div>
+      
       <div>
         <Text strong>Implementation requirements:</Text>
-        <Paragraph>{offer.requirements}</Paragraph>
+        <Paragraph>{offer.requirements || 'Requirements not specified'}</Paragraph>
       </div>
     </div>
   );
