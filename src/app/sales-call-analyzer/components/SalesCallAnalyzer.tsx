@@ -15,7 +15,12 @@ import {
   FileSearchOutlined,
   EyeOutlined,
   DownloadOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  BarChartOutlined,
+  SoundOutlined,
+  TeamOutlined,
+  LikeOutlined,
+  DashboardOutlined
 } from '@ant-design/icons';
 import {
   Button,
@@ -31,7 +36,11 @@ import {
   Avatar,
   message,
   Popconfirm,
-  Tooltip
+  Tooltip,
+  Row,
+  Col,
+  Statistic,
+  List
 } from 'antd';
 import { useGo } from "@refinedev/core";
 import { NewCallModal } from '../callmodel';
@@ -174,6 +183,35 @@ export default function SalesCallAnalyzerPage() {
       default: return 'blue';
     }
   };
+
+  // Calculate statistics for the dashboard
+  const getStats = () => {
+    const totalCalls = analyses.length;
+    const completedCalls = analyses.filter(a => a.status === 'completed').length;
+    const avgScore = totalCalls > 0 
+      ? Math.round(analyses.reduce((sum, a) => sum + (a.overallScore || 0), 0) / totalCalls) 
+      : 0;
+    
+    const sentimentCounts = {
+      positive: analyses.filter(a => a.sentiment === 'positive').length,
+      negative: analyses.filter(a => a.sentiment === 'negative').length,
+      mixed: analyses.filter(a => a.sentiment === 'mixed').length,
+      neutral: analyses.filter(a => !a.sentiment || a.sentiment === 'neutral').length
+    };
+    
+    const totalDuration = analyses.reduce((sum, a) => sum + a.duration, 0);
+    const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+    
+    return {
+      totalCalls,
+      completedCalls,
+      avgScore,
+      sentimentCounts,
+      avgDuration
+    };
+  };
+
+  const stats = getStats();
 
   const columns: ColumnsType<CallRecord> = [
     {
@@ -357,8 +395,9 @@ export default function SalesCallAnalyzerPage() {
         </Space>
       </div>
 
+
       {/* Call Type Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card
           bordered
           hoverable
@@ -386,6 +425,7 @@ export default function SalesCallAnalyzerPage() {
               bordered
               hoverable
               className={`border border-${type.color}-200 hover:border-${type.color}-300 ${activeTab === type.value ? `border-${type.color}-500` : ''}`}
+                style={{ border: '1px solid #e5e7eb' }} 
               onClick={() => setActiveTab(type.value)}
             >
               <div className="flex items-center">
@@ -409,6 +449,128 @@ export default function SalesCallAnalyzerPage() {
           );
         })}
       </div>
+
+      {/* Analysis Dashboard */}
+      <Card className="mb-8" title={
+        <span>
+          <DashboardOutlined className="mr-2" />
+          Analysis Overview
+        </span>
+      }>
+        <Row gutter={16}>
+          <Col xs={24} sm={12} md={6} className="mb-4">
+            <Card bordered={false}>
+              <Statistic
+                title="Total Calls"
+                value={stats.totalCalls}
+                prefix={<PhoneOutlined className="text-blue-500" />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6} className="mb-4">
+            <Card bordered={false}>
+              <Statistic
+                title="Completed Analysis"
+                value={stats.completedCalls}
+                suffix={`/ ${stats.totalCalls}`}
+                prefix={<CheckCircleOutlined className="text-green-500" />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6} className="mb-4">
+            <Card bordered={false}>
+              <Statistic
+                title="Average Score"
+                value={stats.avgScore}
+                suffix="/ 100"
+                prefix={<LikeOutlined className="text-orange-500" />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6} className="mb-4">
+            <Card bordered={false}>
+              <Statistic
+                title="Avg. Duration"
+                value={Math.floor(stats.avgDuration / 60)}
+                suffix={`min ${stats.avgDuration % 60}s`}
+                prefix={<ClockCircleOutlined className="text-purple-500" />}
+              />
+            </Card>
+          </Col>
+        </Row>
+        
+        <Row gutter={16} className="mt-4">
+          <Col xs={24} md={12} className="mb-4">
+            <Card title="Sentiment Analysis" bordered={false}>
+              <div className="flex justify-between mb-2">
+                <span>Positive</span>
+                <span>{stats.sentimentCounts.positive} calls</span>
+              </div>
+              <Progress 
+                percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.positive / stats.totalCalls) * 100) : 0} 
+                strokeColor="#52c41a"
+                className="mb-3"
+              />
+              
+              <div className="flex justify-between mb-2">
+                <span>Negative</span>
+                <span>{stats.sentimentCounts.negative} calls</span>
+              </div>
+              <Progress 
+                percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.negative / stats.totalCalls) * 100) : 0} 
+                strokeColor="#f5222d"
+                className="mb-3"
+              />
+              
+              <div className="flex justify-between mb-2">
+                <span>Mixed</span>
+                <span>{stats.sentimentCounts.mixed} calls</span>
+              </div>
+              <Progress 
+                percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.mixed / stats.totalCalls) * 100) : 0} 
+                strokeColor="#fa8c16"
+                className="mb-3"
+              />
+              
+              <div className="flex justify-between mb-2">
+                <span>Neutral</span>
+                <span>{stats.sentimentCounts.neutral} calls</span>
+              </div>
+              <Progress 
+                percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.neutral / stats.totalCalls) * 100) : 0} 
+                strokeColor="#1890ff"
+              />
+            </Card>
+          </Col>
+          
+          <Col xs={24} md={12} className="mb-4">
+            <Card title="Recent Calls" bordered={false}>
+              <List
+                itemLayout="horizontal"
+                dataSource={analyses.slice(0, 5)}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<Avatar icon={<PhoneOutlined />} />}
+                      title={<a onClick={() => handleViewAnalysis(item.id)}>{item.title}</a>}
+                      description={
+                        <div>
+                          <div>{item.participants.join(', ')}</div>
+                          <div className="flex justify-between mt-1">
+                            <Tag color={getSentimentColor(item.sentiment)}>{item.sentiment || 'neutral'}</Tag>
+                            <span>{item.date}</span>
+                          </div>
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </Card>
+
 
       {/* Filters and Search */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">

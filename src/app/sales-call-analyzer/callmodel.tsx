@@ -61,7 +61,7 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
       description: 'Paste or upload a text transcript for analysis',
       icon: <EditOutlined className="text-2xl text-orange-500" />,
       action: () => {
-        go({ to: "/sales-call-analyzer/transcript-analysis" });
+        go({ to: "/sales-call-analyzer/review-recording" });
         onClose();
       }
     },
