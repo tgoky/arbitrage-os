@@ -14,7 +14,10 @@ import {
   CopyOutlined,
   InfoCircleOutlined,
   ThunderboltOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+    LeftOutlined,
+  RightOutlined,
+
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -39,7 +42,7 @@ import {
    Modal, 
   notification
 } from 'antd';
-import { useAdWriter, type AdWriterInput, type GeneratedAd } from '../hooks/useAdWriter';
+import { useAdWriter, type AdWriterInput, type GeneratedAd, type FullScript } from '../hooks/useAdWriter';
 import { LoadingAnimation, loadingMessages } from './Loading';
 import LoadingOverlay from './LoadingOverlay';
 
@@ -76,6 +79,87 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
+
+// ✅ NEW: Add this component before the main AdWriter component
+const FullScriptDisplay: React.FC<{
+  fullScripts: Array<{framework: string; script: string}>;
+  platform: string;
+  onCopy: (text: string) => void;
+}> = ({ fullScripts, platform, onCopy }) => {
+  const [currentScriptIndex, setCurrentScriptIndex] = useState(0);
+
+  if (!fullScripts || fullScripts.length === 0) {
+    return (
+      <Alert
+        message="No full scripts available"
+        description="Script sections are still being generated."
+        type="info"
+      />
+    );
+  }
+
+  const currentScript = fullScripts[currentScriptIndex];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <Title level={5} className="mb-2">
+          Ad Scripts ({currentScriptIndex + 1} of {fullScripts.length})
+        </Title>
+        <Space>
+          <Button
+            icon={<LeftOutlined />}
+            onClick={() => setCurrentScriptIndex(Math.max(0, currentScriptIndex - 1))}
+            disabled={currentScriptIndex === 0}
+            size="small"
+          />
+          <Button
+            icon={<RightOutlined />}
+            onClick={() => setCurrentScriptIndex(Math.min(fullScripts.length - 1, currentScriptIndex + 1))}
+            disabled={currentScriptIndex === fullScripts.length - 1}
+            size="small"
+          />
+        </Space>
+      </div>
+
+      <Card style={{
+        border: "2px solid green",
+        
+      }}>
+        <div className="flex justify-between items-start mb-3">
+          <Tag color="blue">{currentScript.framework}</Tag>
+          <Button
+            type="text"
+            icon={<CopyOutlined />}
+            onClick={() => onCopy(currentScript.script)}
+          >
+            Copy Script
+          </Button>
+        </div>
+        <pre className="whitespace-pre-wrap text-sm leading-relaxed font-medium">
+          {currentScript.script}
+        </pre>
+      </Card>
+
+      {fullScripts.length > 1 && (
+        <div className="flex justify-center space-x-2">
+          {fullScripts.map((_, index) => (
+            <Button
+              key={index}
+              size="small"
+              type={currentScriptIndex === index ? "primary" : "default"}
+              onClick={() => setCurrentScriptIndex(index)}
+              className="w-8 h-8"
+            >
+              {index + 1}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const AdWriter = () => {
   const [form] = Form.useForm();
@@ -889,6 +973,16 @@ const downloadAds = () => {
                           Regenerate {ad.platform}
                         </Button>
                       </div>
+
+                      
+                {ad.fullScripts && ad.fullScripts.length > 0 && (
+                  <FullScriptDisplay 
+                    fullScripts={ad.fullScripts}
+                    platform={ad.platform}
+                    onCopy={copyToClipboard}
+                  />
+                )}
+                
                       
                       {ad.hooks && ad.hooks.length > 0 && (
                         <div>

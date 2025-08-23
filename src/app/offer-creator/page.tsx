@@ -1347,7 +1347,7 @@ function OfferPreview({ offer, pricing }: { offer: SignatureOffer; pricing: stri
             {pricing || 'Price not set'}
           </Title>
         </div>
-        <Button type="primary">Use This Offer</Button>
+        {/* <Button type="primary">Use This Offer</Button> */}
       </div>
       
       <div className="flex items-start gap-2">

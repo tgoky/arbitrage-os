@@ -1,4 +1,4 @@
-// types/adWriter.ts - FIXED VERSION
+// types/adWriter.ts - UPDATED with Full Scripts
 export interface AdGenerationInput {
   businessName: string;
   personalTitle?: string;
@@ -14,7 +14,7 @@ export interface AdGenerationInput {
   coreResult: string;
   secondaryBenefits?: string[];
   timeline?: string;
-  platforms: Platform[]; // ✅ Changed from string[] to Platform[]
+  platforms: Platform[];
   adType: 'awareness' | 'conversion' | 'lead' | 'traffic';
   tone: 'professional' | 'friendly' | 'urgent' | 'humorous' | 'inspirational';
   caseStudy1?: string;
@@ -27,36 +27,40 @@ export interface AdGenerationInput {
   [key: string]: any;
 }
 
-// ✅ FIXED: Add 'generic' to Platform type to support platform-agnostic generation
 export type Platform = 'facebook' | 'google' | 'linkedin' | 'tiktok' | 'generic';
 
-// ✅ FIXED: Add missing properties to GeneratedAd interface
+// ✅ NEW: Full Script interface
+export interface FullScript {
+  framework: string;
+  script: string;
+}
+
+// ✅ UPDATED: Add fullScripts to GeneratedAd interface
 export interface GeneratedAd {
   platform: Platform;
   headlines: string[];
   descriptions: string[];
   ctas: string[];
-  hooks?: string[]; // Made optional since some platforms might not have hooks
-  visualSuggestions?: string[]; // Made optional
-  // ✅ NEW: Add the missing script section properties
+  hooks?: string[];
+  visualSuggestions?: string[];
   fixes?: string[];
   results?: string[];
   proofs?: string[];
+  // ✅ NEW: Add full scripts array
+  fullScripts?: FullScript[];
 }
 
-export type AdOptimizationType = 
-  | 'emotional' 
-  | 'urgency' 
-  | 'benefits' 
-  | 'social-proof' 
+export type AdOptimizationType =
+  | 'emotional'
+  | 'urgency'
+  | 'benefits'
+  | 'social-proof'
   | 'simplify';
 
-// ✅ NEW: Helper function to validate platforms
 export function isValidPlatform(platform: string): platform is Platform {
   return ['facebook', 'google', 'linkedin', 'tiktok', 'generic'].includes(platform);
 }
 
-// ✅ NEW: Helper function to convert string array to Platform array
 export function convertToPlatforms(platforms: string[]): Platform[] {
   return platforms.filter(isValidPlatform);
 }

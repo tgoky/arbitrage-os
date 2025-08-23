@@ -1,4 +1,4 @@
-// services/adWriter.service.ts - FIXED generateVisualSuggestions method
+// services/adWriter.service.ts - UPDATED with Full Script Generation
 import { OpenRouterClient } from '@/lib/openrouter';
 import { AdGenerationInput, GeneratedAd, Platform } from '@/types/adWriter';
 import { AdOptimizationType } from '@/types/adWriter';
@@ -53,21 +53,19 @@ export class AdWriterService {
   }> {
     const startTime = Date.now();
     
-    // ✅ Handle optional platforms - default to generic if none selected
+    // Handle optional platforms - default to generic if none selected
     const platforms = input.platforms && input.platforms.length > 0 
       ? input.platforms 
-      : ['generic']; // Generate platform-agnostic scripts
+      : ['generic'];
     
-    console.log('🚀 Starting script-section ad generation for platforms:', platforms);
-    
-    // Skip cache for better variety - each generation should be unique
+    console.log('🚀 Starting script generation for platforms:', platforms);
     
     // Generate ads for each platform using AI with different frameworks
     const adsPromises = platforms.map(platform => 
       this.generatePlatformAdsWithAI(platform as Platform, input)
     );
     
-    console.log('⏳ Calling AI to generate unique script sections for', platforms.length, 'platforms...');
+    console.log('⏳ Calling AI to generate complete ad scripts for', platforms.length, 'platforms...');
     const results = await Promise.all(adsPromises);
     
     const tokensUsed = results.reduce((sum, r) => sum + r.tokensUsed, 0);
@@ -78,7 +76,7 @@ export class AdWriterService {
       generationTime: Date.now() - startTime
     };
 
-    console.log('✅ Generated script-section ads:', {
+    console.log('✅ Generated complete ad scripts:', {
       platforms: response.ads.map(ad => ad.platform),
       tokensUsed,
       generationTime: response.generationTime
@@ -91,23 +89,23 @@ export class AdWriterService {
     platform: Platform,
     input: AdGenerationInput
   ): Promise<{ ad: GeneratedAd; tokensUsed: number }> {
-    console.log(`🎯 Generating high-converting script sections for ${platform}...`);
+    console.log(`🎯 Generating complete ad scripts for ${platform}...`);
     
-    // ✅ Always select different frameworks for variety (no hard limit)
+    // Select different frameworks for variety
     const selectedFrameworks = this.frameworks
       .sort(() => 0.5 - Math.random())
-      .slice(0, 5); // Use 5 frameworks for more variety
+      .slice(0, 5);
     
     console.log(`📋 Using frameworks for ${platform}:`, selectedFrameworks);
 
-    // Call AI to generate 5 complete script sections using different frameworks
+    // Generate script sections for each framework
     const frameworkPromises = selectedFrameworks.map(framework => 
       this.generateScriptSections(framework, platform, input)
     );
     
     const frameworkResults = await Promise.all(frameworkPromises);
     
-    // ✅ NEW STRUCTURE: Extract script sections instead of basic ad parts
+    // Extract individual sections
     const headlines = frameworkResults.map(result => result.headline);
     const hooks = frameworkResults.map(result => result.hook);
     const fixes = frameworkResults.map(result => result.fix);
@@ -115,54 +113,180 @@ export class AdWriterService {
     const proofs = frameworkResults.map(result => result.proof);
     const ctas = frameworkResults.map(result => result.cta);
     
+    // ✅ NEW: Generate full scripts by combining sections
+    const fullScripts = frameworkResults.map((result, index) => 
+      this.combineIntoFullScript(result, selectedFrameworks[index], platform, input)
+    );
+    
     // Generate visual suggestions
     const visualSuggestions = await this.generateVisualSuggestions(platform, input);
     
     const totalTokens = frameworkResults.reduce((sum, result) => sum + result.tokensUsed, 0);
     
-    console.log(`✅ Generated ${platform} script sections with ${selectedFrameworks.length} frameworks`);
+    console.log(`✅ Generated ${platform} complete scripts with ${selectedFrameworks.length} frameworks`);
     
     return {
       ad: {
         platform,
         headlines,
-        descriptions: fixes, // ✅ Use 'fix' sections as descriptions
+        descriptions: fixes,
         ctas,
         hooks,
         visualSuggestions,
-        // ✅ NEW: Add the new script sections
         fixes,
         results,
-        proofs
+        proofs,
+        // ✅ NEW: Add full scripts
+        fullScripts
       },
       tokensUsed: totalTokens
     };
   }
 
- private async generateScriptSections(
-  framework: string,
-  platform: Platform,
-  input: AdGenerationInput
-): Promise<{
-  headline: string;
-  hook: string;
-  fix: string;
-  result: string;
-  proof: string;
-  cta: string;
-  tokensUsed: number;
-}> {
-  const prompt = this.buildScriptSectionPrompt(framework, platform, input);
-  
-  console.log(`🎬 Generating script sections for ${framework} on ${platform}...`);
-  
-  try {
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a world-class direct response copywriter who creates scroll-stopping video script sections like the example:
+  // ✅ NEW: Combine sections into full cohesive scripts
+  private combineIntoFullScript(
+    sections: {
+      headline: string;
+      hook: string;
+      fix: string;
+      result: string;
+      proof: string;
+      cta: string;
+    },
+    framework: string,
+    platform: Platform,
+    input: AdGenerationInput
+  ): {
+    framework: string;
+    script: string;
+  } {
+    // Create a cohesive script based on the framework structure
+    let script = '';
+    
+    // Add framework-specific structure
+    switch (framework) {
+      case 'AIDA':
+        script = `[ATTENTION]
+${sections.hook}
+
+[INTEREST]
+${sections.fix}
+
+[DESIRE]
+${sections.result}
+${sections.proof}
+
+[ACTION]
+${sections.cta}`;
+        break;
+        
+      case 'PAS (Problem → Agitation → Solution)':
+        script = `[PROBLEM]
+${sections.hook}
+
+[AGITATION]
+Most ${input.idealCustomer.toLowerCase()} struggle with this because traditional solutions don't address the root cause.
+
+[SOLUTION]
+${sections.fix}
+${sections.result}
+${sections.proof}
+
+${sections.cta}`;
+        break;
+        
+      case 'Before → After Bridge':
+        script = `[BEFORE]
+${sections.hook}
+
+[BRIDGE]
+${sections.fix}
+
+[AFTER]
+${sections.result}
+${sections.proof}
+
+[CALL TO ACTION]
+${sections.cta}`;
+        break;
+        
+      case 'Star → Story → Solution':
+        script = `[STAR - Who This Is For]
+${input.idealCustomer}...
+
+[STORY - The Problem]
+${sections.hook}
+
+[SOLUTION - The Transformation]
+${sections.fix}
+${sections.result}
+${sections.proof}
+
+[NEXT STEP]
+${sections.cta}`;
+        break;
+        
+      case 'Feel → Felt → Found':
+        script = `[FEEL]
+I know how you feel about ${input.primaryPainPoint.toLowerCase()}...
+
+[FELT]
+${sections.hook}
+
+[FOUND]
+${sections.fix}
+${sections.result}
+${sections.proof}
+
+[TAKE ACTION]
+${sections.cta}`;
+        break;
+        
+      default:
+        // Default structure for other frameworks
+        script = `${sections.headline}
+
+${sections.hook}
+
+${sections.fix}
+
+${sections.result}
+
+${sections.proof}
+
+${sections.cta}`;
+    }
+    
+    return {
+      framework,
+      script
+    };
+  }
+
+  private async generateScriptSections(
+    framework: string,
+    platform: Platform,
+    input: AdGenerationInput
+  ): Promise<{
+    headline: string;
+    hook: string;
+    fix: string;
+    result: string;
+    proof: string;
+    cta: string;
+    tokensUsed: number;
+  }> {
+    const prompt = this.buildScriptSectionPrompt(framework, platform, input);
+    
+    console.log(`🎬 Generating script sections for ${framework} on ${platform}...`);
+    
+    try {
+      const response = await this.openRouterClient.complete({
+        model: 'openai/gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a world-class direct response copywriter who creates scroll-stopping video script sections like the example:
 "Your funnel isn't broken—it's just missing the 3 growth-strategy bolts that turn clicks into cash."
 You create PUNCHY, SPECIFIC, URGENT copy with:
 - Concrete numbers and timeframes
@@ -171,41 +295,40 @@ You create PUNCHY, SPECIFIC, URGENT copy with:
 - Specific proof points
 - Action-driving language
 CRITICAL: Return ONLY a valid JSON object with no extra text, markdown, or code fences.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.9,
-      max_tokens: 600
-    });
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.9,
+        max_tokens: 600
+      });
 
-    console.log(`📥 Received script sections for ${framework}:`, response.content.substring(0, 100) + '...');
-    
-    const parsed = this.parseScriptSectionResponse(response.content, input); // Pass input here
-    
-    return {
-      ...parsed,
-      tokensUsed: response.usage.total_tokens
-    };
-  } catch (error) {
-    console.error(`❌ AI call failed for ${framework}:`, error);
-    return {
-      headline: `${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}`,
-      hook: `Struggling with ${input.primaryPainPoint.toLowerCase()}? ${input.uniqueMechanism} changes that.`,
-      fix: `Our ${input.offerName} delivers ${input.coreResult} in ${input.timeline || 'weeks'}.`,
-      result: `Result: ${input.coreResult} for ${input.idealCustomer.toLowerCase()}.`,
-      proof: `${input.caseStudy1 || 'Proven results with real clients'}.`,
-      cta: `${input.cta} at ${input.url} now.`,
-      tokensUsed: 0
-    };
+      console.log(`📥 Received script sections for ${framework}:`, response.content.substring(0, 100) + '...');
+      
+      const parsed = this.parseScriptSectionResponse(response.content, input);
+      
+      return {
+        ...parsed,
+        tokensUsed: response.usage.total_tokens
+      };
+    } catch (error) {
+      console.error(`❌ AI call failed for ${framework}:`, error);
+      return {
+        headline: `${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}`,
+        hook: `Struggling with ${input.primaryPainPoint.toLowerCase()}? ${input.uniqueMechanism} changes that.`,
+        fix: `Our ${input.offerName} delivers ${input.coreResult} in ${input.timeline || 'weeks'}.`,
+        result: `Result: ${input.coreResult} for ${input.idealCustomer.toLowerCase()}.`,
+        proof: `${input.caseStudy1 || 'Proven results with real clients'}.`,
+        cta: `${input.cta} at ${input.url} now.`,
+        tokensUsed: 0
+      };
+    }
   }
-}
 
-
-private buildScriptSectionPrompt(framework: string, platform: Platform, input: AdGenerationInput): string {
-  const businessContext = `
+  private buildScriptSectionPrompt(framework: string, platform: Platform, input: AdGenerationInput): string {
+    const businessContext = `
 BUSINESS DATA:
 - Company: ${input.businessName}
 - Offer: ${input.offerName} - ${input.offerDescription}  
@@ -219,24 +342,24 @@ BUSINESS DATA:
 - URL: ${input.url}
 ${input.urgency ? `- Urgency: ${input.urgency}` : ''}
 ${input.caseStudy1 ? `- Proof: ${input.caseStudy1}` : ''}
-  `;
+    `;
 
-  const personalizedExample = `{
-    "headline": "${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}",
-    "hook": "Your ${input.primaryPainPoint.toLowerCase()} isn't permanent—it's missing ${input.uniqueMechanism.toLowerCase()}.",
-    "fix": "We deliver ${input.coreResult} with ${input.uniqueMechanism} in ${input.timeline || 'weeks'}.",
-    "result": "Result: ${input.coreResult} and transformed ${input.idealCustomer.toLowerCase()} business.",
-    "proof": "${input.caseStudy1 || 'Proven results with real clients'}.",
-    "cta": "${input.cta} at ${input.url} now."
-  }`;
+    const personalizedExample = `{
+      "headline": "${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}",
+      "hook": "Your ${input.primaryPainPoint.toLowerCase()} isn't permanent—it's missing ${input.uniqueMechanism.toLowerCase()}.",
+      "fix": "We deliver ${input.coreResult} with ${input.uniqueMechanism} in ${input.timeline || 'weeks'}.",
+      "result": "Result: ${input.coreResult} and transformed ${input.idealCustomer.toLowerCase()} business.",
+      "proof": "${input.caseStudy1 || 'Proven results with real clients'}.",
+      "cta": "${input.cta} at ${input.url} now."
+    }`;
 
-  const platformContext = platform === 'generic' 
-    ? 'Create high-converting ad script sections for any platform'
-    : `Create high-converting ${platform} script optimized for its audience`;
+    const platformContext = platform === 'generic' 
+      ? 'Create high-converting ad script sections for any platform'
+      : `Create high-converting ${platform} script optimized for its audience`;
 
-  const frameworkGuidance = this.getFrameworkGuidance(framework, input);
+    const frameworkGuidance = this.getFrameworkGuidance(framework, input);
 
-  return `
+    return `
 **Instructions**:
 - Generate ad script sections using the ${framework} framework.
 - Return **only a valid JSON object** with no markdown, code fences (e.g., \`\`\`json), or extra text.
@@ -271,61 +394,56 @@ ${personalizedExample}
 - Avoid generic phrases like "3 accelerators" or "proven system."
 - Return only the JSON object.
 `;
-}
-
-// ✅ Enhanced framework guidance that uses actual business data
-private getFrameworkGuidance(framework: string, input: AdGenerationInput): string {
-  const frameworkMap: Record<string, string> = {
-    'Problem → Solution': `Reframe "${input.primaryPainPoint}" as solvable, then present "${input.uniqueMechanism}" as the missing solution that delivers "${input.coreResult}".`,
-    
-    'Before → After Bridge': `Paint the contrast between their current "${input.primaryPainPoint}" struggle and the "${input.coreResult}" transformation your "${input.offerName}" provides.`,
-    
-    'AIDA': `Grab attention with their pain "${input.primaryPainPoint}", build interest with "${input.uniqueMechanism}", create desire with "${input.coreResult}", prompt action with "${input.cta}".`,
-    
-    'PAS (Problem → Agitation → Solution)': `Identify "${input.primaryPainPoint}", amplify the cost of staying stuck, then position "${input.offerName}" as the relief that delivers "${input.coreResult}".`,
-    
-    'Star → Story → Solution': `Lead with "${input.idealCustomer}" identity, tell a transformation story about achieving "${input.coreResult}", present "${input.uniqueMechanism}" as the vehicle.`,
-    
-    'Feel → Felt → Found': `Connect with their "${input.primaryPainPoint}" feelings, show others felt the same, reveal they found "${input.uniqueMechanism}" that delivered "${input.coreResult}".`,
-    
-    'Broken System → Fix': `Expose why current solutions fail at solving "${input.primaryPainPoint}", then introduce "${input.uniqueMechanism}" as the systematic fix for "${input.coreResult}".`
-  };
-  
-  return frameworkMap[framework] || `Structure a compelling transformation story using their specific business details: ${input.businessName}, ${input.uniqueMechanism}, ${input.coreResult}.`;
-}
-
-private parseScriptSectionResponse(content: string, input: AdGenerationInput): {
-  headline: string;
-  hook: string;
-  fix: string;
-  result: string;
-  proof: string;
-  cta: string;
-} {
-  try {
-    console.log('Raw AI response:', content);
-    const parsed = JSON.parse(content);
-    if (!parsed.headline || !parsed.hook || !parsed.fix || !parsed.result || !parsed.proof || !parsed.cta) {
-      throw new Error('Incomplete JSON structure');
-    }
-    return parsed;
-  } catch (error) {
-    console.error('JSON parsing error:', error, 'Raw content:', content);
-    return {
-      headline: `${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}`,
-      hook: `Struggling with ${input.primaryPainPoint.toLowerCase()}? ${input.uniqueMechanism} changes that.`,
-      fix: `Our ${input.offerName} delivers ${input.coreResult} in ${input.timeline || 'weeks'}.`,
-      result: `Result: ${input.coreResult} for ${input.idealCustomer.toLowerCase()}.`,
-      proof: `${input.caseStudy1 || 'Proven results with real clients'}.`,
-      cta: `${input.cta} at ${input.url} now.`,
-    };
   }
-}
 
+  private getFrameworkGuidance(framework: string, input: AdGenerationInput): string {
+    const frameworkMap: Record<string, string> = {
+      'Problem → Solution': `Reframe "${input.primaryPainPoint}" as solvable, then present "${input.uniqueMechanism}" as the missing solution that delivers "${input.coreResult}".`,
+      
+      'Before → After Bridge': `Paint the contrast between their current "${input.primaryPainPoint}" struggle and the "${input.coreResult}" transformation your "${input.offerName}" provides.`,
+      
+      'AIDA': `Grab attention with their pain "${input.primaryPainPoint}", build interest with "${input.uniqueMechanism}", create desire with "${input.coreResult}", prompt action with "${input.cta}".`,
+      
+      'PAS (Problem → Agitation → Solution)': `Identify "${input.primaryPainPoint}", amplify the cost of staying stuck, then position "${input.offerName}" as the relief that delivers "${input.coreResult}".`,
+      
+      'Star → Story → Solution': `Lead with "${input.idealCustomer}" identity, tell a transformation story about achieving "${input.coreResult}", present "${input.uniqueMechanism}" as the vehicle.`,
+      
+      'Feel → Felt → Found': `Connect with their "${input.primaryPainPoint}" feelings, show others felt the same, reveal they found "${input.uniqueMechanism}" that delivered "${input.coreResult}".`,
+      
+      'Broken System → Fix': `Expose why current solutions fail at solving "${input.primaryPainPoint}", then introduce "${input.uniqueMechanism}" as the systematic fix for "${input.coreResult}".`
+    };
+    
+    return frameworkMap[framework] || `Structure a compelling transformation story using their specific business details: ${input.businessName}, ${input.uniqueMechanism}, ${input.coreResult}.`;
+  }
 
+  private parseScriptSectionResponse(content: string, input: AdGenerationInput): {
+    headline: string;
+    hook: string;
+    fix: string;
+    result: string;
+    proof: string;
+    cta: string;
+  } {
+    try {
+      console.log('Raw AI response:', content);
+      const parsed = JSON.parse(content);
+      if (!parsed.headline || !parsed.hook || !parsed.fix || !parsed.result || !parsed.proof || !parsed.cta) {
+        throw new Error('Incomplete JSON structure');
+      }
+      return parsed;
+    } catch (error) {
+      console.error('JSON parsing error:', error, 'Raw content:', content);
+      return {
+        headline: `${input.coreResult} in ${input.timeline || '30 Days'} - ${input.businessName}`,
+        hook: `Struggling with ${input.primaryPainPoint.toLowerCase()}? ${input.uniqueMechanism} changes that.`,
+        fix: `Our ${input.offerName} delivers ${input.coreResult} in ${input.timeline || 'weeks'}.`,
+        result: `Result: ${input.coreResult} for ${input.idealCustomer.toLowerCase()}.`,
+        proof: `${input.caseStudy1 || 'Proven results with real clients'}.`,
+        cta: `${input.cta} at ${input.url} now.`,
+      };
+    }
+  }
 
-
-  // ✅ FIXED: Add 'generic' platform to visual suggestions
   private async generateVisualSuggestions(platform: Platform, input: AdGenerationInput): Promise<string[]> {
     const suggestions: Record<Platform, string[]> = {
       facebook: [
@@ -344,7 +462,6 @@ private parseScriptSectionResponse(content: string, input: AdGenerationInput): {
         `Behind-the-scenes video showing your ${input.uniqueMechanism} in action`,
         `Quick transformation reveal video with dramatic before/after results`
       ],
-      // ✅ NEW: Add generic platform suggestions
       generic: [
         `Visual comparison showing before/after transformation from "${input.primaryPainPoint}" to "${input.coreResult}"`,
         `Professional graphic showcasing key benefits and your unique methodology`,

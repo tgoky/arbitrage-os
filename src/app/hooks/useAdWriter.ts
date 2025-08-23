@@ -29,7 +29,11 @@ export interface AdWriterInput {
   leadMagnet?: string;
 }
 
-// ✅ FIXED: Updated GeneratedAd interface to match the service output
+export interface FullScript {
+  framework: string;
+  script: string;
+}
+
 export interface GeneratedAd {
   platform: string; // Keep as string for frontend compatibility
   headlines: string[];
@@ -41,7 +45,10 @@ export interface GeneratedAd {
   fixes?: string[];
   results?: string[];
   proofs?: string[];
+  // ✅ ADD this line
+  fullScripts?: FullScript[];
 }
+
 
 export function useAdWriter() {
   const [loading, setLoading] = useState(false);
@@ -165,17 +172,19 @@ export function useAdWriter() {
         }
         
         // ✅ Ensure the response matches our GeneratedAd interface
-        const typedAds: GeneratedAd[] = validAds.map((ad: any) => ({
-          platform: ad.platform,
-          headlines: ad.headlines || [],
-          descriptions: ad.descriptions || [],
-          ctas: ad.ctas || [],
-          hooks: ad.hooks || [],
-          visualSuggestions: ad.visualSuggestions || [],
-          fixes: ad.fixes || [],
-          results: ad.results || [],
-          proofs: ad.proofs || []
-        }));
+       const typedAds: GeneratedAd[] = validAds.map((ad: any) => ({
+  platform: ad.platform,
+  headlines: ad.headlines || [],
+  descriptions: ad.descriptions || [],
+  ctas: ad.ctas || [],
+  hooks: ad.hooks || [],
+  visualSuggestions: ad.visualSuggestions || [],
+  fixes: ad.fixes || [],
+  results: ad.results || [],
+  proofs: ad.proofs || [],
+  // ✅ ADD this line
+  fullScripts: ad.fullScripts || []
+}));
         
         return typedAds;
       } else {
@@ -286,17 +295,19 @@ export function useAdWriter() {
         }
 
         // ✅ Return properly typed GeneratedAd
-        const typedAd: GeneratedAd = {
-          platform: newAd.platform,
-          headlines: newAd.headlines || [],
-          descriptions: newAd.descriptions || [],
-          ctas: newAd.ctas || [],
-          hooks: newAd.hooks || [],
-          visualSuggestions: newAd.visualSuggestions || [],
-          fixes: newAd.fixes || [],
-          results: newAd.results || [],
-          proofs: newAd.proofs || []
-        };
+      const typedAd: GeneratedAd = {
+  platform: newAd.platform,
+  headlines: newAd.headlines || [],
+  descriptions: newAd.descriptions || [],
+  ctas: newAd.ctas || [],
+  hooks: newAd.hooks || [],
+  visualSuggestions: newAd.visualSuggestions || [],
+  fixes: newAd.fixes || [],
+  results: newAd.results || [],
+  proofs: newAd.proofs || [],
+  // ✅ ADD this line
+  fullScripts: newAd.fullScripts || []
+};
 
         return typedAd;
       } else {
