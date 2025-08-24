@@ -1,844 +1,832 @@
-  // Preview deliverable
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   SearchOutlined,
+  EllipsisOutlined,
+  FileTextOutlined,
+  PhoneOutlined,
+  DollarCircleOutlined,
+  BulbOutlined,
+  RocketOutlined,
+  MailOutlined,
+  EditOutlined,
+  BarChartOutlined,
+  CalendarOutlined,
+  TagOutlined,
   EyeOutlined,
   DownloadOutlined,
   DeleteOutlined,
-  FilterOutlined,
-  CalendarOutlined,
-  FileTextOutlined,
-  DollarOutlined,
-  BulbOutlined,
-  MailOutlined,
-  LineChartOutlined,
-  TrophyOutlined,
-  AudioOutlined,
-  ExperimentOutlined
+  ShareAltOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { 
   Card, 
   Tag, 
   Button, 
-  Grid, 
   Typography, 
   Space, 
+  Avatar, 
   Input,
+  Dropdown,
+  Menu,
+  Pagination,
+  Tabs,
   Select,
-  Table,
-  Modal,
-  message,
-  Tooltip,
-  Popconfirm,
-  Badge,
+  DatePicker,
+  Row,
+  Col,
+  Statistic,
+  Progress,
   Empty,
-  Spin
+  Badge,
+  Tooltip,
+  Spin,
+  message
 } from 'antd';
-import { useTheme } from '../../providers/ThemeProvider';
-import { formatDistanceToNow } from 'date-fns';
+
+// Import your existing hooks
+import { useSalesCallAnalyzer } from '../../app/hooks/useSalesCallAnalyzer';
+import { useGrowthPlan } from '../../app/hooks/useGrowthPlan';
+import { useSavedCalculations } from '../../app/hooks/usePricingCalculator';
+import { useNicheResearcher } from '../../app/hooks/useNicheResearcher';
+import { useColdEmail } from '../../app/hooks/useColdEmail';
+import { useSavedOffers } from '../../app/hooks/useOfferCreator';
+import { useAdWriter } from '../../app/hooks/useAdWriter';
 
 const { Title, Text } = Typography;
-const { useBreakpoint } = Grid;
 const { Search } = Input;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
-interface Deliverable {
+// Unified work item interface
+interface WorkItem {
   id: string;
+  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer';
   title: string;
-  type: string;
-  content: string;
-  metadata: any;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
-  workspace: {
-    id: string;
-    name: string;
-  };
+  subtitle: string;
+  status: 'completed' | 'processing' | 'failed' | 'draft';
+  createdAt: string;
+  metadata: Record<string, any>;
+  actions: string[];
+  rawData: any; // Original data from the respective hook
 }
 
-const SubmissionsPage = () => {
-  const screens = useBreakpoint();
-  const { theme } = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [filteredData, setFilteredData] = useState<Deliverable[]>([]);
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
+const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
+  // State
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [dateRange, setDateRange] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  // Theme-aware styles
-  const getCardStyles = () => ({
-    body: {
-      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-      padding: '16px'
-    }
-  });
+  // Initialize all hooks
+  const salesCallAnalyzer = useSalesCallAnalyzer();
+  const growthPlan = useGrowthPlan();
+  const savedCalculations = useSavedCalculations();
+  const nicheResearcher = useNicheResearcher();
+  const coldEmail = useColdEmail();
+  const savedOffers = useSavedOffers();
+  const adWriter = useAdWriter();
 
-  const getContainerStyles = () => ({
-    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-    padding: screens.xs ? '16px' : '24px',
-    minHeight: '100vh'
-  });
+  // Unified data fetching function
+  const fetchAllWorkItems = async () => {
+    setLoading(true);
+    const items: WorkItem[] = [];
 
-    const handlePreview = (deliverable: Deliverable) => {
-    setSelectedDeliverable(deliverable);
-    setPreviewVisible(true);
-  };
-
-  // Deliverable type configurations
-  const deliverableTypes = {
-    'sales_call_analysis': {
-      icon: <AudioOutlined />,
-      label: 'Call Analysis',
-      color: '#1890ff',
-      description: 'AI-generated sales call insights and coaching'
-    },
-    'pricing_calculation': {
-      icon: <DollarOutlined />,
-      label: 'Pricing Strategy',
-      color: '#52c41a',
-      description: 'Strategic pricing recommendations and analysis'
-    },
-    'signature_offers': {
-      icon: <TrophyOutlined />,
-      label: 'Signature Offers',
-      color: '#722ed1',
-      description: 'Custom offer packages and positioning'
-    },
-    'cold_email_generation': {
-      icon: <MailOutlined />,
-      label: 'Cold Emails',
-      color: '#13c2c2',
-      description: 'Personalized email sequences and templates'
-    },
-    'growth_plan': {
-      icon: <LineChartOutlined />,
-      label: 'Growth Plans',
-      color: '#eb2f96',
-      description: 'Comprehensive business growth strategies'
-    },
-    'niche_research': {
-      icon: <ExperimentOutlined />,
-      label: 'Niche Research',
-      color: '#f5222d',
-      description: 'Market opportunity analysis and insights'
-    },
-    'ad_writer': {
-      icon: <BulbOutlined />,
-      label: 'Ad Campaigns',
-      color: '#fa8c16',
-      description: 'High-converting ad copy and creative briefs'
-    }
-  };
-
-  // Enhanced workspace management
-  const ensureWorkspaceExists = async () => {
     try {
-      console.log('🏢 Ensuring workspace exists...');
-      
-      // First try to get existing workspaces
-      const workspacesResult = await makeAuthenticatedRequest('/api/workspaces');
-      
-      if (workspacesResult.success && workspacesResult.data && workspacesResult.data.length > 0) {
-        console.log('✅ Found existing workspaces:', workspacesResult.data.length);
-        const workspace = workspacesResult.data[0];
-        setCurrentWorkspace(workspace);
-        localStorage.setItem('currentWorkspaceId', workspace.id);
-        return workspace.id;
-      } else {
-        console.log('📝 No workspaces found, creating default workspace...');
-        
-        // Create a default workspace
-        const createResult = await makeAuthenticatedRequest('/api/workspaces', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: 'Default Workspace',
-            description: 'Your main workspace for AI submissions',
-            color: 'bg-blue-700'
-          })
+      // Fetch Sales Call Analyses
+      try {
+        const salesCalls = await salesCallAnalyzer.getUserAnalyses(workspaceId);
+        salesCalls.forEach((call: any) => {
+          items.push({
+            id: `sales-call-${call.id}`,
+            type: 'sales-call',
+            title: call.title || 'Sales Call Analysis',
+            subtitle: `${call.prospectName || 'Unknown'} • ${call.companyName || 'Company'}`,
+            status: 'completed',
+            createdAt: call.createdAt || call.created_at || new Date().toISOString(),
+            metadata: {
+              duration: call.duration || 'N/A',
+              callType: call.callType || 'unknown',
+              company: call.companyName,
+              prospect: call.prospectName,
+              sentiment: call.sentiment || 'neutral',
+              score: call.score || null
+            },
+            actions: ['view', 'export', 'delete'],
+            rawData: call
+          });
         });
-        
-        if (createResult.success) {
-          console.log('✅ Created default workspace:', createResult.data.id);
-          setCurrentWorkspace(createResult.data);
-          localStorage.setItem('currentWorkspaceId', createResult.data.id);
-          return createResult.data.id;
-        } else {
-          throw new Error('Failed to create workspace: ' + createResult.error);
-        }
+      } catch (err) {
+        console.warn('Failed to fetch sales calls:', err);
       }
-    } catch (error) {
-      console.error('❌ Error ensuring workspace:', error);
-      
-      // Fallback to 'default' if everything fails
-      const fallbackId = 'default';
-      localStorage.setItem('currentWorkspaceId', fallbackId);
-      return fallbackId;
-    }
-  };
 
-  // Enhanced API call function with better error handling
-  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
-    try {
-      console.log(`🔗 Making authenticated request to: ${url}`);
-      
-      // Get Supabase session for auth
-      const { createClient } = await import('@/utils/supabase/client');
-      const supabase = createClient();
-      
-      // Get fresh session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.warn('⚠️ Session error:', sessionError);
-      }
-      
-      if (!session || !session.access_token) {
-        console.warn('⚠️ No valid session found, attempting refresh...');
-        
-        // Try to refresh session
-        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshedSession) {
-          throw new Error('Authentication session expired. Please sign in again.');
-        }
-        
-        // Use refreshed session
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${refreshedSession.access_token}`,
-          ...options.headers
-        };
-        
-        console.log('✅ Using refreshed session');
-        
-        const response = await fetch(url, {
-          ...options,
-          headers
+      // Fetch Growth Plans
+      try {
+        const growthPlans = await growthPlan.fetchPlans();
+        growthPlans.forEach((plan: any) => {
+          items.push({
+            id: `growth-plan-${plan.id}`,
+            type: 'growth-plan',
+            title: plan.title || 'Growth Plan',
+            subtitle: `${plan.metadata?.clientCompany || 'Company'} • ${plan.metadata?.industry || 'Industry'}`,
+            status: 'completed',
+            createdAt: plan.createdAt?.toISOString() || plan.created_at || new Date().toISOString(),
+            metadata: {
+              industry: plan.metadata?.industry,
+              timeframe: plan.metadata?.timeframe,
+              strategies: plan.plan?.strategies?.length || 0,
+              tokensUsed: plan.metadata?.tokensUsed || 0
+            },
+            actions: ['view', 'export', 'edit', 'delete'],
+            rawData: plan
+          });
         });
-        
-        const result = await response.json();
-        console.log(`📡 API Response (${response.status}):`, result);
-        
-        if (!response.ok) {
-          throw new Error(result.error || result.message || `HTTP ${response.status}`);
-        }
-        
-        return result;
-      } else {
-        // Use existing session
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          ...options.headers
-        };
-        
-        console.log('✅ Using existing session');
-        
-        const response = await fetch(url, {
-          ...options,
-          headers
-        });
-        
-        const result = await response.json();
-        console.log(`📡 API Response (${response.status}):`, result);
-        
-        if (!response.ok) {
-          throw new Error(result.error || result.message || `HTTP ${response.status}`);
-        }
-        
-        return result;
+      } catch (err) {
+        console.warn('Failed to fetch growth plans:', err);
       }
-    } catch (error) {
-      console.error(`❌ API request to ${url} failed:`, error);
-      throw error;
-    }
-  };
 
-  // Fetch deliverables using your robust API
-  const fetchDeliverables = async () => {
-    try {
-      setLoading(true);
-      console.log('📂 Starting to fetch deliverables...');
-      
-      // Ensure workspace exists first
-      const workspaceId = await ensureWorkspaceExists();
-      console.log('🏢 Using workspace:', workspaceId);
-      
-      const result = await makeAuthenticatedRequest(
-        `/api/deliverables?workspaceId=${workspaceId}&limit=100&offset=0`
-      );
-      
-      if (result.success && result.data) {
-        console.log('✅ Successfully fetched', result.data.length, 'deliverables');
-        setDeliverables(result.data);
-        setFilteredData(result.data);
-      } else {
-        console.warn('⚠️ API returned success=false:', result.error);
-        message.error(result.error || 'Failed to load submissions');
+      // Fetch Pricing Calculations
+      try {
+        await savedCalculations.fetchCalculations(workspaceId);
+        savedCalculations.calculations.forEach((calc: any) => {
+          items.push({
+            id: `pricing-calc-${calc.id}`,
+            type: 'pricing-calc',
+            title: calc.title || 'Pricing Calculation',
+            subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
+            status: 'completed',
+            createdAt: calc.createdAt || calc.created_at || new Date().toISOString(),
+            metadata: {
+              annualSavings: calc.annualSavings,
+              recommendedRetainer: calc.recommendedRetainer,
+              hourlyRate: calc.hourlyRate,
+              roiPercentage: calc.roiPercentage,
+              industry: calc.industry
+            },
+            actions: ['view', 'export', 'duplicate', 'delete'],
+            rawData: calc
+          });
+        });
+      } catch (err) {
+        console.warn('Failed to fetch pricing calculations:', err);
       }
+
+      // Fetch Niche Research Reports
+      try {
+        const nicheReports = await nicheResearcher.getUserReports(workspaceId);
+        nicheReports.forEach((report: any) => {
+          items.push({
+            id: `niche-research-${report.id}`,
+            type: 'niche-research',
+            title: report.title || 'Niche Research Report',
+            subtitle: `${report.nicheName} • ${report.marketType}`,
+            status: 'completed',
+            createdAt: report.createdAt || report.created_at || new Date().toISOString(),
+            metadata: {
+              nicheName: report.nicheName,
+              marketSize: report.marketSize,
+              primaryObjective: report.primaryObjective,
+              marketType: report.marketType,
+              budget: report.budget,
+              tokensUsed: report.tokensUsed
+            },
+            actions: ['view', 'export', 'update', 'delete'],
+            rawData: report
+          });
+        });
+      } catch (err) {
+        console.warn('Failed to fetch niche research:', err);
+      }
+
+      // Fetch Cold Email Generations
+      try {
+        const emailGenerations = await coldEmail.getEmailGenerations(workspaceId);
+        emailGenerations.forEach((generation: any) => {
+          items.push({
+            id: `cold-email-${generation.id}`,
+            type: 'cold-email',
+            title: generation.title || 'Cold Email Campaign',
+            subtitle: `${generation.emails?.length || 0} emails • ${generation.industry || 'General'}`,
+            status: 'completed',
+            createdAt: generation.createdAt || generation.created_at || new Date().toISOString(),
+            metadata: {
+              emailCount: generation.emails?.length || 0,
+              industry: generation.industry,
+              tone: generation.tone,
+              method: generation.method,
+              firstName: generation.firstName
+            },
+            actions: ['view', 'copy', 'optimize', 'delete'],
+            rawData: generation
+          });
+        });
+      } catch (err) {
+        console.warn('Failed to fetch cold emails:', err);
+      }
+
+      // Fetch Offer Creator Results
+      try {
+        await savedOffers.fetchOffers(workspaceId);
+        savedOffers.offers.forEach((offer: any) => {
+          items.push({
+            id: `offer-creator-${offer.id}`,
+            type: 'offer-creator',
+            title: offer.title || 'Signature Offers',
+            subtitle: `${offer.industry || 'General'} • ${offer.packages?.length || 3} Packages`,
+            status: 'completed',
+            createdAt: offer.createdAt || offer.created_at || new Date().toISOString(),
+            metadata: {
+              industry: offer.industry,
+              packages: offer.packages?.length || 0,
+              priceRange: offer.priceRange,
+              deliveryModel: offer.deliveryModel,
+              targetMarket: offer.targetMarket
+            },
+            actions: ['view', 'export', 'optimize', 'delete'],
+            rawData: offer
+          });
+        });
+      } catch (err) {
+        console.warn('Failed to fetch offers:', err);
+      }
+
+      // Sort by creation date (newest first)
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setWorkItems(items);
     } catch (error) {
-      console.error('❌ Error in fetchDeliverables:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load submissions';
-      
-      // Show user-friendly error messages
-      if (errorMessage.includes('Authentication')) {
-        message.error('Please sign in again to view your submissions');
-      } else if (errorMessage.includes('Rate limit')) {
-        message.warning('Too many requests. Please wait a moment and try again.');
-      } else {
-        message.error(`Failed to load submissions: ${errorMessage}`);
-      }
+      console.error('Error fetching work items:', error);
+      message.error('Failed to load some work items');
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter and search logic
-  useEffect(() => {
-    let filtered = deliverables;
-
-    // Filter by type
-    if (selectedType !== 'all') {
-      filtered = filtered.filter(item => item.type === selectedType);
-    }
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    setFilteredData(filtered);
-  }, [deliverables, selectedType, searchTerm]);
-
   // Load data on mount
   useEffect(() => {
-    fetchDeliverables();
-  }, []);
+    fetchAllWorkItems();
+  }, [workspaceId]);
 
-  // Delete deliverable with your API structure
-  const handleDelete = async (id: string) => {
-    try {
-      const result = await makeAuthenticatedRequest(`/api/deliverables/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (result.success) {
-        message.success('Submission deleted successfully');
-        setDeliverables(prev => prev.filter(item => item.id !== id));
-      } else {
-        message.error(result.error || 'Failed to delete submission');
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    const thisMonthItems = workItems.filter(item => new Date(item.createdAt) >= thisMonth);
+    const lastMonthItems = workItems.filter(item => {
+      const date = new Date(item.createdAt);
+      return date >= lastMonth && date < thisMonth;
+    });
+    
+    const thisMonthGrowth = lastMonthItems.length > 0 
+      ? Math.round(((thisMonthItems.length - lastMonthItems.length) / lastMonthItems.length) * 100)
+      : 0;
+
+    const processingItems = workItems.filter(item => item.status === 'processing').length;
+    const completedItems = workItems.filter(item => item.status === 'completed').length;
+
+    return [
+      { 
+        title: 'Total Generated', 
+        value: workItems.length, 
+        icon: <FileTextOutlined />, 
+        color: '#1890ff', 
+        growth: 12 
+      },
+      { 
+        title: 'This Month', 
+        value: thisMonthItems.length, 
+        icon: <CalendarOutlined />, 
+        color: '#52c41a', 
+        growth: thisMonthGrowth 
+      },
+      { 
+        title: 'In Progress', 
+        value: processingItems, 
+        icon: <BarChartOutlined />, 
+        color: '#faad14', 
+        growth: 0 
+      },
+      { 
+        title: 'Completed', 
+        value: completedItems, 
+        icon: <RocketOutlined />, 
+        color: '#13c2c2', 
+        growth: 5 
       }
-    } catch (error) {
-      console.error('Delete error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete submission';
-      message.error(errorMessage);
-    }
+    ];
+  }, [workItems]);
+
+  // Get icon for work type
+  const getTypeIcon = (type: string) => {
+    const icons = {
+      'sales-call': <PhoneOutlined />,
+      'growth-plan': <RocketOutlined />,
+      'pricing-calc': <DollarCircleOutlined />,
+      'niche-research': <BulbOutlined />,
+      'cold-email': <MailOutlined />,
+      'offer-creator': <EditOutlined />,
+      'ad-writer': <TagOutlined />
+    };
+    return icons[type] || <FileTextOutlined />;
   };
 
-  // Export deliverable with your API structure
-  const handleExport = async (deliverable: Deliverable) => {
-    try {
-      const response = await fetch(`/api/deliverables/${deliverable.id}/export?format=json`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${(await (await import('@/utils/supabase/client')).createClient().auth.getSession()).data.session?.access_token}`
-        }
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${deliverable.title.replace(/[^a-z0-9]/gi, '_')}.json`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        message.success('Export completed');
-      } else {
-        const errorResult = await response.json();
-        message.error(errorResult.error || 'Failed to export');
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      message.error('Export failed');
-    }
+  // Get type display name
+  const getTypeName = (type: string) => {
+    const names = {
+      'sales-call': 'Sales Call Analysis',
+      'growth-plan': 'Growth Plan',
+      'pricing-calc': 'Pricing Calculator',
+      'niche-research': 'Niche Research',
+      'cold-email': 'Cold Email',
+      'offer-creator': 'Offer Creator',
+      'ad-writer': 'Ad Copy Writer'
+    };
+    return names[type] || type;
   };
 
-  // Render preview content based on type
-  const renderPreviewContent = (deliverable: Deliverable) => {
-    if (!deliverable) return null;
+  // Get status tag
+  const getStatusTag = (status: string) => {
+    const statusConfig = {
+      completed: { color: 'success', text: 'Completed' },
+      processing: { color: 'processing', text: 'Processing' },
+      failed: { color: 'error', text: 'Failed' },
+      draft: { color: 'default', text: 'Draft' }
+    };
+    const config = statusConfig[status] || statusConfig.completed;
+    return <Tag color={config.color}>{config.text}</Tag>;
+  };
 
+  // Get type color
+  const getTypeColor = (type: string) => {
+    const colors = {
+      'sales-call': '#722ed1',
+      'growth-plan': '#1890ff',
+      'pricing-calc': '#52c41a',
+      'niche-research': '#fa8c16',
+      'cold-email': '#eb2f96',
+      'offer-creator': '#13c2c2',
+      'ad-writer': '#faad14'
+    };
+    return colors[type] || '#666';
+  };
+
+  // Handle actions
+  const handleAction = async (action: string, item: WorkItem) => {
     try {
-      const content = typeof deliverable.content === 'string' 
-        ? JSON.parse(deliverable.content) 
-        : deliverable.content;
+      switch (action) {
+        case 'view':
+          // Navigate to the specific tool's view page
+          const viewUrls = {
+            'sales-call': `/sales-call-analyzer/${item.rawData.id}`,
+            'growth-plan': `/growth-plans/${item.rawData.id}`,
+            'pricing-calc': `/pricing-calculator/${item.rawData.id}`,
+            'niche-research': `/niche-research/${item.rawData.id}`,
+            'cold-email': `/cold-email/${item.rawData.id}`,
+            'offer-creator': `/offer-creator/${item.rawData.id}`,
+            'ad-writer': `/ad-writer/${item.rawData.id}`
+          };
+          window.location.href = viewUrls[item.type] || '/';
+          break;
 
-      const metadata = deliverable.metadata || {};
+        case 'delete':
+          const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
+          if (deleteConfirm) {
+            // Call appropriate delete function
+            switch (item.type) {
+              case 'sales-call':
+                await salesCallAnalyzer.deleteAnalysis(item.rawData.id);
+                break;
+              case 'growth-plan':
+                await growthPlan.deletePlan(item.rawData.id);
+                break;
+              case 'pricing-calc':
+                await savedCalculations.deleteCalculation(item.rawData.id);
+                break;
+              case 'niche-research':
+                await nicheResearcher.deleteNicheReport(item.rawData.id);
+                break;
+              case 'cold-email':
+                await coldEmail.deleteEmailGeneration(item.rawData.id);
+                break;
+              case 'offer-creator':
+                await savedOffers.deleteOffer(item.rawData.id);
+                break;
+            }
+            message.success('Item deleted successfully');
+            fetchAllWorkItems(); // Refresh data
+          }
+          break;
 
-      switch (deliverable.type) {
-        case 'sales_call_analysis':
-          return (
-            <div>
-              <h4>Call Analysis Summary</h4>
-              <p><strong>Overall Score:</strong> {content.callResults?.analysis?.overallScore || 'N/A'}/100</p>
-              <p><strong>Sentiment:</strong> <Tag color={content.callResults?.analysis?.sentiment === 'positive' ? 'green' : 'orange'}>{content.callResults?.analysis?.sentiment || 'N/A'}</Tag></p>
-              <p><strong>Duration:</strong> {Math.floor((content.callResults?.duration || 0) / 60)} minutes</p>
-              <div>
-                <strong>Key Insights:</strong>
-                <ul>
-                  {content.callResults?.analysis?.keyInsights?.slice(0, 3).map((insight: string, idx: number) => (
-                    <li key={idx}>{insight}</li>
-                  )) || [<li key={0}>No insights available</li>]}
-                </ul>
-              </div>
-            </div>
-          );
-
-        case 'pricing_calculation':
-          return (
-            <div>
-              <h4>Pricing Strategy</h4>
-              <p><strong>Client:</strong> {metadata.clientName || 'N/A'}</p>
-              <p><strong>Recommended Retainer:</strong> ${content.calculations?.recommendedRetainer?.toLocaleString() || 'N/A'}</p>
-              <p><strong>ROI:</strong> {content.calculations?.roiPercentage || 'N/A'}%</p>
-              <p><strong>Hourly Rate:</strong> ${content.calculations?.hourlyRate || 'N/A'}</p>
-            </div>
-          );
-
-        case 'signature_offers':
-          return (
-            <div>
-              <h4>Signature Offers</h4>
-              <p><strong>Target Market:</strong> {metadata.targetMarket || 'N/A'}</p>
-              <div>
-                <strong>Offer Tiers:</strong>
-                <ul>
-                  <li><strong>Starter:</strong> {content.signatureOffers?.starter?.name || 'N/A'}</li>
-                  <li><strong>Core:</strong> {content.signatureOffers?.core?.name || 'N/A'}</li>
-                  <li><strong>Premium:</strong> {content.signatureOffers?.premium?.name || 'N/A'}</li>
-                </ul>
-              </div>
-            </div>
-          );
-
-        case 'cold_email_generation':
-          return (
-            <div>
-              <h4>Cold Email Campaign</h4>
-              <p><strong>Target:</strong> {metadata.targetCompany || 'N/A'}</p>
-              <p><strong>Method:</strong> {metadata.method || 'N/A'}</p>
-              <p><strong>Tone:</strong> <Tag>{metadata.tone || 'N/A'}</Tag></p>
-              <p><strong>Emails Generated:</strong> {metadata.emailCount || 0}</p>
-            </div>
-          );
-
-        case 'growth_plan':
-          return (
-            <div>
-              <h4>Growth Plan</h4>
-              <p><strong>Client:</strong> {metadata.clientCompany || 'N/A'}</p>
-              <p><strong>Industry:</strong> {metadata.industry || 'N/A'}</p>
-              <p><strong>Timeframe:</strong> {metadata.timeframe === '3m' ? '3 months' : metadata.timeframe === '6m' ? '6 months' : '12 months'}</p>
-              <p><strong>Strategy:</strong> {content.executiveSummary?.substring(0, 150) || 'N/A'}...</p>
-            </div>
-          );
-
-        case 'niche_research':
-          return (
-            <div>
-              <h4>Niche Research</h4>
-              <p><strong>Niche:</strong> {content.nicheOverview?.name || 'N/A'}</p>
-              <p><strong>Market Size:</strong> {content.marketDemand?.marketSize || 'N/A'}</p>
-              <p><strong>Trend:</strong> <Tag color={content.marketDemand?.trend === 'growing' ? 'green' : 'orange'}>{content.marketDemand?.trend || 'N/A'}</Tag></p>
-              <p><strong>Entry Barrier:</strong> {content.competitiveLandscape?.barrierToEntry || 'N/A'}</p>
-            </div>
-          );
-
-        case 'ad_writer':
-          return (
-            <div>
-              <h4>Ad Campaign</h4>
-              <p><strong>Business:</strong> {metadata.businessName || 'N/A'}</p>
-              <p><strong>Offer:</strong> {metadata.offerName || 'N/A'}</p>
-              <p><strong>Tone:</strong> <Tag>{metadata.tone || 'N/A'}</Tag></p>
-              <p><strong>Platforms:</strong> {metadata.platforms?.join(', ') || 'N/A'}</p>
-            </div>
-          );
+        case 'export':
+          // Call appropriate export function
+          switch (item.type) {
+            case 'sales-call':
+              await salesCallAnalyzer.exportAnalysis(item.rawData.id);
+              break;
+            case 'growth-plan':
+              await growthPlan.exportPlan(item.rawData.id);
+              break;
+            case 'niche-research':
+              await nicheResearcher.exportNicheReport(item.rawData.id);
+              break;
+            case 'cold-email':
+              await coldEmail.exportEmails(item.rawData.id);
+              break;
+          }
+          break;
 
         default:
-          return <p>Preview not available for this content type.</p>;
+          message.info(`${action} action not implemented yet`);
       }
     } catch (error) {
-      return <p>Error loading preview content.</p>;
+      console.error(`Error performing ${action}:`, error);
+      message.error(`Failed to ${action} item`);
     }
   };
 
-  // Summary statistics with better error handling
-  const getStats = () => {
-    try {
-      if (!Array.isArray(deliverables) || deliverables.length === 0) {
-        return {
-          total: 0,
-          today: 0,
-          thisWeek: 0,
-          types: {}
-        };
+  // Create action menu
+  const createActionMenu = (item: WorkItem) => (
+    <Menu onClick={({ key }) => handleAction(key, item)}>
+      {item.actions.includes('view') && (
+        <Menu.Item key="view" icon={<EyeOutlined />}>
+          View Details
+        </Menu.Item>
+      )}
+      {item.actions.includes('edit') && (
+        <Menu.Item key="edit" icon={<EditOutlined />}>
+          Edit
+        </Menu.Item>
+      )}
+      {item.actions.includes('export') && (
+        <Menu.Item key="export" icon={<DownloadOutlined />}>
+          Export
+        </Menu.Item>
+      )}
+      {item.actions.includes('copy') && (
+        <Menu.Item key="copy" icon={<ShareAltOutlined />}>
+          Copy to Clipboard
+        </Menu.Item>
+      )}
+      {item.actions.includes('duplicate') && (
+        <Menu.Item key="duplicate" icon={<ShareAltOutlined />}>
+          Duplicate
+        </Menu.Item>
+      )}
+      {item.actions.includes('optimize') && (
+        <Menu.Item key="optimize" icon={<BarChartOutlined />}>
+          Optimize
+        </Menu.Item>
+      )}
+      <Menu.Divider />
+      <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
+        Delete
+      </Menu.Item>
+    </Menu>
+  );
+
+  // Filter items based on active tab and filters
+  const filteredItems = useMemo(() => {
+    return workItems.filter(item => {
+      if (activeTab !== 'all' && item.type !== activeTab) return false;
+      if (filterType !== 'all' && item.status !== filterType) return false;
+      if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        const itemDate = new Date(item.createdAt);
+        if (itemDate < dateRange[0] || itemDate > dateRange[1]) return false;
       }
+      return true;
+    });
+  }, [workItems, activeTab, filterType, searchQuery, dateRange]);
 
-      const typeStats = deliverables.reduce((acc, item) => {
-        if (item && item.type) {
-          acc[item.type] = (acc[item.type] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
-
-      const today = new Date();
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-
-      const totalToday = deliverables.filter(item => {
-        try {
-          if (!item || !item.created_at) return false;
-          const itemDate = new Date(item.created_at);
-          return itemDate.toDateString() === today.toDateString();
-        } catch (error) {
-          console.warn('Error parsing date for item:', item?.id, error);
-          return false;
-        }
-      }).length;
-
-      const totalThisWeek = deliverables.filter(item => {
-        try {
-          if (!item || !item.created_at) return false;
-          const itemDate = new Date(item.created_at);
-          return itemDate > weekAgo;
-        } catch (error) {
-          console.warn('Error parsing date for item:', item?.id, error);
-          return false;
-        }
-      }).length;
-
-      return {
-        total: deliverables.length,
-        today: totalToday,
-        thisWeek: totalThisWeek,
-        types: typeStats
-      };
-    } catch (error) {
-      console.error('Error calculating stats:', error);
-      return {
-        total: 0,
-        today: 0,
-        thisWeek: 0,
-        types: {}
-      };
-    }
+  // Get tab counts
+  const getTabCount = (type: string) => {
+    if (type === 'all') return workItems.length;
+    return workItems.filter(item => item.type === type).length;
   };
 
-  const stats = getStats();
+  // Paginated items
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredItems.slice(startIndex, startIndex + pageSize);
+  }, [filteredItems, currentPage, pageSize]);
 
-  // Table columns for mobile/desktop view
-  const columns = [
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: 120,
-      render: (type: string) => {
-        const config = deliverableTypes[type as keyof typeof deliverableTypes] || {
-          icon: <FileTextOutlined />,
-          label: type,
-          color: '#666'
-        };
-        return (
-          <Space>
-            <span style={{ color: config.color }}>{config.icon}</span>
-            <Text style={{ fontSize: '12px' }}>{config.label}</Text>
-          </Space>
-        );
-      }
-    },
-    {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-      render: (title: string, record: Deliverable) => (
-        <div>
-          <Text strong style={{ fontSize: '14px' }}>{title}</Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            {record.tags.slice(0, 2).map(tag => (
-              <Tag key={tag}>{tag}</Tag>
-            ))}
-          </Text>
-        </div>
-      )
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created',
-      width: 120,
-      render: (date: string) => (
-        <Tooltip title={new Date(date).toLocaleString()}>
-          <Text style={{ fontSize: '12px' }}>
-            {formatDistanceToNow(new Date(date), { addSuffix: true })}
-          </Text>
-        </Tooltip>
-      )
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 120,
-      render: (_: any, record: Deliverable) => (
-        <Space size="small">
-          <Tooltip title="Preview">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined />} 
-              size="small"
-              onClick={() => handlePreview(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Export">
-            <Button 
-              type="text" 
-              icon={<DownloadOutlined />} 
-              size="small"
-              onClick={() => handleExport(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete this submission?"
-              description="This action cannot be undone."
-              onConfirm={() => handleDelete(record.id)}
-              okText="Delete"
-              cancelText="Cancel"
-            >
-              <Button 
-                type="text" 
-                icon={<DeleteOutlined />} 
-                size="small"
-                danger
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      )
-    }
-  ];
+  if (loading && workItems.length === 0) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <Spin size="large" />
+        <p style={{ marginTop: 16 }}>Loading your work...</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={getContainerStyles()}>
+    <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: 24,
-        flexDirection: screens.xs ? 'column' : 'row',
-        gap: screens.xs ? 16 : 0
-      }}>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Title 
-            level={3} 
-            style={{ 
-              margin: 0,
-              color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
-            }}
-          >
-            AI Submissions
+          <Title level={2} style={{ margin: 0, color: '#1a1a1a' }}>
+            My AI Generated Work
           </Title>
-          <Text 
-            style={{ 
-              color: theme === 'dark' ? '#9ca3af' : '#666666'
-            }}
-          >
-            All your AI-generated content and analysis
+          <Text style={{ color: '#666666' }}>
+            All your AI-generated content, analysis, and deliverables in one place
           </Text>
         </div>
+        <Button 
+          icon={<ReloadOutlined />} 
+          onClick={fetchAllWorkItems} 
+          loading={loading}
+        >
+          Refresh
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-        gap: 16,
-        marginBottom: 24
-      }}>
-        <Card styles={getCardStyles()}>
-          <div style={{ textAlign: 'center' }}>
-            <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666', fontSize: 12 }}>Total</Text>
-            <div style={{ fontSize: 24, fontWeight: 600, color: '#1890ff' }}>{stats.total}</div>
-          </div>
-        </Card>
-        <Card styles={getCardStyles()}>
-          <div style={{ textAlign: 'center' }}>
-            <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666', fontSize: 12 }}>Today</Text>
-            <div style={{ fontSize: 24, fontWeight: 600, color: '#52c41a' }}>{stats.today}</div>
-          </div>
-        </Card>
-        <Card styles={getCardStyles()}>
-          <div style={{ textAlign: 'center' }}>
-            <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666', fontSize: 12 }}>This Week</Text>
-            <div style={{ fontSize: 24, fontWeight: 600, color: '#722ed1' }}>{stats.thisWeek}</div>
-          </div>
-        </Card>
-        <Card styles={getCardStyles()}>
-          <div style={{ textAlign: 'center' }}>
-            <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666', fontSize: 12 }}>Types</Text>
-            <div style={{ fontSize: 24, fontWeight: 600, color: '#fa8c16' }}>{Object.keys(stats.types).length}</div>
-          </div>
-        </Card>
-      </div>
+      {/* Summary Stats */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        {summaryStats.map((stat, index) => (
+          <Col xs={24} sm={12} lg={6} key={index}>
+            <Card style={{ borderRadius: 8, height: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <Text style={{ color: '#666', fontSize: 12, fontWeight: 500 }}>
+                    {stat.title}
+                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <Text style={{ fontSize: 20, fontWeight: 600, color: '#1a1a1a' }}>
+                      {stat.value.toLocaleString()}
+                    </Text>
+                    {stat.growth !== 0 && (
+                      <Tag 
+                        color={stat.growth > 0 ? 'green' : stat.growth < 0 ? 'red' : 'default'}
+                        style={{ fontSize: 10, borderRadius: 4 }}
+                      >
+                        {stat.growth > 0 ? '+' : ''}{stat.growth}%
+                      </Tag>
+                    )}
+                  </div>
+                </div>
+                <Avatar 
+                  icon={stat.icon} 
+                  style={{ 
+                    backgroundColor: 'transparent',
+                    color: stat.color,
+                    fontSize: 18
+                  }} 
+                />
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
       {/* Filters */}
-      <Card styles={getCardStyles()} style={{ marginBottom: 24 }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: 16, 
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
+      <Card style={{ marginBottom: 24, borderRadius: 8 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <Search
-            placeholder="Search submissions..."
+            placeholder="Search your work..."
             allowClear
             style={{ width: 300 }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             prefix={<SearchOutlined />}
           />
+          
           <Select
-            value={selectedType}
-            onChange={setSelectedType}
-            style={{ width: 200 }}
-            placeholder="Filter by type"
+            value={filterType}
+            onChange={setFilterType}
+            style={{ width: 120 }}
           >
-            <Option value="all">All Types</Option>
-            {Object.entries(deliverableTypes).map(([key, config]) => (
-              <Option key={key} value={key}>
-                <Space>
-                  {config.icon}
-                  {config.label}
-                </Space>
-              </Option>
-            ))}
+            <Option value="all">All Status</Option>
+            <Option value="completed">Completed</Option>
+            <Option value="processing">Processing</Option>
+            <Option value="failed">Failed</Option>
+            <Option value="draft">Draft</Option>
           </Select>
+
+          <RangePicker
+            value={dateRange}
+            onChange={setDateRange}
+            style={{ width: 240 }}
+          />
+
+          <Button type="link" onClick={() => {
+            setSearchQuery('');
+            setFilterType('all');
+            setDateRange(null);
+          }}>
+            Clear Filters
+          </Button>
         </div>
       </Card>
 
-      {/* Content */}
-      <Card 
-        styles={getCardStyles()}
-        style={{
-          borderRadius: '12px',
-          border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-        }}
-      >
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <Spin size="large" />
-            <div style={{ marginTop: 16, color: theme === 'dark' ? '#9ca3af' : '#666' }}>
-              Loading your AI submissions...
-            </div>
-            <div style={{ marginTop: 8, fontSize: '12px', color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}>
-              {currentWorkspace ? `From workspace: ${currentWorkspace.name}` : 'Setting up workspace...'}
-            </div>
-          </div>
-        ) : filteredData.length === 0 && deliverables.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <Empty 
-              description={
-                <div>
-                  <div style={{ marginBottom: 8 }}>No AI submissions found</div>
-                  <Text type="secondary" style={{ fontSize: '14px' }}>
-                    Your submissions from AI tools like Call Analyzer, Pricing Calculator, 
-                    Offer Creator, and others will appear here.
-                  </Text>
-                </div>
-              }
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          </div>
-        ) : filteredData.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <Empty 
-              description={`No submissions match "${searchTerm || selectedType}"`}
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-            <Button 
-              type="primary" 
-              style={{ marginTop: 16 }}
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedType('all');
-              }}
-            >
-              Clear Filters
-            </Button>
-          </div>
-        ) : (
-          <Table
-            columns={columns}
-            dataSource={filteredData}
-            rowKey="id"
-            pagination={{
-              total: filteredData.length,
-              pageSize: 10,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) => 
-                `${range[0]}-${range[1]} of ${total} submissions`
-            }}
-            size="small"
+      {/* Content Tabs */}
+      <Card style={{ borderRadius: 8 }}>
+        <Tabs 
+          activeKey={activeTab} 
+          onChange={setActiveTab}
+          size="large"
+        >
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('all')} offset={[8, 0]}>All Work</Badge>} 
+            key="all" 
           />
-        )}
-      </Card>
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('sales-call')} offset={[8, 0]}>Call Analysis</Badge>} 
+            key="sales-call" 
+          />
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('growth-plan')} offset={[8, 0]}>Growth Plans</Badge>} 
+            key="growth-plan" 
+          />
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('pricing-calc')} offset={[8, 0]}>Pricing</Badge>} 
+            key="pricing-calc" 
+          />
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('niche-research')} offset={[8, 0]}>Research</Badge>} 
+            key="niche-research" 
+          />
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('cold-email')} offset={[8, 0]}>Emails</Badge>} 
+            key="cold-email" 
+          />
+        </Tabs>
 
-      {/* Preview Modal */}
-      <Modal
-        title={
-          <Space>
-            {selectedDeliverable && (
-              <>
-                {deliverableTypes[selectedDeliverable.type as keyof typeof deliverableTypes]?.icon}
-                {selectedDeliverable.title}
-              </>
-            )}
-          </Space>
-        }
-        open={previewVisible}
-        onCancel={() => setPreviewVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setPreviewVisible(false)}>
-            Close
-          </Button>,
-          <Button 
-            key="export" 
-            type="primary" 
-            icon={<DownloadOutlined />}
-            onClick={() => selectedDeliverable && handleExport(selectedDeliverable)}
-          >
-            Export
-          </Button>
-        ]}
-        width={800}
-      >
-        {selectedDeliverable && renderPreviewContent(selectedDeliverable)}
-      </Modal>
+        {/* Work Items List */}
+        <div style={{ marginTop: 24 }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Spin size="large" />
+              <p style={{ marginTop: 16 }}>Refreshing your work...</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <Empty 
+              description={workItems.length === 0 ? "No work items found. Start by using one of our AI tools!" : "No items match your current filters"}
+              style={{ padding: '40px 0' }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {paginatedItems.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    border: '1px solid #f0f0f0',
+                    borderRadius: 8,
+                    padding: 16,
+                    backgroundColor: '#fff',
+                    transition: 'all 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = getTypeColor(item.type);
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#f0f0f0';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                    {/* Type Icon */}
+                    <div style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 8,
+                      backgroundColor: getTypeColor(item.type) + '15',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: getTypeColor(item.type),
+                      fontSize: 16,
+                      flexShrink: 0
+                    }}>
+                      {getTypeIcon(item.type)}
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Title and Type */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <Title level={5} style={{ margin: 0, color: '#1a1a1a' }}>
+                              {item.title}
+                            </Title>
+                            <Tag color={getTypeColor(item.type)} style={{ fontSize: 10 }}>
+                              {getTypeName(item.type)}
+                            </Tag>
+                            {getStatusTag(item.status)}
+                          </div>
+
+                          {/* Subtitle */}
+                          <Text style={{ color: '#666', display: 'block', marginBottom: 12 }}>
+                            {item.subtitle}
+                          </Text>
+
+                          {/* Metadata */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+                            <Text style={{ color: '#999', fontSize: 12 }}>
+                              <CalendarOutlined /> {new Date(item.createdAt).toLocaleDateString()}
+                            </Text>
+
+                            {/* Type-specific metadata */}
+                            {item.type === 'sales-call' && item.metadata.score && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Text style={{ fontSize: 12, color: '#999' }}>Score:</Text>
+                                <Progress 
+                                  percent={item.metadata.score} 
+                                  size="small" 
+                                  style={{ width: 60 }}
+                                  strokeColor={item.metadata.score >= 80 ? '#52c41a' : item.metadata.score >= 60 ? '#faad14' : '#ff4d4f'}
+                                />
+                              </div>
+                            )}
+
+                            {item.type === 'pricing-calc' && (
+                              <>
+                                <Tag color="green">${item.metadata.hourlyRate}/hr</Tag>
+                                <Tag  color="blue">{item.metadata.roiPercentage}% ROI</Tag>
+                              </>
+                            )}
+
+                            {item.type === 'niche-research' && (
+                              <>
+                                <Tag>{item.metadata.marketSize}</Tag>
+                                <Tag>{item.metadata.primaryObjective}</Tag>
+                              </>
+                            )}
+
+                            {item.type === 'cold-email' && (
+                              <>
+                                <Tag>{item.metadata.emailCount} emails</Tag>
+                                <Tag>{item.metadata.tone}</Tag>
+                              </>
+                            )}
+
+                            {item.type === 'offer-creator' && (
+                              <>
+                                <Tag >{item.metadata.packages} packages</Tag>
+                                <Tag  color="green">{item.metadata.priceRange}</Tag>
+                              </>
+                            )}
+
+                            {item.type === 'growth-plan' && (
+                              <>
+                                <Tag >{item.metadata.timeframe}</Tag>
+                                <Tag >{item.metadata.strategies} strategies</Tag>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <Dropdown overlay={createActionMenu(item)} trigger={['click']}>
+                          <Button type="text" icon={<EllipsisOutlined />} />
+                        </Dropdown>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredItems.length > 0 && (
+            <div style={{ 
+              marginTop: 24, 
+              display: 'flex', 
+              justifyContent: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 24
+            }}>
+              <Pagination 
+                current={currentPage}
+                total={filteredItems.length} 
+                pageSize={pageSize}
+                showSizeChanger 
+                showQuickJumper
+                showTotal={(total, range) => 
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+                onChange={setCurrentPage}
+                onShowSizeChange={(_, size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 };
 
-export default SubmissionsPage;
+export default IntegratedWorkDashboard;
