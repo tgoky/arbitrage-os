@@ -40,12 +40,14 @@ import {
   Row,
   Col,
   Statistic,
-  List
+  List,
+  Spin
 } from 'antd';
 import { useGo } from "@refinedev/core";
 import { NewCallModal } from '../callmodel';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 import type { ColumnsType } from 'antd/es/table';
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -366,6 +368,7 @@ export default function SalesCallAnalyzerPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+       <Spin spinning={loading} tip="Loading analysis data...">
       <div className="flex justify-between items-center mb-6">
         <div>
           <Title level={3} className="mb-1">Sales Calls</Title>
@@ -570,6 +573,7 @@ export default function SalesCallAnalyzerPage() {
           </Col>
         </Row>
       </Card>
+      </Spin>
 
 
       {/* Filters and Search */}
