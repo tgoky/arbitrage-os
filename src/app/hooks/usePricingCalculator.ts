@@ -629,6 +629,7 @@ export const usePricingValidation = () => {
 
   return {
     validateInput,
-    getBusinessInsights
+    getBusinessInsights,
+
   };
 };

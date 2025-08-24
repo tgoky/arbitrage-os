@@ -15,7 +15,9 @@ import {
   TrophyOutlined,
   BookOutlined,
   FileTextOutlined,
+  EyeOutlined, 
 
+  DeleteOutlined, 
     BarChartOutlined,
   ContainerOutlined,
   BankOutlined
@@ -47,7 +49,8 @@ import {
   Collapse,
   List,
   Badge,
-  InputNumber
+  InputNumber,
+  
 } from 'antd';
 
 // Import our custom hooks
@@ -58,6 +61,8 @@ import {
   usePricingBenchmarks,
   useCalculationExport,
   usePricingValidation,
+
+   type SavedCalculation, 
   type PricingCalculatorInput,
   type GeneratedPricingPackage
 } from '../hooks/usePricingCalculator';
@@ -68,6 +73,8 @@ const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
 const { Option } = Select;
+
+
 
 const PricingCalculator = () => {
   const [form] = Form.useForm();
@@ -82,6 +89,15 @@ const PricingCalculator = () => {
   const { benchmarks, fetchBenchmarks,  loading: benchmarksLoading  } = usePricingBenchmarks();
   const { exportCalculation, loading: exportLoading } = useCalculationExport();
   const { validateInput, getBusinessInsights } = usePricingValidation();
+  const [viewingCalculation, setViewingCalculation] = useState<GeneratedPricingPackage | null>(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+const [viewDetailLoading, setViewDetailLoading] = useState(false); // Loading for fetching detail
+
+const {
+
+  getCalculation, // <-- Correctly get getCalculation
+
+} = useSavedCalculations();
 
   const calculatorDisabledStyle = {
   pointerEvents: 'none' as const,
@@ -185,6 +201,75 @@ useEffect(() => {
   
 
 };
+
+
+// Handler for the View button
+const handleView = async (record: SavedCalculation) => { // Use SavedCalculation type
+  setViewDetailLoading(true);
+  setViewingCalculation(null); // Clear previous data
+  try {
+    const fullData = await getCalculation(record.id); // `fullData` is the `data` object { id, title, calculation, metadata, ... }
+    if (fullData) {
+      // Extract the actual GeneratedPricingPackage from the `calculation` field
+      // and set it to viewingCalculation
+      // Use optional chaining and type assertion for safety
+      const pricingPackage = fullData.calculation as GeneratedPricingPackage | undefined;
+
+      if (pricingPackage) {
+        setViewingCalculation(pricingPackage); // Set the nested package, not the whole API response object
+        setIsViewModalVisible(true);
+      } else {
+         console.warn("Pricing package data not found in API response for ID:", record.id);
+         notification.warning({
+           message: 'View Warning',
+           description: 'Calculation data structure was incomplete.',
+         });
+         // Optionally, you could still open the modal with partial data or fullData if needed for debugging
+         // setViewingCalculation(fullData as any); // Not recommended for production display
+         // setIsViewModalVisible(true);
+      }
+    } else {
+      notification.error({
+        message: 'View Failed',
+        description: 'Could not load the calculation details.',
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching calculation detail:", err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    notification.error({
+      message: 'View Failed',
+      description: errorMessage,
+    });
+  } finally {
+    setViewDetailLoading(false);
+  }
+};
+
+
+// // Handler for the Export button (using the existing hook)
+// const handleSavedExport = async (record: any, format: 'proposal' | 'presentation' | 'contract' | 'complete' = 'complete') => {
+//   try {
+//     // The useCalculationExport hook's exportCalculation function likely just needs the ID and format
+//     // Make sure your hook implementation matches this expectation.
+//     await exportCalculation(record.id, format);
+//     // Success notification is handled inside the hook
+//   } catch (err) {
+//     // Error notification is handled inside the hook
+//     console.error("Saved Export failed:", err);
+//     // You could add additional logging or handling here if needed
+//   }
+// };
+
+
+const handleViewOk = () => {
+  setIsViewModalVisible(false);
+};
+
+const handleViewCancel = () => {
+  setIsViewModalVisible(false);
+};
+
 
 const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | 'complete') => {
   // Set loading state for the specific export type
@@ -337,7 +422,7 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
         description={
           <div>
             <p>Your pricing strategy has been generated! The calculator is now locked to prevent accidental changes.</p>
-            <p>Click <strong>"Generate New Strategy"</strong> in the Results tab to create a new calculation.</p>
+            <p>Click <strong>Generate New Strategy</strong> in the Results tab to create a new calculation.</p>
           </div>
         }
         type="info"
@@ -1049,9 +1134,11 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
           key="history"
         >
           <Card title="Your Pricing Calculations">
+              {calculationsLoading && <Spin tip="Loading saved calculations..." />}
             <Table
               dataSource={calculations}
               rowKey="id"
+                className="no-vertical-borders"
               columns={[
                 {
                   title: 'Client',
@@ -1100,19 +1187,111 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                   key: 'actions',
                   render: (_, record) => (
                     <Space>
-                      <Button size="small" type="link">
+                      <Button size="small" type="link"
+                                      icon={<EyeOutlined />} // Make sure to import EyeOutlined
+                onClick={() => handleView(record)}
+
+                      
+                      >
                         View
                       </Button>
-                      <Button size="small" type="link">
+                      {/* <Button size="small" type="link"
+                       icon={<DownloadOutlined />} // Make sure to import DownloadOutlined
+                onClick={() => handleSavedExport(record, 'complete')} // Default to 'complete', or add a dropdown
+                loading={exportLoading} // This loading state is for the overall export hook
+                      >
                         Export
-                      </Button>
+                      </Button> */}
                     </Space>
                   )
                 }
               ]}
               pagination={{ pageSize: 10 }}
+                loading={calculationsLoading}
             />
           </Card>
+        <Modal
+  title={viewingCalculation ? `Details for ${viewingCalculation.benchmarks?.industry || 'Calculation'}` : "Calculation Details"}
+  open={isViewModalVisible}
+  onOk={handleViewOk}
+  onCancel={handleViewCancel}
+  width={1000}
+  footer={null}
+  className="pricing-modal"
+  style={{ top: 20 }}
+>
+  {viewDetailLoading ? (
+    <div style={{ textAlign: 'center', padding: '40px' }}>
+      <Spin tip="Loading details..." size="large" />
+    </div>
+  ) : viewingCalculation ? (
+    <div className="pricing-details-container">
+      {/* Render details from the GeneratedPricingPackage */}
+      <Title level={4} className="modal-main-title">
+        Calculation Details
+      </Title>
+      
+      {/* Key metrics in a grid layout */}
+      <div className="metrics-grid">
+        <div className="metric-item">
+          <div className="metric-label">Monthly Retainer</div>
+          <div className="metric-value">${viewingCalculation?.calculations?.recommendedRetainer?.toLocaleString() ?? 'N/A'}</div>
+        </div>
+        
+        <div className="metric-item">
+          <div className="metric-label">ROI</div>
+          <div className="metric-value">{viewingCalculation?.calculations?.roiPercentage?.toFixed(2) ?? 'N/A'}%</div>
+        </div>
+        
+        <div className="metric-item">
+          <div className="metric-label">Hourly Rate</div>
+          <div className="metric-value">${viewingCalculation?.calculations?.hourlyRate?.toFixed(2) ?? 'N/A'}</div>
+        </div>
+        
+        <div className="metric-item">
+          <div className="metric-label">Recommended Approach</div>
+          <div className="metric-value">{viewingCalculation?.strategy?.recommendedApproach ?? 'N/A'}</div>
+        </div>
+      </div>
+      
+      {/* Pricing Options */}
+      <Divider className="section-divider" />
+      <Title level={5} className="section-title">Pricing Options</Title>
+      <List
+        dataSource={viewingCalculation?.calculations?.pricingOptions ?? []}
+        renderItem={(option) => (
+          <List.Item className="pricing-option-item">
+            <Card size="small" className="pricing-option-card">
+              <div className="pricing-option-header">
+                <Text strong>{option.model.charAt(0).toUpperCase() + option.model.slice(1)} Model: </Text>
+                <Text className="price-tag">${option.price?.toLocaleString()}</Text>
+              </div>
+              <div className="pricing-option-description">
+                <Text type="secondary">{option.description}</Text>
+              </div>
+            </Card>
+          </List.Item>
+        )}
+      />
+
+      {/* Strategy Summary */}
+      <Divider className="section-divider" />
+      <Title level={5} className="section-title">Strategy</Title>
+      <div className="strategy-container">
+        <Paragraph className="strategy-item">
+          <Text strong>Framework:</Text> {viewingCalculation?.strategy?.pricingFramework ?? 'N/A'}
+        </Paragraph>
+        <Paragraph className="strategy-item">
+          <Text strong>Value Proposition:</Text> {viewingCalculation?.strategy?.valueProposition ?? 'N/A'}
+        </Paragraph>
+      </div>
+    </div>
+  ) : (
+    <div className="no-data-message">
+      <Text>No data available or failed to load.</Text>
+    </div>
+  )}
+</Modal>
         </TabPane>
       </Tabs>
     </div>

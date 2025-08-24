@@ -343,7 +343,9 @@ export async function PUT(
     }
     
     if (body.tags && Array.isArray(body.tags)) {
-      updates.tags = body.tags.filter(tag => typeof tag === 'string' && tag.trim().length > 0);
+updates.tags = body.tags.filter((tag: string) => 
+  typeof tag === 'string' && tag.trim().length > 0
+);
     }
     
     if (Object.keys(updates).length === 0) {

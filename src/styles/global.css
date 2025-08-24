@@ -321,6 +321,151 @@ body {
   border-radius: 8px;
 }
 
+/* Modal styling */
+.pricing-modal .ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pricing-modal .ant-modal-header {
+  border-radius: 12px 12px 0 0;
+ 
+  border-bottom: 1px solid #e8e8e8;
+}
+
+/* Title styling */
+.modal-main-title {
+
+  margin-bottom: 24px !important;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 12px;
+}
+
+/* Metrics grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-item {
+
+  padding: 16px;
+  border-radius: 8px;
+ 
+}
+
+.metric-label {
+  font-size: 12px;
+
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 600;
+
+}
+
+/* Section styling */
+.section-divider {
+  margin: 24px 0 !important;
+}
+
+.section-title {
+
+  margin-bottom: 16px !important;
+}
+
+/* Pricing options styling */
+.pricing-option-item {
+  margin-bottom: 12px;
+}
+
+.pricing-option-card {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.pricing-option-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.pricing-option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.price-tag {
+  color: #1890ff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.pricing-option-description {
+  padding: 8px 0;
+}
+
+/* Strategy section */
+.strategy-container {
+
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.strategy-item {
+  margin-bottom: 12px !important;
+  padding: 8px;
+
+  border-radius: 6px;
+}
+
+.strategy-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* No data message */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8c8c8c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .pricing-option-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .price-tag {
+    margin-top: 4px;
+  }
+}
+
+.no-vertical-borders .ant-table-container {
+  border-left: none;
+  border-right: none;
+}
+
+.no-vertical-borders .ant-table-thead > tr > th,
+.no-vertical-borders .ant-table-tbody > tr > td {
+  border-right: none;
+}
+
+.no-vertical-borders .ant-table {
+  border: none;
+}
 
 /* Ensure breadcrumb doesn't interfere with layout */
 .content > div:first-child {
