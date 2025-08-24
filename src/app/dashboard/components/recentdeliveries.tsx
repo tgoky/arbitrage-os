@@ -120,27 +120,48 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
         console.warn('Failed to fetch growth plans:', err);
       }
 
-      // Fetch Pricing Calculations
+           // Fetch Pricing Calculations
       try {
-        await savedCalculations.fetchCalculations(workspaceId);
-        savedCalculations.calculations.slice(0, 2).forEach((calc: any) => {
-          items.push({
-            id: `pricing-calc-${calc.id}`,
-            type: 'pricing-calc',
-            title: calc.title || calc.projectName || 'Pricing Calculation',
-            subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
-            status: 'completed',
-            createdAt: calc.createdAt || calc.created_at || new Date().toISOString(),
-            metadata: {
-              hourlyRate: calc.hourlyRate,
-              roiPercentage: calc.roiPercentage
-            },
-            rawData: calc
+        console.log('💰 Fetching pricing calculations...');
+        // --- MODIFIED: Call fetchCalculations and ASSIGN the RETURNED data ---
+        const pricingCalculationsData = await savedCalculations.fetchCalculations(workspaceId);
+        // --- MODIFIED: Use the returned data instead of the hook's internal state reference ---
+        console.log('💳 Found pricing calculations:', pricingCalculationsData);
+        // Check if data was actually returned and is an array
+        if (Array.isArray(pricingCalculationsData)) {
+          pricingCalculationsData.forEach((calc: any) => { // Use pricingCalculationsData here
+            items.push({
+              id: `pricing-calc-${calc.id}`,
+              type: 'pricing-calc',
+              title: calc.title || calc.projectName || 'Pricing Calculation',
+              subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
+              status: 'completed',
+              // --- MODIFIED: Ensure createdAt is handled correctly ---
+              // Assuming calc.createdAt is already an ISO string from the API
+              createdAt: calc.createdAt || calc.created_at || new Date().toISOString(), // Use string directly
+              // --- END OF MODIFICATION ---
+              metadata: {
+                annualSavings: calc.annualSavings,
+                recommendedRetainer: calc.recommendedRetainer,
+                hourlyRate: calc.hourlyRate,
+                roiPercentage: calc.roiPercentage,
+                industry: calc.industry
+              },
+        
+              rawData: calc
+            });
           });
-        });
+          console.log(`✅ Added ${pricingCalculationsData.length} pricing calculation items`); // Use length here
+        } else {
+           console.warn('⚠️ fetchCalculations did not return an array:', pricingCalculationsData);
+           // Handle case where data isn't an array (e.g., null if error occurred and function returns [])
+        }
+        // --- REMOVED: The old line that relied on hook's internal state ---
+        // console.log(`✅ Added ${savedCalculations.calculations.length} pricing calculation items`);
       } catch (err) {
-        console.warn('Failed to fetch pricing calculations:', err);
+        console.warn('❌ Failed to fetch pricing calculations:', err);
       }
+
 
       // Fetch Niche Research Reports
       try {

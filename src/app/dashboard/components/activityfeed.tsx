@@ -20,7 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 
-// Import your existing hooks
+// Import your existing hooksx
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 import { useGrowthPlan } from '../../hooks/useGrowthPlan';
 import { useSavedCalculations } from '../../hooks/usePricingCalculator';
@@ -186,6 +186,59 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       } catch (err) {
         console.warn('Failed to fetch email activities:', err);
       }
+
+
+      // Niche Research Activities
+try {
+  const nicheReports = await nicheResearcher.getUserReports(workspaceId);
+  nicheReports.slice(0, 2).forEach((report: any, index: number) => {
+    activityList.push({
+      id: `niche-activity-${report.id}`,
+      type: 'analysis',
+      toolType: 'niche-research',
+      action: 'Researched market niche',
+      user: 'Research AI',
+      target: `${report.nicheName} market analysis`,
+      status: 'completed',
+      timestamp: new Date(report.createdAt || Date.now() - (index * 1000 * 60 * 60)),
+      metadata: {
+        duration: '15 min',
+        tokensUsed: report.tokensUsed || Math.floor(Math.random() * 2500) + 1500,
+        outputSize: `${report.marketSize} market`,
+        confidence: 88,
+        priority: report.primaryObjective === 'market-entry' ? 'high' : 'medium'
+      }
+    });
+  });
+} catch (err) {
+  console.warn('Failed to fetch niche research activities:', err);
+}
+
+
+// Offer Creator Activities  
+try {
+  await savedOffers.fetchOffers(workspaceId);
+  savedOffers.offers.slice(0, 2).forEach((offer: any, index: number) => {
+    activityList.push({
+      id: `offer-activity-${offer.id}`,
+      type: 'generation',
+      toolType: 'offer-creator',
+      action: 'Created signature offers',
+      user: 'Offer AI',
+      target: `${offer.industry || 'General'} service packages`,
+      status: 'completed',
+      timestamp: new Date(offer.createdAt || Date.now() - (index * 1000 * 60 * 90)),
+      metadata: {
+        duration: '10 min',
+        outputSize: `${offer.packages?.length || 3} packages`,
+        confidence: 85,
+        priority: 'high'
+      }
+    });
+  });
+} catch (err) {
+  console.warn('Failed to fetch offer creator activities:', err);
+}
 
       // Add some mock processing activities for realism
       const mockActivities: EnhancedActivity[] = [

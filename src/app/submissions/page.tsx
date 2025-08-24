@@ -262,33 +262,44 @@ const growthPlan = useGrowthPlan({ workspaceId });
       }
 
       // Fetch Offer Creator Results
+       // Fetch Offer Creator Results (Ensure correct handling of hook state)
       try {
         console.log('✨ Fetching signature offers...');
-        await savedOffers.fetchOffers(workspaceId);
-        console.log('🎯 Found offers:', savedOffers.offers);
-        savedOffers.offers.forEach((offer: any) => {
-          items.push({
-            id: `offer-creator-${offer.id}`,
-            type: 'offer-creator',
-            title: offer.title || 'Signature Offers',
-            subtitle: `${offer.industry || 'General'} • ${offer.packages?.length || 3} Packages`,
-            status: 'completed',
-            createdAt: offer.createdAt || offer.created_at || new Date().toISOString(),
-            metadata: {
-              industry: offer.industry,
-              packages: offer.packages?.length || 0,
-              priceRange: offer.priceRange,
-              deliveryModel: offer.deliveryModel,
-              targetMarket: offer.targetMarket
-            },
-            actions: ['view', 'export', 'optimize', 'delete'],
-            rawData: offer
+        // Call fetchOffers - it updates the hook's internal 'offers' state
+        await savedOffers.fetchOffers(workspaceId); 
+        // Access the data from the hook's state AFTER the fetch call completes
+        console.log('🎯 Found offers:', savedOffers.offers); 
+        // Check if offers data exists and is an array (hook's state)
+        if (Array.isArray(savedOffers.offers)) { 
+          savedOffers.offers.forEach((offer: any) => { // Use savedOffers.offers here
+            items.push({
+              id: `offer-creator-${offer.id}`,
+              type: 'offer-creator',
+              title: offer.title || 'Signature Offers',
+              subtitle: `${offer.industry || 'General'} • ${offer.packages?.length || 3} Packages`,
+              status: 'completed',
+              // Ensure createdAt is handled correctly (string)
+              createdAt: offer.createdAt || offer.created_at || new Date().toISOString(),
+              metadata: {
+                industry: offer.industry,
+                packages: offer.packages?.length || 0,
+                priceRange: offer.priceRange,
+                deliveryModel: offer.deliveryModel,
+                targetMarket: offer.targetMarket
+              },
+              actions: ['view', 'export', 'optimize', 'delete'],
+              rawData: offer
+            });
           });
-        });
-        console.log(`✅ Added ${savedOffers.offers.length} offer creator items`);
+          console.log(`✅ Added ${savedOffers.offers.length} offer creator items`); // Use length here
+        } else {
+           console.warn('⚠️ Offers data is not an array or is undefined:', savedOffers.offers);
+        }
+        // console.log(`✅ Added ${savedOffers.offers.length} offer creator items`); // Original line
       } catch (err) {
         console.warn('❌ Failed to fetch offers:', err);
       }
+
 
       // Sort by creation date (newest first)
       items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -691,6 +702,10 @@ const growthPlan = useGrowthPlan({ workspaceId });
           <Tabs.TabPane 
             tab={<Badge count={getTabCount('cold-email')} offset={[8, 0]}>Emails</Badge>} 
             key="cold-email" 
+          />
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offer Creator</Badge>} 
+            key="offer-creator" 
           />
         </Tabs>
 
