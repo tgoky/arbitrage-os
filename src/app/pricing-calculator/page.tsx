@@ -204,29 +204,23 @@ useEffect(() => {
 
 
 // Handler for the View button
-const handleView = async (record: SavedCalculation) => { // Use SavedCalculation type
+const handleView = async (record: SavedCalculation) => {
   setViewDetailLoading(true);
-  setViewingCalculation(null); // Clear previous data
+  setViewingCalculation(null);
+  
   try {
-    const fullData = await getCalculation(record.id); // `fullData` is the `data` object { id, title, calculation, metadata, ... }
+    const fullData = await getCalculation(record.id);
     if (fullData) {
-      // Extract the actual GeneratedPricingPackage from the `calculation` field
-      // and set it to viewingCalculation
-      // Use optional chaining and type assertion for safety
       const pricingPackage = fullData.calculation as GeneratedPricingPackage | undefined;
-
       if (pricingPackage) {
-        setViewingCalculation(pricingPackage); // Set the nested package, not the whole API response object
+        setViewingCalculation(pricingPackage);
         setIsViewModalVisible(true);
       } else {
-         console.warn("Pricing package data not found in API response for ID:", record.id);
-         notification.warning({
-           message: 'View Warning',
-           description: 'Calculation data structure was incomplete.',
-         });
-         // Optionally, you could still open the modal with partial data or fullData if needed for debugging
-         // setViewingCalculation(fullData as any); // Not recommended for production display
-         // setIsViewModalVisible(true);
+        console.warn("Pricing package data not found in API response for ID:", record.id);
+        notification.warning({
+          message: 'View Warning',
+          description: 'Calculation data structure was incomplete.',
+        });
       }
     } else {
       notification.error({
@@ -1187,14 +1181,16 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                   key: 'actions',
                   render: (_, record) => (
                     <Space>
-                      <Button size="small" type="link"
-                                      icon={<EyeOutlined />} // Make sure to import EyeOutlined
-                onClick={() => handleView(record)}
-
-                      
-                      >
-                        View
-                      </Button>
+                    <Button 
+        size="small" 
+        type="link"
+        icon={<EyeOutlined />}
+        onClick={() => handleView(record)}
+        loading={viewDetailLoading}
+        disabled={viewDetailLoading}
+      >
+        View
+      </Button>
                       {/* <Button size="small" type="link"
                        icon={<DownloadOutlined />} // Make sure to import DownloadOutlined
                 onClick={() => handleSavedExport(record, 'complete')} // Default to 'complete', or add a dropdown
