@@ -1,36 +1,24 @@
-// app/api/offer-creator/route.ts - COMPLETELY UPDATED VERSION
+// app/api/dashboard/work-items/route.ts - Cached Dashboard API
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { OfferCreatorService } from '@/services/offerCreator.service';
-import { 
-  validateOfferCreatorInput, 
-  validateOfferBusinessRules 
-} from '../../validators/offerCreator.validator';
-import { rateLimit } from '@/lib/rateLimit';
-import { logUsage } from '@/lib/usage';
-import { 
-  OfferCreatorInput, 
-  GeneratedOfferPackage, 
-  ApiResponse, 
-  ApiResponseOptional,
-  UserOffer,
-  GuaranteeType
-} from '@/types/offerCreator'; 
+// Comment out Redis for now to test basic functionality
+// import { redis, cacheKeys, cacheTTL, cacheUtils } from '@/lib/redis';
 
-const RATE_LIMITS = {
-  OFFER_GENERATION: {
-    limit: 50,
-    window: 3600 // 1 hour
-  },
-  OFFER_LIST: {
-    limit: 100,
-    window: 3600 // 1 hour
-  }
-};
+interface WorkItem {
+  id: string;
+  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator';
+  title: string;
+  subtitle: string;
+  status: 'completed' | 'processing' | 'failed' | 'draft';
+  createdAt: string;
+  metadata: Record<string, any>;
+  actions: string[];
+  rawData: any;
+}
 
-// ✅ Robust authentication function (same as cold-email that works!)
+// ✅ ROBUST 3-METHOD AUTHENTICATION (same as offer-creator that works!)
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -44,13 +32,13 @@ async function getAuthenticatedUser(request: NextRequest) {
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (!error && user) {
-        console.log('✅ Auth Method 1 (route handler) succeeded for user:', user.id);
-        return { user, error: null };
+        console.log('✅ Dashboard Auth Method 1 (route handler) succeeded for user:', user.id);
+        return { user, error: null, method: 'route_handler' };
       }
       
-      console.log('⚠️ Route handler auth failed:', error?.message);
+      console.log('⚠️ Dashboard route handler auth failed:', error?.message);
     } catch (helperError) {
-      console.warn('⚠️ Route handler client failed:', helperError);
+      console.warn('⚠️ Dashboard route handler client failed:', helperError);
     }
     
     // Method 2: Try with authorization header
@@ -58,7 +46,7 @@ async function getAuthenticatedUser(request: NextRequest) {
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        console.log('🔍 Trying token auth with token:', token.substring(0, 20) + '...');
+        console.log('🔍 Dashboard trying token auth with token:', token.substring(0, 20) + '...');
         
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,13 +61,13 @@ async function getAuthenticatedUser(request: NextRequest) {
         const { data: { user }, error } = await supabase.auth.getUser(token);
         
         if (!error && user) {
-          console.log('✅ Auth Method 2 (token) succeeded for user:', user.id);
-          return { user, error: null };
+          console.log('✅ Dashboard Auth Method 2 (token) succeeded for user:', user.id);
+          return { user, error: null, method: 'bearer_token' };
         }
         
-        console.log('⚠️ Token auth failed:', error?.message);
+        console.log('⚠️ Dashboard token auth failed:', error?.message);
       } catch (tokenError) {
-        console.warn('⚠️ Token auth error:', tokenError);
+        console.warn('⚠️ Dashboard token auth error:', tokenError);
       }
     }
     
@@ -101,13 +89,13 @@ async function getAuthenticatedUser(request: NextRequest) {
                   JSON.parse(decoded); // Validate JSON
                   return cookie.value;
                 } catch (e) {
-                  console.warn(`Invalid cookie ${name}, skipping...`);
+                  console.warn(`Invalid dashboard cookie ${name}, skipping...`);
                   return undefined;
                 }
               }
               return cookie.value;
             } catch (error) {
-              console.warn(`Error reading cookie ${name}:`, error);
+              console.warn(`Error reading dashboard cookie ${name}:`, error);
               return undefined;
             }
           },
@@ -118,37 +106,43 @@ async function getAuthenticatedUser(request: NextRequest) {
     const { data: { user }, error } = await supabaseSSR.auth.getUser();
     
     if (!error && user) {
-      console.log('✅ Auth Method 3 (SSR cookies) succeeded for user:', user.id);
+      console.log('✅ Dashboard Auth Method 3 (SSR cookies) succeeded for user:', user.id);
+      return { user, error: null, method: 'ssr_cookies' };
     } else {
-      console.log('⚠️ SSR cookie auth failed:', error?.message);
+      console.log('⚠️ Dashboard SSR cookie auth failed:', error?.message);
     }
     
-    return { user, error };
+    return { user, error, method: 'none' };
     
   } catch (error) {
-    console.error('💥 All authentication methods failed:', error);
-    return { user: null, error };
+    console.error('💥 All dashboard authentication methods failed:', error);
+    return { user: null, error, method: 'failed' };
   }
 }
 
-// POST method for generating signature offers
-export async function POST(req: NextRequest) {
-  console.log('🚀 Enhanced Signature Offer Creator API Route called');
+// GET /api/dashboard/work-items - Robust authenticated endpoint
+export async function GET(request: NextRequest) {
+  console.log('🚀 Dashboard API called with robust auth');
   
   try {
-    // ✅ Use robust authentication (same as cold-email that works)
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // ✅ Use robust 3-method authentication (same as offer-creator)
+    const { user, error: authError, method } = await getAuthenticatedUser(request);
 
     if (authError || !user) {
-      console.error('❌ Auth failed in enhanced offer creator:', authError);
+      console.error('❌ Dashboard auth failed with all methods:', authError);
       
-      // Clear corrupted cookies in response
+      // Clear corrupted cookies in response (same as offer-creator)
       const response = NextResponse.json(
         { 
           success: false,
           error: 'Authentication required. Please clear your browser cookies and sign in again.',
-          code: 'AUTH_REQUIRED'
-        } as ApiResponseOptional<never>,
+          code: 'AUTH_REQUIRED',
+          debug: {
+            authMethod: method,
+       
+            hasAuthHeader: !!request.headers.get('authorization')
+          }
+        },
         { status: 401 }
       );
       
@@ -169,472 +163,464 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log(`✅ Dashboard user authenticated successfully via ${method}:`, user.id);
 
-    // Rate limiting for offer generation
-    console.log('🔍 Checking rate limits for user:', user.id);
-    const rateLimitResult = await rateLimit(
-      `enhanced_signature_offer_generation:${user.id}`,
-      RATE_LIMITS.OFFER_GENERATION.limit,
-      RATE_LIMITS.OFFER_GENERATION.window
-    );
-    if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many generation requests. Please try again later.',
-          retryAfter: rateLimitResult.reset
-        } as ApiResponseOptional<never>,
-        { status: 429 }
-      );
-    }
-    console.log('✅ Rate limit check passed');
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get('workspaceId');
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
-    // Parse and validate request body
-    console.log('📥 Parsing request body...');
-    const body = await req.json();
-    
-    // ✅ Enhanced debug logging for the new service structure
-    console.log('🔍 RECEIVED BODY STRUCTURE:');
-    console.log('- founder keys:', body.founder ? Object.keys(body.founder) : 'missing');
-    console.log('- founder signatureResults length:', body.founder?.signatureResults?.length || 0);
-    console.log('- founder industries:', body.founder?.industries || []);
-    console.log('- market keys:', body.market ? Object.keys(body.market) : 'missing');
-    console.log('- market targetMarket:', body.market?.targetMarket || 'missing');
-    console.log('- market pains length:', body.market?.pains?.length || 0);
-    console.log('- business keys:', body.business ? Object.keys(body.business) : 'missing');
-    console.log('- business deliveryModel:', body.business?.deliveryModel || []);
-    console.log('- business capacity:', body.business?.capacity || 'missing');
-    console.log('- pricing keys:', body.pricing ? Object.keys(body.pricing) : 'missing');
-    console.log('- pricing pricePosture:', body.pricing?.pricePosture || 'missing');
-    console.log('- voice keys:', body.voice ? Object.keys(body.voice) : 'missing');
-    console.log('- voice positioning:', body.voice?.positioning || 'missing');
-    
-    // Add userId to create proper OfferCreatorInput structure
-    const inputWithUserId: OfferCreatorInput = {
-      founder: body.founder || {},
-      market: body.market || {},
-      business: body.business || {},
-      pricing: body.pricing || {},
-      voice: body.voice || {},
-      userId: user.id
-    };
+    console.log(`📡 Fetching work items for user: ${user.id} (workspace: ${workspaceId || 'none'})`);
 
-    console.log('🔍 Starting enhanced validation...');
-    const validation = validateOfferCreatorInput(inputWithUserId);
-    if (!validation.success) {
-      console.error('❌ ENHANCED VALIDATION FAILED:');
-      console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Invalid input for enhanced signature offer generation', 
-          details: validation.errors,
-          debug: {
-            receivedSections: {
-              founder: !!body.founder,
-              market: !!body.market,
-              business: !!body.business,
-              pricing: !!body.pricing,
-              voice: !!body.voice
-            },
-            founderValidation: {
-              hasSignatureResults: body.founder?.signatureResults?.length > 0,
-              hasCoreStrengths: body.founder?.coreStrengths?.length > 0,
-              hasProcesses: body.founder?.processes?.length > 0,
-              hasIndustries: body.founder?.industries?.length > 0
-            },
-            marketValidation: {
-              hasTargetMarket: !!body.market?.targetMarket,
-              hasBuyerRole: !!body.market?.buyerRole,
-              hasPains: body.market?.pains?.length > 0,
-              hasOutcomes: body.market?.outcomes?.length > 0
-            },
-            businessValidation: {
-              hasDeliveryModel: body.business?.deliveryModel?.length > 0,
-              hasCapacity: !!body.business?.capacity,
-              hasMonthlyHours: !!body.business?.monthlyHours,
-              hasACV: !!body.business?.acv
-            },
-            missingRequiredFields: validation.errors.filter(err => 
-              err.message?.includes('required')
-            ).map(err => err.path?.join('.'))
-          }
-        } as ApiResponseOptional<never>,
-        { status: 400 }
-      );
-    }
+    // Create authenticated Supabase client for database queries
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({
+      cookies: () => cookieStore
+    });
 
-    if (!validation.data) {
-      console.error('❌ Enhanced validation data is null');
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'No valid data provided for signature offer generation' 
-        } as ApiResponseOptional<never>,
-        { status: 400 }
-      );
-    }
+    // For now, directly fetch without cache to test basic functionality
+    const workItems = await fetchAllWorkItems(user.id, workspaceId, supabase);
 
-    console.log('✅ Enhanced input validation passed');
+    console.log(`✅ Returning ${workItems.length} work items`);
 
-    // ✅ Enhanced business rules validation
-    console.log('🔍 Validating enhanced business rules...');
-    const businessValidation = validateOfferBusinessRules(validation.data);
-    if (!businessValidation.isValid) {
-      console.warn('⚠️ Enhanced business rules validation warnings:', businessValidation.warnings);
-    }
-    console.log('📊 Business validation score:', businessValidation.conversionPrediction.score);
-
-    // ✅ Generate enhanced signature offers with improved error handling
-    console.log('🤖 Starting ENHANCED signature offer generation...');
-    let generatedOffer: GeneratedOfferPackage;
-    try {
-      // ✅ Initialize the enhanced service
-      console.log('🔧 Initializing enhanced OfferCreatorService...');
-      const offerService = new OfferCreatorService();
-      
-      // ✅ Call the enhanced generation method
-      console.log('⚡ Calling enhanced generateOffer method...');
-      generatedOffer = await offerService.generateOffer(validation.data);
-      
-      console.log('✅ Enhanced signature offer generation completed successfully');
-      console.log('📊 Enhanced generated offer structure:');
-      console.log('- Primary offer tiers:', Object.keys(generatedOffer.primaryOffer.signatureOffers));
-      console.log('- Starter name:', generatedOffer.primaryOffer.signatureOffers.starter.name);
-      console.log('- Core name:', generatedOffer.primaryOffer.signatureOffers.core.name);
-      console.log('- Premium name:', generatedOffer.primaryOffer.signatureOffers.premium.name);
-      console.log('- Analysis score:', generatedOffer.analysis.conversionPotential.score);
-      console.log('- Tokens used:', generatedOffer.tokensUsed);
-      console.log('- Generation time:', generatedOffer.generationTime + 'ms');
-      console.log('- Comparison features count:', generatedOffer.primaryOffer.comparisonTable.features.length);
-      
-      // ✅ Enhanced validation of the generated offer structure
-      if (!generatedOffer.primaryOffer.signatureOffers.starter.name ||
-          !generatedOffer.primaryOffer.signatureOffers.core.name ||
-          !generatedOffer.primaryOffer.signatureOffers.premium.name) {
-        console.error('❌ Generated offer missing required offer names');
-        throw new Error('Generated offer structure is incomplete - missing offer names');
-      }
-      
-      if (!generatedOffer.primaryOffer.signatureOffers.starter.scope?.length ||
-          !generatedOffer.primaryOffer.signatureOffers.core.scope?.length ||
-          !generatedOffer.primaryOffer.signatureOffers.premium.scope?.length) {
-        console.error('❌ Generated offer missing required scope details');
-        throw new Error('Generated offer structure is incomplete - missing scope details');
-      }
-      
-    } catch (serviceError) {
-      console.error('💥 Enhanced service error during generation:', serviceError);
-      console.error('Enhanced service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
-      
-      // ✅ Enhanced error response with more context
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Failed to generate enhanced signature offers. Please try again.',
-          debug: {
-            errorType: serviceError instanceof Error ? serviceError.constructor.name : 'Unknown',
-            errorMessage: serviceError instanceof Error ? serviceError.message : 'Unknown service error',
-            inputSummary: {
-              targetMarket: validation.data.market.targetMarket,
-              industries: validation.data.founder.industries,
-              deliveryModels: validation.data.business.deliveryModel,
-              pricePosture: validation.data.pricing.pricePosture
-            }
-          }
-        } as ApiResponseOptional<never>,
-        { status: 500 }
-      );
-    }
-
-    // Get workspace ID from request or use default
-    const workspaceId = body.workspaceId || 'default';
-
-    // ✅ Save the enhanced signature offers with improved error handling
-    console.log('💾 Saving enhanced signature offers...');
-    let offerId: string;
-    try {
-      const offerService = new OfferCreatorService();
-      offerId = await offerService.saveOffer(user.id, workspaceId, generatedOffer, validation.data);
-      console.log('✅ Enhanced signature offers saved with ID:', offerId);
-    } catch (saveError) {
-      console.error('💥 Error saving enhanced offers:', saveError);
-      // Don't fail the request if saving fails - return the generated offers anyway
-      console.warn('⚠️ Continuing without saving due to error (offers still generated)');
-      offerId = `temp_enhanced_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    }
-
-    // ✅ Enhanced usage logging
-    console.log('📊 Logging enhanced usage...');
-    try {
-      await logUsage({
-        userId: user.id,
-        feature: 'enhanced_signature_offer_generation',
-        tokens: generatedOffer.tokensUsed || 0,
-        timestamp: new Date(),
-        metadata: {
-          offerId,
-          targetMarket: validation.data.market.targetMarket,
-          industries: validation.data.founder.industries,
-          deliveryModels: validation.data.business.deliveryModel,
-          pricePosture: validation.data.pricing.pricePosture,
-          brandTone: validation.data.voice.brandTone,
-          positioning: validation.data.voice.positioning,
-          conversionScore: generatedOffer.analysis.conversionPotential.score,
-          generationTime: generatedOffer.generationTime,
-          businessWarnings: businessValidation.warnings.length,
-          businessSuggestions: businessValidation.suggestions.length,
-          credibilityFactors: generatedOffer.analysis.conversionPotential.factors.length,
-          enhancedVersion: true, // Flag to distinguish from basic version
-          founderCredibility: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('credibility'))?.impact || 'Unknown',
-          marketAlignment: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('alignment'))?.impact || 'Unknown'
-        }
-      });
-      console.log('✅ Enhanced usage logged successfully');
-    } catch (logError) {
-      // Don't fail the request if logging fails
-      console.error('⚠️ Enhanced usage logging failed (non-critical):', logError);
-    }
-
-    console.log('🎉 Enhanced signature offer generation completed successfully');
-    
-    // ✅ Enhanced success response with more detailed metadata
     return NextResponse.json({
       success: true,
-      data: generatedOffer,
-      meta: {
-        offerId,
-        tokensUsed: generatedOffer.tokensUsed,
-        generationTime: generatedOffer.generationTime,
-        remaining: rateLimitResult.remaining,
-        businessValidation: {
-          conversionScore: businessValidation.conversionPrediction.score,
-          warnings: businessValidation.warnings,
-          suggestions: businessValidation.suggestions.slice(0, 5)
-        },
-        offerQuality: {
-          conversionPotential: generatedOffer.analysis.conversionPotential.score,
-          credibilityScore: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('credibility'))?.impact || 'Medium',
-          marketFitScore: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('alignment'))?.impact || 'Medium',
-          scalabilityScore: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('model'))?.impact || 'Medium'
-        },
-        enhanced: true,
-        version: '2.0'
+      data: {
+        items: workItems,
+        cached: false, // Not using cache yet
+        timestamp: new Date().toISOString(),
+        authMethod: method
       }
-    } as ApiResponse<GeneratedOfferPackage>);
+    });
 
   } catch (error) {
-    console.error('💥 Unexpected Enhanced Signature Offer Creator API Error:', error);
-    console.error('Enhanced error stack:', error instanceof Error ? error.stack : 'No stack');
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to generate enhanced signature offers. Please try again.',
-        debug: {
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          enhanced: true
-        }
-      } as ApiResponseOptional<never>,
-      { status: 500 }
-    );
+    console.error('💥 Dashboard API error:', error);
+    console.error('💥 Dashboard error stack:', error instanceof Error ? error.stack : 'No stack');
+    
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Internal server error',
+      debug: {
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+        timestamp: new Date().toISOString()
+      }
+    }, { status: 500 });
   }
 }
 
-// GET method for listing enhanced signature offers
-export async function GET(req: NextRequest) {
-  console.log('🚀 Enhanced Signature Offers List API Route called');
+// Fresh data fetching function
+async function fetchAllWorkItems(userId: string, workspaceId?: string | null, supabase?: any): Promise<WorkItem[]> {
+  const items: WorkItem[] = [];
   
+  console.log('🔄 Fetching fresh work items from database...');
+  console.log('🔍 User ID:', userId);
+  console.log('🔍 Workspace ID:', workspaceId);
+
+  // If no supabase client passed, create a new one
+  if (!supabase) {
+    const cookieStore = cookies();
+    supabase = createRouteHandlerClient({ 
+      cookies: () => cookieStore 
+    });
+  }
+
   try {
-    // ✅ Use robust authentication (same as cold-email that works)
-    const { user, error: authError } = await getAuthenticatedUser(req);
-    
-    if (authError || !user) {
-      console.error('❌ Auth failed in enhanced offers list:', authError);
-      
-      const response = NextResponse.json(
-        { 
-          success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
-          code: 'AUTH_REQUIRED'
-        } as ApiResponseOptional<never>,
-        { status: 401 }
-      );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+    // Fetch all data sources in parallel for better performance
+    const [
+      salesCalls,
+      growthPlans,
+      pricingCalcs,
+      nicheReports,
+      coldEmails,
+      offers
+    ] = await Promise.allSettled([
+      fetchSalesCalls(userId, workspaceId, supabase),
+      fetchGrowthPlans(userId, workspaceId, supabase),
+      fetchPricingCalcs(userId, workspaceId, supabase),
+      fetchNicheReports(userId, workspaceId, supabase),
+      fetchColdEmails(userId, workspaceId, supabase),
+      fetchOffers(userId, workspaceId, supabase)
+    ]);
+
+    // Process sales calls
+    if (salesCalls.status === 'fulfilled') {
+      salesCalls.value.forEach((call: any) => {
+        items.push(transformSalesCall(call));
       });
-      
-      return response;
+      console.log(`📞 Added ${salesCalls.value.length} sales calls`);
+    } else {
+      console.warn('❌ Sales calls fetch failed:', salesCalls.reason);
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
-
-    // Rate limiting for listing offers
-    console.log('🔍 Checking rate limits for user:', user.id);
-    const rateLimitResult = await rateLimit(
-      `enhanced_signature_offers_list:${user.id}`, 
-      RATE_LIMITS.OFFER_LIST.limit, 
-      RATE_LIMITS.OFFER_LIST.window
-    );
-    if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Too many requests. Please try again later.',
-          retryAfter: rateLimitResult.reset 
-        } as ApiResponseOptional<never>,
-        { status: 429 }
-      );
-    }
-    console.log('✅ Rate limit check passed');
-
-    const { searchParams } = new URL(req.url);
-    const workspaceId = searchParams.get('workspaceId');
-    const targetMarket = searchParams.get('targetMarket');
-    const pricePosture = searchParams.get('pricePosture');
-
-    console.log('📋 Fetching enhanced signature offers for user:', user.id);
-    console.log('🔍 Enhanced filters - workspace:', workspaceId, 'market:', targetMarket, 'pricing:', pricePosture);
-    
-    // ✅ Enhanced offer fetching with improved type safety
-    let offers: UserOffer[];
-    try {
-      const offerService = new OfferCreatorService();
-      offers = await offerService.getUserOffers(user.id, workspaceId || undefined);
-
-      // ✅ Enhanced filtering with better type safety
-      if (targetMarket) {
-        offers = offers.filter(offer => {
-          if (offer.metadata && typeof offer.metadata === 'object' && 'targetMarket' in offer.metadata) {
-            const targetMarketValue = offer.metadata.targetMarket;
-            if (typeof targetMarketValue === 'string') {
-              return targetMarketValue.toLowerCase().includes(targetMarket.toLowerCase());
-            }
-          }
-          return false;
-        });
-      }
-
-      if (pricePosture) {
-        offers = offers.filter(offer => {
-          if (offer.metadata && typeof offer.metadata === 'object' && 'pricePosture' in offer.metadata) {
-            return offer.metadata.pricePosture === pricePosture;
-          }
-          return false;
-        });
-      }
-      
-      console.log('✅ Retrieved', offers.length, 'enhanced signature offers');
-      
-      // ✅ Enhanced logging of offer details
-      console.log('📊 Enhanced offers summary:');
-      const offerStats = offers.reduce((stats, offer) => {
-        const posture = offer.metadata?.pricePosture || 'unknown';
-        stats[posture] = (stats[posture] || 0) + 1;
-        return stats;
-      }, {} as Record<string, number>);
-      console.log('- Price posture distribution:', offerStats);
-      
-    } catch (fetchError) {
-      console.error('💥 Error fetching enhanced offers:', fetchError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Failed to fetch enhanced signature offers. Please try again.',
-          debug: {
-            errorType: fetchError instanceof Error ? fetchError.constructor.name : 'Unknown',
-            errorMessage: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
-          }
-        } as ApiResponseOptional<never>,
-        { status: 500 }
-      );
-    }
-
-    // ✅ Enhanced usage logging for listing offers
-    console.log('📊 Logging enhanced list usage...');
-    try {
-      await logUsage({
-        userId: user.id,
-        feature: 'enhanced_signature_offers_list',
-        tokens: 0,
-        timestamp: new Date(),
-        metadata: {
-          workspaceId,
-          targetMarket,
-          pricePosture,
-          resultCount: offers.length,
-          enhanced: true,
-          version: '2.0',
-          filters: {
-            hasWorkspaceFilter: !!workspaceId,
-            hasMarketFilter: !!targetMarket,
-            hasPricingFilter: !!pricePosture
-          }
-        }
+    // Process growth plans
+    if (growthPlans.status === 'fulfilled') {
+      growthPlans.value.forEach((plan: any) => {
+        items.push(transformGrowthPlan(plan));
       });
-      console.log('✅ Enhanced list usage logged successfully');
-    } catch (logError) {
-      console.error('⚠️ Enhanced list usage logging failed (non-critical):', logError);
+      console.log(`🚀 Added ${growthPlans.value.length} growth plans`);
+    } else {
+      console.warn('❌ Growth plans fetch failed:', growthPlans.reason);
     }
 
-    console.log('🎉 Enhanced signature offers fetch completed successfully');
-    
-    // ✅ Enhanced success response with richer metadata
-    return NextResponse.json({
-      success: true,
-      data: offers,
-      meta: {
-        count: offers.length,
-        remaining: rateLimitResult.remaining,
-        filters: {
-          workspaceId,
-          targetMarket,
-          pricePosture
-        },
-        statistics: {
-          byPricePosture: offers.reduce((stats, offer) => {
-            const posture = offer.metadata?.pricePosture || 'unknown';
-            stats[posture] = (stats[posture] || 0) + 1;
-            return stats;
-          }, {} as Record<string, number>),
-          byIndustry: offers.reduce((stats, offer) => {
-            const industries = offer.metadata?.industries || [];
-            industries.forEach(industry => {
-              if (typeof industry === 'string') {
-                stats[industry] = (stats[industry] || 0) + 1;
-              }
-            });
-            return stats;
-          }, {} as Record<string, number>),
-          avgConversionScore: offers.reduce((sum, offer) => {
-            return sum + (offer.metadata?.conversionScore || 0);
-          }, 0) / (offers.length || 1)
-        },
-        enhanced: true,
-        version: '2.0'
-      }
-    } as ApiResponse<UserOffer[]>);
+    // Process pricing calculations
+    if (pricingCalcs.status === 'fulfilled') {
+      pricingCalcs.value.forEach((calc: any) => {
+        items.push(transformPricingCalc(calc));
+      });
+      console.log(`💰 Added ${pricingCalcs.value.length} pricing calculations`);
+    } else {
+      console.warn('❌ Pricing calculations fetch failed:', pricingCalcs.reason);
+    }
+
+    // Process niche reports
+    if (nicheReports.status === 'fulfilled') {
+      nicheReports.value.forEach((report: any) => {
+        items.push(transformNicheReport(report));
+      });
+      console.log(`🔬 Added ${nicheReports.value.length} niche reports`);
+    } else {
+      console.warn('❌ Niche reports fetch failed:', nicheReports.reason);
+    }
+
+    // Process cold emails
+    if (coldEmails.status === 'fulfilled') {
+      coldEmails.value.forEach((email: any) => {
+        items.push(transformColdEmail(email));
+      });
+      console.log(`📧 Added ${coldEmails.value.length} cold emails`);
+    } else {
+      console.warn('❌ Cold emails fetch failed:', coldEmails.reason);
+    }
+
+    // Process offers
+    if (offers.status === 'fulfilled') {
+      offers.value.forEach((offer: any) => {
+        items.push(transformOffer(offer));
+      });
+      console.log(`✨ Added ${offers.value.length} offers`);
+    } else {
+      console.warn('❌ Offers fetch failed:', offers.reason);
+    }
+
+    // Sort by creation date (newest first)
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    console.log(`🎉 Total fresh work items: ${items.length}`);
+    return items;
 
   } catch (error) {
-    console.error('💥 Unexpected Enhanced Signature Offers Fetch Error:', error);
-    console.error('Enhanced error stack:', error instanceof Error ? error.stack : 'No stack');
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to fetch enhanced signature offers. Please try again.',
-        debug: {
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          enhanced: true
-        }
-      } as ApiResponseOptional<never>,
-      { status: 500 }
-    );
+    console.error('💥 Error in fetchAllWorkItems:', error);
+    throw error;
   }
+}
+
+// Individual fetch functions with better error handling
+async function fetchSalesCalls(userId: string, workspaceId?: string | null, supabase?: any): Promise<any[]> {
+  try {
+    console.log('📞 Fetching sales calls...');
+    
+    let query = supabase
+      .from('sales_call_analyses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.warn('⚠️ Sales calls fetch error:', error.message);
+      return [];
+    }
+    
+    console.log(`✅ Found ${data?.length || 0} sales calls`);
+    return data || [];
+  } catch (err) {
+    console.warn('⚠️ Sales calls fetch exception:', err);
+    return [];
+  }
+}
+
+async function fetchGrowthPlans(userId: string, workspaceId?: string | null, supabase?: any): Promise<any[]> {
+  try {
+    console.log('🚀 Fetching growth plans...');
+    
+    let query = supabase
+      .from('growth_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.warn('⚠️ Growth plans fetch error:', error.message);
+      return [];
+    }
+    
+    console.log(`✅ Found ${data?.length || 0} growth plans`);
+    return data || [];
+  } catch (err) {
+    console.warn('⚠️ Growth plans fetch exception:', err);
+    return [];
+  }
+}
+
+async function fetchPricingCalcs(userId: string, workspaceId?: string | null, supabase?: any): Promise<any[]> {
+  try {
+    console.log('💰 Fetching pricing calculations...');
+    
+    let query = supabase
+      .from('pricing_calculations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.warn('⚠️ Pricing calculations fetch error:', error.message);
+      return [];
+    }
+    
+    console.log(`✅ Found ${data?.length || 0} pricing calculations`);
+    return data || [];
+  } catch (err) {
+    console.warn('⚠️ Pricing calculations fetch exception:', err);
+    return [];
+  }
+}
+
+async function fetchNicheReports(userId: string, workspaceId?: string | null, supabase?: any): Promise<any[]> {
+  try {
+    console.log('🔬 Fetching niche reports...');
+    
+    let query = supabase
+      .from('niche_research_reports')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.warn('⚠️ Niche reports fetch error:', error.message);
+      return [];
+    }
+    
+    console.log(`✅ Found ${data?.length || 0} niche reports`);
+    return data || [];
+  } catch (err) {
+    console.warn('⚠️ Niche reports fetch exception:', err);
+    return [];
+  }
+}
+
+async function fetchColdEmails(userId: string, workspaceId?: string | null, supabase?: any): Promise<any[]> {
+  try {
+    console.log('📧 Fetching cold emails...');
+    
+    let query = supabase
+      .from('cold_email_generations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.warn('⚠️ Cold emails fetch error:', error.message);
+      return [];
+    }
+    
+    console.log(`✅ Found ${data?.length || 0} cold emails`);
+    return data || [];
+  } catch (err) {
+    console.warn('⚠️ Cold emails fetch exception:', err);
+    return [];
+  }
+}
+
+async function fetchOffers(userId: string, workspaceId?: string | null, supabase?: any): Promise<any[]> {
+  try {
+    console.log('✨ Fetching offers...');
+    
+    let query = supabase
+      .from('signature_offers')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.warn('⚠️ Offers fetch error:', error.message);
+      return [];
+    }
+    
+    console.log(`✅ Found ${data?.length || 0} offers`);
+    return data || [];
+  } catch (err) {
+    console.warn('⚠️ Offers fetch exception:', err);
+    return [];
+  }
+}
+
+// Transform functions
+function transformSalesCall(call: any): WorkItem {
+  return {
+    id: `sales-call-${call.id}`,
+    type: 'sales-call',
+    title: call.title || 'Sales Call Analysis',
+    subtitle: `${call.prospect_name || 'Unknown'} • ${call.company_name || 'Company'}`,
+    status: 'completed',
+    createdAt: call.created_at || new Date().toISOString(),
+    metadata: {
+      duration: call.duration || 'N/A',
+      callType: call.call_type || 'unknown',
+      company: call.company_name,
+      prospect: call.prospect_name,
+      sentiment: call.sentiment || 'neutral',
+      score: call.score || null
+    },
+    actions: ['view', 'export', 'delete'],
+    rawData: call
+  };
+}
+
+function transformGrowthPlan(plan: any): WorkItem {
+  const metadata = typeof plan.metadata === 'string' 
+    ? JSON.parse(plan.metadata) 
+    : plan.metadata || {};
+
+  return {
+    id: `growth-plan-${plan.id}`,
+    type: 'growth-plan',
+    title: plan.title || 'Growth Plan',
+    subtitle: `${metadata.clientCompany || 'Company'} • ${metadata.industry || 'Industry'}`,
+    status: 'completed',
+    createdAt: plan.created_at || new Date().toISOString(),
+    metadata: {
+      industry: metadata.industry,
+      timeframe: metadata.timeframe,
+      strategies: metadata.strategies?.length || 0,
+      tokensUsed: metadata.tokensUsed || 0,
+      clientCompany: metadata.clientCompany
+    },
+    actions: ['view', 'export', 'edit', 'delete'],
+    rawData: plan
+  };
+}
+
+function transformPricingCalc(calc: any): WorkItem {
+  return {
+    id: `pricing-calc-${calc.id}`,
+    type: 'pricing-calc',
+    title: calc.title || calc.project_name || 'Pricing Calculation',
+    subtitle: `${calc.client_name || 'Client'} • $${calc.recommended_retainer?.toLocaleString() || '0'}`,
+    status: 'completed',
+    createdAt: calc.created_at || new Date().toISOString(),
+    metadata: {
+      clientName: calc.client_name,
+      projectName: calc.project_name,
+      annualSavings: calc.annual_savings,
+      recommendedRetainer: calc.recommended_retainer,
+      hourlyRate: calc.hourly_rate,
+      roiPercentage: calc.roi_percentage,
+      industry: calc.industry
+    },
+    actions: ['view', 'export', 'duplicate', 'delete'],
+    rawData: calc
+  };
+}
+
+function transformNicheReport(report: any): WorkItem {
+  return {
+    id: `niche-research-${report.id}`,
+    type: 'niche-research',
+    title: report.title || 'Niche Research Report',
+    subtitle: `${report.niche_name} • ${report.market_type}`,
+    status: 'completed',
+    createdAt: report.created_at || new Date().toISOString(),
+    metadata: {
+      nicheName: report.niche_name,
+      marketSize: report.market_size,
+      primaryObjective: report.primary_objective,
+      marketType: report.market_type,
+      budget: report.budget,
+      tokensUsed: report.tokens_used
+    },
+    actions: ['view', 'export', 'update', 'delete'],
+    rawData: report
+  };
+}
+
+function transformColdEmail(email: any): WorkItem {
+  const emailData = typeof email.emails === 'string' 
+    ? JSON.parse(email.emails) 
+    : email.emails || [];
+
+  return {
+    id: `cold-email-${email.id}`,
+    type: 'cold-email',
+    title: email.title || 'Cold Email Campaign',
+    subtitle: `${emailData.length || 0} emails • ${email.industry || 'General'}`,
+    status: 'completed',
+    createdAt: email.created_at || new Date().toISOString(),
+    metadata: {
+      emailCount: emailData.length || 0,
+      industry: email.industry,
+      tone: email.tone,
+      method: email.method,
+      firstName: email.first_name
+    },
+    actions: ['view', 'copy', 'optimize', 'delete'],
+    rawData: email
+  };
+}
+
+function transformOffer(offer: any): WorkItem {
+  const offerData = typeof offer.offer_data === 'string' 
+    ? JSON.parse(offer.offer_data) 
+    : offer.offer_data || {};
+
+  return {
+    id: `offer-creator-${offer.id}`,
+    type: 'offer-creator',
+    title: offer.title || 'Signature Offers',
+    subtitle: `${offer.industry || 'General'} • ${offerData.packages?.length || 3} Packages`,
+    status: 'completed',
+    createdAt: offer.created_at || new Date().toISOString(),
+    metadata: {
+      industry: offer.industry,
+      packages: offerData.packages?.length || 0,
+      priceRange: offerData.priceRange,
+      deliveryModel: offerData.deliveryModel,
+      targetMarket: offer.target_market
+    },
+    actions: ['view', 'export', 'optimize', 'delete'],
+    rawData: offer
+  };
 }

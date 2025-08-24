@@ -465,14 +465,19 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
 
       const response = await fetch(`/api/growth-plans/search?${params.toString()}`);
       const result: GrowthPlanServiceResponse<ListGrowthPlansResponse> = await response.json();
+      console.log("Growth Plan API Response Status:", response.status);
+console.log("Growth Plan API Response Body:", result); // <-- Add this
       
       if (!response.ok) {
+          console.error("Growth Plan API Error Response:", result);
         throw new Error(result.error || 'Search failed');
       }
 
       if (result.success && result.data) {
+         console.log("Growth Plan Data to Return/Store:", result.data.plans);
         return result.data.plans;
       } else {
+          console.error("Growth Plan API Success=false or Missing Data:", result);
         throw new Error(result.error || 'Invalid response format');
       }
     } catch (err) {

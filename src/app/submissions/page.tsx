@@ -46,6 +46,7 @@ import {
 } from 'antd';
 
 // Import your existing hooks
+// Import your existing hooks
 import { useSalesCallAnalyzer } from '../../app/hooks/useSalesCallAnalyzer';
 import { useGrowthPlan } from '../../app/hooks/useGrowthPlan';
 import { useSavedCalculations } from '../../app/hooks/usePricingCalculator';
@@ -59,13 +60,17 @@ const { Search } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
+// Define proper types
+type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer';
+type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
+
 // Unified work item interface
 interface WorkItem {
   id: string;
-  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer';
+  type: WorkItemType;
   title: string;
   subtitle: string;
-  status: 'completed' | 'processing' | 'failed' | 'draft';
+  status: WorkItemStatus;
   createdAt: string;
   metadata: Record<string, any>;
   actions: string[];
@@ -85,7 +90,7 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
 
   // Initialize all hooks
   const salesCallAnalyzer = useSalesCallAnalyzer();
-  const growthPlan = useGrowthPlan();
+const growthPlan = useGrowthPlan({ workspaceId });
   const savedCalculations = useSavedCalculations();
   const nicheResearcher = useNicheResearcher();
   const coldEmail = useColdEmail();
@@ -100,7 +105,9 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
     try {
       // Fetch Sales Call Analyses
       try {
+        console.log('🔍 Fetching sales call analyses...');
         const salesCalls = await salesCallAnalyzer.getUserAnalyses(workspaceId);
+        console.log('📞 Found sales calls:', salesCalls);
         salesCalls.forEach((call: any) => {
           items.push({
             id: `sales-call-${call.id}`,
@@ -121,13 +128,16 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             rawData: call
           });
         });
+        console.log(`✅ Added ${salesCalls.length} sales call items`);
       } catch (err) {
-        console.warn('Failed to fetch sales calls:', err);
+        console.warn('❌ Failed to fetch sales calls:', err);
       }
 
       // Fetch Growth Plans
       try {
+        console.log('🚀 Fetching growth plans...');
         const growthPlans = await growthPlan.fetchPlans();
+        console.log('📋 Found growth plans:', growthPlans);
         growthPlans.forEach((plan: any) => {
           items.push({
             id: `growth-plan-${plan.id}`,
@@ -135,7 +145,7 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             title: plan.title || 'Growth Plan',
             subtitle: `${plan.metadata?.clientCompany || 'Company'} • ${plan.metadata?.industry || 'Industry'}`,
             status: 'completed',
-            createdAt: plan.createdAt?.toISOString() || plan.created_at || new Date().toISOString(),
+           createdAt: plan.createdAt || plan.created_at || new Date().toISOString(),
             metadata: {
               industry: plan.metadata?.industry,
               timeframe: plan.metadata?.timeframe,
@@ -146,19 +156,22 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             rawData: plan
           });
         });
+        console.log(`✅ Added ${growthPlans.length} growth plan items`);
       } catch (err) {
-        console.warn('Failed to fetch growth plans:', err);
+        console.warn('❌ Failed to fetch growth plans:', err);
       }
 
       // Fetch Pricing Calculations
       try {
+        console.log('💰 Fetching pricing calculations...');
         await savedCalculations.fetchCalculations(workspaceId);
+        console.log('💳 Found pricing calculations:', savedCalculations.calculations);
         savedCalculations.calculations.forEach((calc: any) => {
           items.push({
             id: `pricing-calc-${calc.id}`,
             type: 'pricing-calc',
-            title: calc.title || 'Pricing Calculation',
-            subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
+            title: calc.title || calc.projectName || 'Pricing Calculation',
+            subtitle: `${calc.clientName || 'Client'} • ${calc.recommendedRetainer?.toLocaleString() || '0'}`,
             status: 'completed',
             createdAt: calc.createdAt || calc.created_at || new Date().toISOString(),
             metadata: {
@@ -172,13 +185,16 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             rawData: calc
           });
         });
+        console.log(`✅ Added ${savedCalculations.calculations.length} pricing calculation items`);
       } catch (err) {
-        console.warn('Failed to fetch pricing calculations:', err);
+        console.warn('❌ Failed to fetch pricing calculations:', err);
       }
 
       // Fetch Niche Research Reports
       try {
+        console.log('🔬 Fetching niche research reports...');
         const nicheReports = await nicheResearcher.getUserReports(workspaceId);
+        console.log('📊 Found niche reports:', nicheReports);
         nicheReports.forEach((report: any) => {
           items.push({
             id: `niche-research-${report.id}`,
@@ -199,13 +215,16 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             rawData: report
           });
         });
+        console.log(`✅ Added ${nicheReports.length} niche research items`);
       } catch (err) {
-        console.warn('Failed to fetch niche research:', err);
+        console.warn('❌ Failed to fetch niche research:', err);
       }
 
       // Fetch Cold Email Generations
       try {
+        console.log('📧 Fetching cold email generations...');
         const emailGenerations = await coldEmail.getEmailGenerations(workspaceId);
+        console.log('📨 Found email generations:', emailGenerations);
         emailGenerations.forEach((generation: any) => {
           items.push({
             id: `cold-email-${generation.id}`,
@@ -225,13 +244,16 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             rawData: generation
           });
         });
+        console.log(`✅ Added ${emailGenerations.length} cold email items`);
       } catch (err) {
-        console.warn('Failed to fetch cold emails:', err);
+        console.warn('❌ Failed to fetch cold emails:', err);
       }
 
       // Fetch Offer Creator Results
       try {
+        console.log('✨ Fetching signature offers...');
         await savedOffers.fetchOffers(workspaceId);
+        console.log('🎯 Found offers:', savedOffers.offers);
         savedOffers.offers.forEach((offer: any) => {
           items.push({
             id: `offer-creator-${offer.id}`,
@@ -251,16 +273,18 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
             rawData: offer
           });
         });
+        console.log(`✅ Added ${savedOffers.offers.length} offer creator items`);
       } catch (err) {
-        console.warn('Failed to fetch offers:', err);
+        console.warn('❌ Failed to fetch offers:', err);
       }
 
       // Sort by creation date (newest first)
       items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
+      console.log(`🎉 Total work items fetched: ${items.length}`);
       setWorkItems(items);
     } catch (error) {
-      console.error('Error fetching work items:', error);
+      console.error('💥 Error fetching work items:', error);
       message.error('Failed to load some work items');
     } finally {
       setLoading(false);
@@ -324,8 +348,8 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
   }, [workItems]);
 
   // Get icon for work type
-  const getTypeIcon = (type: string) => {
-    const icons = {
+  const getTypeIcon = (type: WorkItemType) => {
+    const icons: Record<WorkItemType, React.JSX.Element> = {
       'sales-call': <PhoneOutlined />,
       'growth-plan': <RocketOutlined />,
       'pricing-calc': <DollarCircleOutlined />,
@@ -338,8 +362,8 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
   };
 
   // Get type display name
-  const getTypeName = (type: string) => {
-    const names = {
+  const getTypeName = (type: WorkItemType) => {
+    const names: Record<WorkItemType, string> = {
       'sales-call': 'Sales Call Analysis',
       'growth-plan': 'Growth Plan',
       'pricing-calc': 'Pricing Calculator',
@@ -352,8 +376,8 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
   };
 
   // Get status tag
-  const getStatusTag = (status: string) => {
-    const statusConfig = {
+  const getStatusTag = (status: WorkItemStatus) => {
+    const statusConfig: Record<WorkItemStatus, { color: string; text: string }> = {
       completed: { color: 'success', text: 'Completed' },
       processing: { color: 'processing', text: 'Processing' },
       failed: { color: 'error', text: 'Failed' },
@@ -364,8 +388,8 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
   };
 
   // Get type color
-  const getTypeColor = (type: string) => {
-    const colors = {
+  const getTypeColor = (type: WorkItemType) => {
+    const colors: Record<WorkItemType, string> = {
       'sales-call': '#722ed1',
       'growth-plan': '#1890ff',
       'pricing-calc': '#52c41a',
@@ -757,15 +781,15 @@ const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
 
                             {item.type === 'niche-research' && (
                               <>
-                                <Tag>{item.metadata.marketSize}</Tag>
+                                <Tag >{item.metadata.marketSize}</Tag>
                                 <Tag>{item.metadata.primaryObjective}</Tag>
                               </>
                             )}
 
                             {item.type === 'cold-email' && (
                               <>
-                                <Tag>{item.metadata.emailCount} emails</Tag>
-                                <Tag>{item.metadata.tone}</Tag>
+                                <Tag >{item.metadata.emailCount} emails</Tag>
+                                <Tag >{item.metadata.tone}</Tag>
                               </>
                             )}
 

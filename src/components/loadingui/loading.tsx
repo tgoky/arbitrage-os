@@ -104,7 +104,7 @@ const EnhancedLoadingState = ({ theme }: EnhancedLoadingStateProps) => (
       <div className="flex items-center space-x-3">
         <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-900 border-t-transparent"></div>
         <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-          Synching Arbitrage Operating System.
+          Syncing Arbitrage Operating System.
         </span>
       </div>
     </div>
