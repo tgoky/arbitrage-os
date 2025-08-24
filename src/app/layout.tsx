@@ -162,6 +162,15 @@ export default function RootLayout({
                             hide: true,
                           },
                         },
+                         {
+                          name: "Transcript_Analysis",
+                          list: "/sales-call-analyzer/analysis",
+                          meta: {
+                            parent: "Sales_Call_Analyzer",
+                            label: "Transcript_Analysis",
+                            hide: true,
+                          },
+                        },
                         {
                           name: "Client_Profiles",
                           list: "/client-profiles",

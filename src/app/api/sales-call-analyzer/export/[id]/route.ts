@@ -55,7 +55,7 @@ export async function GET(
       metadata: {
         analysisId,
         format,
-        exportType: 'sales_call_analyzer'
+        exportType: 'sales_call_analysis'
       }
     });
 
