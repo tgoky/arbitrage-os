@@ -108,7 +108,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
             title: plan.title || 'Growth Plan',
             subtitle: `${plan.metadata?.clientCompany || 'Company'} • ${plan.metadata?.industry || 'Industry'}`,
             status: 'completed',
-            createdAt: plan.createdAt?.toISOString() || plan.created_at || new Date().toISOString(),
+           createdAt: plan.createdAt || plan.created_at || new Date().toISOString(),
             metadata: {
               industry: plan.metadata?.industry,
               strategies: plan.plan?.strategies?.length || 0

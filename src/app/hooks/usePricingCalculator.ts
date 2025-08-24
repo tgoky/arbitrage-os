@@ -264,6 +264,7 @@ export const useSavedCalculations = () => {
       
       if (data.success) {
         setCalculations(data.data);
+          return data.data; // <-- ADD THIS LINE
       } else {
         throw new Error(data.error || 'Failed to fetch calculations');
       }
@@ -272,6 +273,7 @@ export const useSavedCalculations = () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
       message.error(errorMessage);
+        return []; 
     } finally {
       setLoading(false);
     }
