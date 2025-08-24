@@ -7,11 +7,11 @@
   },
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max_old_space_size=4096 refine dev",
-     "build": "prisma generate && refine build",
+    "build": "prisma generate && refine build",
     "start": "refine start",
     "lint": "next lint",
     "refine": "refine",
-        "postinstall": "prisma generate"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -34,6 +34,7 @@
     "@tanstack/react-table": "^8.2.6",
     "@upstash/redis": "^1.35.3",
     "antd": "^5.26.7",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.1",
     "framer-motion": "^12.23.12",
@@ -51,6 +52,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@types/date-fns": "^2.6.3",
     "@types/js-cookie": "^3.0.6",
     "@types/lodash": "^4.17.20",
     "@types/node": "^18.16.2",
