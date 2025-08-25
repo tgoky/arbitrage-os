@@ -1,6 +1,6 @@
 // app/dashboard/components/ActivityFeed.tsx
 import React, { useState, useEffect } from 'react';
-import { Card, List, Tag, Typography, Button, Grid, Spin, Progress, Badge } from 'antd';
+import { Card, List, Tag, Typography, Button, Grid, Spin, Progress, Badge, message } from 'antd';
 import { 
   CheckCircleOutlined, 
   ClockCircleOutlined, 
@@ -20,30 +20,31 @@ import {
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 
-// Import your existing hooksx
-import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
-import { useGrowthPlan } from '../../hooks/useGrowthPlan';
-import { useSavedCalculations } from '../../hooks/usePricingCalculator';
-import { useNicheResearcher } from '../../hooks/useNicheResearcher';
-import { useColdEmail } from '../../hooks/useColdEmail';
-import { useSavedOffers } from '../../hooks/useOfferCreator';
+// Import only message, remove individual tool hooks
+// import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
+// import { useGrowthPlan } from '../../hooks/useGrowthPlan';
+// import { useSavedCalculations } from '../../hooks/usePricingCalculator';
+// import { useNicheResearcher } from '../../hooks/useNicheResearcher';
+// import { useColdEmail } from '../../hooks/useColdEmail';
+// import { useSavedOffers } from '../../hooks/useOfferCreator';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-// Enhanced activity types
-type ActivityType = 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration';
-type ActivityStatus = 'completed' | 'processing' | 'failed' | 'queued';
-type ToolType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator';
+// Define types (ensure they match your unified API's WorkItem structure if needed)
+// These are already defined in your code, so we keep them
+// type ActivityType = 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration';
+// type ActivityStatus = 'completed' | 'processing' | 'failed' | 'queued';
+// type ToolType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator';
 
 interface EnhancedActivity {
   id: string;
-  type: ActivityType;
-  toolType: ToolType;
+  type: 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration'; // Use ActivityType if defined
+  toolType: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator'; // Use ToolType if defined
   action: string;
   user: string;
-  target?: string; // What was worked on
-  status: ActivityStatus;
+  target?: string;
+  status: 'completed' | 'processing' | 'failed' | 'queued'; // Use ActivityStatus if defined
   timestamp: Date;
   metadata: {
     duration?: string;
@@ -58,7 +59,7 @@ interface EnhancedActivity {
 }
 
 interface ActivityFeedProps {
-  recentActivity?: any[]; // Keep for backward compatibility
+  recentActivity?: any[];
   workspaceId?: string;
   maxItems?: number;
 }
@@ -73,214 +74,136 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState<EnhancedActivity[]>([]);
 
-  // Initialize all hooks
-  const salesCallAnalyzer = useSalesCallAnalyzer();
-  const growthPlan = useGrowthPlan();
-  const savedCalculations = useSavedCalculations();
-  const nicheResearcher = useNicheResearcher();
-  const coldEmail = useColdEmail();
-  const savedOffers = useSavedOffers();
+  // Remove individual hook initializations
+  // const salesCallAnalyzer = useSalesCallAnalyzer();
+  // const growthPlan = useGrowthPlan();
+  // const savedCalculations = useSavedCalculations();
+  // const nicheResearcher = useNicheResearcher();
+  // const coldEmail = useColdEmail();
+  // const savedOffers = useSavedOffers();
 
-  // Fetch activities from AI tools
+  // Fetch activities from the unified API
   const fetchActivities = async () => {
     setLoading(true);
-    const activityList: EnhancedActivity[] = [];
+    // const activityList: EnhancedActivity[] = []; // No longer needed
 
     try {
-      // Sales Call Activities
-      try {
-        const salesCalls = await salesCallAnalyzer.getUserAnalyses(workspaceId);
-        salesCalls.slice(0, 3).forEach((call: any, index: number) => {
-          activityList.push({
-            id: `sales-activity-${call.id}`,
-            type: 'analysis',
-            toolType: 'sales-call',
-            action: 'Analyzed sales call',
-            user: 'AI Assistant',
-            target: `${call.prospectName || 'Prospect'} at ${call.companyName || 'Company'}`,
-            status: call.status || 'completed',
-            timestamp: new Date(call.createdAt || Date.now() - (index * 1000 * 60 * 30)),
-            metadata: {
-              duration: call.duration || '45 min',
-              confidence: call.score || Math.floor(Math.random() * 40) + 60,
-              tokensUsed: Math.floor(Math.random() * 2000) + 1000,
-              performance: call.sentiment === 'positive' ? 85 : call.sentiment === 'negative' ? 45 : 65
-            }
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch sales call activities:', err);
+      console.log('🔄 Fetching activities from unified API...');
+      // Construct URL with potential workspaceId query param
+      const url = new URL('/api/dashboard/work-items', window.location.origin);
+      if (workspaceId) {
+        url.searchParams.append('workspaceId', workspaceId);
       }
 
-      // Growth Plan Activities
-      try {
-        const growthPlans = await growthPlan.fetchPlans();
-        growthPlans.slice(0, 2).forEach((plan: any, index: number) => {
-          activityList.push({
-            id: `growth-activity-${plan.id}`,
-            type: 'generation',
-            toolType: 'growth-plan',
-            action: 'Generated growth strategy',
-            user: 'Strategy AI',
-            target: `${plan.metadata?.clientCompany || 'Client'} growth plan`,
-            status: 'completed',
-            timestamp: new Date(plan.createdAt?.getTime() || Date.now() - (index * 1000 * 60 * 60 * 2)),
-            metadata: {
-              duration: '12 min',
-              tokensUsed: plan.metadata?.tokensUsed || Math.floor(Math.random() * 3000) + 2000,
-              outputSize: `${plan.plan?.strategies?.length || 5} strategies`,
-              priority: 'high'
-            }
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch growth plan activities:', err);
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`Failed to fetch activities: ${response.status} ${response.statusText}`);
       }
+      const data = await response.json();
+      console.log('📥 Unified API activities response:', data);
 
-      // Pricing Calculator Activities
-      try {
-        await savedCalculations.fetchCalculations(workspaceId);
-        savedCalculations.calculations.slice(0, 2).forEach((calc: any, index: number) => {
-          activityList.push({
-            id: `pricing-activity-${calc.id}`,
-            type: 'tool-usage',
-            toolType: 'pricing-calc',
-            action: 'Calculated project pricing',
-            user: 'Pricing AI',
-            target: `${calc.clientName || 'Client'} project`,
-            status: 'completed',
-            timestamp: new Date(calc.createdAt || Date.now() - (index * 1000 * 60 * 45)),
-            metadata: {
-              duration: '3 min',
-              confidence: calc.roiPercentage > 100 ? 90 : 75,
-              outputSize: `$${calc.recommendedRetainer?.toLocaleString()}`,
-              performance: calc.roiPercentage || 85
-            }
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch pricing activities:', err);
-      }
+      if (data.success && Array.isArray(data.data?.items)) {
+        // Transform WorkItems from the API into EnhancedActivities
+        const transformedActivities: EnhancedActivity[] = data.data.items.map((item: any) => {
+          // Determine action and metadata based on item.type
+          let action = 'Generated item'; // Default
+          let metadata: EnhancedActivity['metadata'] = {};
+          let user = 'AI Assistant'; // Default user
 
-      // Cold Email Activities
-      try {
-        const emailGenerations = await coldEmail.getEmailGenerations(workspaceId);
-        emailGenerations.slice(0, 2).forEach((generation: any, index: number) => {
-          activityList.push({
-            id: `email-activity-${generation.id}`,
-            type: 'generation',
-            toolType: 'cold-email',
-            action: 'Generated email sequence',
-            user: 'Email AI',
-            target: `${generation.industry || 'Industry'} campaign`,
-            status: 'completed',
-            timestamp: new Date(generation.createdAt || Date.now() - (index * 1000 * 60 * 20)),
-            metadata: {
-              duration: '8 min',
-              outputSize: `${generation.emails?.length || 3} emails`,
-              tokensUsed: Math.floor(Math.random() * 1500) + 800,
-              confidence: 82
-            }
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch email activities:', err);
-      }
-
-
-      // Niche Research Activities
-try {
-  const nicheReports = await nicheResearcher.getUserReports(workspaceId);
-  nicheReports.slice(0, 2).forEach((report: any, index: number) => {
-    activityList.push({
-      id: `niche-activity-${report.id}`,
-      type: 'analysis',
-      toolType: 'niche-research',
-      action: 'Researched market niche',
-      user: 'Research AI',
-      target: `${report.nicheName} market analysis`,
-      status: 'completed',
-      timestamp: new Date(report.createdAt || Date.now() - (index * 1000 * 60 * 60)),
-      metadata: {
-        duration: '15 min',
-        tokensUsed: report.tokensUsed || Math.floor(Math.random() * 2500) + 1500,
-        outputSize: `${report.marketSize} market`,
-        confidence: 88,
-        priority: report.primaryObjective === 'market-entry' ? 'high' : 'medium'
-      }
-    });
-  });
-} catch (err) {
-  console.warn('Failed to fetch niche research activities:', err);
-}
-
-
-// Offer Creator Activities  
-try {
-  await savedOffers.fetchOffers(workspaceId);
-  savedOffers.offers.slice(0, 2).forEach((offer: any, index: number) => {
-    activityList.push({
-      id: `offer-activity-${offer.id}`,
-      type: 'generation',
-      toolType: 'offer-creator',
-      action: 'Created signature offers',
-      user: 'Offer AI',
-      target: `${offer.industry || 'General'} service packages`,
-      status: 'completed',
-      timestamp: new Date(offer.createdAt || Date.now() - (index * 1000 * 60 * 90)),
-      metadata: {
-        duration: '10 min',
-        outputSize: `${offer.packages?.length || 3} packages`,
-        confidence: 85,
-        priority: 'high'
-      }
-    });
-  });
-} catch (err) {
-  console.warn('Failed to fetch offer creator activities:', err);
-}
-
-      // Add some mock processing activities for realism
-      const mockActivities: EnhancedActivity[] = [
-        {
-          id: 'mock-processing-1',
-          type: 'optimization',
-          toolType: 'niche-research',
-          action: 'Optimizing market analysis',
-          user: 'Research AI',
-          target: 'B2B SaaS market',
-          status: 'processing',
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
-          metadata: {
-            progress: 65,
-            priority: 'medium',
-            tokensUsed: 1200
+          switch (item.type) {
+            case 'sales-call':
+              action = 'Analyzed sales call';
+              user = 'AI Assistant';
+              metadata = {
+                duration: item.metadata.duration || 'N/A',
+                confidence: item.metadata.score || Math.floor(Math.random() * 40) + 60,
+                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 2000) + 1000,
+                performance: item.metadata.sentiment === 'positive' ? 85 : item.metadata.sentiment === 'negative' ? 45 : 65
+              };
+              break;
+            case 'growth-plan':
+              action = 'Generated growth strategy';
+              user = 'Strategy AI';
+              metadata = {
+                duration: '12 min', // Example, could be in item.metadata if saved
+                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 3000) + 2000,
+                outputSize: `${item.metadata.strategies || 5} strategies`, // Example
+                priority: 'high'
+              };
+              break;
+            case 'pricing-calc':
+              action = 'Calculated project pricing';
+              user = 'Pricing AI';
+              metadata = {
+                duration: '3 min', // Example
+                confidence: item.metadata.roiPercentage && item.metadata.roiPercentage > 100 ? 90 : 75,
+                outputSize: `$${item.metadata.recommendedRetainer?.toLocaleString() || '0'}`,
+                performance: item.metadata.roiPercentage || 85
+              };
+              break;
+            case 'cold-email':
+              action = 'Generated email sequence';
+              user = 'Email AI';
+              metadata = {
+                duration: '8 min', // Example
+                outputSize: `${item.metadata.emailCount || 3} emails`,
+                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 1500) + 800,
+                confidence: 82
+              };
+              break;
+            case 'niche-research':
+              action = 'Researched market niche';
+              user = 'Research AI';
+              metadata = {
+                duration: '15 min', // Example
+                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 2500) + 1500,
+                outputSize: `${item.metadata.marketSize || 'Unknown'} market`,
+                confidence: 88,
+                priority: item.metadata.primaryObjective === 'market-entry' ? 'high' : 'medium'
+              };
+              break;
+            case 'offer-creator':
+              action = 'Created signature offers';
+              user = 'Offer AI';
+              metadata = {
+                duration: '10 min', // Example
+                outputSize: `${item.metadata.packages || 3} packages`,
+                confidence: 85,
+                priority: 'high'
+              };
+              break;
+            default:
+              action = `Used ${item.type}`;
+              metadata = {};
           }
-        },
-        {
-          id: 'mock-queued-1',
-          type: 'export',
-          toolType: 'offer-creator',
-          action: 'Preparing export package',
-          user: 'Export Service',
-          target: 'Signature offers document',
-          status: 'queued',
-          timestamp: new Date(Date.now() - 1000 * 60 * 2),
-          metadata: {
-            priority: 'low',
-            outputSize: 'PDF + Excel'
-          }
-        }
-      ];
 
-      activityList.push(...mockActivities);
+          return {
+            id: `activity-${item.id}`, // Prefix to avoid potential ID clashes if needed
+            type: 'generation', // Map WorkItem.type to ActivityType as appropriate
+            toolType: item.type, // Direct mapping assuming types align or are handled
+            action,
+            user,
+            target: item.subtitle || item.title, // Use subtitle or title as the target
+            status: item.status || 'completed', // Default to completed if not present
+            timestamp: new Date(item.createdAt), // Ensure it's a Date object
+            metadata
+          };
+        });
 
-      // Sort by timestamp (newest first)
-      activityList.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-      
-      setActivities(activityList.slice(0, maxItems));
+        // Sort by timestamp (newest first)
+        transformedActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        
+        // Limit to maxItems and update state
+        setActivities(transformedActivities.slice(0, maxItems));
+        console.log(`🎉 Successfully transformed ${transformedActivities.length} activities from unified API`);
+      } else {
+        throw new Error(data.error || 'Invalid response format from unified API');
+      }
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      console.error('💥 Error fetching activities from unified API:', error);
+      message.error('Failed to load recent activities'); // Show user-friendly error
+      // Optionally, keep old activities or set to empty array
+      // setActivities([]); 
     } finally {
       setLoading(false);
     }
@@ -291,8 +214,9 @@ try {
     // Refresh every 30 seconds for real-time feel
     const interval = setInterval(fetchActivities, 30000);
     return () => clearInterval(interval);
-  }, [workspaceId]);
+  }, [workspaceId, maxItems]); // Add maxItems to dependency array if it can change
 
+  // --- Helper functions like getCardStyles, getToolIcon, etc. remain the same ---
   const getCardStyles = () => ({
     body: {
       backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
@@ -305,8 +229,8 @@ try {
     },
   });
 
-  const getToolIcon = (toolType: ToolType) => {
-    const icons: Record<ToolType, React.JSX.Element> = {
+  const getToolIcon = (toolType: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' /* Use ToolType */) => {
+    const icons: Record<'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator', React.JSX.Element> = { // Use ToolType
       'sales-call': <PhoneOutlined />,
       'growth-plan': <RocketOutlined />,
       'pricing-calc': <DollarCircleOutlined />,
@@ -317,8 +241,8 @@ try {
     return icons[toolType] || <FileTextOutlined />;
   };
 
-  const getToolColor = (toolType: ToolType) => {
-    const colors: Record<ToolType, string> = {
+  const getToolColor = (toolType: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' /* Use ToolType */) => {
+    const colors: Record<'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator', string> = { // Use ToolType
       'sales-call': '#722ed1',
       'growth-plan': '#1890ff',
       'pricing-calc': '#52c41a',
@@ -329,7 +253,7 @@ try {
     return colors[toolType] || '#666';
   };
 
-  const getStatusIcon = (status: ActivityStatus) => {
+  const getStatusIcon = (status: 'completed' | 'processing' | 'failed' | 'queued' /* Use ActivityStatus */) => {
     const iconStyle = {
       fontSize: 16,
       padding: 6,
@@ -351,7 +275,7 @@ try {
     }
   };
 
-  const getStatusColor = (status: ActivityStatus) => {
+  const getStatusColor = (status: 'completed' | 'processing' | 'failed' | 'queued' /* Use ActivityStatus */) => {
     switch (status) {
       case 'completed':
         return 'green';
@@ -440,6 +364,7 @@ try {
     ) : null;
   };
 
+  // --- Render function remains largely the same, using the new state and helpers ---
   return (
     <Card
       data-tour="activity-feed"

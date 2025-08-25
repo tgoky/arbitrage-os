@@ -10,7 +10,8 @@ import {
   SaveOutlined,
   ShareAltOutlined,
   CodeOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -28,7 +29,9 @@ import {
   Popover,
   Tooltip,
   Badge,
-  Tabs
+  Tabs,
+  Modal,
+  List
 } from 'antd';
 
 const { Title, Text } = Typography;
@@ -46,6 +49,9 @@ const N8nWorkflowCreator = () => {
   const [triggerType, setTriggerType] = useState('schedule');
   const [generatedWorkflow, setGeneratedWorkflow] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+const [customIntegrations, setCustomIntegrations] = useState<string[]>([]);
+  const [isCustomIntegrationModalVisible, setIsCustomIntegrationModalVisible] = useState(false);
+  const [newCustomIntegration, setNewCustomIntegration] = useState('');
 
   const triggerTypes = [
     {
@@ -72,19 +78,215 @@ const N8nWorkflowCreator = () => {
   ];
 
   const integrationOptions = [
+    // Messaging & Chat
     'Slack',
-    'Google Sheets',
-    'Gmail',
-    'Shopify',
-    'Notion',
-    'OpenAI',
-    'Zapier',
-    'Airtable',
-    'Twitter',
     'Discord',
+    'Telegram',
+    'Microsoft Teams',
+    'Mattermost',
+    'Rocket.Chat',
+    'WhatsApp Business (Cloud API)',
+
+    // Email & Marketing Automation
+    'Gmail',
+    'Microsoft Outlook 365',
+    'IMAP Email',
+    'SMTP',
+    'SendGrid',
+    'Mailgun',
+    'Postmark',
+    'Amazon SES',
+    'Mailchimp',
+    'Klaviyo',
+    'ActiveCampaign',
+    'Campaign Monitor',
+    'ConvertKit',
+    'Drip',
+
+    // CRM & Sales
+    'HubSpot',
+    'Pipedrive',
+    'Salesforce',
+    'Zoho CRM',
+    'Close',
+    'Copper',
+    'Freshsales Suite',
+    'Keap / Infusionsoft',
+    'Zendesk Sell (Base)',
+
+    // Project & Work Management / Docs
+    'Asana',
+    'Trello',
+    'ClickUp',
+    'Jira',
+    'Linear',
+    'Notion',
+    'Coda',
+    'Basecamp',
+    'Smartsheet',
+    'Todoist',
+    'Wrike',
+    'Google Docs',
+    'Google Slides',
+
+    // Support & CX
+    'Zendesk',
+    'Freshdesk',
+    'Intercom',
+    'Help Scout',
+    'Front',
+    'Gorgias',
+    'Zoho Desk',
+    'LiveChat',
+    'Drift',
+    'Crisp',
+
+    // Forms & Surveys
+    'Typeform',
+    'Jotform',
+    'Formstack',
+    'SurveyMonkey',
+    'Tally (community)',
+    'Google Forms (via Apps Script/API or community node)',
+
+    // Calendars & Scheduling / Meetings
+    'Google Calendar',
+    'Microsoft Outlook Calendar',
+    'Calendly',
+    'Cal.com',
+    'Zoom',
+    'Google Meet (via Calendar events)',
+
+    // Files, Storage & Transfer
+    'Google Drive',
+    'Dropbox',
+    'Box',
+    'OneDrive',
+    'SharePoint',
+    'Amazon S3',
+    'Google Cloud Storage',
+    'Azure Blob Storage',
+    'FTP',
+    'SFTP',
+    'WebDAV',
+
+    // Databases & Data Warehouses
+    'PostgreSQL',
     'MySQL',
-    'PostgreSQL'
+    'MariaDB',
+    'Microsoft SQL Server',
+    'SQLite',
+    'MongoDB',
+    'Redis',
+    'CouchDB',
+    'Elasticsearch',
+    'Snowflake',
+    'BigQuery',
+    'Redshift',
+    'Firestore',
+    'Firebase Realtime Database',
+    'Supabase',
+
+    // Cloud, DevOps & Monitoring
+    'GitHub',
+    'GitLab',
+    'Bitbucket',
+    'Jenkins',
+    'Cloudflare',
+    'AWS (Lambda, SQS, SNS, SES, S3)',
+    'Google Cloud Pub/Sub',
+    'Azure DevOps',
+    'Datadog',
+    'PagerDuty',
+    'Opsgenie',
+    'UptimeRobot',
+    'Statuspage',
+
+    // Payments, Billing & Accounting
+    'Stripe',
+    'PayPal',
+    'Square',
+    'Paddle',
+    'Chargebee',
+    'Recurly',
+    'Braintree',
+    'QuickBooks Online',
+    'Xero',
+    'FreshBooks',
+    'Zoho Books',
+
+    // E-commerce, Shipping & Fulfillment
+    'Shopify',
+    'WooCommerce',
+    'BigCommerce',
+    'Magento 2',
+    'Shippo',
+    'ShipStation',
+    'EasyPost',
+
+    // Social, Media & Ads
+    'Facebook Graph / Pages',
+    'Facebook Lead Ads',
+    'Instagram Graph',
+    'X (Twitter)',
+    'YouTube',
+    'LinkedIn (limited API; community)',
+    'Reddit',
+    'Pinterest (community)',
+    'RSS Feed Read',
+
+    // Telephony & SMS
+    'Twilio',
+    'Vonage (Nexmo)',
+    'MessageBird',
+    'Telnyx',
+    'Plivo',
+    'RingCentral',
+
+    // eSign & Docs
+    'DocuSign',
+    'Dropbox Sign (HelloSign)',
+    'PandaDoc',
+    'Adobe Acrobat Sign',
+
+    // AI / NLP / Speech / Vision
+    'OpenAI',
+    'Azure OpenAI',
+    'Google Vertex/PaLM (Google AI Studio)',
+    'Hugging Face',
+    'Replicate',
+    'Stability AI',
+    'Cohere',
+    'AssemblyAI',
+    'Deepgram',
+    'AWS Textract / Comprehend / Polly',
+    'Google Cloud Vision / NLP',
+    'Microsoft Cognitive Services (Vision/Speech)',
+
+    // Maps & Location
+    'Google Maps Platform',
+    'Mapbox',
+
+    // Generic / Catch-All
+    'HTTP Request (Custom API)',
+    'Webhook (Trigger)',
+    'GraphQL',
+    'Spreadsheet File (CSV/XLSX reader)',
+    'HTML Extract / Markdown / XML (parsers)',
+
+    // Additional from original list
+    'Google Sheets',
+    'Zapier',
+    'Airtable'
   ];
+
+  const addCustomIntegration = () => {
+    if (newCustomIntegration.trim() !== '') {
+      setCustomIntegrations([...customIntegrations, newCustomIntegration]);
+      setNewCustomIntegration('');
+      setIsCustomIntegrationModalVisible(false);
+    }
+  };
 
   const onFinish = (values: any) => {
     setIsGenerating(true);
@@ -116,7 +318,7 @@ const N8nWorkflowCreator = () => {
     {
       "parameters": {},
       "name": "${integration}",
-      "type": "n8n-nodes-base.${integration.toLowerCase().replace(' ', '')}",
+      "type": "n8n-nodes-base.${integration.toLowerCase().replace(/\s+/g, '-')}",
       "typeVersion": 1,
       "position": [${450 + (index * 200)}, 300]
     }`;
@@ -133,6 +335,90 @@ const N8nWorkflowCreator = () => {
 
     return config;
   };
+
+  const getRequiredCredentials = (integrations: string[]) => {
+    if (!integrations || integrations.length === 0) return [];
+    
+    return integrations.map(integration => ({
+      name: integration,
+      type: getCredentialType(integration),
+      setupLink: getSetupLink(integration)
+    }));
+  };
+
+  const getCredentialType = (integration: string) => {
+    // Simplified mapping - in a real app, this would be more comprehensive
+
+  // Simplified mapping - in a real app, this would be more comprehensive
+  const credentialTypes: { [key: string]: string } = {
+    'Slack': 'OAuth2',
+    'Gmail': 'OAuth2',
+    'Google Sheets': 'OAuth2',
+    'Google Drive': 'OAuth2',
+    'Google Calendar': 'OAuth2',
+    'Microsoft Outlook 365': 'OAuth2',
+    'Microsoft Outlook Calendar': 'OAuth2',
+    'GitHub': 'OAuth2',
+    'Salesforce': 'OAuth2',
+    'Shopify': 'OAuth2',
+    'Facebook Graph / Pages': 'OAuth2',
+    'Twitter': 'OAuth2',
+    'Discord': 'Bot Token',
+    'Telegram': 'Bot Token',
+    'MySQL': 'Database Credentials',
+    'PostgreSQL': 'Database Credentials',
+    'MongoDB': 'Database Credentials',
+    'Redis': 'Database Credentials',
+    'Stripe': 'API Key',
+    'PayPal': 'API Key',
+    'Twilio': 'API Key',
+    'SendGrid': 'API Key',
+    'Mailgun': 'API Key',
+    'OpenAI': 'API Key',
+    'AWS (Lambda, SQS, SNS, SES, S3)': 'AWS Credentials',
+  };
+
+  return credentialTypes[integration] || 'API Key / Token';
+};
+
+  const getSetupLink = (integration: string) => {
+    // Simplified mapping - in a real app, this would be more comprehensive
+
+  // Simplified mapping - in a real app, this would be more comprehensive
+  const setupLinks: { [key: string]: string } = {
+    'Slack': 'https://docs.n8n.io/integrations/builtin/credentials/slack/',
+    'Gmail': 'https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/',
+    'Google Sheets': 'https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/',
+    'Google Drive': 'https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/',
+    'Google Calendar': 'https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/',
+    'Microsoft Outlook 365': 'https://docs.n8n.io/integrations/builtin/credentials/microsoft/oauth-single-service/',
+    'Microsoft Outlook Calendar': 'https://docs.n8n.io/integrations/builtin/credentials/microsoft/oauth-single-service/',
+    'GitHub': 'https://docs.n8n.io/integrations/builtin/credentials/github/',
+    'Salesforce': 'https://docs.n8n.io/integrations/builtin/credentials/salesforce/',
+    'Shopify': 'https://docs.n8n.io/integrations/builtin/credentials/shopify/',
+    'Facebook Graph / Pages': 'https://docs.n8n.io/integrations/builtin/credentials/facebook/',
+    'Twitter': 'https://docs.n8n.io/integrations/builtin/credentials/twitter/',
+    'Discord': 'https://docs.n8n.io/integrations/builtin/credentials/discord/',
+    'Telegram': 'https://docs.n8n.io/integrations/builtin/credentials/telegram/',
+    'MySQL': 'https://docs.n8n.io/integrations/builtin/credentials/mysql/',
+    'PostgreSQL': 'https://docs.n8n.io/integrations/builtin/credentials/postgres/',
+    'MongoDB': 'https://docs.n8n.io/integrations/builtin/credentials/mongodb/',
+    'Redis': 'https://docs.n8n.io/integrations/builtin/credentials/redis/',
+    'Stripe': 'https://docs.n8n.io/integrations/builtin/credentials/stripe/',
+    'PayPal': 'https://docs.n8n.io/integrations/builtin/credentials/paypal/',
+    'Twilio': 'https://docs.n8n.io/integrations/builtin/credentials/twilio/',
+    'SendGrid': 'https://docs.n8n.io/integrations/builtin/credentials/sendgrid/',
+    'Mailgun': 'https://docs.n8n.io/integrations/builtin/credentials/mailgun/',
+    'OpenAI': 'https://docs.n8n.io/integrations/builtin/credentials/openai/',
+    'AWS (Lambda, SQS, SNS, SES, S3)': 'https://docs.n8n.io/integrations/builtin/credentials/aws/',
+  };
+
+  return setupLinks[integration] || 'https://docs.n8n.io/integrations/builtin/credentials/';
+};
+
+  const allIntegrationOptions = [...integrationOptions, ...customIntegrations];
+  const selectedIntegrations = form.getFieldValue('integrations') || [];
+  const requiredCredentials = getRequiredCredentials(selectedIntegrations);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -302,7 +588,19 @@ const N8nWorkflowCreator = () => {
               <Select
                 mode="multiple"
                 placeholder="Select tools/services to integrate"
-                options={integrationOptions.map(option => ({ value: option, label: option }))}
+                dropdownRender={menu => (
+                  <div>
+                    {menu}
+                    <Divider style={{ margin: '8px 0' }} />
+                    <div 
+                      style={{ padding: '8px', cursor: 'pointer' }}
+                      onClick={() => setIsCustomIntegrationModalVisible(true)}
+                    >
+                      <PlusOutlined /> Add custom integration
+                    </div>
+                  </div>
+                )}
+                options={allIntegrationOptions.map(option => ({ value: option, label: option }))}
               />
             </Form.Item>
 
@@ -370,14 +668,14 @@ const N8nWorkflowCreator = () => {
             </div>
 
             <Tabs defaultActiveKey="1">
-              <TabPane tab="Configuration" key="1">
+              <TabPane tab="Workflow JSON" key="1">
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                   <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 overflow-x-auto">
                     {generatedWorkflow}
                   </pre>
                 </div>
               </TabPane>
-              <TabPane tab="Next Steps" key="2">
+              <TabPane tab="Setup Instructions" key="2">
                 <div className="space-y-4">
                   <Alert
                     message="Importing Your Workflow"
@@ -418,6 +716,49 @@ const N8nWorkflowCreator = () => {
                   />
                 </div>
               </TabPane>
+              <TabPane tab="Required Credentials" key="3">
+                <div className="space-y-4">
+                  <Alert
+                    message="Credentials Setup"
+                    description="Before your workflow can run, you need to set up the following credentials in n8n:"
+                    type="info"
+                    showIcon
+                    className="mb-4"
+                  />
+                  
+                  {requiredCredentials.length > 0 ? (
+                    <List
+                      itemLayout="horizontal"
+                      dataSource={requiredCredentials}
+                      renderItem={item => (
+                        <List.Item>
+                          <List.Item.Meta
+                            title={item.name}
+                            description={
+                              <div>
+                                <p>Type: {item.type}</p>
+                                <p>
+                                  Setup Guide:{" "}
+                                  <a href={item.setupLink} target="_blank" rel="noopener noreferrer" className="text-blue-500">
+                                    Documentation
+                                  </a>
+                                </p>
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <Alert
+                      message="No Credentials Required"
+                      description="This workflow doesn't require any external credentials to be set up."
+                      type="info"
+                      showIcon
+                    />
+                  )}
+                </div>
+              </TabPane>
             </Tabs>
 
             <Divider />
@@ -436,6 +777,20 @@ const N8nWorkflowCreator = () => {
           </Card>
         )}
       </Form>
+
+      <Modal
+        title="Add Custom Integration"
+        open={isCustomIntegrationModalVisible}
+        onOk={addCustomIntegration}
+        onCancel={() => setIsCustomIntegrationModalVisible(false)}
+      >
+        <Input
+          placeholder="Enter custom integration name"
+          value={newCustomIntegration}
+          onChange={(e) => setNewCustomIntegration(e.target.value)}
+          onPressEnter={addCustomIntegration}
+        />
+      </Modal>
     </div>
   );
 };

@@ -98,221 +98,262 @@ const growthPlan = useGrowthPlan({ workspaceId });
   const adWriter = useAdWriter();
 
   // Unified data fetching function
-  const fetchAllWorkItems = async () => {
-    setLoading(true);
-    const items: WorkItem[] = [];
+  // const fetchAllWorkItems = async () => {
+  //   setLoading(true);
+  //   const items: WorkItem[] = [];
 
-    try {
-      // Fetch Sales Call Analyses
-      try {
-        console.log('🔍 Fetching sales call analyses...');
-        const salesCalls = await salesCallAnalyzer.getUserAnalyses(workspaceId);
-        console.log('📞 Found sales calls:', salesCalls);
-        salesCalls.forEach((call: any) => {
-          items.push({
-            id: `sales-call-${call.id}`,
-            type: 'sales-call',
-            title: call.title || 'Sales Call Analysis',
-            subtitle: `${call.prospectName || 'Unknown'} • ${call.companyName || 'Company'}`,
-            status: 'completed',
-            createdAt: call.createdAt || call.created_at || new Date().toISOString(),
-            metadata: {
-              duration: call.duration || 'N/A',
-              callType: call.callType || 'unknown',
-              company: call.companyName,
-              prospect: call.prospectName,
-              sentiment: call.sentiment || 'neutral',
-              score: call.score || null
-            },
-            actions: ['view', 'export', 'delete'],
-            rawData: call
-          });
-        });
-        console.log(`✅ Added ${salesCalls.length} sales call items`);
-      } catch (err) {
-        console.warn('❌ Failed to fetch sales calls:', err);
-      }
+  //   try {
+  //     // Fetch Sales Call Analyses
+  //     try {
+  //       console.log('🔍 Fetching sales call analyses...');
+  //       const salesCalls = await salesCallAnalyzer.getUserAnalyses(workspaceId);
+  //       console.log('📞 Found sales calls:', salesCalls);
+  //       salesCalls.forEach((call: any) => {
+  //         items.push({
+  //           id: `sales-call-${call.id}`,
+  //           type: 'sales-call',
+  //           title: call.title || 'Sales Call Analysis',
+  //           subtitle: `${call.prospectName || 'Unknown'} • ${call.companyName || 'Company'}`,
+  //           status: 'completed',
+  //           createdAt: call.createdAt || call.created_at || new Date().toISOString(),
+  //           metadata: {
+  //             duration: call.duration || 'N/A',
+  //             callType: call.callType || 'unknown',
+  //             company: call.companyName,
+  //             prospect: call.prospectName,
+  //             sentiment: call.sentiment || 'neutral',
+  //             score: call.score || null
+  //           },
+  //           actions: ['view', 'export', 'delete'],
+  //           rawData: call
+  //         });
+  //       });
+  //       console.log(`✅ Added ${salesCalls.length} sales call items`);
+  //     } catch (err) {
+  //       console.warn('❌ Failed to fetch sales calls:', err);
+  //     }
 
-      // Fetch Growth Plans
-      try {
-        console.log('🚀 Fetching growth plans...');
-        const growthPlans = await growthPlan.fetchPlans();
-        console.log('📋 Found growth plans:', growthPlans);
-        growthPlans.forEach((plan: any) => {
-          items.push({
-            id: `growth-plan-${plan.id}`,
-            type: 'growth-plan',
-            title: plan.title || 'Growth Plan',
-            subtitle: `${plan.metadata?.clientCompany || 'Company'} • ${plan.metadata?.industry || 'Industry'}`,
-            status: 'completed',
-           createdAt: plan.createdAt || plan.created_at || new Date().toISOString(),
-            metadata: {
-              industry: plan.metadata?.industry,
-              timeframe: plan.metadata?.timeframe,
-              strategies: plan.plan?.strategies?.length || 0,
-              tokensUsed: plan.metadata?.tokensUsed || 0
-            },
-            actions: ['view', 'export', 'edit', 'delete'],
-            rawData: plan
-          });
-        });
-        console.log(`✅ Added ${growthPlans.length} growth plan items`);
-      } catch (err) {
-        console.warn('❌ Failed to fetch growth plans:', err);
-      }
-      // Fetch Pricing Calculations
-      try {
-        console.log('💰 Fetching pricing calculations...');
-        // --- MODIFIED: Call fetchCalculations and ASSIGN the RETURNED data ---
-        const pricingCalculationsData = await savedCalculations.fetchCalculations(workspaceId);
-        // --- MODIFIED: Use the returned data instead of the hook's internal state reference ---
-        console.log('💳 Found pricing calculations:', pricingCalculationsData);
-        // Check if data was actually returned and is an array
-        if (Array.isArray(pricingCalculationsData)) {
-          pricingCalculationsData.forEach((calc: any) => { // Use pricingCalculationsData here
-            items.push({
-              id: `pricing-calc-${calc.id}`,
-              type: 'pricing-calc',
-              title: calc.title || calc.projectName || 'Pricing Calculation',
-              subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
-              status: 'completed',
-              // --- MODIFIED: Ensure createdAt is handled correctly ---
-              // Assuming calc.createdAt is already an ISO string from the API
-              createdAt: calc.createdAt || calc.created_at || new Date().toISOString(), // Use string directly
-              // --- END OF MODIFICATION ---
-              metadata: {
-                annualSavings: calc.annualSavings,
-                recommendedRetainer: calc.recommendedRetainer,
-                hourlyRate: calc.hourlyRate,
-                roiPercentage: calc.roiPercentage,
-                industry: calc.industry
-              },
-              actions: ['view', 'export', 'duplicate', 'delete'],
-              rawData: calc
-            });
-          });
-          console.log(`✅ Added ${pricingCalculationsData.length} pricing calculation items`); // Use length here
-        } else {
-           console.warn('⚠️ fetchCalculations did not return an array:', pricingCalculationsData);
-           // Handle case where data isn't an array (e.g., null if error occurred and function returns [])
-        }
-        // --- REMOVED: The old line that relied on hook's internal state ---
-        // console.log(`✅ Added ${savedCalculations.calculations.length} pricing calculation items`);
-      } catch (err) {
-        console.warn('❌ Failed to fetch pricing calculations:', err);
-      }
+  //     // Fetch Growth Plans
+  //     try {
+  //       console.log('🚀 Fetching growth plans...');
+  //       const growthPlans = await growthPlan.fetchPlans();
+  //       console.log('📋 Found growth plans:', growthPlans);
+  //       growthPlans.forEach((plan: any) => {
+  //         items.push({
+  //           id: `growth-plan-${plan.id}`,
+  //           type: 'growth-plan',
+  //           title: plan.title || 'Growth Plan',
+  //           subtitle: `${plan.metadata?.clientCompany || 'Company'} • ${plan.metadata?.industry || 'Industry'}`,
+  //           status: 'completed',
+  //          createdAt: plan.createdAt || plan.created_at || new Date().toISOString(),
+  //           metadata: {
+  //             industry: plan.metadata?.industry,
+  //             timeframe: plan.metadata?.timeframe,
+  //             strategies: plan.plan?.strategies?.length || 0,
+  //             tokensUsed: plan.metadata?.tokensUsed || 0
+  //           },
+  //           actions: ['view', 'export', 'edit', 'delete'],
+  //           rawData: plan
+  //         });
+  //       });
+  //       console.log(`✅ Added ${growthPlans.length} growth plan items`);
+  //     } catch (err) {
+  //       console.warn('❌ Failed to fetch growth plans:', err);
+  //     }
+  //     // Fetch Pricing Calculations
+  //     try {
+  //       console.log('💰 Fetching pricing calculations...');
+  //       // --- MODIFIED: Call fetchCalculations and ASSIGN the RETURNED data ---
+  //       const pricingCalculationsData = await savedCalculations.fetchCalculations(workspaceId);
+  //       // --- MODIFIED: Use the returned data instead of the hook's internal state reference ---
+  //       console.log('💳 Found pricing calculations:', pricingCalculationsData);
+  //       // Check if data was actually returned and is an array
+  //       if (Array.isArray(pricingCalculationsData)) {
+  //         pricingCalculationsData.forEach((calc: any) => { // Use pricingCalculationsData here
+  //           items.push({
+  //             id: `pricing-calc-${calc.id}`,
+  //             type: 'pricing-calc',
+  //             title: calc.title || calc.projectName || 'Pricing Calculation',
+  //             subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
+  //             status: 'completed',
+  //             // --- MODIFIED: Ensure createdAt is handled correctly ---
+  //             // Assuming calc.createdAt is already an ISO string from the API
+  //             createdAt: calc.createdAt || calc.created_at || new Date().toISOString(), // Use string directly
+  //             // --- END OF MODIFICATION ---
+  //             metadata: {
+  //               annualSavings: calc.annualSavings,
+  //               recommendedRetainer: calc.recommendedRetainer,
+  //               hourlyRate: calc.hourlyRate,
+  //               roiPercentage: calc.roiPercentage,
+  //               industry: calc.industry
+  //             },
+  //             actions: ['view', 'export', 'duplicate', 'delete'],
+  //             rawData: calc
+  //           });
+  //         });
+  //         console.log(`✅ Added ${pricingCalculationsData.length} pricing calculation items`); // Use length here
+  //       } else {
+  //          console.warn('⚠️ fetchCalculations did not return an array:', pricingCalculationsData);
+  //          // Handle case where data isn't an array (e.g., null if error occurred and function returns [])
+  //       }
+  //       // --- REMOVED: The old line that relied on hook's internal state ---
+  //       // console.log(`✅ Added ${savedCalculations.calculations.length} pricing calculation items`);
+  //     } catch (err) {
+  //       console.warn('❌ Failed to fetch pricing calculations:', err);
+  //     }
 
-      // Fetch Niche Research Reports
-      try {
-        console.log('🔬 Fetching niche research reports...');
-        const nicheReports = await nicheResearcher.getUserReports(workspaceId);
-        console.log('📊 Found niche reports:', nicheReports);
-        nicheReports.forEach((report: any) => {
-          items.push({
-            id: `niche-research-${report.id}`,
-            type: 'niche-research',
-            title: report.title || 'Niche Research Report',
-            subtitle: `${report.nicheName} • ${report.marketType}`,
-            status: 'completed',
-            createdAt: report.createdAt || report.created_at || new Date().toISOString(),
-            metadata: {
-              nicheName: report.nicheName,
-              marketSize: report.marketSize,
-              primaryObjective: report.primaryObjective,
-              marketType: report.marketType,
-              budget: report.budget,
-              tokensUsed: report.tokensUsed
-            },
-            actions: ['view', 'export', 'update', 'delete'],
-            rawData: report
-          });
-        });
-        console.log(`✅ Added ${nicheReports.length} niche research items`);
-      } catch (err) {
-        console.warn('❌ Failed to fetch niche research:', err);
-      }
+  //     // Fetch Niche Research Reports
+  //     try {
+  //       console.log('🔬 Fetching niche research reports...');
+  //       const nicheReports = await nicheResearcher.getUserReports(workspaceId);
+  //       console.log('📊 Found niche reports:', nicheReports);
+  //       nicheReports.forEach((report: any) => {
+  //         items.push({
+  //           id: `niche-research-${report.id}`,
+  //           type: 'niche-research',
+  //           title: report.title || 'Niche Research Report',
+  //           subtitle: `${report.nicheName} • ${report.marketType}`,
+  //           status: 'completed',
+  //           createdAt: report.createdAt || report.created_at || new Date().toISOString(),
+  //           metadata: {
+  //             nicheName: report.nicheName,
+  //             marketSize: report.marketSize,
+  //             primaryObjective: report.primaryObjective,
+  //             marketType: report.marketType,
+  //             budget: report.budget,
+  //             tokensUsed: report.tokensUsed
+  //           },
+  //           actions: ['view', 'export', 'update', 'delete'],
+  //           rawData: report
+  //         });
+  //       });
+  //       console.log(`✅ Added ${nicheReports.length} niche research items`);
+  //     } catch (err) {
+  //       console.warn('❌ Failed to fetch niche research:', err);
+  //     }
 
-      // Fetch Cold Email Generations
-      try {
-        console.log('📧 Fetching cold email generations...');
-        const emailGenerations = await coldEmail.getEmailGenerations(workspaceId);
-        console.log('📨 Found email generations:', emailGenerations);
-        emailGenerations.forEach((generation: any) => {
-          items.push({
-            id: `cold-email-${generation.id}`,
-            type: 'cold-email',
-            title: generation.title || 'Cold Email Campaign',
-            subtitle: `${generation.emails?.length || 0} emails • ${generation.industry || 'General'}`,
-            status: 'completed',
-            createdAt: generation.createdAt || generation.created_at || new Date().toISOString(),
-            metadata: {
-              emailCount: generation.emails?.length || 0,
-              industry: generation.industry,
-              tone: generation.tone,
-              method: generation.method,
-              firstName: generation.firstName
-            },
-            actions: ['view', 'copy', 'optimize', 'delete'],
-            rawData: generation
-          });
-        });
-        console.log(`✅ Added ${emailGenerations.length} cold email items`);
-      } catch (err) {
-        console.warn('❌ Failed to fetch cold emails:', err);
-      }
+  //     // Fetch Cold Email Generations
+  //     try {
+  //       console.log('📧 Fetching cold email generations...');
+  //       const emailGenerations = await coldEmail.getEmailGenerations(workspaceId);
+  //       console.log('📨 Found email generations:', emailGenerations);
+  //       emailGenerations.forEach((generation: any) => {
+  //         items.push({
+  //           id: `cold-email-${generation.id}`,
+  //           type: 'cold-email',
+  //           title: generation.title || 'Cold Email Campaign',
+  //           subtitle: `${generation.emails?.length || 0} emails • ${generation.industry || 'General'}`,
+  //           status: 'completed',
+  //           createdAt: generation.createdAt || generation.created_at || new Date().toISOString(),
+  //           metadata: {
+  //             emailCount: generation.emails?.length || 0,
+  //             industry: generation.industry,
+  //             tone: generation.tone,
+  //             method: generation.method,
+  //             firstName: generation.firstName
+  //           },
+  //           actions: ['view', 'copy', 'optimize', 'delete'],
+  //           rawData: generation
+  //         });
+  //       });
+  //       console.log(`✅ Added ${emailGenerations.length} cold email items`);
+  //     } catch (err) {
+  //       console.warn('❌ Failed to fetch cold emails:', err);
+  //     }
 
-      // Fetch Offer Creator Results
-       // Fetch Offer Creator Results (Ensure correct handling of hook state)
-      try {
-        console.log('✨ Fetching signature offers...');
-        // Call fetchOffers - it updates the hook's internal 'offers' state
-        await savedOffers.fetchOffers(workspaceId); 
-        // Access the data from the hook's state AFTER the fetch call completes
-        console.log('🎯 Found offers:', savedOffers.offers); 
-        // Check if offers data exists and is an array (hook's state)
-        if (Array.isArray(savedOffers.offers)) { 
-          savedOffers.offers.forEach((offer: any) => { // Use savedOffers.offers here
-            items.push({
-              id: `offer-creator-${offer.id}`,
-              type: 'offer-creator',
-              title: offer.title || 'Signature Offers',
-              subtitle: `${offer.industry || 'General'} • ${offer.packages?.length || 3} Packages`,
-              status: 'completed',
-              // Ensure createdAt is handled correctly (string)
-              createdAt: offer.createdAt || offer.created_at || new Date().toISOString(),
-              metadata: {
-                industry: offer.industry,
-                packages: offer.packages?.length || 0,
-                priceRange: offer.priceRange,
-                deliveryModel: offer.deliveryModel,
-                targetMarket: offer.targetMarket
-              },
-              actions: ['view', 'export', 'optimize', 'delete'],
-              rawData: offer
-            });
-          });
-          console.log(`✅ Added ${savedOffers.offers.length} offer creator items`); // Use length here
-        } else {
-           console.warn('⚠️ Offers data is not an array or is undefined:', savedOffers.offers);
-        }
-        // console.log(`✅ Added ${savedOffers.offers.length} offer creator items`); // Original line
-      } catch (err) {
-        console.warn('❌ Failed to fetch offers:', err);
-      }
+  //     // Fetch Offer Creator Results
+  //      // Fetch Offer Creator Results (Ensure correct handling of hook state)
+  //     try {
+  //       console.log('✨ Fetching signature offers...');
+  //       // Call fetchOffers - it updates the hook's internal 'offers' state
+  //       await savedOffers.fetchOffers(workspaceId); 
+  //       // Access the data from the hook's state AFTER the fetch call completes
+  //       console.log('🎯 Found offers:', savedOffers.offers); 
+  //       // Check if offers data exists and is an array (hook's state)
+  //       if (Array.isArray(savedOffers.offers)) { 
+  //         savedOffers.offers.forEach((offer: any) => { // Use savedOffers.offers here
+  //           items.push({
+  //             id: `offer-creator-${offer.id}`,
+  //             type: 'offer-creator',
+  //             title: offer.title || 'Signature Offers',
+  //             subtitle: `${offer.industry || 'General'} • ${offer.packages?.length || 3} Packages`,
+  //             status: 'completed',
+  //             // Ensure createdAt is handled correctly (string)
+  //             createdAt: offer.createdAt || offer.created_at || new Date().toISOString(),
+  //             metadata: {
+  //               industry: offer.industry,
+  //               packages: offer.packages?.length || 0,
+  //               priceRange: offer.priceRange,
+  //               deliveryModel: offer.deliveryModel,
+  //               targetMarket: offer.targetMarket
+  //             },
+  //             actions: ['view', 'export', 'optimize', 'delete'],
+  //             rawData: offer
+  //           });
+  //         });
+  //         console.log(`✅ Added ${savedOffers.offers.length} offer creator items`); // Use length here
+  //       } else {
+  //          console.warn('⚠️ Offers data is not an array or is undefined:', savedOffers.offers);
+  //       }
+  //       // console.log(`✅ Added ${savedOffers.offers.length} offer creator items`); // Original line
+  //     } catch (err) {
+  //       console.warn('❌ Failed to fetch offers:', err);
+  //     }
 
 
-      // Sort by creation date (newest first)
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  //     // Sort by creation date (newest first)
+  //     items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      console.log(`🎉 Total work items fetched: ${items.length}`);
-      setWorkItems(items);
-    } catch (error) {
-      console.error('💥 Error fetching work items:', error);
-      message.error('Failed to load some work items');
-    } finally {
-      setLoading(false);
+  //     console.log(`🎉 Total work items fetched: ${items.length}`);
+  //     setWorkItems(items);
+  //   } catch (error) {
+  //     console.error('💥 Error fetching work items:', error);
+  //     message.error('Failed to load some work items');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
+  // Unified data fetching function (MODIFIED)
+const fetchAllWorkItems = async () => {
+  setLoading(true);
+  // const items: WorkItem[] = []; // No longer needed for initial population
+
+  try {
+    console.log('🔄 Fetching all work items from unified API...');
+    // Construct URL with potential workspaceId query param
+    const url = new URL('/api/dashboard/work-items', window.location.origin);
+    if (workspaceId) {
+      url.searchParams.append('workspaceId', workspaceId);
     }
-  };
+    // Add refresh param if needed
+    // url.searchParams.append('refresh', 'true');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch work items: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    console.log('📥 Unified API response:', data);
+
+    if (data.success && Array.isArray(data.data?.items)) {
+      // Sort items if needed (API already sorts, but just in case)
+      // const sortedItems = data.data.items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      console.log(`🎉 Successfully fetched ${data.data.items.length} work items from unified API`);
+      setWorkItems(data.data.items); // Set the items directly from the API response
+    } else {
+      throw new Error(data.error || 'Invalid response format from unified API');
+    }
+  } catch (error) {
+    console.error('💥 Error fetching work items from unified API:', error);
+    message.error('Failed to load work items');
+    // Optionally, keep old items or set to empty array
+    // setWorkItems([]); 
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Load data on mount
   useEffect(() => {
@@ -703,10 +744,10 @@ const growthPlan = useGrowthPlan({ workspaceId });
             tab={<Badge count={getTabCount('cold-email')} offset={[8, 0]}>Emails</Badge>} 
             key="cold-email" 
           />
-          <Tabs.TabPane 
+          {/* <Tabs.TabPane 
             tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offer Creator</Badge>} 
             key="offer-creator" 
-          />
+          /> */}
         </Tabs>
 
         {/* Work Items List */}

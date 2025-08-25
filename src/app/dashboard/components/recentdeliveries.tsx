@@ -1,6 +1,6 @@
 // app/dashboard/components/RecentDeliverables.tsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, List, Button, Typography, Grid, Tag, Avatar, Spin, Empty } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, List, Button, Typography, Grid, Tag, Spin } from 'antd';
 import { 
   FileTextOutlined,
   PhoneOutlined,
@@ -15,23 +15,22 @@ import {
   DownloadOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
+import { message } from 'antd'; // Import message for error handling
 
-// Import your existing hooks
-// Import your existing hooks
-import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
-import { useGrowthPlan } from '../../hooks/useGrowthPlan';
-import { useSavedCalculations } from '../../hooks/usePricingCalculator';
-import { useNicheResearcher } from '../../hooks/useNicheResearcher';
-import { useColdEmail } from '../../hooks/useColdEmail';
-import { useSavedOffers } from '../../hooks/useOfferCreator';
-import { useAdWriter } from '../../hooks/useAdWriter';
-
+// Remove individual hook imports
+// import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
+// import { useGrowthPlan } from '../../hooks/useGrowthPlan';
+// import { useSavedCalculations } from '../../hooks/usePricingCalculator';
+// import { useNicheResearcher } from '../../hooks/useNicheResearcher';
+// import { useColdEmail } from '../../hooks/useColdEmail';
+// import { useSavedOffers } from '../../hooks/useOfferCreator';
+// import { useAdWriter } from '../../hooks/useAdWriter';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-// Define types
-type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator';
+// Define types (keep these as they define the component's internal structure)
+type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer'; // Add 'ad-writer'
 type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
 
 interface RecentWorkItem {
@@ -46,7 +45,7 @@ interface RecentWorkItem {
 }
 
 interface RecentDeliverablesProps {
-  deliverables?: any[]; // Keep for backward compatibility
+  deliverables?: any[];
   workspaceId?: string;
   maxItems?: number;
 }
@@ -61,180 +60,55 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
   const [loading, setLoading] = useState(false);
   const [recentWorkItems, setRecentWorkItems] = useState<RecentWorkItem[]>([]);
 
-  // Initialize all hooks
-  const salesCallAnalyzer = useSalesCallAnalyzer();
-  const growthPlan = useGrowthPlan();
-  const savedCalculations = useSavedCalculations();
-  const nicheResearcher = useNicheResearcher();
-  const coldEmail = useColdEmail();
-  const savedOffers = useSavedOffers();
+  // Remove individual hook initializations
+  // const salesCallAnalyzer = useSalesCallAnalyzer();
+  // const growthPlan = useGrowthPlan();
+  // const savedCalculations = useSavedCalculations();
+  // const nicheResearcher = useNicheResearcher();
+  // const coldEmail = useColdEmail();
+  // const savedOffers = useSavedOffers();
 
-  // Fetch recent work items
+  // Fetch recent work items from the unified API
   const fetchRecentWorkItems = async () => {
     setLoading(true);
-    const items: RecentWorkItem[] = [];
+    // const items: RecentWorkItem[] = []; // No longer needed
 
     try {
-      // Fetch Sales Call Analyses
-      try {
-        const salesCalls = await salesCallAnalyzer.getUserAnalyses(workspaceId);
-        salesCalls.slice(0, 2).forEach((call: any) => {
-          items.push({
-            id: `sales-call-${call.id}`,
-            type: 'sales-call',
-            title: call.title || 'Sales Call Analysis',
-            subtitle: `${call.prospectName || 'Unknown'} • ${call.companyName || 'Company'}`,
-            status: 'completed',
-            createdAt: call.createdAt || call.created_at || new Date().toISOString(),
-            metadata: {
-              duration: call.duration || 'N/A',
-              sentiment: call.sentiment || 'neutral',
-              score: call.score || null
-            },
-            rawData: call
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch sales calls:', err);
+      console.log('🔄 Fetching recent work items from unified API...');
+      // Construct URL with potential workspaceId query param
+      const url = new URL('/api/dashboard/work-items', window.location.origin);
+      if (workspaceId) {
+        url.searchParams.append('workspaceId', workspaceId);
       }
+      // Potentially add a limit parameter to the API if supported, or slice client-side
 
-      // Fetch Growth Plans
-      try {
-        const growthPlans = await growthPlan.fetchPlans();
-        growthPlans.slice(0, 2).forEach((plan: any) => {
-          items.push({
-            id: `growth-plan-${plan.id}`,
-            type: 'growth-plan',
-            title: plan.title || 'Growth Plan',
-            subtitle: `${plan.metadata?.clientCompany || 'Company'} • ${plan.metadata?.industry || 'Industry'}`,
-            status: 'completed',
-           createdAt: plan.createdAt || plan.created_at || new Date().toISOString(),
-            metadata: {
-              industry: plan.metadata?.industry,
-              strategies: plan.plan?.strategies?.length || 0
-            },
-            rawData: plan
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch growth plans:', err);
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recent work items: ${response.status} ${response.statusText}`);
       }
+      const data = await response.json();
+      console.log('📥 Unified API recent work items response:', data);
 
-           // Fetch Pricing Calculations
-      try {
-        console.log('💰 Fetching pricing calculations...');
-        // --- MODIFIED: Call fetchCalculations and ASSIGN the RETURNED data ---
-        const pricingCalculationsData = await savedCalculations.fetchCalculations(workspaceId);
-        // --- MODIFIED: Use the returned data instead of the hook's internal state reference ---
-        console.log('💳 Found pricing calculations:', pricingCalculationsData);
-        // Check if data was actually returned and is an array
-        if (Array.isArray(pricingCalculationsData)) {
-          pricingCalculationsData.forEach((calc: any) => { // Use pricingCalculationsData here
-            items.push({
-              id: `pricing-calc-${calc.id}`,
-              type: 'pricing-calc',
-              title: calc.title || calc.projectName || 'Pricing Calculation',
-              subtitle: `${calc.clientName || 'Client'} • $${calc.recommendedRetainer?.toLocaleString() || '0'}`,
-              status: 'completed',
-              // --- MODIFIED: Ensure createdAt is handled correctly ---
-              // Assuming calc.createdAt is already an ISO string from the API
-              createdAt: calc.createdAt || calc.created_at || new Date().toISOString(), // Use string directly
-              // --- END OF MODIFICATION ---
-              metadata: {
-                annualSavings: calc.annualSavings,
-                recommendedRetainer: calc.recommendedRetainer,
-                hourlyRate: calc.hourlyRate,
-                roiPercentage: calc.roiPercentage,
-                industry: calc.industry
-              },
+      if (data.success && Array.isArray(data.data?.items)) {
+        // The data from the API already matches the RecentWorkItem structure closely
+        // We just need to ensure the type is correct and limit the results
+        const apiItems: RecentWorkItem[] = data.data.items;
         
-              rawData: calc
-            });
-          });
-          console.log(`✅ Added ${pricingCalculationsData.length} pricing calculation items`); // Use length here
-        } else {
-           console.warn('⚠️ fetchCalculations did not return an array:', pricingCalculationsData);
-           // Handle case where data isn't an array (e.g., null if error occurred and function returns [])
-        }
-        // --- REMOVED: The old line that relied on hook's internal state ---
-        // console.log(`✅ Added ${savedCalculations.calculations.length} pricing calculation items`);
-      } catch (err) {
-        console.warn('❌ Failed to fetch pricing calculations:', err);
+        // Sort by creation date (newest first) and limit
+        const sortedAndLimitedItems = apiItems
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, maxItems);
+
+        setRecentWorkItems(sortedAndLimitedItems);
+        console.log(`🎉 Successfully fetched and set ${sortedAndLimitedItems.length} recent work items from unified API`);
+      } else {
+        throw new Error(data.error || 'Invalid response format from unified API');
       }
-
-
-      // Fetch Niche Research Reports
-      try {
-        const nicheReports = await nicheResearcher.getUserReports(workspaceId);
-        nicheReports.slice(0, 2).forEach((report: any) => {
-          items.push({
-            id: `niche-research-${report.id}`,
-            type: 'niche-research',
-            title: report.title || 'Niche Research Report',
-            subtitle: `${report.nicheName} • ${report.marketType}`,
-            status: 'completed',
-            createdAt: report.createdAt || report.created_at || new Date().toISOString(),
-            metadata: {
-              marketSize: report.marketSize,
-              primaryObjective: report.primaryObjective
-            },
-            rawData: report
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch niche research:', err);
-      }
-
-      // Fetch Cold Email Generations
-      try {
-        const emailGenerations = await coldEmail.getEmailGenerations(workspaceId);
-        emailGenerations.slice(0, 2).forEach((generation: any) => {
-          items.push({
-            id: `cold-email-${generation.id}`,
-            type: 'cold-email',
-            title: generation.title || 'Cold Email Campaign',
-            subtitle: `${generation.emails?.length || 0} emails • ${generation.industry || 'General'}`,
-            status: 'completed',
-            createdAt: generation.createdAt || generation.created_at || new Date().toISOString(),
-            metadata: {
-              emailCount: generation.emails?.length || 0,
-              tone: generation.tone
-            },
-            rawData: generation
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch cold emails:', err);
-      }
-
-      // Fetch Offer Creator Results
-      try {
-        await savedOffers.fetchOffers(workspaceId);
-        savedOffers.offers.slice(0, 2).forEach((offer: any) => {
-          items.push({
-            id: `offer-creator-${offer.id}`,
-            type: 'offer-creator',
-            title: offer.title || 'Signature Offers',
-            subtitle: `${offer.industry || 'General'} • ${offer.packages?.length || 3} Packages`,
-            status: 'completed',
-            createdAt: offer.createdAt || offer.created_at || new Date().toISOString(),
-            metadata: {
-              packages: offer.packages?.length || 0,
-              priceRange: offer.priceRange
-            },
-            rawData: offer
-          });
-        });
-      } catch (err) {
-        console.warn('Failed to fetch offers:', err);
-      }
-
-      // Sort by creation date (newest first) and limit
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setRecentWorkItems(items.slice(0, maxItems));
-
     } catch (error) {
-      console.error('Error fetching recent work items:', error);
+      console.error('💥 Error fetching recent work items from unified API:', error);
+      message.error('Failed to load recent AI work'); // Show user-friendly error
+      // Optionally, keep old items or set to empty array
+      // setRecentWorkItems([]); 
     } finally {
       setLoading(false);
     }
@@ -243,7 +117,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
   // Load data on mount
   useEffect(() => {
     fetchRecentWorkItems();
-  }, [workspaceId]);
+  }, [workspaceId, maxItems]); // Add maxItems to dependencies if it can change
 
   // Get icon for work type
   const getTypeIcon = (type: WorkItemType) => {
@@ -253,7 +127,8 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'pricing-calc': <DollarCircleOutlined />,
       'niche-research': <BulbOutlined />,
       'cold-email': <MailOutlined />,
-      'offer-creator': <EditOutlined />
+      'offer-creator': <EditOutlined />,
+      'ad-writer': <TagOutlined /> // Add icon for ad-writer
     };
     return icons[type] || <FileTextOutlined />;
   };
@@ -266,7 +141,8 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'pricing-calc': '#52c41a',
       'niche-research': '#fa8c16',
       'cold-email': '#eb2f96',
-      'offer-creator': '#13c2c2'
+      'offer-creator': '#13c2c2',
+      'ad-writer': '#faad14' // Add color for ad-writer
     };
     return colors[type] || '#666';
   };
@@ -279,22 +155,27 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'pricing-calc': 'Pricing Calc',
       'niche-research': 'Research',
       'cold-email': 'Cold Email',
-      'offer-creator': 'Offers'
+      'offer-creator': 'Offers',
+      'ad-writer': 'Ads' // Add name for ad-writer
     };
     return names[type] || type;
   };
 
   // Handle view action
   const handleView = (item: RecentWorkItem) => {
-    const viewUrls = {
-      'sales-call': `/sales-call-analyzer/${item.rawData.id}`,
-      'growth-plan': `/growth-plans/${item.rawData.id}`,
-      'pricing-calc': `/pricing-calculator/${item.rawData.id}`,
-      'niche-research': `/niche-research/${item.rawData.id}`,
-      'cold-email': `/cold-email/${item.rawData.id}`,
-      'offer-creator': `/offer-creator/${item.rawData.id}`
+    // Update view URLs to match your routing
+    const viewUrls: Record<WorkItemType, string> = {
+      'sales-call': `/sales-call-analyzer/${item.rawData.id?.split('-')[2] || item.rawData.id}`, // Extract ID if prefixed
+      'growth-plan': `/growth-plans/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'pricing-calc': `/pricing-calculator/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'niche-research': `/niche-research/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'cold-email': `/cold-email/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'offer-creator': `/offer-creator/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'ad-writer': `/ad-writer/${item.rawData.id?.split('-')[2] || item.rawData.id}` // Add URL for ad-writer
     };
-    window.location.href = viewUrls[item.type] || '/';
+    // Fallback if rawData.id structure is unexpected or item.type URL isn't defined
+    const url = viewUrls[item.type] || `/ai-work-dashboard?type=${item.type}`;
+    window.location.href = url;
   };
 
   const getCardStyles = () => ({
@@ -378,20 +259,21 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                 >
                   View
                 </Button>,
-                <Button
-                  type="text"
-                  size="small"
-                  key="export"
-                  icon={<DownloadOutlined />}
-                  style={{
-                    color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                    padding: '0 4px',
-                    height: 'auto',
-                    fontSize: 12,
-                  }}
-                >
-                  Export
-                </Button>,
+                // Optional: Implement export action if needed
+                // <Button
+                //   type="text"
+                //   size="small"
+                //   key="export"
+                //   icon={<DownloadOutlined />}
+                //   style={{
+                //     color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
+                //     padding: '0 4px',
+                //     height: 'auto',
+                //     fontSize: 12,
+                //   }}
+                // >
+                //   Export
+                // </Button>,
               ]}
             >
               <List.Item.Meta
@@ -461,6 +343,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                       {item.type === 'offer-creator' && (
                         <Tag >{item.metadata.packages} packages</Tag>
                       )}
+                      {/* Add metadata display for other types if needed */}
                     </div>
                   </div>
                 }
