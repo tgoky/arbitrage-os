@@ -46,7 +46,7 @@ export class N8nWorkflowBuilderService {
     
     try {
       const response = await this.openRouterClient.complete({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'system',
