@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Checking rate limits for n8n workflow builder user:', user.id);
     const rateLimitResult = await rateLimit(
       `workflow_generation:${user.id}`, 
-      10, // 10 workflow generations per hour
+      50, // 10 workflow generations per hour
       3600
     );
     
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         workflowId: deliverableId,
-        workflow: workflowPackage
+          package: workflowPackage 
       },
       meta: {
         tokensUsed: workflowPackage.tokensUsed,
