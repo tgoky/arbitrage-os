@@ -115,7 +115,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "30-45 minutes",
   difficulty: "Beginner",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/1hrYjuVS2jCzA-h0WdRSI3b8wIV5_Z7jF/view?usp=sharing"
 },
    {
   id: 7,
@@ -199,7 +199,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/1Eag1TeIW4EX5Bam7BoKHNe_NlRCmJznd/view?usp=sharing"
 },
    {
   id: 4,
@@ -277,7 +277,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/1CZoUq9n4NxRnTSP91ZqTT8tU7V3UIGc8/view?usp=sharing"
 },
     {
   id: 8,
@@ -370,7 +370,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/1TQbs4uF6WnTdFZpIwmKaKrmpvUdPqr4p/view?usp=sharing"
 },
   {
   id: 5,
@@ -528,7 +528,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/11oNve-U5J_oI9kL4k9mpHn_Nrp_Wd6ij/view?usp=sharing"
 },
  {
   id: 3,
@@ -593,7 +593,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "20-30 minutes",
   difficulty: "Beginner",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/1MhEvakLZ-39bO6aQLW7VhpZz_RiHRPFp/view?usp=sharing"
 },
   
    {
@@ -680,7 +680,7 @@ export const workflowDetails: WorkflowDetailData[] = [
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://www.youtube.com/embed/example"
+  videoTutorial: "https://drive.google.com/file/d/1OghLgEEmfxeG5ulbvTo7bHQxhSsRASkZ/view?usp=sharing"
 }
 
 
