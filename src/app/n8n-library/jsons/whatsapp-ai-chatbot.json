@@ -1,0 +1,474 @@
+{
+  "name": "WhatsApp AI Sales Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": "messageReceived",
+        "webhookUrl": "{{ $secrets.WHATSAPP_WEBHOOK_URL }}",
+        "authentication": "predefinedCredential",
+        "credential": "whatsAppBusinessApi"
+      },
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "credentials": {
+        "whatsAppBusinessApi": {
+          "id": "whatsapp-cred",
+          "name": "WhatsApp Business Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['WhatsApp Trigger'].json['body']['message']['text'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Message",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "prompt": "You are a sales chatbot for a business selling {{ $secrets.BUSINESS_NAME }} products/services. Analyze the incoming WhatsApp message: {{ $node['WhatsApp Trigger'].json['body']['message']['text'] }}. Determine the user's intent (e.g., product inquiry, pricing, demo request). Qualify the lead by assessing budget, needs, or urgency. Respond in a friendly, professional tone, offering relevant information or asking follow-up questions to qualify the lead further. If the query is complex or indicates a high-value lead (e.g., explicit purchase intent), suggest escalating to a human agent. Include lead details (phone: {{ $node['WhatsApp Trigger'].json['body']['from'] }}) in the response. Return JSON: {response: '', lead_status: 'unqualified|qualified|escalate', lead_details: {phone: '', intent: '', budget: '', urgency: ''}}.",
+        "maxTokens": 300,
+        "jsonOutput": true
+      },
+      "name": "Process Message",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        680,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Process Message'].json['response'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v17.0/{{ $secrets.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "{{ $node['WhatsApp Trigger'].json['body']['from'] }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "{{ $node['Process Message'].json['response'] }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $secrets.WHATSAPP_ACCESS_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Leads",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "{{ $node['Process Message'].json['lead_details']['phone'] }}",
+            "intent": "{{ $node['Process Message'].json['lead_details']['intent'] }}",
+            "budget": "{{ $node['Process Message'].json['lead_details']['budget'] }}",
+            "urgency": "{{ $node['Process Message'].json['lead_details']['urgency'] }}",
+            "status": "{{ $node['Process Message'].json['lead_status'] }}",
+            "conversation": "{{ $node['WhatsApp Trigger'].json['body']['message']['text'] }}",
+            "response": "{{ $node['Process Message'].json['response'] }}",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "intent",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "budget",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "urgency",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "status",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "conversation",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "response",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1340,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Process Message'].json['lead_status'] }}",
+              "operation": "equal",
+              "value2": "escalate"
+            }
+          ]
+        }
+      },
+      "name": "Check Escalate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "{{ $secrets.SLACK_CHANNEL }}",
+        "text": "High-value lead detected! Phone: {{ $node['Process Message'].json['lead_details']['phone'] }}, Intent: {{ $node['Process Message'].json['lead_details']['intent'] }}, Message: {{ $node['WhatsApp Trigger'].json['body']['message']['text'] }}. Please follow up."
+      },
+      "name": "Notify Human",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        100
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "waitAmount": 1,
+        "waitUnit": "seconds"
+      },
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "{{ $secrets.SLACK_CHANNEL }}",
+        "text": "WhatsApp AI Sales Chatbot processed message from {{ $node['Process Message'].json['lead_details']['phone'] }} successfully. Lead status: {{ $node['Process Message'].json['lead_status'] }}."
+      },
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Errors",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "{{ $node['WhatsApp Trigger'].json['body']['from'] || 'unknown' }}",
+            "error": "Failed to process message or generate response",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "phone",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        900,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Message": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Check Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Log Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Lead": {
+      "main": [
+        [
+          {
+            "node": "Check Escalate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Escalate": {
+      "main": [
+        [
+          {
+            "node": "Notify Human",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Human": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Notify Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": true,
+  "meta": {
+    "tags": [
+      "WhatsApp",
+      "AI Chatbot",
+      "Sales"
+    ],
+    "integrations": [
+      "WhatsApp Business API",
+      "OpenAI",
+      "Google Sheets",
+      "Slack"
+    ],
+    "notes": "Ensure compliance with WhatsApp Business Messaging Policy, OpenAI terms, and GDPR/CCPA regulations. Verify API credentials and test conversation flows. Configure webhook and API keys securely in n8n Credentials."
+  }
+}

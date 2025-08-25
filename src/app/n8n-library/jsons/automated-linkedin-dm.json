@@ -1,0 +1,286 @@
+{
+  "name": "Automated LinkedIn DM System",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "LinkedIn Outreach Campaign",
+        "formDescription": "Describe your target audience for LinkedIn outreach (e.g., job title, industry, location).",
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "textarea",
+              "fieldLabel": "Audience Description",
+              "name": "audienceDescription",
+              "placeholder": "e.g., Software Engineers in San Francisco",
+              "requiredField": true
+            },
+            {
+              "fieldType": "options",
+              "fieldLabel": "Message Tone",
+              "name": "messageTone",
+              "options": [
+                { "name": "Professional", "value": "professional" },
+                { "name": "Friendly", "value": "friendly" },
+                { "name": "Promotional", "value": "promotional" }
+              ],
+              "default": "professional"
+            }
+          ]
+        },
+        "submitButtonLabel": "Start Outreach",
+        "authentication": "none"
+      },
+      "name": "Outreach Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "modelId": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a helpful sales assistant. Convert a natural language audience description into an Apollo.io search URL. Example: For 'Software Engineers in San Francisco', return: {\"searchUrl\": \"https://app.apollo.io/#/people?personLocations[]=United%20States&personLocations[]=San%20Francisco&personTitles[]=Software%20Engineer&page=1\"}. Only modify personLocations[], personTitles[], and qKeywords. Return JSON format: {\"searchUrl\": \"url\"}."
+            },
+            {
+              "content": "{{$node['Outreach Form'].json['audienceDescription']}}"
+            }
+          ]
+        },
+        "jsonOutput": true
+      },
+      "name": "Generate Apollo Search URL",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.6,
+      "position": [460, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/code_crafter~apollo-io-scraper",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"getPersonalEmails\": true, \"getWorkEmails\": true, \"totalRecords\": 50, \"url\": \"{{ $node['Generate Apollo Search URL'].json['searchUrl'] }}\"}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer {{ $secrets.APIFY_API_KEY }}" }
+          ]
+        }
+      },
+      "name": "Scrape Apollo Profiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": { "maxItems": 10 },
+      "name": "Limit Profiles",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "modelId": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a concise writing assistant. Generate a short, human-like LinkedIn icebreaker for a connection request. Template: 'Hey {{firstName}}, loved your work in {{paraphrasedField}}. I'm into {{relatedInterest}}, let's connect!' Paraphrase profile details to sound natural. Keep under 300 characters. Return JSON: {\"icebreaker\": \"message\"}. Tone: {{ $node['Outreach Form'].json['messageTone'] }}."
+            },
+            {
+              "content": "{\"linkedInFields\": \"{{ $item('Limit Profiles').json['first_name'] }} {{ $item('Limit Profiles').json['last_name'] }}, {{ $item('Limit Profiles').json['title'] }} at {{ $item('Limit Profiles').json['organization_name'] }}\"}"
+            }
+          ]
+        },
+        "jsonOutput": true
+      },
+      "name": "Generate Icebreaker",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.6,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI Account" }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Generate Icebreaker'].json['icebreaker'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Icebreaker",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.phantombuster.com/api/v2/agents/launch",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "id", "value": "{{ $secrets.PHANTOMBUSTER_AGENT_ID }}" },
+            {
+              "name": "arguments",
+              "value": "{\"profileUrl\": \"{{ $item('Limit Profiles').json['linkedin_url'] }}\", \"message\": \"{{ $node['Generate Icebreaker'].json['icebreaker'] }}\"}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Phantombuster-Key", "value": "{{ $secrets.PHANTOMBUSTER_API_KEY }}" }
+          ]
+        }
+      },
+      "name": "Send via PhantomBuster",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Sheet1",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "profile_id": "{{ $item('Limit Profiles').json['id'] }}",
+            "first_name": "{{ $item('Limit Profiles').json['first_name'] }}",
+            "last_name": "{{ $item('Limit Profiles').json['last_name'] }}",
+            "title": "{{ $item('Limit Profiles').json['title'] }}",
+            "linkedin_url": "{{ $item('Limit Profiles').json['linkedin_url'] }}",
+            "icebreaker": "{{ $node['Generate Icebreaker'].json['icebreaker'] }}",
+            "status": "Sent",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            { "id": "profile_id", "type": "string" },
+            { "id": "first_name", "type": "string" },
+            { "id": "last_name", "type": "string" },
+            { "id": "title", "type": "string" },
+            { "id": "linkedin_url", "type": "string" },
+            { "id": "icebreaker", "type": "string" },
+            { "id": "status", "type": "string" },
+            { "id": "timestamp", "type": "string" }
+          ],
+          "matchingColumns": ["profile_id"]
+        }
+      },
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1560, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "gsheets-cred", "name": "Google Sheets Account" }
+      }
+    },
+    {
+      "parameters": { "waitAmount": 1, "waitUnit": "seconds" },
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Errors",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "profile_id": "{{ $item('Limit Profiles').json['id'] }}",
+            "error": "Failed to generate icebreaker",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            { "id": "profile_id", "type": "string" },
+            { "id": "error", "type": "string" },
+            { "id": "timestamp", "type": "string" }
+          ],
+          "matchingColumns": ["profile_id"]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1560, 600],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "gsheets-cred", "name": "Google Sheets Account" }
+      }
+    },
+    {
+      "parameters": { "aggregate": "aggregateAllItemData" },
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Outreach Form": {
+      "main": [[{ "node": "Generate Apollo Search URL", "type": "main", "index": 0 }]]
+    },
+    "Generate Apollo Search URL": {
+      "main": [[{ "node": "Scrape Apollo Profiles", "type": "main", "index": 0 }]]
+    },
+    "Scrape Apollo Profiles": {
+      "main": [[{ "node": "Limit Profiles", "type": "main", "index": 0 }]]
+    },
+    "Limit Profiles": {
+      "main": [[{ "node": "Generate Icebreaker", "type": "main", "index": 0 }]]
+    },
+    "Generate Icebreaker": {
+      "main": [[{ "node": "Check Icebreaker", "type": "main", "index": 0 }]]
+    },
+    "Check Icebreaker": {
+      "main": [
+        [
+          { "node": "Send via PhantomBuster", "type": "main", "index": 0 },
+          { "node": "Log to Google Sheets", "type": "main", "index": 0 }
+        ],
+        [{ "node": "Log Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send via PhantomBuster": {
+      "main": [[{ "node": "Rate Limit", "type": "main", "index": 0 }]]
+    },
+    "Rate Limit": {
+      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+    },
+    "Log to Google Sheets": {
+      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": true,
+  "meta": {
+    "tags": ["LinkedIn", "Outreach", "Automation"],
+    "integrations": ["Apollo.io (via Apify)", "PhantomBuster", "OpenAI", "Google Sheets"],
+    "notes": "Ensure compliance with LinkedIn, Apollo.io, PhantomBuster, and data protection regulations (e.g., GDPR). Configure API keys securely in n8n Credentials."
+  }
+}

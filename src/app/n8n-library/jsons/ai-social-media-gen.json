@@ -1,0 +1,263 @@
+{
+  "name": "AI Social Media Content Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Social Media Content Generator",
+        "formDescription": "Specify the topic and preferences for your social media post.",
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "string",
+              "fieldLabel": "Content Topic",
+              "name": "contentTopic",
+              "placeholder": "e.g., New tech product launch",
+              "requiredField": true
+            },
+            {
+              "fieldType": "options",
+              "fieldLabel": "Tone",
+              "name": "tone",
+              "options": [
+                { "name": "Professional", "value": "professional" },
+                { "name": "Casual", "value": "casual" },
+                { "name": "Promotional", "value": "promotional" }
+              ],
+              "default": "professional"
+            },
+            {
+              "fieldType": "options",
+              "fieldLabel": "Platforms",
+              "name": "platforms",
+              "options": [
+                { "name": "Twitter", "value": "twitter" },
+                { "name": "Facebook", "value": "facebook" },
+                { "name": "Both", "value": "both" }
+              ],
+              "default": "both"
+            }
+          ]
+        },
+        "submitButtonLabel": "Generate Post"
+      },
+      "name": "Content Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": "Create a short, engaging social media post about {{$node['Content Form'].json['contentTopic']}}. Use a {{$node['Content Form'].json['tone']}} tone, include a call-to-action, and keep it under 280 characters. Return the post content only.",
+        "maxTokens": 100
+      },
+      "name": "OpenAI Generate",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{$node['OpenAI Generate'].json['choices'][0]['message']['content']}}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Content",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "value": {
+          "content": "{{ $node['OpenAI Generate'].json['choices'][0]['message']['content'].slice(0, 280) || 'Check out our latest update! Visit our site for more details.' }}"
+        }
+      },
+      "name": "Format Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "resource": "status",
+        "operation": "create",
+        "text": "{{$node['Format Content'].json['content']}}"
+      },
+      "name": "Twitter Post",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 1,
+      "position": [1120, 100],
+      "executeOnce": false,
+      "continueOnFail": true,
+      "credentials": {
+        "twitterOAuth1Api": {
+          "id": "twitter-cred",
+          "name": "Twitter Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "waitAmount": 1,
+        "waitUnit": "seconds"
+      },
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 100]
+    },
+    {
+      "parameters": {
+        "resource": "post",
+        "operation": "create",
+        "message": "{{$node['Format Content'].json['content']}}"
+      },
+      "name": "Facebook Post",
+      "type": "n8n-nodes-base.facebook",
+      "typeVersion": 1,
+      "position": [1560, 100],
+      "executeOnce": false,
+      "continueOnFail": true,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "facebook-cred",
+          "name": "Facebook Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Posts",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "content": "{{$node['Format Content'].json['content']}}",
+            "platform": "{{ $node['Content Form'].json['platforms'] === 'both' ? 'Twitter, Facebook' : $node['Content Form'].json['platforms'] }}",
+            "status": "Success",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            { "id": "content", "type": "string" },
+            { "id": "platform", "type": "string" },
+            { "id": "status", "type": "string" },
+            { "id": "timestamp", "type": "string" }
+          ]
+        }
+      },
+      "name": "Log Success",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1780, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Errors",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error": "Failed to generate content",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            { "id": "error", "type": "string" },
+            { "id": "timestamp", "type": "string" }
+          ]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [900, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "{{ $secrets.SLACK_CHANNEL }}",
+        "text": "Social media post completed successfully on {{ $node['Content Form'].json['platforms'] }} at {{ $now }}."
+      },
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [2000, 100],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Content Form": {
+      "main": [[{ "node": "OpenAI Generate", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Generate": {
+      "main": [[{ "node": "Check Content", "type": "main", "index": 0 }]]
+    },
+    "Check Content": {
+      "main": [
+        [{ "node": "Format Content", "type": "main", "index": 0 }],
+        [{ "node": "Log Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Content": {
+      "main": [
+        [{ "node": "Twitter Post", "type": "main", "index": 0 }],
+        [{ "node": "Facebook Post", "type": "main", "index": 0 }]
+      ]
+    },
+    "Twitter Post": {
+      "main": [[{ "node": "Rate Limit", "type": "main", "index": 0 }]]
+    },
+    "Rate Limit": {
+      "main": [[{ "node": "Facebook Post", "type": "main", "index": 0 }]]
+    },
+    "Facebook Post": {
+      "main": [[{ "node": "Log Success", "type": "main", "index": 0 }]]
+    },
+    "Log Success": {
+      "main": [[{ "node": "Notify Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": true,
+  "meta": {
+    "tags": ["Social Media", "AI Content", "Marketing Automation"],
+    "integrations": ["Twitter API", "Facebook API", "OpenAI", "Google Sheets", "Slack"],
+    "notes": "Ensure compliance with Twitter, Facebook, and data protection regulations (e.g., GDPR). Configure API keys securely in n8n Credentials. Verify platform-specific content limits."
+  }
+}

@@ -33,6 +33,30 @@ const { Search } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
 
+
+
+import whatsappChatbot from './jsons/whatsapp-ai-chatbot.json';
+import weeklyReports from './jsons/weekly-marketing-report.json';
+import youtubeCreator from './jsons/long-form-youtube-ai-gen.json';
+import gmailAutoLabel from './jsons/gmail-auto-label-response.json';
+import reviewResponse from './jsons/ai-review-response.json';
+import salesCallAnalyzer from './jsons/ai-sales-call-analyzer.json';
+import socialMediaGen from './jsons/ai-social-media-gen.json';
+import autoLinkedinDm from './jsons/automated-linkedin-dm.json';
+
+interface WorkflowTemplate {
+  id: number;
+  title: string;
+  description: string;
+  tags: string[];
+  downloads: number;
+  demoUrl: string;
+  integrations: string[];
+  jsonTemplate: object;
+}
+
+
+
 const workflowTemplates = [
   {
     id: 1,
@@ -41,7 +65,8 @@ const workflowTemplates = [
     tags: ["LinkedIn", "Outreach", "Automation"],
     downloads: 142,
     demoUrl: "#",
-    integrations: ["LinkedIn API", "OpenAI", "Google Sheets"]
+    integrations: ["LinkedIn API", "OpenAI", "Google Sheets"],
+    jsonTemplate: autoLinkedinDm
   },
   {
     id: 2,
@@ -50,7 +75,8 @@ const workflowTemplates = [
     tags: ["Gmail", "AI", "Email Automation"],
     downloads: 89,
     demoUrl: "#",
-    integrations: ["Gmail", "OpenAI"]
+    integrations: ["Gmail", "OpenAI"],
+        jsonTemplate: gmailAutoLabel
   },
   {
     id: 3,
@@ -59,7 +85,8 @@ const workflowTemplates = [
     tags: ["YouTube", "AI", "Video Generation"],
     downloads: 76,
     demoUrl: "#",
-    integrations: ["YouTube API", "OpenAI", "Fliki"]
+    integrations: ["YouTube API", "OpenAI", "Fliki"],
+        jsonTemplate: youtubeCreator
   },
   {
     id: 4,
@@ -68,7 +95,8 @@ const workflowTemplates = [
     tags: ["Sales", "AI Analysis", "Call Recording"],
     downloads: 118,
     demoUrl: "#",
-    integrations: ["Zoom", "OpenAI", "Google Sheets"]
+    integrations: ["Zoom", "OpenAI", "Google Sheets"],
+        jsonTemplate: salesCallAnalyzer
   },
   {
     id: 5,
@@ -77,7 +105,8 @@ const workflowTemplates = [
     tags: ["WhatsApp", "AI Chatbot", "Sales"],
     downloads: 95,
     demoUrl: "#",
-    integrations: ["WhatsApp Business API", "OpenAI"]
+    integrations: ["WhatsApp Business API", "OpenAI"],
+        jsonTemplate: whatsappChatbot
   },
   {
     id: 6,
@@ -86,7 +115,8 @@ const workflowTemplates = [
     tags: ["Review Management", "AI Responses", "Reputation Management"],
     downloads: 64,
     demoUrl: "#",
-    integrations: ["Google My Business", "Yelp API", "OpenAI"]
+    integrations: ["Google My Business", "Yelp API", "OpenAI"],
+        jsonTemplate: reviewResponse
   },
   {
     id: 7,
@@ -95,7 +125,8 @@ const workflowTemplates = [
     tags: ["Social Media", "AI Content", "Marketing Automation"],
     downloads: 132,
     demoUrl: "#",
-    integrations: ["Twitter API", "Facebook API", "OpenAI"]
+    integrations: ["Twitter API", "Facebook API", "OpenAI"],
+        jsonTemplate: socialMediaGen
   },
   {
     id: 8,
@@ -104,7 +135,8 @@ const workflowTemplates = [
     tags: ["Analytics", "Reporting", "Automation"],
     downloads: 107,
     demoUrl: "#",
-    integrations: ["Google Analytics", "Meta API", "Google Sheets"]
+    integrations: ["Google Analytics", "Meta API", "Google Sheets"],
+        jsonTemplate: weeklyReports
   }
 ];
 
@@ -143,6 +175,22 @@ const N8nWorkflowLibrary = () => {
     return 0;
   });
 
+
+  const downloadWorkflow = (workflow: WorkflowTemplate) => {
+  const blob = new Blob([JSON.stringify(workflow.jsonTemplate, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${workflow.title.replace(/\s+/g, '-').toLowerCase()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+  
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
@@ -226,12 +274,15 @@ const N8nWorkflowLibrary = () => {
                   </Button>
                 </Tooltip>,
                 <Tooltip title="Download Template" key="download">
-                  <Button 
-                    type="text" 
-                    icon={<DownloadOutlined />}
-                  >
-                    Download
-                  </Button>
+                  <Tooltip title="Download Template" key="download">
+  <Button 
+    type="text" 
+    icon={<DownloadOutlined />}
+    onClick={() => downloadWorkflow(workflow)}
+  >
+    Download
+  </Button>
+</Tooltip>
                 </Tooltip>
               ]}
             >
@@ -282,12 +333,14 @@ const N8nWorkflowLibrary = () => {
                   style={{ backgroundColor: '#1890ff' }} 
                 />
                 <Button 
-                  type="primary" 
-                  icon={<DownloadOutlined />}
-                  className="ml-2"
-                >
-                  Get Template
-                </Button>
+               
+  type="primary" 
+  icon={<DownloadOutlined />}
+  className="ml-2"
+  onClick={() => downloadWorkflow(workflow)}
+>
+  Get Template
+</Button>
               </div>
             </Card>
           </Col>

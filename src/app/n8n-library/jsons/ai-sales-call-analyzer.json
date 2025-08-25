@@ -1,0 +1,448 @@
+{
+  "name": "AI Sales Call Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "interval": "hour",
+        "unit": "hours"
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "recording",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 5,
+        "additionalFields": {
+          "from": "{{ $now.minus({ days: 1 }).toISODate() }}"
+        }
+      },
+      "name": "Get Zoom Recordings",
+      "type": "n8n-nodes-base.zoom",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "zoomApi": {
+          "id": "zoom-cred",
+          "name": "Zoom Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "{{ $node['Get Zoom Recordings'].json['recordings'][0]['download_url'] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $secrets.ZOOM_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "responseFormat": "file",
+        "options": {}
+      },
+      "name": "Download Recording",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "file": "{{ $node['Download Recording'].binary['data'] }}",
+        "model": "whisper-1",
+        "additionalFields": {
+          "response_format": "json",
+          "language": "en"
+        }
+      },
+      "name": "Transcribe Call",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Transcribe Call'].json['text'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Transcription",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": "Analyze the following sales call transcription and evaluate across these metrics: 1) Talk-to-Listen Ratio (percentage of rep vs. customer speaking), 2) Sentiment Analysis (positive/negative/neutral), 3) Objection Handling (effectiveness score 1-10), 4) Script Adherence (score 1-10), 5) Keyword Usage (list key terms like 'budget', 'competitor'), 6) Engagement Level (score 1-10). Provide a concise summary and actionable insights for coaching. Return JSON: {metrics: {}, summary: '', insights: ''}. Transcription: {{ $node['Transcribe Call'].json['text'] }}",
+        "maxTokens": 500,
+        "jsonOutput": true
+      },
+      "name": "Analyze Metrics",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "waitAmount": 1,
+        "waitUnit": "seconds"
+      },
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Call Insights",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "call_id": "{{ $node['Get Zoom Recordings'].json['recordings'][0]['id'] }}",
+            "recording_date": "{{ $node['Get Zoom Recordings'].json['recordings'][0]['start_time'] }}",
+            "transcription": "{{ $node['Transcribe Call'].json['text'].slice(0, 5000) }}",
+            "talk_to_listen_ratio": "{{ $node['Analyze Metrics'].json['metrics']['talk_to_listen_ratio'] }}",
+            "sentiment": "{{ $node['Analyze Metrics'].json['metrics']['sentiment'] }}",
+            "objection_handling": "{{ $node['Analyze Metrics'].json['metrics']['objection_handling'] }}",
+            "script_adherence": "{{ $node['Analyze Metrics'].json['metrics']['script_adherence'] }}",
+            "keywords": "{{ $node['Analyze Metrics'].json['metrics']['keywords'] }}",
+            "engagement_level": "{{ $node['Analyze Metrics'].json['metrics']['engagement_level'] }}",
+            "summary": "{{ $node['Analyze Metrics'].json['summary'] }}",
+            "insights": "{{ $node['Analyze Metrics'].json['insights'] }}",
+            "status": "Success",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "call_id",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "recording_date",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "transcription",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "talk_to_listen_ratio",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "sentiment",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "objection_handling",
+              "type": "number",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "script_adherence",
+              "type": "number",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "keywords",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "engagement_level",
+              "type": "number",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "summary",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "insights",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "status",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1780,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "{{ $secrets.SLACK_CHANNEL }}",
+        "text": "Sales call analyzed successfully. Call ID: {{ $node['Get Zoom Recordings'].json['recordings'][0]['id'] }} at {{ $now }}."
+      },
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Errors",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "call_id": "{{ $node['Get Zoom Recordings'].json['recordings'][0]['id'] || 'unknown' }}",
+            "error": "Failed to transcribe or analyze call",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "call_id",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1340,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Zoom Recordings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Zoom Recordings": {
+      "main": [
+        [
+          {
+            "node": "Download Recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Recording": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Call": {
+      "main": [
+        [
+          {
+            "node": "Check Transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Transcription": {
+      "main": [
+        [
+          {
+            "node": "Analyze Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Metrics": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Notify Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": true,
+  "meta": {
+    "tags": [
+      "Sales",
+      "AI Analysis",
+      "Call Recording"
+    ],
+    "integrations": [
+      "Zoom",
+      "OpenAI",
+      "Google Sheets",
+      "Slack"
+    ],
+    "notes": "Ensure compliance with Zoom, OpenAI, and data protection regulations (e.g., GDPR, CCPA). Configure API keys securely in n8n Credentials. Verify transcription accuracy and metric definitions."
+  }
+}

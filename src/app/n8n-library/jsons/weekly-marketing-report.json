@@ -1,0 +1,536 @@
+{
+  "name": "Weekly Marketing Reports",
+  "nodes": [
+    {
+      "parameters": {
+        "interval": "week",
+        "unit": "weeks",
+        "time": "07:00",
+        "dayOfWeek": "monday"
+      },
+      "name": "Weekly Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "report",
+        "operation": "run",
+        "propertyId": "{{ $secrets.GA4_PROPERTY_ID }}",
+        "metrics": [
+          {
+            "metric": "sessions"
+          },
+          {
+            "metric": "conversions"
+          },
+          {
+            "metric": "totalRevenue"
+          }
+        ],
+        "dimensions": [
+          {
+            "dimension": "date"
+          },
+          {
+            "dimension": "sourceMedium"
+          }
+        ],
+        "dateRange": {
+          "startDate": "{{ $now.minus({ days: 7 }).toISODate() }}",
+          "endDate": "{{ $now.minus({ days: 1 }).toISODate() }}"
+        }
+      },
+      "name": "Get GA4 Data",
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 1,
+      "position": [
+        460,
+        100
+      ],
+      "credentials": {
+        "googleAnalyticsOAuth2": {
+          "id": "ga4-cred",
+          "name": "Google Analytics Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/googleads/v11/customers/{{ $secrets.GOOGLE_ADS_CUSTOMER_ID }}/googleAds:searchStream",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "SELECT campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE segments.date DURING LAST_7_DAYS"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $secrets.GOOGLE_ADS_API_KEY }}"
+            }
+          ]
+        }
+      },
+      "name": "Get Google Ads Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v17.0/{{ $secrets.META_ADS_ACCOUNT_ID }}/insights?fields=campaign_name,impressions,clicks,spend,conversions&time_range={'since':'{{ $now.minus({ days: 7 }).toISODate() }}','until':'{{ $now.minus({ days: 1 }).toISODate() }}'}&access_token={{ $secrets.META_ACCESS_TOKEN }}",
+        "responseFormat": "json"
+      },
+      "name": "Get Meta Ads Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "value": {
+          "ga4_data": "{{ $node['Get GA4 Data'].json['rows'] }}",
+          "google_ads_data": "{{ $node['Get Google Ads Data'].json['results'] }}",
+          "meta_ads_data": "{{ $node['Get Meta Ads Data'].json['data'] }}",
+          "report_date": "{{ $now.toISODate() }}"
+        }
+      },
+      "name": "Format Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Format Data'].json['ga4_data'] }}",
+              "operation": "not_empty"
+            },
+            {
+              "value1": "{{ $node['Format Data'].json['google_ads_data'] }}",
+              "operation": "not_empty"
+            },
+            {
+              "value1": "{{ $node['Format Data'].json['meta_ads_data'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": "Analyze the following marketing data from Google Analytics, Google Ads, and Meta Ads for the last 7 days. Generate a concise summary (150-200 words) highlighting key metrics (e.g., sessions, clicks, impressions, conversions, cost, ROI), trends, and actionable insights. Compare performance across platforms and suggest optimizations. Return JSON: {summary: ''}. Data: GA4: {{ JSON.stringify($node['Format Data'].json['ga4_data']) }}, Google Ads: {{ JSON.stringify($node['Format Data'].json['google_ads_data']) }}, Meta Ads: {{ JSON.stringify($node['Format Data'].json['meta_ads_data']) }}.",
+        "maxTokens": 500,
+        "jsonOutput": true
+      },
+      "name": "Generate Summary",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Generate Summary'].json['summary'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Summary",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Raw Data",
+        "columns": {
+          "mappingMode": "auto",
+          "value": "{{ $node['Format Data'].json }}"
+        }
+      },
+      "name": "Save Raw Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Summaries",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "report_date": "{{ $node['Format Data'].json['report_date'] }}",
+            "summary": "{{ $node['Generate Summary'].json['summary'] }}",
+            "status": "Success",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "report_date",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "summary",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "status",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Save Summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "waitAmount": 1,
+        "waitUnit": "seconds"
+      },
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "{{ $secrets.SLACK_CHANNEL }}",
+        "text": "Weekly marketing report generated for {{ $node['Format Data'].json['report_date'] }}. View it here: {{ $secrets.GOOGLE_SHEETS_URL }}",
+        "additionalFields": {
+          "attachments": [
+            {
+              "title": "Weekly Marketing Summary",
+              "text": "{{ $node['Generate Summary'].json['summary'] }}"
+            }
+          ]
+        }
+      },
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Errors",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "report_date": "{{ $node['Format Data'].json['report_date'] || 'unknown' }}",
+            "error": "Failed to fetch data or generate summary",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "report_date",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1340,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Weekly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get GA4 Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Google Ads Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Meta Ads Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GA4 Data": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Google Ads Data": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Meta Ads Data": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data": {
+      "main": [
+        [
+          {
+            "node": "Check Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save Raw Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Summary": {
+      "main": [
+        [
+          {
+            "node": "Check Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Summary": {
+      "main": [
+        [
+          {
+            "node": "Save Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Raw Data": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Summary": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Notify Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": true,
+  "meta": {
+    "tags": [
+      "Analytics",
+      "Reporting",
+      "Automation"
+    ],
+    "integrations": [
+      "Google Analytics",
+      "Google Ads",
+      "Meta Ads",
+      "OpenAI",
+      "Google Sheets",
+      "Slack"
+    ],
+    "notes": "Ensure compliance with Google, Meta, OpenAI, and data protection regulations (e.g., GDPR, CCPA). Verify API credentials and data accuracy before sharing reports. Configure API keys securely in n8n Credentials."
+  }
+}

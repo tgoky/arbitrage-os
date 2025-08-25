@@ -1,0 +1,563 @@
+{
+  "name": "AI Review Response Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": "webhook",
+        "webhookUri": "{{ $secrets.N8N_WEBHOOK_URI }}",
+        "authentication": "none",
+        "httpMethod": "POST",
+        "path": "review-trigger",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{ $json['platform'] }}",
+              "operation": "equal",
+              "value2": "google"
+            }
+          ]
+        }
+      },
+      "name": "Check Google Review",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{ $json['platform'] }}",
+              "operation": "equal",
+              "value2": "yelp"
+            }
+          ]
+        }
+      },
+      "name": "Check Yelp Review",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "review",
+        "operation": "get",
+        "accountId": "{{ $json['accountId'] }}",
+        "locationId": "{{ $json['locationId'] }}",
+        "reviewId": "{{ $json['reviewId'] }}"
+      },
+      "name": "Get Google Review",
+      "type": "n8n-nodes-base.googleBusinessProfile",
+      "typeVersion": 1,
+      "position": [
+        680,
+        100
+      ],
+      "credentials": {
+        "googleBusinessProfileOAuth2Api": {
+          "id": "gmb-cred",
+          "name": "Google Business Profile Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.yelp.com/v3/businesses/{{ $json['businessId'] }}/reviews",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $secrets.YELP_API_KEY }}"
+            }
+          ]
+        }
+      },
+      "name": "Get Yelp Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "value": {
+          "platform": "{{ $json['platform'] }}",
+          "review_id": "{{ $json['platform'] === 'google' ? $node['Get Google Review'].json['name'].split('/').pop() : $node['Get Yelp Review'].json['reviews'][0]['id'] }}",
+          "review_text": "{{ $json['platform'] === 'google' ? $node['Get Google Review'].json['comment'] : $node['Get Yelp Review'].json['reviews'][0]['text'] }}",
+          "star_rating": "{{ $json['platform'] === 'google' ? $node['Get Google Review'].json['starRating'] : $node['Get Yelp Review'].json['reviews'][0]['rating'] }}"
+        }
+      },
+      "name": "Format Review",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": "Analyze the following review and generate a professional, empathetic response. Use a friendly tone, thank the customer, address their concerns or praise, and align with brand values. If negative (star_rating < 4), offer a resolution. Keep under 200 characters. Return JSON: {response: ''}. Review: {{ $node['Format Review'].json['review_text'] }}. Star Rating: {{ $node['Format Review'].json['star_rating'] }}.",
+        "maxTokens": 100,
+        "jsonOutput": true
+      },
+      "name": "Generate Response",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "condition": {
+          "conditions": [
+            {
+              "value1": "{{ $node['Generate Response'].json['response'] }}",
+              "operation": "not_empty"
+            }
+          ]
+        }
+      },
+      "name": "Check Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "review",
+        "operation": "createReply",
+        "accountId": "{{ $json['accountId'] }}",
+        "locationId": "{{ $json['locationId'] }}",
+        "reviewId": "{{ $json['reviewId'] }}",
+        "comment": "{{ $node['Generate Response'].json['response'] }}"
+      },
+      "name": "Post Google Reply",
+      "type": "n8n-nodes-base.googleBusinessProfile",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        100
+      ],
+      "executeOnce": false,
+      "continueOnFail": true,
+      "credentials": {
+        "googleBusinessProfileOAuth2Api": {
+          "id": "gmb-cred",
+          "name": "Google Business Profile Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.yelp.com/v3/businesses/{{ $json['businessId'] }}/reviews/{{ $node['Format Review'].json['review_id'] }}/response",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "{{ $node['Generate Response'].json['response'] }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $secrets.YELP_API_KEY }}"
+            }
+          ]
+        }
+      },
+      "name": "Post Yelp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        500
+      ],
+      "executeOnce": false,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "waitAmount": 1,
+        "waitUnit": "seconds"
+      },
+      "name": "Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Responses",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "platform": "{{ $node['Format Review'].json['platform'] }}",
+            "review_id": "{{ $node['Format Review'].json['review_id'] }}",
+            "review_text": "{{ $node['Format Review'].json['review_text'] }}",
+            "star_rating": "{{ $node['Format Review'].json['star_rating'] }}",
+            "response": "{{ $node['Generate Response'].json['response'] }}",
+            "status": "Success",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "platform",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "review_id",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "review_text",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "star_rating",
+              "type": "number",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "response",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "status",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log Success",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2000,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "{{ $secrets.SLACK_CHANNEL }}",
+        "text": "Review response posted successfully on {{ $node['Format Review'].json['platform'] }} for review ID {{ $node['Format Review'].json['review_id'] }} at {{ $now }}."
+      },
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        300
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ $secrets.GOOGLE_SHEETS_DOCUMENT_ID }}",
+        "sheetName": "Errors",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "platform": "{{ $node['Format Review'].json['platform'] || 'unknown' }}",
+            "review_id": "{{ $node['Format Review'].json['review_id'] || 'unknown' }}",
+            "error": "Failed to generate or post response",
+            "timestamp": "{{ $now }}"
+          },
+          "schema": [
+            {
+              "id": "platform",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "review_id",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "timestamp",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        700
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets-cred",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Google Review",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Yelp Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Google Review": {
+      "main": [
+        [
+          {
+            "node": "Get Google Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Check Yelp Review": {
+      "main": [
+        [
+          {
+            "node": "Get Yelp Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get Google Review": {
+      "main": [
+        [
+          {
+            "node": "Format Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Yelp Review": {
+      "main": [
+        [
+          {
+            "node": "Format Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Review": {
+      "main": [
+        [
+          {
+            "node": "Generate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Response": {
+      "main": [
+        [
+          {
+            "node": "Check Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Response": {
+      "main": [
+        [
+          {
+            "node": "Post Google Reply",
+            "type": "main",
+            "index": 0,
+            "condition": "{{ $node['Format Review'].json['platform'] === 'google' }}"
+          },
+          {
+            "node": "Post Yelp Reply",
+            "type": "main",
+            "index": 0,
+            "condition": "{{ $node['Format Review'].json['platform'] === 'yelp' }}"
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Google Reply": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Yelp Reply": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Success": {
+      "main": [
+        [
+          {
+            "node": "Notify Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": true,
+  "meta": {
+    "tags": [
+      "Review Management",
+      "AI Responses",
+      "Reputation Management"
+    ],
+    "integrations": [
+      "Google My Business",
+      "Yelp API",
+      "OpenAI",
+      "Google Sheets",
+      "Slack"
+    ],
+    "notes": "Ensure compliance with Google, Yelp, and data protection regulations (e.g., GDPR, CCPA). Human review of AI-generated responses is recommended to avoid legal risks (e.g., HIPAA). Configure API keys securely in n8n Credentials."
+  }
+}
