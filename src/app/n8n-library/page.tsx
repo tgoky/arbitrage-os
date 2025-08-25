@@ -8,9 +8,7 @@ import {
   ThunderboltOutlined,
   FilterOutlined,
   TagsOutlined,
-  FireOutlined,
-  StarOutlined,
-  ClockCircleOutlined 
+  FireOutlined
 } from '@ant-design/icons';
 import { 
   Input, 
@@ -27,14 +25,15 @@ import {
   Tooltip,
   Collapse
 } from 'antd';
+import { useNavigation } from '@refinedev/core';
+import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
 
-
-
+// Import JSON templates
 import whatsappChatbot from './jsons/whatsapp-ai-chatbot.json';
 import weeklyReports from './jsons/weekly-marketing-report.json';
 import youtubeCreator from './jsons/long-form-youtube-ai-gen.json';
@@ -55,8 +54,6 @@ interface WorkflowTemplate {
   jsonTemplate: object;
 }
 
-
-
 const workflowTemplates = [
   {
     id: 1,
@@ -76,7 +73,7 @@ const workflowTemplates = [
     downloads: 89,
     demoUrl: "#",
     integrations: ["Gmail", "OpenAI"],
-        jsonTemplate: gmailAutoLabel
+    jsonTemplate: gmailAutoLabel
   },
   {
     id: 3,
@@ -86,7 +83,7 @@ const workflowTemplates = [
     downloads: 76,
     demoUrl: "#",
     integrations: ["YouTube API", "OpenAI", "Fliki"],
-        jsonTemplate: youtubeCreator
+    jsonTemplate: youtubeCreator
   },
   {
     id: 4,
@@ -96,7 +93,7 @@ const workflowTemplates = [
     downloads: 118,
     demoUrl: "#",
     integrations: ["Zoom", "OpenAI", "Google Sheets"],
-        jsonTemplate: salesCallAnalyzer
+    jsonTemplate: salesCallAnalyzer
   },
   {
     id: 5,
@@ -106,7 +103,7 @@ const workflowTemplates = [
     downloads: 95,
     demoUrl: "#",
     integrations: ["WhatsApp Business API", "OpenAI"],
-        jsonTemplate: whatsappChatbot
+    jsonTemplate: whatsappChatbot
   },
   {
     id: 6,
@@ -116,7 +113,7 @@ const workflowTemplates = [
     downloads: 64,
     demoUrl: "#",
     integrations: ["Google My Business", "Yelp API", "OpenAI"],
-        jsonTemplate: reviewResponse
+    jsonTemplate: reviewResponse
   },
   {
     id: 7,
@@ -126,7 +123,7 @@ const workflowTemplates = [
     downloads: 132,
     demoUrl: "#",
     integrations: ["Twitter API", "Facebook API", "OpenAI"],
-        jsonTemplate: socialMediaGen
+    jsonTemplate: socialMediaGen
   },
   {
     id: 8,
@@ -136,7 +133,7 @@ const workflowTemplates = [
     downloads: 107,
     demoUrl: "#",
     integrations: ["Google Analytics", "Meta API", "Google Sheets"],
-        jsonTemplate: weeklyReports
+    jsonTemplate: weeklyReports
   }
 ];
 
@@ -155,14 +152,14 @@ const N8nWorkflowLibrary = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('popular');
+  const { show } = useNavigation();
+  const router = useRouter();
 
   const filteredWorkflows = workflowTemplates.filter(workflow => {
-    // Search term filter
     const matchesSearch = 
       workflow.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
       workflow.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Tag filter
     const matchesTags = selectedTags.length === 0 || 
       selectedTags.every(tag => workflow.tags.includes(tag));
     
@@ -175,21 +172,19 @@ const N8nWorkflowLibrary = () => {
     return 0;
   });
 
-
   const downloadWorkflow = (workflow: WorkflowTemplate) => {
-  const blob = new Blob([JSON.stringify(workflow.jsonTemplate, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${workflow.title.replace(/\s+/g, '-').toLowerCase()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
+    const blob = new Blob([JSON.stringify(workflow.jsonTemplate, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${workflow.title.replace(/\s+/g, '-').toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
   
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -264,25 +259,22 @@ const N8nWorkflowLibrary = () => {
               className="h-full flex flex-col"
               actions={[
                 <Tooltip title="View Demo" key="demo">
-                  <Button 
-                    type="text" 
-                    icon={<EyeOutlined />} 
-                    href={workflow.demoUrl}
-                    target="_blank"
-                  >
-                    Demo
-                  </Button>
+                <Button 
+  type="text" 
+  icon={<EyeOutlined />}
+  onClick={() => router.push(`/n8n-library/show/${workflow.id}`)}
+>
+  Demo
+</Button>
                 </Tooltip>,
                 <Tooltip title="Download Template" key="download">
-                  <Tooltip title="Download Template" key="download">
-  <Button 
-    type="text" 
-    icon={<DownloadOutlined />}
-    onClick={() => downloadWorkflow(workflow)}
-  >
-    Download
-  </Button>
-</Tooltip>
+                  <Button 
+                    type="text" 
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadWorkflow(workflow)}
+                  >
+                    Download
+                  </Button>
                 </Tooltip>
               ]}
             >
@@ -333,14 +325,13 @@ const N8nWorkflowLibrary = () => {
                   style={{ backgroundColor: '#1890ff' }} 
                 />
                 <Button 
-               
-  type="primary" 
-  icon={<DownloadOutlined />}
-  className="ml-2"
-  onClick={() => downloadWorkflow(workflow)}
->
-  Get Template
-</Button>
+                  type="primary" 
+                  icon={<DownloadOutlined />}
+                  className="ml-2"
+                  onClick={() => downloadWorkflow(workflow)}
+                >
+                  Get Template
+                </Button>
               </div>
             </Card>
           </Col>
@@ -358,7 +349,7 @@ const N8nWorkflowLibrary = () => {
 
       <div className="text-center">
         <Title level={4} className="mb-2">
-          Cant find what you need?
+          Cannot find what you need?
         </Title>
         <Text type="secondary" className="block mb-4">
           Request a custom workflow or browse our community templates
