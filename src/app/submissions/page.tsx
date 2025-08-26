@@ -56,6 +56,7 @@ import { useColdEmail } from '../../app/hooks/useColdEmail';
 import { useSavedOffers } from '../../app/hooks/useOfferCreator';
 import { useAdWriter } from '../../app/hooks/useAdWriter';
 import { useN8nWorkflowBuilder } from '../hooks/useN8nWorkflowBuilder';
+import { useRouter } from 'next/router';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -79,7 +80,9 @@ interface WorkItem {
   rawData: any; // Original data from the respective hook
 }
 
-const IntegratedWorkDashboard = ({ workspaceId }: { workspaceId?: string }) => {
+const IntegratedWorkDashboard = () => {
+  const router = useRouter();
+  const workspaceId = router.query.workspaceId as string | undefined;
   // State
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');

@@ -48,7 +48,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent reasoning', 'Document upload support', 'Safety-conscious'],
     cons: ['Less creative than some alternatives', 'Limited image generation'],
     tags: ['Anthropic', 'Reasoning', 'Safety'],
-    imageUrl: 'https://logo.clearbit.com/claude.ai'
+    imageUrl: 'https://logo.clearbit.com/anthropic.com'
   },
   {
     id: 'gemini',
