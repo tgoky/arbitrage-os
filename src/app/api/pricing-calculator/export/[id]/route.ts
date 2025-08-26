@@ -1,4 +1,4 @@
-// app/api/pricing-calculator/export/[id]/route.ts
+// app/api/pricing-calculator/export/[id]/route.ts - PRODUCTION VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
@@ -25,74 +25,32 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'complete';
 
-    // ✅ Try multiple locations to find the calculation
+    // Fetch pricing calculation from deliverables table
     const { prisma } = await import('@/lib/prisma');
     
-    let calculation = null;
-    let calculationData = null;
-
-    // First try: Look in deliverables table
-    try {
-      calculation = await prisma.deliverable.findFirst({
-        where: {
-          id: calculationId,
-          user_id: user.id,
-          type: 'pricing_calculation'
-        }
-      });
-      
-      if (calculation) {
-        calculationData = {
-          calculation: JSON.parse(calculation.content),
-          metadata: calculation.metadata
-        };
+    const calculation = await prisma.deliverable.findFirst({
+      where: {
+        id: calculationId,
+        user_id: user.id,
+        type: 'pricing_calculation'
       }
-    } catch (e) {
-      console.log('Not found in deliverables, trying alternatives...');
-    }
-
-    // Second try: Look in pricing_calculations table (if it exists)
+    });
+    
     if (!calculation) {
-      try {
-        const pricingCalc = await prisma.pricingCalculation.findFirst({
-          where: {
-            id: calculationId,
-            userId: user.id
-          }
-        });
-        
-        if (pricingCalc) {
-          calculationData = {
-            calculation: pricingCalc,
-            metadata: {
-              clientName: pricingCalc.clientName,
-              projectName: pricingCalc.projectName,
-              industry: pricingCalc.industry,
-              annualSavings: pricingCalc.annualSavings
-            }
-          };
-        }
-      } catch (e) {
-        console.log('No pricing_calculations table found');
-      }
-    }
-
-    // Third try: Mock data for testing (remove this in production)
-    if (!calculationData) {
-      console.log('Using mock data for calculation:', calculationId);
-      calculationData = createMockCalculation(calculationId);
-    }
-
-    if (!calculationData) {
       return NextResponse.json(
         { error: 'Pricing calculation not found' },
         { status: 404 }
       );
     }
 
+    const calculationData = {
+      calculation: JSON.parse(calculation.content),
+      metadata: calculation.metadata as any
+    };
+
     let content = '';
     let filename = '';
-    const clientName = calculationData.metadata?.clientName || 'client';
+    const clientName = (calculationData.metadata?.clientName as string) || 'client';
 
     switch (format) {
       case 'proposal':
@@ -128,142 +86,6 @@ export async function GET(
   }
 }
 
-// ✅ Mock data for testing - remove in production
-function createMockCalculation(calculationId: string) {
-  return {
-    calculation: {
-      calculations: {
-        recommendedRetainer: 5000,
-        hourlyRate: 150,
-        roiPercentage: 300,
-        netSavings: 3333,
-        totalProjectValue: 30000
-      },
-      strategy: {
-        recommendedApproach: "Value-based pricing with monthly retainer model focusing on measurable ROI and long-term partnership.",
-        valueProposition: "Our AI automation services will save your company $100,000 annually while requiring only a $5,000 monthly investment, delivering a 300% ROI.",
-        negotiationTactics: [
-          "Lead with ROI calculation and concrete savings",
-          "Offer performance guarantees to reduce client risk",
-          "Present multiple pricing models for flexibility"
-        ],
-        phases: [
-          {
-            phase: "Discovery & Assessment",
-            duration: "2 weeks",
-            payment: 2500,
-            deliverables: ["Process audit", "ROI analysis", "Implementation roadmap"],
-            milestones: ["Stakeholder interviews completed", "Current state assessment delivered"]
-          },
-          {
-            phase: "Implementation",
-            duration: "6-8 weeks", 
-            payment: 15000,
-            deliverables: ["AI solution deployment", "Staff training", "Documentation"],
-            milestones: ["System integration complete", "User acceptance testing passed"]
-          }
-        ]
-      },
-      benchmarks: {
-        industry: "Technology",
-        averageRoiMultiple: 5.2,
-        typicalHourlyRates: {
-          junior: 75,
-          mid: 150,
-          senior: 250,
-          expert: 400
-        }
-      },
-      objectionHandling: [
-        {
-          objection: "This seems expensive for our budget",
-          response: "I understand budget concerns. Let's look at the ROI: you'll save $8,333 monthly for a $5,000 investment, netting $3,333 in monthly savings. The solution pays for itself in the first month.",
-          alternatives: ["Phased implementation", "Performance-based pricing", "Reduced scope option"]
-        },
-        {
-          objection: "We need to think about it",
-          response: "That's completely reasonable. While you're considering, keep in mind that delaying costs you $8,333 per month in unrealized savings. Would a pilot project help reduce the decision risk?",
-          alternatives: ["30-day pilot program", "Money-back guarantee", "Phased rollout"]
-        }
-      ],
-      proposalTemplate: `Dear ${calculationData?.metadata?.clientName || '[Client Name]'},
-
-We're excited to present this AI automation solution that will transform your operations and deliver substantial returns.
-
-EXECUTIVE SUMMARY
-Your company is currently losing $100,000 annually due to inefficient processes that could be automated. Our solution will recover these losses while requiring only a $5,000 monthly investment.
-
-THE OPPORTUNITY
-• Annual savings potential: $100,000
-• Monthly net benefit: $3,333
-• Return on investment: 300%
-• Payback period: Less than 1 month
-
-OUR SOLUTION
-We'll implement custom AI automation that addresses your specific challenges:
-- Process optimization and workflow automation  
-- Data analysis and reporting automation
-- Customer service chatbot integration
-- Predictive analytics for better decision making
-
-INVESTMENT & RETURNS
-Monthly Investment: $5,000
-Monthly Savings: $8,333  
-Monthly Net Benefit: $3,333
-Annual ROI: 300%
-
-This isn't an expense - it's a profit-generating investment that pays for itself immediately.
-
-NEXT STEPS
-This proposal is valid for 30 days. We can begin implementation within 2 weeks of signed agreement.
-
-Best regards,
-[Your Name]`,
-      pricingPresentationSlides: [
-        {
-          title: "The Problem: $100K Annual Loss",
-          content: "Your current manual processes are costing you $8,333 every month in inefficiencies and missed opportunities.",
-          visualType: "text"
-        },
-        {
-          title: "Our Solution: AI-Powered Automation",
-          content: "Custom automation that eliminates bottlenecks, reduces errors, and accelerates your business processes.",
-          visualType: "bullet"
-        },
-        {
-          title: "Investment vs. Returns",
-          content: "Monthly Investment: $5,000\nMonthly Savings: $8,333\nNet Monthly Benefit: $3,333\nAnnual ROI: 300%",
-          visualType: "table"
-        }
-      ],
-      contractClauses: [
-        {
-          clause: "Service Scope",
-          purpose: "Define deliverables and boundaries",
-          template: "Provider will deliver AI automation solution including process analysis, custom development, deployment, and 90-day support period."
-        },
-        {
-          clause: "Payment Terms", 
-          purpose: "Establish payment schedule",
-          template: "Monthly retainer of $5,000 due within 15 days of invoice. First payment due upon contract signing."
-        },
-        {
-          clause: "Performance Guarantee",
-          purpose: "Reduce client risk",
-          template: "If documented savings don't exceed $6,000 monthly within 90 days, client receives full refund of payments made."
-        }
-      ]
-    },
-    metadata: {
-      clientName: "Test Client",
-      projectName: "AI Automation Project", 
-      industry: "Technology",
-      annualSavings: 100000
-    }
-  };
-}
-
-// Keep your existing HTML generation functions here...
 function generateProposalHTML(calculationData: any): string {
   const calc = calculationData.calculation;
   const metadata = calculationData.metadata;
@@ -285,7 +107,7 @@ function generateProposalHTML(calculationData: any): string {
 </head>
 <body>
     <div class="header">
-        <h1>🎯 AI Services Pricing Proposal</h1>
+        <h1>Pricing Proposal</h1>
         <h2>${metadata?.clientName || 'Valued Client'}</h2>
         <p>Generated on ${new Date().toLocaleDateString()}</p>
     </div>
@@ -295,18 +117,18 @@ ${calc.proposalTemplate || 'Proposal content not available'}
     </div>
 
     <div class="roi-highlight">
-        <h3>💰 Investment Summary</h3>
+        <h3>Investment Summary</h3>
         <table class="pricing-table">
             <tr><th>Metric</th><th>Amount</th></tr>
-            <tr><td>Annual Savings Potential</td><td>$${metadata?.annualSavings?.toLocaleString() || '100,000'}</td></tr>
-            <tr><td>Monthly Investment</td><td>$${calc.calculations?.recommendedRetainer?.toLocaleString() || '5,000'}</td></tr>
-            <tr><td>Monthly Net Benefit</td><td>$${calc.calculations?.netSavings?.toLocaleString() || '3,333'}</td></tr>
-            <tr style="background: #d4edda; font-weight: bold;"><td>ROI Percentage</td><td>${calc.calculations?.roiPercentage?.toFixed(0) || '300'}%</td></tr>
+            <tr><td>Annual Savings Potential</td><td>$${metadata?.annualSavings?.toLocaleString() || 'TBD'}</td></tr>
+            <tr><td>Monthly Investment</td><td>$${calc.calculations?.recommendedRetainer?.toLocaleString() || 'TBD'}</td></tr>
+            <tr><td>Monthly Net Benefit</td><td>$${calc.calculations?.netSavings?.toLocaleString() || 'TBD'}</td></tr>
+            <tr style="background: #d4edda; font-weight: bold;"><td>ROI Percentage</td><td>${calc.calculations?.roiPercentage?.toFixed(0) || 'TBD'}%</td></tr>
         </table>
     </div>
 
     <div class="highlight">
-        <p><strong>⚡ Next Steps:</strong> This proposal is valid for 30 days. We're ready to begin immediately upon agreement.</p>
+        <p><strong>Next Steps:</strong> This proposal is valid for 30 days. We're ready to begin immediately upon agreement.</p>
     </div>
 </body>
 </html>
@@ -331,7 +153,7 @@ function generatePresentationHTML(calculationData: any): string {
 </head>
 <body>
     <div style="text-align: center; margin-bottom: 30px; background: white; padding: 20px; border-radius: 10px;">
-        <h1>📊 Pricing Presentation</h1>
+        <h1>Pricing Presentation</h1>
         <h2>${calculationData.metadata?.clientName || 'Client Name'}</h2>
         <p>Generated on ${new Date().toLocaleDateString()}</p>
     </div>
@@ -346,10 +168,10 @@ function generatePresentationHTML(calculationData: any): string {
     
     <div class="slide">
         <div class="slide-number">Final Slide</div>
-        <h2>🚀 Ready to Move Forward?</h2>
+        <h2>Ready to Move Forward?</h2>
         <div class="slide-content">
             <p>This investment will deliver immediate returns and transform your business operations.</p>
-            <p><strong>Monthly ROI: ${calculationData.calculation.calculations?.roiPercentage || '300'}%</strong></p>
+            <p><strong>Monthly ROI: ${calculationData.calculation.calculations?.roiPercentage || 'TBD'}%</strong></p>
             <p>Let's schedule a follow-up meeting to discuss implementation!</p>
         </div>
     </div>
@@ -377,21 +199,21 @@ function generateContractHTML(calculationData: any): string {
 </head>
 <body>
     <div class="header">
-        <h1>📋 Service Agreement</h1>
+        <h1>Service Agreement</h1>
         <h2>${calculationData.metadata?.clientName || 'Client Name'}</h2>
         <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
     </div>
     
-    <h2>📋 Project Overview</h2>
+    <h2>Project Overview</h2>
     <div class="terms">
         <p><strong>Project:</strong> ${calculationData.metadata?.projectName || 'AI Services Implementation'}</p>
-        <p><strong>Monthly Investment:</strong> $${calculationData.calculation.calculations?.recommendedRetainer?.toLocaleString() || '5,000'}</p>
-        <p><strong>Expected Monthly Savings:</strong> $${(calculationData.calculation.calculations?.recommendedRetainer + calculationData.calculation.calculations?.netSavings)?.toLocaleString() || '8,333'}</p>
-        <p><strong>Expected ROI:</strong> ${calculationData.calculation.calculations?.roiPercentage?.toFixed(0) || '300'}%</p>
+        <p><strong>Monthly Investment:</strong> $${calculationData.calculation.calculations?.recommendedRetainer?.toLocaleString() || 'TBD'}</p>
+        <p><strong>Expected Monthly Savings:</strong> $${(calculationData.calculation.calculations?.recommendedRetainer + calculationData.calculation.calculations?.netSavings)?.toLocaleString() || 'TBD'}</p>
+        <p><strong>Expected ROI:</strong> ${calculationData.calculation.calculations?.roiPercentage?.toFixed(0) || 'TBD'}%</p>
         <p><strong>Industry:</strong> ${calculationData.metadata?.industry || 'Technology'}</p>
     </div>
 
-    <h2>📜 Contract Terms & Conditions</h2>
+    <h2>Contract Terms & Conditions</h2>
     ${clauses.map((clause: any, index: number) => `
         <div class="clause">
             <div class="clause-title">${index + 1}. ${clause.clause}</div>
@@ -400,16 +222,16 @@ function generateContractHTML(calculationData: any): string {
         </div>
     `).join('')}
 
-    <h2>💳 Payment & Terms</h2>
+    <h2>Payment & Terms</h2>
     <div class="terms">
-        <p><strong>Monthly Retainer:</strong> $${calculationData.calculation.calculations?.recommendedRetainer?.toLocaleString() || '5,000'}</p>
+        <p><strong>Monthly Retainer:</strong> $${calculationData.calculation.calculations?.recommendedRetainer?.toLocaleString() || 'TBD'}</p>
         <p><strong>Payment Terms:</strong> Monthly retainer due within 15 days of invoice</p>
         <p><strong>Start Date:</strong> Services commence upon signed agreement and first payment</p>
         <p><strong>Contract Duration:</strong> 12 months with 30-day termination notice</p>
     </div>
 
     <div class="signature-section">
-        <h2>✍️ Signatures</h2>
+        <h2>Signatures</h2>
         <div style="display: flex; justify-content: space-between; margin-top: 40px;">
             <div style="width: 45%;">
                 <p><strong>Client Representative:</strong></p>
@@ -432,20 +254,142 @@ function generateContractHTML(calculationData: any): string {
 }
 
 function generateCompletePackageHTML(calculationData: any): string {
-  // Use your existing generateCompletePackageHTML function here
-  // Just make sure it handles the calculationData structure properly
+  const calc = calculationData.calculation;
+  const metadata = calculationData.metadata;
+  
   return `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Complete Pricing Package</title>
-    <style>body { font-family: Arial, sans-serif; padding: 20px; }</style>
+    <title>Complete Pricing Package - ${metadata?.clientName || 'Client'}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 40px; text-align: center; border-radius: 12px; margin-bottom: 40px; }
+        .section { background: white; margin: 30px 0; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0; }
+        .pricing-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; text-align: center; }
+        .pricing-card.recommended { border-color: #28a745; background: #f8fff8; }
+        .price { font-size: 2em; font-weight: bold; color: #007bff; margin: 10px 0; }
+        .roi-highlight { background: #d4edda; border-left: 5px solid #28a745; padding: 20px; margin: 20px 0; }
+        .strategy-section { background: #fff3cd; border-left: 5px solid #ffc107; padding: 20px; margin: 20px 0; }
+        .benchmark-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .benchmark-table th, .benchmark-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .benchmark-table th { background: #007bff; color: white; }
+        h1, h2, h3 { color: #2c3e50; }
+        .phase { border-left: 4px solid #17a2b8; padding-left: 20px; margin: 20px 0; }
+        .objection-item { background: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <h1>🎯 Complete Pricing Package</h1>
-    <p>This would contain all the comprehensive pricing information...</p>
-    <p><strong>Client:</strong> ${calculationData.metadata?.clientName || 'Test Client'}</p>
-    <p><strong>Monthly Retainer:</strong> $${calculationData.calculation.calculations?.recommendedRetainer?.toLocaleString() || 'N/A'}</p>
+    <div class="header">
+        <h1>Complete Pricing Package</h1>
+        <h2>${metadata?.clientName || 'Valued Client'}</h2>
+        <p>Comprehensive Pricing Strategy & Implementation Guide</p>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
+    </div>
+
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <div class="roi-highlight">
+            <h3>Key Metrics</h3>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h4>Annual Savings</h4>
+                    <div class="price">$${metadata?.annualSavings?.toLocaleString() || 'TBD'}</div>
+                </div>
+                <div class="pricing-card recommended">
+                    <h4>Monthly Investment</h4>
+                    <div class="price">$${calc.calculations?.recommendedRetainer?.toLocaleString() || 'TBD'}</div>
+                </div>
+                <div class="pricing-card">
+                    <h4>Monthly Net Benefit</h4>
+                    <div class="price">$${calc.calculations?.netSavings?.toLocaleString() || 'TBD'}</div>
+                </div>
+                <div class="pricing-card">
+                    <h4>ROI Percentage</h4>
+                    <div class="price">${calc.calculations?.roiPercentage?.toFixed(0) || 'TBD'}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Pricing Strategy</h2>
+        <div class="strategy-section">
+            <h3>Recommended Approach</h3>
+            <p>${calc.strategy?.recommendedApproach || 'Strategy not available'}</p>
+            
+            <h3>Value Proposition</h3>
+            <p>${calc.strategy?.valueProposition || 'Value proposition not available'}</p>
+            
+            <h3>Negotiation Tactics</h3>
+            <ul>
+                ${calc.strategy?.negotiationTactics?.map((tactic: string) => `<li>${tactic}</li>`).join('') || '<li>Not available</li>'}
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Implementation Phases</h2>
+        ${calc.strategy?.phases?.map((phase: any) => `
+            <div class="phase">
+                <h3>${phase.phase}</h3>
+                <p><strong>Duration:</strong> ${phase.duration}</p>
+                <p><strong>Payment:</strong> $${phase.payment?.toLocaleString() || 'TBD'}</p>
+                <p><strong>Deliverables:</strong></p>
+                <ul>
+                    ${phase.deliverables?.map((deliverable: string) => `<li>${deliverable}</li>`).join('') || '<li>Not specified</li>'}
+                </ul>
+                <p><strong>Milestones:</strong></p>
+                <ul>
+                    ${phase.milestones?.map((milestone: string) => `<li>${milestone}</li>`).join('') || '<li>Not specified</li>'}
+                </ul>
+            </div>
+        `).join('') || '<p>Phases not available</p>'}
+    </div>
+
+    <div class="section">
+        <h2>Industry Benchmarks</h2>
+        <table class="benchmark-table">
+            <tr><th>Experience Level</th><th>Typical Hourly Rate</th></tr>
+            <tr><td>Junior</td><td>$${calc.benchmarks?.typicalHourlyRates?.junior || 75}</td></tr>
+            <tr><td>Mid-Level</td><td>$${calc.benchmarks?.typicalHourlyRates?.mid || 125}</td></tr>
+            <tr><td>Senior</td><td>$${calc.benchmarks?.typicalHourlyRates?.senior || 200}</td></tr>
+            <tr><td>Expert</td><td>$${calc.benchmarks?.typicalHourlyRates?.expert || 350}</td></tr>
+        </table>
+        
+        <p><strong>Industry:</strong> ${calc.benchmarks?.industry || 'Not specified'}</p>
+        <p><strong>Average ROI Multiple:</strong> ${calc.benchmarks?.averageRoiMultiple || 'Not available'}x</p>
+    </div>
+
+    <div class="section">
+        <h2>Objection Handling</h2>
+        ${calc.objectionHandling?.map((objection: any) => `
+            <div class="objection-item">
+                <h4>Objection: "${objection.objection}"</h4>
+                <p><strong>Response:</strong> ${objection.response}</p>
+                <p><strong>Alternatives:</strong></p>
+                <ul>
+                    ${objection.alternatives?.map((alt: string) => `<li>${alt}</li>`).join('') || '<li>Not specified</li>'}
+                </ul>
+            </div>
+        `).join('') || '<p>Objection handling not available</p>'}
+    </div>
+
+    <div class="section">
+        <h2>Next Steps</h2>
+        <ol>
+            <li>Review this comprehensive pricing package</li>
+            <li>Schedule a follow-up meeting to discuss any questions</li>
+            <li>Finalize contract terms and implementation timeline</li>
+            <li>Begin project kickoff within 2 weeks of agreement</li>
+        </ol>
+        
+        <div class="roi-highlight">
+            <p><strong>This proposal is valid for 30 days.</strong> We're ready to begin immediately upon agreement and deliver the promised ROI.</p>
+        </div>
+    </div>
 </body>
-</html>`;
+</html>
+  `;
 }
