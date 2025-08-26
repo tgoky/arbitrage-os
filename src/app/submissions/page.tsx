@@ -56,7 +56,7 @@ import { useColdEmail } from '../../app/hooks/useColdEmail';
 import { useSavedOffers } from '../../app/hooks/useOfferCreator';
 import { useAdWriter } from '../../app/hooks/useAdWriter';
 import { useN8nWorkflowBuilder } from '../hooks/useN8nWorkflowBuilder';
-import { useRouter } from 'next/router';
+import { useParsed } from "@refinedev/core";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -81,8 +81,10 @@ interface WorkItem {
 }
 
 const IntegratedWorkDashboard = () => {
-  const router = useRouter();
-  const workspaceId = router.query.workspaceId as string | undefined;
+   const { params, id } = useParsed();
+  // const router = useRouter();
+  // const workspaceId = router.query.workspaceId as string | undefined;
+  const workspaceId = params?.workspaceId as string | undefined;
   // State
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');

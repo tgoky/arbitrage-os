@@ -46,7 +46,9 @@ import {
   Progress
 } from 'antd';
 
-import { useRouter } from 'next/router';
+// import { useRouter } from "next/navigation";
+import { useParsed } from "@refinedev/core";
+import { useSearchParams } from "next/navigation";
 
 
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
@@ -64,11 +66,21 @@ const { TabPane } = Tabs;
 const N8nWorkflowCreator = () => {
   const [form] = Form.useForm();
   const [activeStep, setActiveStep] = useState(0);
+  const { params, id } = useParsed();
+
+  const searchParams = useSearchParams();
   // const [workflowName, setWorkflowName] = useState('');
   // const [workflowDescription, setWorkflowDescription] = useState('');
-    const router = useRouter();
-  const workspaceId = router.query.workspaceId as string | undefined;
-  const initialMode = (router.query.mode as 'create' | 'list') || 'create';
+    // const router = useRouter();
+  // const workspaceId = router.query.workspaceId as string | undefined;
+  // const initialMode = (router.query.mode as 'create' | 'list') || 'create';
+    const workspaceId = (params?.workspaceId as string) || searchParams?.get('workspaceId') || undefined;
+  
+  // Get mode from route params or search params
+  const initialMode = (params?.mode as 'create' | 'list') || 
+                     (searchParams?.get('mode') as 'create' | 'list') || 
+                     'create';
+                     
   const [triggerType, setTriggerType] = useState('schedule');
   const [customIntegrations, setCustomIntegrations] = useState<string[]>([]);
   const [isCustomIntegrationModalVisible, setIsCustomIntegrationModalVisible] = useState(false);
