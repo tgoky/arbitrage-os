@@ -70,7 +70,7 @@ export default function FeedbackPage() {
 
       // Initialize Messenger Widget
       win.Featurebase("boot", {
-     appId: process.env.NEXT_PUBLIC_ARBITRAGEOS_APP_ID , // Replace with your actual appId from dashboard
+       appId: process.env.NEXT_PUBLIC_ARBITRAGEOS_APP_ID , // Replace with your actual appId from dashboard
         email: identity?.email || '',
         userId: identity?.id || '',
         createdAt: new Date().toISOString(), // User's account creation date
@@ -240,11 +240,11 @@ export default function FeedbackPage() {
 
             {/* Widget Options */}
             <div className="mb-8 space-y-4">
-              {/* Feature Request Button */}
+              {/* Single Feedback Button */}
               <button
                 data-featurebase-feedback
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                onClick={() => handleFeedbackWidget('Feature Request')}
+                onClick={() => handleFeedbackWidget()}
                 disabled={!identity || isLoading || !feedbackWidgetReady}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,25 +255,7 @@ export default function FeedbackPage() {
                     d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                   />
                 </svg>
-                {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Request New Feature'}
-              </button>
-
-              {/* General Feedback Button */}
-              <button
-                data-featurebase-feedback
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                onClick={() => handleFeedbackWidget('Feedbacks')}
-                disabled={!identity || isLoading || !feedbackWidgetReady}
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Give General Feedback'}
+                {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Submit Feedback or Leave a Feature Request!'}
               </button>
 
               {/* Messenger Button */}
@@ -341,22 +323,22 @@ export default function FeedbackPage() {
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                     <h4 className={`font-medium mb-2 ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
-                      Feature Request
+                      Quick Feedback
                     </h4>
                     <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      Request new features or improvements with detailed descriptions.
-                    </p>
-                  </div>
-                  <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                    <h4 className={`font-medium mb-2 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
-                      General Feedback
-                    </h4>
-                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      Share general thoughts, suggestions, or bug reports.
+                      Submit feedback quickly with our popup form and screenshot tools.
                     </p>
                   </div>
                   <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                     <h4 className={`font-medium mb-2 ${isDark ? 'text-green-300' : 'text-green-600'}`}>
+                      Chat Support
+                    </h4>
+                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Get live support and submit feedback through our messenger interface.
+                    </p>
+                  </div>
+                  <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <h4 className={`font-medium mb-2 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
                       Full Portal
                     </h4>
                     <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
