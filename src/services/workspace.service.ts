@@ -6,6 +6,7 @@ export interface Workspace {
   slug: string;
   description?: string | null;
   color: string | null;
+  image?: string | null; // Added image support
   created_at: Date | null;
   updated_at: Date | null;
 }
@@ -14,6 +15,7 @@ export interface CreateWorkspaceInput {
   name: string;
   description?: string;
   color?: string;
+  image?: string; // Added image support (could be URL or base64)
 }
 
 class WorkspaceService {
@@ -119,6 +121,24 @@ class WorkspaceService {
       console.error('❌ Error fetching workspace with deliverables:', error);
       throw error;
     }
+  }
+
+  // Helper method for image upload if needed
+  async uploadImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const result = await response.json();
+    return result.url; // Assuming your upload API returns { url: string }
   }
 }
 

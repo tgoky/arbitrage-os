@@ -3,13 +3,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { workspaceService, type Workspace } from '@/services/workspace.service';
+import { workspaceService, type Workspace, type CreateWorkspaceInput } from '@/services/workspace.service';
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
   isLoading: boolean;
   createWorkspace: (name: string, description?: string) => Promise<Workspace>;
+  updateWorkspace: (id: string, updates: Partial<CreateWorkspaceInput>) => Promise<Workspace>;
   switchWorkspace: (slug: string) => void;
   deleteWorkspace: (id: string) => Promise<void>;
   refreshWorkspaces: () => Promise<void>;
@@ -68,6 +69,29 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateWorkspace = async (id: string, updates: Partial<CreateWorkspaceInput>): Promise<Workspace> => {
+    try {
+      const updatedWorkspace = await workspaceService.updateWorkspace(id, updates);
+      
+      // Update local state - replace the workspace in the array
+      setWorkspaces(prev => 
+        prev.map(workspace => 
+          workspace.id === id ? updatedWorkspace : workspace
+        )
+      );
+      
+      // Update current workspace if it's the one being updated
+      if (currentWorkspace?.id === id) {
+        setCurrentWorkspace(updatedWorkspace);
+      }
+      
+      return updatedWorkspace;
+    } catch (error) {
+      console.error('Error updating workspace:', error);
+      throw error;
+    }
+  };
+
   const switchWorkspace = (slug: string) => {
     const workspace = workspaces.find(w => w.slug === slug);
     if (workspace) {
@@ -111,6 +135,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         workspaces,
         isLoading,
         createWorkspace,
+        updateWorkspace, // Added here
         switchWorkspace,
         deleteWorkspace,
         refreshWorkspaces

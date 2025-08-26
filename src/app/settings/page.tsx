@@ -2,19 +2,17 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useList, useUpdate, useNotification } from '@refinedev/core';
-import { Grid, Card, Form, Input, Button, Switch, Tag, Divider, Avatar, Upload, message } from 'antd';
+import { Grid, Card, Form, Input, Button, Tag, Divider, Avatar, Upload, message } from 'antd';
 import { 
   SaveOutlined, 
   ArrowLeftOutlined, 
   UploadOutlined, 
-  EditOutlined,
   DeleteOutlined,
   PlusOutlined 
 } from '@ant-design/icons';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkspace } from '../hooks/useWorkspace';
-import { Workspace } from '../../services/workspace.service';
+import { workspaceService } from '../../services/workspace.service';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
@@ -24,16 +22,15 @@ const WorkspaceSettings = () => {
   const router = useRouter();
   const screens = useBreakpoint();
   const { theme } = useTheme();
-  const { open } = useNotification();
   const workspaceSlug = params?.workspace as string;
   
-  // Use the workspace hook
+  // Use the workspace hook - now includes updateWorkspace
   const { 
     currentWorkspace, 
     workspaces, 
     isLoading, 
+    updateWorkspace, // This is now available from the hook
     switchWorkspace,
-    
     deleteWorkspace
   } = useWorkspace();
 
@@ -53,34 +50,51 @@ const WorkspaceSettings = () => {
         color: currentWorkspace.color || '#3B82F6',
       });
       
-      // Set logo preview if exists (mock implementation)
-      if (currentWorkspace.color) {
-        setLogoPreview(null); // In a real app, you'd set this to the actual logo URL
+      // Set logo preview if exists
+      if (currentWorkspace.image) {
+        setLogoPreview(currentWorkspace.image);
       }
     }
   }, [currentWorkspace, form]);
 
-  // Handle form submission
-  // const handleSubmit = async (values: any) => {
-  //   if (!currentWorkspace) return;
+  // Handle form submission with image upload
+  const handleSubmit = async (values: any) => {
+    if (!currentWorkspace) return;
     
-  //   setIsSubmitting(true);
-  //   try {
-  //     await updateWorkspace(currentWorkspace.id, values);
-  //     open?.({
-  //       type: 'success',
-  //       message: 'Workspace updated successfully',
-  //     });
-  //   } catch (error) {
-  //     open?.({
-  //       type: 'error',
-  //       message: 'Error updating workspace',
-  //       description: 'There was a problem updating your workspace. Please try again.',
-  //     });
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
+    setIsSubmitting(true);
+    try {
+      let imageUrl = currentWorkspace.image; // Keep existing image by default
+      
+      // If a new logo file was selected, upload it first
+      if (logoFile) {
+        try {
+          imageUrl = await workspaceService.uploadImage(logoFile);
+          message.success('Image uploaded successfully!');
+        } catch (uploadError) {
+          console.error('Image upload failed:', uploadError);
+          message.error('Failed to upload image. Saving other changes...');
+          // Continue with update even if image upload fails
+        }
+      }
+      
+      // Update workspace with new values (including image if uploaded)
+      await updateWorkspace(currentWorkspace.id, {
+        ...values,
+        image: imageUrl
+      });
+      
+      message.success('Workspace updated successfully!');
+      
+      // Clear the logo file state since it's now saved
+      setLogoFile(null);
+      
+    } catch (error) {
+      console.error('Error updating workspace:', error);
+      message.error('Error updating workspace. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Handle workspace deletion
   const handleDelete = async () => {
@@ -93,17 +107,11 @@ const WorkspaceSettings = () => {
     setIsDeleting(true);
     try {
       await deleteWorkspace(currentWorkspace.id);
-      open?.({
-        type: 'success',
-        message: 'Workspace deleted successfully',
-      });
+      message.success('Workspace deleted successfully!');
       router.push('/');
     } catch (error) {
-      open?.({
-        type: 'error',
-        message: 'Error deleting workspace',
-        description: 'There was a problem deleting your workspace. Please try again.',
-      });
+      console.error('Error deleting workspace:', error);
+      message.error('Error deleting workspace. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -125,13 +133,24 @@ const WorkspaceSettings = () => {
       return;
     }
     
-    // Set file and preview
+    // Set file for later upload
     setLogoFile(file);
+    
+    // Create preview
     const reader = new FileReader();
     reader.onload = () => {
       setLogoPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+    
+    message.info('Image selected. Click "Save Changes" to upload and save.');
+  };
+
+  // Remove logo
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    message.info('Logo will be removed when you save changes.');
   };
 
   if (isLoading) {
@@ -192,7 +211,7 @@ const WorkspaceSettings = () => {
               <Form
                 form={form}
                 layout="vertical"
-               
+                onFinish={handleSubmit}
                 initialValues={{
                   name: currentWorkspace.name,
                   description: currentWorkspace.description || '',
@@ -206,7 +225,7 @@ const WorkspaceSettings = () => {
                       <div className="relative">
                         <Avatar
                           size={64}
-                          src={logoPreview}
+                          src={logoPreview || currentWorkspace.image}
                           style={{ 
                             backgroundColor: form.getFieldValue('color') || currentWorkspace.color,
                             fontSize: '24px',
@@ -230,8 +249,25 @@ const WorkspaceSettings = () => {
                           />
                         </Upload>
                       </div>
-                      <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                        JPG, PNG or GIF. Max 2MB.
+                      <div className="flex flex-col gap-2">
+                        <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          JPG, PNG or GIF. Max 2MB.
+                        </div>
+                        {(logoPreview || currentWorkspace.image) && (
+                          <Button 
+                            size="small" 
+                            danger 
+                            type="link"
+                            onClick={handleRemoveLogo}
+                          >
+                            Remove Logo
+                          </Button>
+                        )}
+                        {logoFile && (
+                          <div className="text-xs text-amber-600">
+                            New image selected - save to upload
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
