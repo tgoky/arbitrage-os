@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useState, useEffect } from 'react';
 import { useGetIdentity } from "@refinedev/core";
 import { useTheme } from "../../providers/ThemeProvider";
@@ -30,7 +28,7 @@ export default function FeedbackPage() {
   const { theme } = useTheme();
   const { data: identity, isLoading } = useGetIdentity<UserIdentity>();
 
-  // Initialize both widgets when component mounts
+  // Initialize widgets when component mounts
   useEffect(() => {
     const initializeWidgets = () => {
       console.log('Initializing FeatureBase widgets...');
@@ -42,13 +40,14 @@ export default function FeedbackPage() {
         };
       }
 
-      // Initialize Feedback Widget (simple, no appId required)
+      // Initialize Feedback Widget
       win.Featurebase(
         'initialize_feedback_widget',
         {
-          organization: 'arbitrageos',
+          organization: 'growai',
           theme: theme === 'dark' ? 'dark' : 'light',
           email: identity?.email || '',
+          name: identity?.name || '',
           locale: 'en',
         },
         (err: any, callback: any) => {
@@ -69,33 +68,44 @@ export default function FeedbackPage() {
         }
       );
 
-      // // Initialize Messenger Widget (requires appId and proper setup)
-      // // Uncomment and configure this if you want the messenger functionality
-      
-      win.Featurebase(
-        'boot',
-        {
-          organization: 'arbitrageos',
-          appId: '68ad0000ca0725a8ad587523', // Replace with your real appId
-          theme: theme === 'dark' ? 'dark' : 'light',
-          email: identity?.email || '',
-          locale: 'en',
-          // userHash: 'YOUR_USER_HASH', // Required if identity verification is enabled
+      // Initialize Messenger Widget
+      win.Featurebase("boot", {
+     appId: process.env.NEXT_PUBLIC_ARBITRAGEOS_APP_ID , // Replace with your actual appId from dashboard
+        email: identity?.email || '',
+        userId: identity?.id || '',
+        createdAt: new Date().toISOString(), // User's account creation date
+        theme: theme === 'dark' ? 'dark' : 'light',
+        language: 'en',
+        // Add custom user data
+        userName: identity?.name || '',
+        userAvatar: identity?.avatar || '',
+        // userHash: 'YOUR_USER_HASH', // Add if identity verification is enabled
+      });
+
+      // Initialize Embedded Portal
+      win.Featurebase("init_embed_widget", {
+        organization: "growai",
+        embedOptions: {
+          path: "/",
+          filters: "",
         },
-        (err: any, callback: any) => {
-          console.log('Messenger callback:', { err, callback });
-          
-          if (err) {
-            console.error('Messenger error:', err);
+        stylingOptions: {
+          theme: theme === 'dark' ? 'dark' : 'light',
+          hideMenu: false,
+          hideLogo: false,
+        },
+        user: {
+          metadata: {
+            userId: identity?.id || '',
+            userName: identity?.name || '',
+            userEmail: identity?.email || '',
           }
-          
-          if (callback?.action === 'widgetReady') {
-            console.log('Messenger ready!');
-            setMessengerReady(true);
-          }
-        }
-      );
-      
+        },
+        locale: "en"
+      });
+
+      // Set messenger as ready immediately since boot doesn't have callbacks like initialize_feedback_widget
+      setMessengerReady(true);
     };
 
     // Initialize when user data is available
@@ -105,7 +115,7 @@ export default function FeedbackPage() {
     }
   }, [identity, theme, isLoading]);
 
-  const handleFeedbackWidget = () => {
+  const handleFeedbackWidget = (boardType?: string) => {
     if (!identity) {
       alert('Please log in to submit feedback');
       return;
@@ -116,8 +126,18 @@ export default function FeedbackPage() {
       return;
     }
 
-    // The data-featurebase-feedback attribute will handle this automatically
-    console.log('Opening feedback widget...');
+    // If specific board is requested, use postMessage to specify it
+    if (boardType) {
+      window.postMessage({
+        target: 'FeaturebaseWidget',
+        data: { 
+          action: 'openFeedbackWidget',
+          setBoard: boardType
+        }
+      });
+    }
+
+    console.log('Opening feedback widget with board:', boardType || 'default');
   };
 
   const handleMessenger = () => {
@@ -127,23 +147,23 @@ export default function FeedbackPage() {
     }
 
     if (!messengerReady) {
-      alert('Messenger is not available. Make sure it is properly configured.');
+      alert('Messenger is still loading. Please wait a moment.');
       return;
     }
 
     try {
       (window as any).Featurebase('show');
-      console.log('Opening messenger...');
+      console.log('Opening FeatureBase messenger...');
     } catch (e) {
       console.error('Failed to open messenger:', e);
-      alert('Messenger is not properly configured.');
+      alert('Failed to open messenger. Please try again.');
     }
   };
 
   const isDark = theme === 'dark';
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-black-900' : 'bg-black-50'}`}>
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Head>
         <title>Feedback & Feature Requests | Your App</title>
         <meta name="description" content="Share your feedback and feature requests to help us improve our product." />
@@ -171,28 +191,23 @@ export default function FeedbackPage() {
           {/* Main Content */}
           <div className="lg:w-2/3">
             {/* Tabs */}
-       <div
-  className={`flex mb-6 border-b ${
-    isDark ? "border-gray-700" : "border-gray-200"
-  }`}
->
-  {["New", "Top", "Trending"].map((tab) => (
-    <button
-      key={tab}
-      className={`px-4 py-2 font-medium transition-colors ${
-        activeTab === tab.toLowerCase()
-          ? "text-blue-600 border-b-2 border-blue-600"
-          : isDark
-            ? "text-gray-400 hover:text-gray-300"
-            : "text-gray-500 hover:text-gray-700"
-      }`}
-      onClick={() => setActiveTab(tab.toLowerCase())}
-    >
-      {tab}
-    </button>
-  ))}
-</div>
-
+            <div className={`flex border-b mb-6 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              {['New', 'Top', 'Trending'].map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-2 font-medium ${
+                    activeTab === tab.toLowerCase() 
+                      ? `text-blue-600 border-b-2 border-blue-600` 
+                      : isDark 
+                        ? 'text-gray-400 hover:text-gray-300' 
+                        : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => setActiveTab(tab.toLowerCase())}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
             {/* Search */}
             <div className="mb-6">
@@ -225,11 +240,11 @@ export default function FeedbackPage() {
 
             {/* Widget Options */}
             <div className="mb-8 space-y-4">
-              {/* Feedback Widget Button */}
+              {/* Feature Request Button */}
               <button
                 data-featurebase-feedback
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                onClick={handleFeedbackWidget}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={() => handleFeedbackWidget('Feature Request')}
                 disabled={!identity || isLoading || !feedbackWidgetReady}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,10 +252,28 @@ export default function FeedbackPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                   />
                 </svg>
-                {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Submit Feedback (Form)'}
+                {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Request New Feature'}
+              </button>
+
+              {/* General Feedback Button */}
+              <button
+                data-featurebase-feedback
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={() => handleFeedbackWidget('Feedbacks')}
+                disabled={!identity || isLoading || !feedbackWidgetReady}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Give General Feedback'}
               </button>
 
               {/* Messenger Button */}
@@ -252,24 +285,7 @@ export default function FeedbackPage() {
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                {!identity ? 'Login Required' : !messengerReady ? 'Messenger Not Available' : 'Open Chat Support'}
-              </button>
-
-              {/* Alternative style button */}
-              <button
-                data-featurebase-feedback
-                onClick={handleFeedbackWidget}
-                className={`w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors ${
-                  isDark 
-                    ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300 hover:bg-gray-800' 
-                    : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-                disabled={!identity || isLoading || !feedbackWidgetReady}
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                </svg>
-                <span className="font-medium">Quick Feedback</span>
+                {!identity ? 'Login Required' : !messengerReady ? 'Loading Messenger...' : 'Open Chat Support'}
               </button>
             </div>
 
@@ -290,42 +306,61 @@ export default function FeedbackPage() {
                   )}
                   <div>
                     <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                       {identity.name || 'User'}
+                      Logged in as: {identity.name || 'User'}
                     </h3>
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {identity.email}
                     </p>
-                    {/* <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                      <span>Feedback Widget: {feedbackWidgetReady ? '✅ Ready' : '⏳ Loading...'}</span>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                      <span>Feedback Widget: {feedbackWidgetReady ? 'Ready' : 'Loading...'}</span>
                       <br />
-                      <span>Messenger: {messengerReady ? '✅ Ready' : '❌ Not configured'}</span>
-                    </div> */}
+                      <span>Messenger: {messengerReady ? 'Ready' : 'Loading...'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Embedded FeatureBase Portal */}
+            <div className="mb-8">
+              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Full Feedback Portal
+              </h3>
+              <div 
+                data-featurebase-embed 
+                className={`min-h-[600px] border rounded-lg ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
+              ></div>
+            </div>
+
             {/* Info Cards */}
             <div className="space-y-6">
               <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <h3 className={`text-lg font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  Two Ways to Give Feedback
+                  Three Ways to Give Feedback
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                    <h4 className={`font-medium mb-2 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
-                      Feedback Form
+                    <h4 className={`font-medium mb-2 ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      Feature Request
                     </h4>
                     <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      Quick popup form for submitting feature requests and bug reports with screenshot tools.
+                      Request new features or improvements with detailed descriptions.
+                    </p>
+                  </div>
+                  <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <h4 className={`font-medium mb-2 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
+                      General Feedback
+                    </h4>
+                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Share general thoughts, suggestions, or bug reports.
                     </p>
                   </div>
                   <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                     <h4 className={`font-medium mb-2 ${isDark ? 'text-green-300' : 'text-green-600'}`}>
-                      Chat Support
+                      Full Portal
                     </h4>
                     <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      Full messenger interface for detailed conversations, support, and feedback.
+                      Browse all feedback, vote on existing requests, and see our roadmap.
                     </p>
                   </div>
                 </div>
@@ -367,7 +402,7 @@ export default function FeedbackPage() {
               {/* Quick feedback button in sidebar */}
               <button
                 data-featurebase-feedback
-                onClick={handleFeedbackWidget}
+                onClick={() => handleFeedbackWidget()}
                 className={`w-full p-3 rounded-lg border-2 border-dashed transition-colors ${
                   isDark 
                     ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300' 
