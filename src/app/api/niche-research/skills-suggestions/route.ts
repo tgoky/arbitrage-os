@@ -1,4 +1,4 @@
-// app/api/niche-research/skills/route.ts - COMPLETE BUG-FREE VERSION
+// app/api/niche-research/skills/route.ts - FIXED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -594,8 +594,10 @@ function generateSkillSuggestions(
     }
   });
 
-  // Remove duplicates and current skills
-  suggested = [...new Set(suggested)].filter(skill => 
+  // ✅ FIXED: Remove duplicates and current skills using ES5-compatible approach
+  const uniqueSuggested = suggested.filter((skill, index, arr) => 
+    arr.indexOf(skill) === index
+  ).filter(skill => 
     !currentSkills.some(cs => cs.toLowerCase() === skill.toLowerCase())
   );
 
@@ -603,10 +605,10 @@ function generateSkillSuggestions(
   const skillGaps = analyzeSkillGaps(currentSkills, primaryObjective, marketType);
 
   return {
-    suggested: suggested.slice(0, 10), // Top 10 suggestions
+    suggested: uniqueSuggested.slice(0, 10), // Top 10 suggestions
     skillGaps,
     strengths: identifyStrengths(currentSkills),
-    recommendations: generateSkillRecommendations(currentSkills, suggested, skillGaps),
+    recommendations: generateSkillRecommendations(currentSkills, uniqueSuggested, skillGaps),
     synergies: findSkillSynergies(currentSkills)
   };
 }

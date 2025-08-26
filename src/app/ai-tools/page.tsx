@@ -24,7 +24,6 @@ import {
   Typography,
   Space,
   Tag,
-  Divider,
   Empty,
   Row,
   Col,
@@ -48,7 +47,7 @@ const AIToolsDashboard = () => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Fix for Set iteration (using filter approach for compatibility)
+  // Extract unique categories and subcategories
   const categories = aiTools
     .map(tool => tool.category)
     .filter((value, index, self) => self.indexOf(value) === index);
@@ -57,7 +56,7 @@ const AIToolsDashboard = () => {
     .map(tool => tool.subcategory)
     .filter((value, index, self) => self.indexOf(value) === index);
 
-  // Modify your filteredTools logic to include favorites filter
+  // Filter tools based on search, category, subcategory, pricing, and favorites
   const filteredTools = aiTools.filter(tool => {
     const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tool.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,6 +68,7 @@ const AIToolsDashboard = () => {
     return matchesSearch && matchesCategory && matchesSubcategory && matchesPricing && matchesFavorites;
   });
 
+  // Sort tools by rating or name
   const sortedTools = [...filteredTools].sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
     return a.name.localeCompare(b.name);
@@ -238,7 +238,7 @@ const AIToolsDashboard = () => {
         </Space>
       </Card>
 
-      {/* Tools Grid - Changed to 3 per row (xl={8}) */}
+      {/* Tools Grid */}
       {sortedTools.length > 0 ? (
         <Row gutter={[24, 24]}>
           {sortedTools.map(tool => {
@@ -257,13 +257,13 @@ const AIToolsDashboard = () => {
                   }}
                   bodyStyle={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}
                   cover={
-                    <div style={{ height: 180, overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ height: 150, overflow: 'hidden', position: 'relative' }}>
                       <Image
                         alt={tool.name}
-                        src={tool.imageUrl || 'https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png'} // Use tool.imageUrl with fallback
-                        fallback="https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png"
+                        src={tool.imageUrl || 'https://via.placeholder.com/150?text=Logo'}
+                        fallback="https://via.placeholder.com/150?text=Logo"
                         preview={false}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }} // Changed to 'contain' for better logo display
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                       />
                       <Tag
                         color={getPricingColor(tool.pricing)}

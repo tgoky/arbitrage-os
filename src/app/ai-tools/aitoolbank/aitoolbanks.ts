@@ -500,22 +500,7 @@ export const aiTools: AITool[] = [
     imageUrl: 'https://logo.clearbit.com/canva.com'
   },
   // Code & Development AI
-  {
-    id: 'github-copilot',
-    name: 'GitHub Copilot',
-    description: 'AI-powered code completion and generation tool',
-    category: 'Code & Development',
-    subcategory: 'Code Generation',
-    url: 'https://github.com/features/copilot',
-    pricing: 'Paid',
-    rating: 4.6,
-    features: ['Code completion', 'Function generation', 'Documentation', 'Multi-language'],
-    useCase: 'Software development, code generation, productivity',
-    pros: ['Excellent code suggestions', 'Multi-language support', 'IDE integration'],
-    cons: ['Expensive', 'Requires GitHub', 'Can suggest incorrect code'],
-    tags: ['Code Generation', 'GitHub', 'IDE Integration'],
-    imageUrl: 'https://logo.clearbit.com/github.com'
-  },
+
   {
     id: 'cursor',
     name: 'Cursor',
@@ -710,22 +695,7 @@ export const aiTools: AITool[] = [
     tags: ['Voice Synthesis', 'Voice Cloning', 'Text-to-Speech', 'High Quality'],
     imageUrl: 'https://logo.clearbit.com/elevenlabs.io'
   },
-  {
-    id: 'murph-ai',
-    name: 'Murph AI',
-    description: 'AI voice generator with studio-quality voices',
-    category: 'Audio & Voice',
-    subcategory: 'Voice Synthesis',
-    url: 'https://murph.ai',
-    pricing: 'Freemium',
-    rating: 4.4,
-    features: ['Studio voices', 'Voice cloning', 'Audio editing', 'Collaboration'],
-    useCase: 'Podcasts, videos, presentations, voiceovers',
-    pros: ['Studio-quality voices', 'Easy to use', 'Good collaboration'],
-    cons: ['Limited free tier', 'Expensive', 'Voice selection'],
-    tags: ['Voice Synthesis', 'Studio Quality', 'Voiceovers'],
-    imageUrl: 'https://logo.clearbit.com/murph.ai'
-  },
+ 
   {
     id: 'play-ht',
     name: 'Play.ht',
@@ -842,38 +812,8 @@ export const aiTools: AITool[] = [
     tags: ['Academic Research', 'Literature Review', 'Synthesis'],
     imageUrl: 'https://logo.clearbit.com/elicit.org'
   },
-  {
-    id: 'tome',
-    name: 'Tome',
-    description: 'AI-powered presentation and storytelling platform',
-    category: 'Research & Analysis',
-    subcategory: 'Presentations',
-    url: 'https://tome.app',
-    pricing: 'Freemium',
-    rating: 4.2,
-    features: ['AI presentations', 'Storytelling', 'Visual generation', 'Collaboration'],
-    useCase: 'Presentations, storytelling, visual communication',
-    pros: ['Easy presentation creation', 'AI generation', 'Visual focus'],
-    cons: ['Limited customization', 'Newer platform'],
-    tags: ['Presentations', 'Storytelling', 'Visual Communication'],
-    imageUrl: 'https://logo.clearbit.com/tome.app'
-  },
-  {
-    id: 'gamma',
-    name: 'Gamma',
-    description: 'AI-powered presentation and document creation',
-    category: 'Research & Analysis',
-    subcategory: 'Presentations',
-    url: 'https://gamma.app',
-    pricing: 'Freemium',
-    rating: 4.4,
-    features: ['AI presentations', 'Document creation', 'Visual generation', 'Collaboration'],
-    useCase: 'Presentations, documents, reports, visual content',
-    pros: ['Easy creation', 'Good visuals', 'Collaboration'],
-    cons: ['Limited customization', 'Template-dependent', 'New platform'],
-    tags: ['Presentations', 'Documents', 'Visual Generation'],
-    imageUrl: 'https://logo.clearbit.com/gamma.app'
-  },
+
+
   {
     id: 'beautiful-ai',
     name: 'Beautiful.ai',
