@@ -46,10 +46,7 @@ import {
   Progress
 } from 'antd';
 
-// interface N8nWorkflowCreatorProps {
-//   workspaceId?: string;
-//   initialMode?: 'create' | 'list';
-// }
+import { useRouter } from 'next/router';
 
 
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
@@ -64,17 +61,14 @@ const { TextArea } = Input;
 const { TabPane } = Tabs;
 
 
-const N8nWorkflowCreator = ({ 
-  workspaceId,
-  initialMode = 'create' 
-}: {
-  workspaceId?: string;
-  initialMode?: 'create' | 'list';
-}) => {
+const N8nWorkflowCreator = () => {
   const [form] = Form.useForm();
   const [activeStep, setActiveStep] = useState(0);
   // const [workflowName, setWorkflowName] = useState('');
   // const [workflowDescription, setWorkflowDescription] = useState('');
+    const router = useRouter();
+  const workspaceId = router.query.workspaceId as string | undefined;
+  const initialMode = (router.query.mode as 'create' | 'list') || 'create';
   const [triggerType, setTriggerType] = useState('schedule');
   const [customIntegrations, setCustomIntegrations] = useState<string[]>([]);
   const [isCustomIntegrationModalVisible, setIsCustomIntegrationModalVisible] = useState(false);

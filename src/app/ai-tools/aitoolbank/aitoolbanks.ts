@@ -1,3 +1,4 @@
+// aitoolbank/aitoolbanks.ts
 export interface AITool {
   id: string;
   name: string;
@@ -31,7 +32,7 @@ export const aiTools: AITool[] = [
     pros: ['Most popular AI tool', 'Extensive knowledge', 'User-friendly interface'],
     cons: ['Limited to 2023 data', 'Can be expensive for heavy usage'],
     tags: ['OpenAI', 'GPT-4', 'Conversational'],
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/ChatGPT_logo.svg/1024px-ChatGPT_logo.svg.png'
+    imageUrl: 'https://logo.clearbit.com/openai.com'
   },
   {
     id: 'claude',
@@ -47,7 +48,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent reasoning', 'Document upload support', 'Safety-conscious'],
     cons: ['Less creative than some alternatives', 'Limited image generation'],
     tags: ['Anthropic', 'Reasoning', 'Safety'],
-    imageUrl: 'https://www.anthropic.com/images/claude-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/claude.ai'
   },
   {
     id: 'gemini',
@@ -63,7 +64,7 @@ export const aiTools: AITool[] = [
     pros: ['Real-time information', 'Google integration', 'Multimodal capabilities'],
     cons: ['Newer model', 'Limited third-party integrations'],
     tags: ['Google', 'Multimodal', 'Real-time'],
-    imageUrl: 'https://www.google.com/gemini/static/images/gemini-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/gemini.google.com'
   },
   {
     id: 'perplexity',
@@ -79,7 +80,7 @@ export const aiTools: AITool[] = [
     pros: ['Real-time information', 'Source citations', 'Free tier available'],
     cons: ['Limited creative capabilities', 'Search-focused only'],
     tags: ['Search', 'Citations', 'Real-time'],
-    imageUrl: 'https://www.perplexity.ai/static/images/perplexity-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/perplexity.ai'
   },
   {
     id: 'jasper',
@@ -95,7 +96,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent for marketing', 'Brand voice training', 'Templates'],
     cons: ['Expensive', 'Limited to content creation'],
     tags: ['Copywriting', 'Marketing', 'Brand Voice'],
-    imageUrl: 'https://www.jasper.ai/hubfs/Jasper%202022/Logos/Jasper%20Logo%20Primary%20Color%20RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/jasper.ai'
   },
   {
     id: 'copy-ai',
@@ -111,7 +112,7 @@ export const aiTools: AITool[] = [
     pros: ['Free tier available', 'Easy to use', 'Quick generation'],
     cons: ['Limited customization', 'Quality varies'],
     tags: ['Copywriting', 'Marketing', 'Quick Generation'],
-    imageUrl: 'https://www.copy.ai/hubfs/CopyAI_Logo_Black_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/copy.ai'
   },
   {
     id: 'writesonic',
@@ -127,7 +128,7 @@ export const aiTools: AITool[] = [
     pros: ['SEO-focused', 'Multiple content types', 'Affordable'],
     cons: ['Quality can be inconsistent', 'Limited advanced features'],
     tags: ['SEO', 'Content Marketing', 'Affordable'],
-    imageUrl: 'https://writesonic.com/assets/images/writesonic-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/writesonic.com'
   },
   {
     id: 'surfer',
@@ -143,7 +144,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent SEO insights', 'Content optimization', 'Data-driven'],
     cons: ['Expensive', 'SEO-focused only'],
     tags: ['SEO', 'Content Optimization', 'Keyword Research'],
-    imageUrl: 'https://surferseo.com/wp-content/uploads/2022/10/surfer-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/surferseo.com'
   },
   {
     id: 'grammarly',
@@ -159,7 +160,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent grammar checking', 'Writing suggestions', 'Browser integration'],
     cons: ['Expensive premium', 'Privacy concerns', 'Limited creative features'],
     tags: ['Grammar', 'Writing Assistant', 'Editing'],
-    imageUrl: 'https://www.grammarly.com/hubfs/Grammarly%20Logo%202022/Grammarly_Logo_RGB_Color.svg'
+    imageUrl: 'https://logo.clearbit.com/grammarly.com'
   },
   {
     id: 'hemingway',
@@ -175,7 +176,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent readability analysis', 'Clear suggestions', 'Free web version'],
     cons: ['Limited features', 'Basic AI', 'No advanced editing'],
     tags: ['Readability', 'Writing', 'Editing'],
-    imageUrl: 'https://hemingwayapp.com/img/hemingway-logo.png'
+    imageUrl: 'https://logo.clearbit.com/hemingwayapp.com'
   },
   {
     id: 'prowritingaid',
@@ -191,7 +192,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive analysis', 'Style suggestions', 'Multiple integrations'],
     cons: ['Complex interface', 'Expensive', 'Overwhelming features'],
     tags: ['Writing Analysis', 'Style Checking', 'Professional'],
-    imageUrl: 'https://prowritingaid.com/images/prowritingaid-logo.png'
+    imageUrl: 'https://logo.clearbit.com/prowritingaid.com'
   },
   {
     id: 'wordtune',
@@ -207,7 +208,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent rewriting', 'Tone adjustment', 'Easy to use'],
     cons: ['Limited free tier', 'Expensive', 'Browser-dependent'],
     tags: ['Text Rewriting', 'Tone Adjustment', 'Writing'],
-    imageUrl: 'https://www.wordtune.com/hubfs/Wordtune_Logo_RGB_FullColor.svg'
+    imageUrl: 'https://logo.clearbit.com/wordtune.com'
   },
   {
     id: 'rytr',
@@ -223,7 +224,7 @@ export const aiTools: AITool[] = [
     pros: ['Multiple content types', 'Good templates', 'Affordable'],
     cons: ['Quality varies', 'Limited customization', 'Basic features'],
     tags: ['Content Generation', 'Templates', 'Multiple Formats'],
-    imageUrl: 'https://rytr.me/img/logo.svg'
+    imageUrl: 'https://logo.clearbit.com/rytr.me'
   },
   {
     id: 'outreach',
@@ -239,7 +240,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive sales platform', 'Excellent analytics', 'Enterprise features'],
     cons: ['Very expensive', 'Complex setup', 'Enterprise-focused'],
     tags: ['Sales Automation', 'B2B', 'Enterprise'],
-    imageUrl: 'https://www.outreach.io/hubfs/Outreach%202022/Logos/Outreach_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/outreach.io'
   },
   {
     id: 'hubspot',
@@ -255,7 +256,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive platform', 'Excellent free tier', 'Great integrations'],
     cons: ['Can be expensive at scale', 'Complex for beginners'],
     tags: ['CRM', 'Marketing Automation', 'All-in-One'],
-    imageUrl: 'https://www.hubspot.com/hubfs/HubSpot_Logos/HSLogo_color.svg'
+    imageUrl: 'https://logo.clearbit.com/hubspot.com'
   },
   {
     id: 'mailchimp',
@@ -271,24 +272,9 @@ export const aiTools: AITool[] = [
     pros: ['User-friendly', 'Excellent free tier', 'Good automation'],
     cons: ['Limited advanced features', 'Can be expensive'],
     tags: ['Email Marketing', 'Automation', 'User-Friendly'],
-    imageUrl: 'https://mailchimp.com/wp-content/themes/mailchimp/public/images/logo/mailchimp-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/mailchimp.com'
   },
-  {
-    id: 'phrases',
-    name: 'Phrases',
-    description: 'AI-powered SEO content optimization and keyword research',
-    category: 'Sales & Marketing',
-    subcategory: 'SEO',
-    url: 'https://phrases.io',
-    pricing: 'Paid',
-    rating: 4.4,
-    features: ['Content optimization', 'Keyword research', 'SERP analysis', 'Content briefs'],
-    useCase: 'SEO content creation, keyword research, content optimization',
-    pros: ['Excellent SEO tools', 'Content optimization', 'Data-driven insights'],
-    cons: ['Expensive', 'SEO-focused only'],
-    tags: ['SEO', 'Content Optimization', 'Keyword Research'],
-    imageUrl: 'https://phrases.io/wp-content/uploads/2022/06/phrases-logo.svg'
-  },
+ 
   {
     id: 'salesforce',
     name: 'Salesforce Einstein',
@@ -303,7 +289,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive CRM', 'AI predictions', 'Enterprise features'],
     cons: ['Very expensive', 'Complex setup', 'Enterprise-focused'],
     tags: ['CRM', 'Enterprise', 'Predictive Analytics'],
-    imageUrl: 'https://www.salesforce.com/content/dam/web/en_us/www/images/logo/salesforce-logo.png'
+    imageUrl: 'https://logo.clearbit.com/salesforce.com'
   },
   {
     id: 'pipedrive',
@@ -319,7 +305,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy to use', 'Good pipeline management', 'AI insights'],
     cons: ['Limited features', 'Expensive', 'Basic AI'],
     tags: ['CRM', 'Pipeline Management', 'Sales'],
-    imageUrl: 'https://www.pipedrive.com/static/pipedrive-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/pipedrive.com'
   },
   {
     id: 'klaviyo',
@@ -335,7 +321,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent e-commerce integration', 'AI segmentation', 'Good analytics'],
     cons: ['Expensive', 'E-commerce focused', 'Complex setup'],
     tags: ['Email Marketing', 'E-commerce', 'SMS'],
-    imageUrl: 'https://www.klaviyo.com/wp-content/themes/klaviyo/assets/images/logo.svg'
+    imageUrl: 'https://logo.clearbit.com/klaviyo.com'
   },
   {
     id: 'convertkit',
@@ -351,7 +337,7 @@ export const aiTools: AITool[] = [
     pros: ['Creator-focused', 'Easy to use', 'Good automation'],
     cons: ['Limited features', 'Expensive', 'Basic AI'],
     tags: ['Email Marketing', 'Creators', 'Automation'],
-    imageUrl: 'https://convertkit.com/assets/images/logo/convertkit-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/convertkit.com'
   },
   {
     id: 'activecampaign',
@@ -367,7 +353,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive automation', 'Good CRM', 'AI insights'],
     cons: ['Complex setup', 'Expensive', 'Steep learning curve'],
     tags: ['Marketing Automation', 'CRM', 'Email Marketing'],
-    imageUrl: 'https://www.activecampaign.com/site/assets/images/logo/activecampaign-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/activecampaign.com'
   },
   {
     id: 'heygen',
@@ -383,7 +369,7 @@ export const aiTools: AITool[] = [
     pros: ['High-quality avatars', 'Voice cloning', 'Easy to use', 'Professional results'],
     cons: ['Expensive', 'Limited avatar customization', 'Watermark on free tier'],
     tags: ['Video Generation', 'AI Avatars', 'Voice Cloning', 'UGC'],
-    imageUrl: 'https://www.heygen.com/hubfs/HeyGen%202022/Logos/HeyGen_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/heygen.com'
   },
   {
     id: 'synthesia',
@@ -399,7 +385,7 @@ export const aiTools: AITool[] = [
     pros: ['High-quality avatars', 'Easy to use', 'Professional results'],
     cons: ['Expensive', 'Limited customization', 'Avatar-focused'],
     tags: ['Video Generation', 'AI Avatars', 'Training'],
-    imageUrl: 'https://www.synthesia.io/hubfs/Synthesia%202022/Logos/Synthesia_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/synthesia.io'
   },
   {
     id: 'pictory',
@@ -415,7 +401,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy content repurposing', 'Auto-captioning', 'Multiple formats'],
     cons: ['Limited creative control', 'Quality varies', 'Template-based'],
     tags: ['Video Generation', 'Content Repurposing', 'Social Media'],
-    imageUrl: 'https://pictory.ai/hubfs/Pictory%202022/Logos/Pictory_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/pictory.ai'
   },
   {
     id: 'lumen5',
@@ -431,7 +417,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy to use', 'Good templates', 'Free tier available'],
     cons: ['Limited customization', 'Template-dependent', 'Basic features'],
     tags: ['Video Generation', 'Text to Video', 'Social Media'],
-    imageUrl: 'https://lumen5.com/static/images/logo/lumen5-logo-color.svg'
+    imageUrl: 'https://logo.clearbit.com/lumen5.com'
   },
   {
     id: 'runway',
@@ -447,7 +433,7 @@ export const aiTools: AITool[] = [
     pros: ['Professional features', 'AI integration', 'Collaboration tools'],
     cons: ['Steep learning curve', 'Expensive', 'Complex'],
     tags: ['Video Editing', 'Motion Graphics', 'Professional'],
-    imageUrl: 'https://runwayml.com/images/runway-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/runwayml.com'
   },
   {
     id: 'capcut',
@@ -463,23 +449,7 @@ export const aiTools: AITool[] = [
     pros: ['Completely free', 'Easy to use', 'Good templates', 'AI effects'],
     cons: ['Limited advanced features', 'Mobile-focused', 'Watermark options'],
     tags: ['Video Editing', 'Free', 'Social Media', 'UGC'],
-    imageUrl: 'https://www.capcut.com/static/images/logo/capcut-logo.svg'
-  },
-  {
-    id: 'dall-e',
-    name: 'DALL-E',
-    description: 'OpenAI\'s AI image generation model',
-    category: 'Video & Visual',
-    subcategory: 'Image Generation',
-    url: 'https://openai.com/dall-e-2',
-    pricing: 'Paid',
-    rating: 4.5,
-    features: ['Image generation', 'Image editing', 'Variations', 'High quality'],
-    useCase: 'Marketing visuals, concept art, product mockups',
-    pros: ['High quality', 'Easy to use', 'Good editing tools'],
-    cons: ['Expensive', 'Limited artistic styles', 'OpenAI ecosystem'],
-    tags: ['OpenAI', 'Image Generation', 'Editing'],
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/DALL%C2%B7E_icon.svg/1200px-DALL%C2%B7E_icon.svg.png'
+    imageUrl: 'https://logo.clearbit.com/capcut.com'
   },
   {
     id: 'leonardo-ai',
@@ -495,7 +465,7 @@ export const aiTools: AITool[] = [
     pros: ['Custom model training', 'Commercial licensing', 'High quality'],
     cons: ['Complex for beginners', 'Training costs', 'Limited free tier'],
     tags: ['Image Generation', 'Custom Models', 'Commercial Use'],
-    imageUrl: 'https://leonardo.ai/wp-content/uploads/2022/10/leonardo-ai-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/leonardo.ai'
   },
   {
     id: 'stable-diffusion',
@@ -511,7 +481,7 @@ export const aiTools: AITool[] = [
     pros: ['Open source', 'Local deployment', 'Customizable', 'Free'],
     cons: ['Technical setup required', 'Hardware intensive', 'Steep learning curve'],
     tags: ['Image Generation', 'Open Source', 'Local Deployment'],
-    imageUrl: 'https://stability.ai/static/images/stability-ai-logo.png'
+    imageUrl: 'https://logo.clearbit.com/stability.ai'
   },
   {
     id: 'canva',
@@ -527,7 +497,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy to use', 'Extensive templates', 'AI features', 'Collaboration'],
     cons: ['Limited advanced features', 'Template-dependent', 'Can be expensive'],
     tags: ['Design', 'Templates', 'Collaboration', 'AI Design'],
-    imageUrl: 'https://www.canva.com/favicon.ico'
+    imageUrl: 'https://logo.clearbit.com/canva.com'
   },
   // Code & Development AI
   {
@@ -544,7 +514,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent code suggestions', 'Multi-language support', 'IDE integration'],
     cons: ['Expensive', 'Requires GitHub', 'Can suggest incorrect code'],
     tags: ['Code Generation', 'GitHub', 'IDE Integration'],
-    imageUrl: 'https://github.githubassets.com/images/modules/site/copilot/copilot-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/github.com'
   },
   {
     id: 'cursor',
@@ -560,7 +530,7 @@ export const aiTools: AITool[] = [
     pros: ['Built-in AI chat', 'VS Code compatible', 'Free tier'],
     cons: ['Newer tool', 'Limited features compared to VS Code'],
     tags: ['Code Editor', 'AI Chat', 'VS Code Compatible'],
-    imageUrl: 'https://cursor.sh/favicon.ico'
+    imageUrl: 'https://logo.clearbit.com/cursor.sh'
   },
   {
     id: 'replit',
@@ -576,7 +546,7 @@ export const aiTools: AITool[] = [
     pros: ['Free tier available', 'Easy collaboration', 'Built-in deployment'],
     cons: ['Limited resources on free tier', 'Internet dependent'],
     tags: ['Online IDE', 'Collaboration', 'Education'],
-    imageUrl: 'https://replit.com/public/images/logo.svg'
+    imageUrl: 'https://logo.clearbit.com/replit.com'
   },
   // Business & Productivity AI
   {
@@ -593,7 +563,7 @@ export const aiTools: AITool[] = [
     pros: ['Versatile workspace', 'Excellent AI features', 'Great collaboration'],
     cons: ['Can be complex', 'AI features are paid'],
     tags: ['Workspace', 'Collaboration', 'Documentation'],
-    imageUrl: 'https://www.notion.so/images/logo-dark.svg'
+    imageUrl: 'https://logo.clearbit.com/notion.so'
   },
   {
     id: 'clickup',
@@ -609,7 +579,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive features', 'Good free tier', 'Excellent automation'],
     cons: ['Can be overwhelming', 'Complex setup'],
     tags: ['Project Management', 'Automation', 'Team Collaboration'],
-    imageUrl: 'https://clickup.com/images/clickup-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/clickup.com'
   },
   {
     id: 'zapier',
@@ -625,7 +595,7 @@ export const aiTools: AITool[] = [
     pros: ['Extensive integrations', 'Powerful automation', 'AI assistance'],
     cons: ['Expensive for advanced features', 'Complex for beginners'],
     tags: ['Automation', 'Integrations', 'Workflows'],
-    imageUrl: 'https://zapier.com/images/zapier-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/zapier.com'
   },
   {
     id: 'make',
@@ -641,7 +611,7 @@ export const aiTools: AITool[] = [
     pros: ['Visual interface', 'Complex workflows', 'Good free tier'],
     cons: ['Steep learning curve', 'Can be expensive'],
     tags: ['Visual Automation', 'Complex Workflows', 'Data Processing'],
-    imageUrl: 'https://www.make.com/en/_nuxt/img/make-logo.3c3e3e0.svg'
+    imageUrl: 'https://logo.clearbit.com/make.com'
   },
   {
     id: 'asana',
@@ -657,7 +627,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent project management', 'Good collaboration', 'AI insights'],
     cons: ['Expensive', 'Complex for small teams', 'Limited AI features'],
     tags: ['Project Management', 'Collaboration', 'Workflow'],
-    imageUrl: 'https://asana.com/images/asana-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/asana.com'
   },
   {
     id: 'trello',
@@ -673,7 +643,7 @@ export const aiTools: AITool[] = [
     pros: ['Visual interface', 'Easy to use', 'Good integrations'],
     cons: ['Limited features', 'Basic AI', 'Can be expensive'],
     tags: ['Kanban', 'Visual Management', 'Collaboration'],
-    imageUrl: 'https://trello.com/assets/trello-logo-blue.svg'
+    imageUrl: 'https://logo.clearbit.com/trello.com'
   },
   {
     id: 'monday',
@@ -689,7 +659,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive platform', 'Good automation', 'Customizable'],
     cons: ['Expensive', 'Complex setup', 'Overwhelming features'],
     tags: ['Work OS', 'Collaboration', 'Automation'],
-    imageUrl: 'https://monday.com/static/img/monday-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/monday.com'
   },
   {
     id: 'slack',
@@ -705,7 +675,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent communication', 'Great integrations', 'AI search'],
     cons: ['Expensive', 'Can be distracting', 'Limited AI features'],
     tags: ['Communication', 'Collaboration', 'Integrations'],
-    imageUrl: 'https://slack.com/intl/en-gb/slack-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/slack.com'
   },
   {
     id: 'microsoft-teams',
@@ -721,7 +691,7 @@ export const aiTools: AITool[] = [
     pros: ['Good video conferencing', 'Office integration', 'AI features'],
     cons: ['Complex interface', 'Microsoft ecosystem', 'Limited customization'],
     tags: ['Video Conferencing', 'Collaboration', 'Microsoft'],
-    imageUrl: 'https://www.microsoft.com/en-us/microsoft-365/microsoft-teams/images/teams-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/teams.microsoft.com'
   },
   // Audio & Voice AI
   {
@@ -738,7 +708,7 @@ export const aiTools: AITool[] = [
     pros: ['Exceptional voice quality', 'Voice cloning', 'Multiple languages', 'API access'],
     cons: ['Expensive for high usage', 'Ethical concerns', 'Limited free tier'],
     tags: ['Voice Synthesis', 'Voice Cloning', 'Text-to-Speech', 'High Quality'],
-    imageUrl: 'https://elevenlabs.io/images/elevenlabs-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/elevenlabs.io'
   },
   {
     id: 'murph-ai',
@@ -754,7 +724,7 @@ export const aiTools: AITool[] = [
     pros: ['Studio-quality voices', 'Easy to use', 'Good collaboration'],
     cons: ['Limited free tier', 'Expensive', 'Voice selection'],
     tags: ['Voice Synthesis', 'Studio Quality', 'Voiceovers'],
-    imageUrl: 'https://murph.ai/images/murph-ai-logo.png'
+    imageUrl: 'https://logo.clearbit.com/murph.ai'
   },
   {
     id: 'play-ht',
@@ -770,7 +740,7 @@ export const aiTools: AITool[] = [
     pros: ['Natural-sounding voices', 'Voice cloning', 'Multiple formats'],
     cons: ['Limited free tier', 'Quality varies', 'Expensive'],
     tags: ['Voice Synthesis', 'Natural Voices', 'Audiobooks'],
-    imageUrl: 'https://play.ht/assets/images/play-ht-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/play.ht'
   },
   {
     id: 'descript',
@@ -786,7 +756,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent editing tools', 'AI voice features', 'Transcription', 'Easy to use'],
     cons: ['Expensive', 'Complex for beginners', 'Limited free tier'],
     tags: ['Audio Editing', 'AI Voice', 'Transcription', 'Video Editing'],
-    imageUrl: 'https://www.descript.com/hubfs/Descript%202022/Logos/Descript_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/descript.com'
   },
   {
     id: 'synthesia',
@@ -802,41 +772,11 @@ export const aiTools: AITool[] = [
     pros: ['High-quality avatars', 'Easy to use', 'Professional results'],
     cons: ['Expensive', 'Limited customization', 'Avatar-focused'],
     tags: ['Video Generation', 'AI Avatars', 'Training'],
-    imageUrl: 'https://www.synthesia.io/hubfs/Synthesia%202022/Logos/Synthesia_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/synthesia.io'
   },
   // UGC & Content Creation AI
-  {
-    id: 'influencer-ai',
-    name: 'Influencer AI',
-    description: 'AI-powered UGC content creation platform',
-    category: 'UGC & Content',
-    subcategory: 'Content Creation',
-    url: 'https://influencer.ai',
-    pricing: 'Paid',
-    rating: 4.3,
-    features: ['UGC generation', 'Content templates', 'Brand integration', 'Analytics'],
-    useCase: 'UGC campaigns, influencer marketing, brand content',
-    pros: ['UGC-focused', 'Brand integration', 'Analytics'],
-    cons: ['Expensive', 'Limited customization', 'New platform'],
-    tags: ['UGC', 'Content Creation', 'Influencer Marketing'],
-    imageUrl: 'https://influencer.ai/images/influencer-ai-logo.png'
-  },
-  {
-    id: 'content-ai',
-    name: 'Content AI',
-    description: 'AI-powered content creation for social media',
-    category: 'UGC & Content',
-    subcategory: 'Content Creation',
-    url: 'https://content.ai',
-    pricing: 'Freemium',
-    rating: 4.2,
-    features: ['Social media content', 'AI writing', 'Visual generation', 'Scheduling'],
-    useCase: 'Social media management, content creation, brand marketing',
-    pros: ['Social media focused', 'AI writing', 'Scheduling'],
-    cons: ['Limited features', 'Quality varies', 'Basic templates'],
-    tags: ['Social Media', 'Content Creation', 'AI Writing'],
-    imageUrl: 'https://content.ai/images/content-ai-logo.svg'
-  },
+
+
   {
     id: 'hootsuite',
     name: 'Hootsuite',
@@ -851,7 +791,7 @@ export const aiTools: AITool[] = [
     pros: ['Comprehensive platform', 'AI suggestions', 'Good analytics'],
     cons: ['Expensive', 'Complex setup', 'Limited AI features'],
     tags: ['Social Media', 'Management', 'Analytics'],
-    imageUrl: 'https://www.hootsuite.com/hubfs/Hootsuite%202022/Logos/Hootsuite_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/hootsuite.com'
   },
   {
     id: 'buffer',
@@ -867,7 +807,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy to use', 'AI optimization', 'Good collaboration'],
     cons: ['Limited features', 'Expensive', 'Basic AI'],
     tags: ['Social Media', 'Scheduling', 'Optimization'],
-    imageUrl: 'https://buffer.com/static/buffer-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/buffer.com'
   },
   // Research & Analysis AI
   {
@@ -884,7 +824,7 @@ export const aiTools: AITool[] = [
     pros: ['Scientific focus', 'Evidence-based', 'Good summaries'],
     cons: ['Academic focus only', 'Limited general use'],
     tags: ['Academic Research', 'Scientific Papers', 'Evidence-Based'],
-    imageUrl: 'https://consensus.app/images/consensus-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/consensus.app'
   },
   {
     id: 'elicit',
@@ -900,7 +840,7 @@ export const aiTools: AITool[] = [
     pros: ['Excellent for research', 'Good synthesis', 'Free tier'],
     cons: ['Academic focus only', 'Limited features'],
     tags: ['Academic Research', 'Literature Review', 'Synthesis'],
-    imageUrl: 'https://elicit.org/images/elicit-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/elicit.org'
   },
   {
     id: 'tome',
@@ -916,7 +856,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy presentation creation', 'AI generation', 'Visual focus'],
     cons: ['Limited customization', 'Newer platform'],
     tags: ['Presentations', 'Storytelling', 'Visual Communication'],
-    imageUrl: 'https://tome.app/images/tome-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/tome.app'
   },
   {
     id: 'gamma',
@@ -932,7 +872,7 @@ export const aiTools: AITool[] = [
     pros: ['Easy creation', 'Good visuals', 'Collaboration'],
     cons: ['Limited customization', 'Template-dependent', 'New platform'],
     tags: ['Presentations', 'Documents', 'Visual Generation'],
-    imageUrl: 'https://gamma.app/images/gamma-logo.svg'
+    imageUrl: 'https://logo.clearbit.com/gamma.app'
   },
   {
     id: 'beautiful-ai',
@@ -948,6 +888,6 @@ export const aiTools: AITool[] = [
     pros: ['Professional design', 'Smart templates', 'Collaboration'],
     cons: ['Expensive', 'Limited customization', 'Template-dependent'],
     tags: ['Presentations', 'Design', 'Professional'],
-    imageUrl: 'https://www.beautiful.ai/hubfs/Beautiful.ai%202022/Logos/Beautiful.ai_Logo_FullColor_RGB.svg'
+    imageUrl: 'https://logo.clearbit.com/beautiful.ai'
   }
 ];
