@@ -42,7 +42,7 @@ export class OfferCreatorService {
 
     try {
       const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
@@ -939,7 +939,7 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
       const optimizationPrompt = this.buildOptimizationPrompt(offer.offer, optimizationType);
       
       const response = await this.openRouterClient.complete({
-        model: 'anthropic/claude-3-haiku',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',

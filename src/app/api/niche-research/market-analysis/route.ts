@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
     const analysisPrompt = buildMarketAnalysisPrompt(validatedData);
 
     const response = await openRouter.complete({
-      model: 'openai/gpt-4o',
+      model: 'openai/gpt-5-mini',
       messages: [
         {
           role: 'system',

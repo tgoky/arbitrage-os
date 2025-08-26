@@ -285,7 +285,7 @@ export class ColdEmailService {
   const variationPrompt = `${basePrompt}\n\nGenerate email variation #${variation}. Make it unique while maintaining the core message.`;
   
   const response = await this.openRouterClient.complete({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-5-mini',
     messages: [
       {
         role: 'system',
@@ -332,7 +332,7 @@ private async generateFollowUpSequence(
     const followUpPrompt = this.buildFollowUpPrompt(originalEmail, input, sequenceIndex + 1);
     
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
+      model: 'openai/gpt-5-mini',
       messages: [
         {
           role: 'system',
@@ -526,7 +526,7 @@ ${input.workEmail}`;
     }
 
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
+      model: 'openai/gpt-5-mini',
       messages: [
         {
           role: 'system',

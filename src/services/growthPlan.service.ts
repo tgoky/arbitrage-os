@@ -55,7 +55,7 @@ async generateGrowthPlan(input: GrowthPlanInput): Promise<GeneratedGrowthPlan> {
   
   // Generate plan using AI
   const response = await this.openRouterClient.complete({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-5-mini',
     messages: [
       {
         role: 'system',
