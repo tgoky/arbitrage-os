@@ -187,13 +187,10 @@ const WorkspaceDashboard = () => {
         minHeight: '100vh',
       }}
     >
-      <WelcomePanel
-        clientsLength={clients.length}
-        agentsLength={agents.length}
-        workflowsLength={workflows.length}
-        workspaceName={currentWorkspace.name}  
-           deliverablesLength={deliverables.length}
-      />
+     <WelcomePanel
+  workspaceName={currentWorkspace.name}
+  workspaceId={currentWorkspace.id}
+/>
       
       <QuickStartActions />
       
