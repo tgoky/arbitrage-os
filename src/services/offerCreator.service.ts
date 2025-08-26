@@ -1234,6 +1234,109 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
     }
   }
 
+
+
+// Performance tracking methods
+  async getOfferPerformance(userId: string, offerId: string): Promise<OfferPerformance> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      // First verify the offer belongs to the user
+      const offer = await prisma.deliverable.findFirst({
+        where: {
+          id: offerId,
+          user_id: userId,
+          type: 'signature_offers'
+        }
+      });
+
+      if (!offer) {
+        throw new Error('Offer not found');
+      }
+
+      const metadata = offer.metadata as any || {};
+      const performanceHistory = metadata.performanceHistory || [];
+      const latestMetrics = metadata.latestMetrics;
+      const insights = metadata.latestInsights || [];
+
+      // Calculate summary statistics
+      const summary = this.calculatePerformanceSummary(performanceHistory);
+
+      return {
+        offerId,
+        offerName: offer.title,
+        performanceHistory,
+        latestMetrics,
+        insights,
+        summary
+      };
+    } catch (error) {
+      console.error('Error getting offer performance:', error);
+      throw error;
+    }
+  }
+
+  private calculatePerformanceSummary(history: any[]): any {
+    if (!history.length) {
+      return {
+        totalInquiries: 0,
+        totalProposals: 0,
+        totalConversions: 0,
+        totalRevenue: 0,
+        averageConversionRate: 0,
+        averageProposalRate: 0,
+        averageDealSize: 0,
+        trend: 'no-data',
+        dataPoints: 0
+      };
+    }
+
+    const totals = history.reduce((acc, entry) => ({
+      inquiries: acc.inquiries + (entry.metrics.inquiries || 0),
+      proposals: acc.proposals + (entry.metrics.proposals || 0),
+      conversions: acc.conversions + (entry.metrics.conversions || 0),
+      revenue: acc.revenue + (entry.metrics.totalRevenue || 0)
+    }), { inquiries: 0, proposals: 0, conversions: 0, revenue: 0 });
+
+    const avgConversionRate = history.reduce((sum, entry) => 
+      sum + (entry.metrics.conversionRate || 0), 0) / history.length;
+    const avgProposalRate = history.reduce((sum, entry) => 
+      sum + (entry.metrics.proposalRate || 0), 0) / history.length;
+    const avgDealSize = totals.conversions > 0 ? totals.revenue / totals.conversions : 0;
+
+    // Calculate trend
+    let trend = 'stable';
+    if (history.length >= 3) {
+      const recent = history.slice(-2).map(e => e.metrics.conversionRate || 0);
+      const older = history.slice(-4, -2).map(e => e.metrics.conversionRate || 0);
+      
+      if (older.length > 0) {
+        const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+        const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+        
+        if (recentAvg > olderAvg * 1.1) trend = 'improving';
+        else if (recentAvg < olderAvg * 0.9) trend = 'declining';
+      }
+    }
+
+    return {
+      totalInquiries: totals.inquiries,
+      totalProposals: totals.proposals,
+      totalConversions: totals.conversions,
+      totalRevenue: Math.round(totals.revenue * 100) / 100,
+      averageConversionRate: Math.round(avgConversionRate * 100) / 100,
+      averageProposalRate: Math.round(avgProposalRate * 100) / 100,
+      averageDealSize: Math.round(avgDealSize * 100) / 100,
+      trend,
+      dataPoints: history.length
+    };
+  }
+
+
+
+
+
+
   // Performance tracking methods
   async updateOfferPerformance(
     userId: string, 
