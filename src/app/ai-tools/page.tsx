@@ -29,7 +29,6 @@ import {
   Row,
   Col,
   Rate,
-  Avatar,
   Image
 } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -58,18 +57,17 @@ const AIToolsDashboard = () => {
     .map(tool => tool.subcategory)
     .filter((value, index, self) => self.indexOf(value) === index);
 
-  
-// Modify your filteredTools logic to include favorites filter
-const filteredTools = aiTools.filter(tool => {
-  const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tool.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tool.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-  const matchesCategory = selectedCategory === 'All' || tool.category === selectedCategory;
-  const matchesSubcategory = selectedSubcategory === 'All' || tool.subcategory === selectedSubcategory;
-  const matchesPricing = selectedPricing === 'All' || tool.pricing === selectedPricing;
-  const matchesFavorites = !showFavoritesOnly || favorites.has(tool.id);
-  return matchesSearch && matchesCategory && matchesSubcategory && matchesPricing && matchesFavorites;
-});
+  // Modify your filteredTools logic to include favorites filter
+  const filteredTools = aiTools.filter(tool => {
+    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tool.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = selectedCategory === 'All' || tool.category === selectedCategory;
+    const matchesSubcategory = selectedSubcategory === 'All' || tool.subcategory === selectedSubcategory;
+    const matchesPricing = selectedPricing === 'All' || tool.pricing === selectedPricing;
+    const matchesFavorites = !showFavoritesOnly || favorites.has(tool.id);
+    return matchesSearch && matchesCategory && matchesSubcategory && matchesPricing && matchesFavorites;
+  });
 
   const sortedTools = [...filteredTools].sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
@@ -99,48 +97,13 @@ const filteredTools = aiTools.filter(tool => {
   };
 
   const toggleFavorite = (toolId: string) => {
-  const newFavorites = new Set(favorites);
-  if (newFavorites.has(toolId)) {
-    newFavorites.delete(toolId);
-  } else {
-    newFavorites.add(toolId);
-  }
-  setFavorites(newFavorites);
-};
-
-  // Function to get a placeholder image URL based on category or a default one
-  // You might want to replace this with actual image URLs from your data source
-  const getToolImageUrl = (tool: AITool): string => {
-    // Example mapping - replace with your logic or actual image URLs
-    const categoryImageMap: Record<string, string> = {
-      'Language Models': 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png', // Placeholder AI Brain
-      'Video & Visual': 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', // Placeholder Video
-      'Audio & Voice': 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png', // Placeholder Audio
-      'Code & Development': 'https://gw.alipayobjects.com/zos/antfincdn/efFD%24IO%2402/ssdd.jpg', // Placeholder Code
-      // Add more mappings as needed
-    };
-
-    // Try to get image based on category first
-    const categoryImage = categoryImageMap[tool.category];
-    if (categoryImage) {
-      return categoryImage;
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(toolId)) {
+      newFavorites.delete(toolId);
+    } else {
+      newFavorites.add(toolId);
     }
-
-    // Fallback: Try subcategory
-    const subcategoryImageMap: Record<string, string> = {
-        'AI Assistants': 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png', // Placeholder AI Brain
-        'Image Generation': 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', // Placeholder Video
-        'Voice Synthesis': 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png', // Placeholder Audio
-        'Code Generation': 'https://gw.alipayobjects.com/zos/antfincdn/efFD%24IO%2402/ssdd.jpg', // Placeholder Code
-         // Add more mappings as needed
-    };
-    const subcategoryImage = subcategoryImageMap[tool.subcategory];
-    if (subcategoryImage) {
-        return subcategoryImage;
-    }
-
-    // Default placeholder image if no specific one found
-    return 'https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png'; // Generic placeholder
+    setFavorites(newFavorites);
   };
 
   return (
@@ -150,36 +113,34 @@ const filteredTools = aiTools.filter(tool => {
       minHeight: '100vh'
     }}>
       {/* Header */}
-    <div style={{ marginBottom: 24 }}>
-  <Space align="center" size="middle">
-    <ThunderboltOutlined
-      style={{
-        fontSize: 18,
-        color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-      }}
-    />
-    <Title
-      level={2}
-      style={{
-        margin: 0,
-        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-      }}
-    >
-      AI Tools Library
-    </Title>
-  </Space>
-
-  <div style={{ marginTop: 8 }}>
-    <Text
-      style={{
-        color: theme === 'dark' ? '#9ca3af' : '#666666',
-      }}
-    >
-      Discover the best AI tools for every business need
-    </Text>
-  </div>
-</div>
-
+      <div style={{ marginBottom: 24 }}>
+        <Space align="center" size="middle">
+          <ThunderboltOutlined
+            style={{
+              fontSize: 18,
+              color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
+            }}
+          />
+          <Title
+            level={2}
+            style={{
+              margin: 0,
+              color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
+            }}
+          >
+            AI Tools Library
+          </Title>
+        </Space>
+        <div style={{ marginTop: 8 }}>
+          <Text
+            style={{
+              color: theme === 'dark' ? '#9ca3af' : '#666666',
+            }}
+          >
+            Discover the best AI tools for every business need
+          </Text>
+        </div>
+      </div>
 
       {/* Search and Filters */}
       <Card
@@ -232,17 +193,17 @@ const filteredTools = aiTools.filter(tool => {
                 ))}
             </Select>
             <Button
-  type={showFavoritesOnly ? 'primary' : 'default'}
-  icon={<StarOutlined />}
-  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-  style={{
-    color: showFavoritesOnly ? '#ffc107' : undefined,
-    borderColor: showFavoritesOnly ? '#ffc107' : undefined,
-    backgroundColor: showFavoritesOnly ? 'rgba(255, 193, 7, 0.1)' : undefined
-  }}
->
-  Favorites
-</Button>
+              type={showFavoritesOnly ? 'primary' : 'default'}
+              icon={<StarOutlined />}
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              style={{
+                color: showFavoritesOnly ? '#ffc107' : undefined,
+                borderColor: showFavoritesOnly ? '#ffc107' : undefined,
+                backgroundColor: showFavoritesOnly ? 'rgba(255, 193, 7, 0.1)' : undefined
+              }}
+            >
+              Favorites
+            </Button>
             <Select
               placeholder="Filter by pricing"
               style={{ width: 200 }}
@@ -275,19 +236,16 @@ const filteredTools = aiTools.filter(tool => {
             Showing {sortedTools.length} of {aiTools.length} AI tools
           </Text>
         </Space>
-        
       </Card>
-
-      
 
       {/* Tools Grid - Changed to 3 per row (xl={8}) */}
       {sortedTools.length > 0 ? (
-        <Row gutter={[24, 24]}> {/* Increased gutter for more spacing */}
+        <Row gutter={[24, 24]}>
           {sortedTools.map(tool => {
             const displayedFeatures = tool.features.slice(0, 3);
             const remainingFeaturesCount = tool.features.length - 3;
             return (
-              <Col key={tool.id} xs={24} sm={12} lg={8} xl={8}> {/* 3 per row on large screens */}
+              <Col key={tool.id} xs={24} sm={12} lg={8} xl={8}>
                 <Card
                   hoverable
                   style={{
@@ -298,17 +256,15 @@ const filteredTools = aiTools.filter(tool => {
                     flexDirection: 'column'
                   }}
                   bodyStyle={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}
-                  // Add image at the top using cover prop
                   cover={
                     <div style={{ height: 180, overflow: 'hidden', position: 'relative' }}>
                       <Image
                         alt={tool.name}
-                        src={getToolImageUrl(tool)} // Use the helper function
-                        fallback="https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png" // Fallback image
-                        preview={false} // Disable lightbox preview for simplicity
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        src={tool.imageUrl || 'https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png'} // Use tool.imageUrl with fallback
+                        fallback="https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png"
+                        preview={false}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }} // Changed to 'contain' for better logo display
                       />
-                      {/* Pricing Tag overlay */}
                       <Tag
                         color={getPricingColor(tool.pricing)}
                         style={{
@@ -322,47 +278,45 @@ const filteredTools = aiTools.filter(tool => {
                       </Tag>
                     </div>
                   }
-                  // Action button at the bottom
-            actions={[
-  <div key={`actions-${tool.id}`} style={{ 
-    display: 'flex', 
-    justifyContent: 'center',
-    gap: 8,
-    padding: '0 8px'
-  }}>
-    <Button
-      icon={<StarOutlined />}
-      onClick={(e) => {
-        e.stopPropagation();
-        toggleFavorite(tool.id);
-      }}
-      type={favorites.has(tool.id) ? 'primary' : 'default'}
-      style={{
-        width: 48,
-        color: favorites.has(tool.id) ? '#ffc107' : undefined,
-        borderColor: favorites.has(tool.id) ? '#ffc107' : undefined,
-        backgroundColor: favorites.has(tool.id) ? 'rgba(255, 193, 7, 0.1)' : undefined
-      }}
-    />
-    <Button
-      type="primary"
-      href={tool.url}
-      target="_blank"
-      icon={<RocketOutlined />}
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        width: 'calc(100% - 56px)', // 48px for star button + 8px gap
-        backgroundColor: '#15140f',
-        borderColor: '#343436'
-      }}
-    >
-      Try Tool
-    </Button>
-  </div>
-]}
+                  actions={[
+                    <div key={`actions-${tool.id}`} style={{ 
+                      display: 'flex', 
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '0 8px'
+                    }}>
+                      <Button
+                        icon={<StarOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(tool.id);
+                        }}
+                        type={favorites.has(tool.id) ? 'primary' : 'default'}
+                        style={{
+                          width: 48,
+                          color: favorites.has(tool.id) ? '#ffc107' : undefined,
+                          borderColor: favorites.has(tool.id) ? '#ffc107' : undefined,
+                          backgroundColor: favorites.has(tool.id) ? 'rgba(255, 193, 7, 0.1)' : undefined
+                        }}
+                      />
+                      <Button
+                        type="primary"
+                        href={tool.url}
+                        target="_blank"
+                        icon={<RocketOutlined />}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: 'calc(100% - 56px)',
+                          backgroundColor: '#15140f',
+                          borderColor: '#343436'
+                        }}
+                      >
+                        Try Tool
+                      </Button>
+                    </div>
+                  ]}
                 >
                   <Card.Meta
-                   // Avatar removed as image is now on top
                     title={
                       <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a', fontSize: 18 }}>
                         {tool.name}
@@ -370,7 +324,6 @@ const filteredTools = aiTools.filter(tool => {
                     }
                     description={
                       <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        {/* Simplified description display */}
                         <Paragraph
                           type="secondary"
                           ellipsis={{ rows: 2, expandable: false, symbol: 'more' }}
@@ -385,15 +338,11 @@ const filteredTools = aiTools.filter(tool => {
                           style={{ fontSize: 14 }}
                           character={<StarOutlined />}
                         />
-
-                        {/* Best For */}
                         <div>
                           <Text strong style={{ fontSize: 14 }}>Best For:</Text>
                           <br />
                           <Text type="secondary" style={{ fontSize: 13 }}>{tool.useCase}</Text>
                         </div>
-
-                        {/* Key Features */}
                         <div>
                           <Text strong style={{ fontSize: 14 }}>Key Features:</Text>
                           <br />
@@ -408,8 +357,6 @@ const filteredTools = aiTools.filter(tool => {
                             )}
                           </Space>
                         </div>
-
-                        {/* Categories */}
                         <div>
                           <Text strong style={{ fontSize: 14 }}>Categories:</Text>
                           <br />

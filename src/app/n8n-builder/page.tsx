@@ -46,10 +46,10 @@ import {
   Progress
 } from 'antd';
 
-interface N8nWorkflowCreatorProps {
-  workspaceId?: string;
-  initialMode?: 'create' | 'list';
-}
+// interface N8nWorkflowCreatorProps {
+//   workspaceId?: string;
+//   initialMode?: 'create' | 'list';
+// }
 
 
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
@@ -64,9 +64,12 @@ const { TextArea } = Input;
 const { TabPane } = Tabs;
 
 
-const N8nWorkflowCreator: React.FC<N8nWorkflowCreatorProps> = ({ 
+const N8nWorkflowCreator = ({ 
   workspaceId,
   initialMode = 'create' 
+}: {
+  workspaceId?: string;
+  initialMode?: 'create' | 'list';
 }) => {
   const [form] = Form.useForm();
   const [activeStep, setActiveStep] = useState(0);
