@@ -41,7 +41,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
 
   const handleWorkspaceSettings = () => {
     // Add your workspace settings navigation here
-    router.push('/workspace/settings');
+    router.push('/settings');
   };
 
   return (

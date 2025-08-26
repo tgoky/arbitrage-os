@@ -301,6 +301,16 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                           {
+                          name: "Settings",
+                          list: "/settings",
+                          create: "/settings/create",
+                          edit: "/settings/edit/:id",
+                          show: "/settings/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
                       ]}
                       options={{
                         syncWithLocation: true,
