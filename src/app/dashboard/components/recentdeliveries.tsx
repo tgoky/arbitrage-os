@@ -193,7 +193,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
   return (
     <Card
       data-tour="recent-deliverables"
-      title="Recent AI Work"
+      title="Recent Deliverables"
       styles={getCardStyles()}
       style={{
         backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
@@ -203,7 +203,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
         <Button
           type="text"
           size="small"
-          onClick={() => window.location.href = '/ai-work-dashboard'}
+          onClick={() => window.location.href = '/submissions'}
           style={{
             color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
             padding: 0,
@@ -244,21 +244,21 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                 backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
               }}
               actions={[
-                <Button
-                  type="text"
-                  size="small"
-                  key="view"
-                  icon={<EyeOutlined />}
-                  onClick={() => handleView(item)}
-                  style={{
-                    color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                    padding: '0 4px',
-                    height: 'auto',
-                    fontSize: 12,
-                  }}
-                >
-                  View
-                </Button>,
+                // <Button
+                //   type="text"
+                //   size="small"
+                //   key="view"
+                //   icon={<EyeOutlined />}
+                //   onClick={() => handleView(item)}
+                //   style={{
+                //     color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
+                //     padding: '0 4px',
+                //     height: 'auto',
+                //     fontSize: 12,
+                //   }}
+                // >
+                //   View
+                // </Button>,
                 // Optional: Implement export action if needed
                 // <Button
                 //   type="text"

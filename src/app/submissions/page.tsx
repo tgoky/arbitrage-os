@@ -412,12 +412,12 @@ const fetchAllWorkItems = async () => {
   }
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <div style={{ padding: '24px',  minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Title level={2} style={{ margin: 0, color: '#1a1a1a' }}>
-            My AI Generated Work
+          <Title level={2} style={{ margin: 0, color: '#493c3c' }}>
+            My Submissions
           </Title>
           <Text style={{ color: '#666666' }}>
             All your AI-generated content, analysis, and deliverables in one place
@@ -439,11 +439,11 @@ const fetchAllWorkItems = async () => {
             <Card style={{ borderRadius: 8, height: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <Text style={{ color: '#666', fontSize: 12, fontWeight: 500 }}>
+                  <Text style={{  fontSize: 12, fontWeight: 500 }}>
                     {stat.title}
                   </Text>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                    <Text style={{ fontSize: 20, fontWeight: 600, color: '#1a1a1a' }}>
+                    <Text style={{ fontSize: 20, fontWeight: 600,  }}>
                       {stat.value.toLocaleString()}
                     </Text>
                     {stat.growth !== 0 && (
@@ -545,10 +545,10 @@ const fetchAllWorkItems = async () => {
             tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offer Creator</Badge>} 
             key="offer-creator" 
           /> */}
-          <Tabs.TabPane 
+          {/* <Tabs.TabPane 
   tab={<Badge count={getTabCount('n8n-workflow')} offset={[8, 0]}>n8n Workflows</Badge>} 
   key="n8n-workflow" 
-/>
+/> */}
         </Tabs>
 
         {/* Work Items List */}
@@ -569,10 +569,10 @@ const fetchAllWorkItems = async () => {
                 <div
                   key={item.id}
                   style={{
-                    border: '1px solid #f0f0f0',
+                    border: '1px solid #514848',
                     borderRadius: 8,
                     padding: 16,
-                    backgroundColor: '#fff',
+                 
                     transition: 'all 0.2s',
                     cursor: 'pointer'
                   }}
@@ -608,7 +608,7 @@ const fetchAllWorkItems = async () => {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {/* Title and Type */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <Title level={5} style={{ margin: 0, color: '#1a1a1a' }}>
+                            <Title level={5} style={{ margin: 0,  }}>
                               {item.title}
                             </Title>
                             <Tag color={getTypeColor(item.type)} style={{ fontSize: 10 }}>
