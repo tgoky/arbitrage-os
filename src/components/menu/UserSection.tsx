@@ -1,8 +1,12 @@
+"use client";
+
 // components/menu/UserSection.tsx
 import { useTheme } from "../../providers/ThemeProvider";
 import { useGetIdentity } from "@refinedev/core";
 import { useState, useEffect } from "react";
-
+// import { useRouter } from "next/router"; // or "next/navigation" if using App Router
+// If using App Router, use: import { useRouter } from "next/navigation";
+ import { useRouter } from "next/navigation";
 interface UserSectionProps {
   collapsed: boolean;
   handleLogout: () => void;
@@ -19,6 +23,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   const { theme } = useTheme();
   const { data: identity, isLoading } = useGetIdentity<UserIdentity>();
   const [userInitial, setUserInitial] = useState("U");
+  const router = useRouter();
 
   useEffect(() => {
     if (identity) {
@@ -30,6 +35,15 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
     }
   }, [identity]);
 
+  const handleFeedbackClick = () => {
+    router.push('/feedback');
+  };
+
+  const handleWorkspaceSettings = () => {
+    // Add your workspace settings navigation here
+    router.push('/workspace/settings');
+  };
+
   return (
     <div
       className={`p-3 ${theme === "dark" ? "bg-black" : "bg-white"}`}
@@ -37,6 +51,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
       {/* Submit Feedback */}
       {!collapsed && (
         <button
+          onClick={handleFeedbackClick}
           className={`w-full flex items-center gap-1.5 mb-2 p-2 rounded-md ${
             theme === "dark"
              ? "bg-black text-gray-400 hover:bg-gray-800 hover:text-gray-300 border-none"
@@ -60,6 +75,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
       {/* Workspace Settings */}
       {!collapsed && (
         <button
+          onClick={handleWorkspaceSettings}
           className={`w-full flex items-center gap-1.5 mb-2 p-2 rounded-md ${
             theme === "dark"
               ? "bg-black text-gray-400 hover:bg-gray-800 hover:text-gray-300 border-none"

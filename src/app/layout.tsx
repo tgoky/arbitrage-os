@@ -291,6 +291,16 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                          {
+                          name: "Feedback",
+                          list: "/feedback",
+                          create: "/feedback/create",
+                          edit: "/feedback/edit/:id",
+                          show: "/feedback/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
                       ]}
                       options={{
                         syncWithLocation: true,

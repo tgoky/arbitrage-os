@@ -3,21 +3,274 @@
 import { AuthPage as AuthPageBase } from "@refinedev/core";
 import type { AuthPageProps } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { HardDrive, File, Trash2, Edit, Brush, Clock } from "lucide-react";
+import { HardDrive, File, Trash2, Edit, Brush, Clock, Mail, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+
+type AuthView = "auth" | "email-sent" | "email-verified" | "email-error";
 
 export const AuthPage = (props: AuthPageProps) => {
   const [showCreds, setShowCreds] = useState(false);
-  const [activeWindow, setActiveWindow] = useState("auth");
+  const [activeWindow, setActiveWindow] = useState<string>("auth");
+  const [authView, setAuthView] = useState<AuthView>("auth");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
+
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  // Check URL params for verification states
+  useEffect(() => {
+    const verified = searchParams?.get("verified");
+    const error = searchParams?.get("error");
+    const email = searchParams?.get("email");
+
+    if (email) {
+      setUserEmail(decodeURIComponent(email));
+    }
+
+    if (verified === "true") {
+      setAuthView("email-verified");
+    } else if (error) {
+      setAuthView("email-error");
+    }
+  }, [searchParams]);
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const handleResendEmail = async () => {
+    setResendCooldown(30);
+    
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      if (response.ok) {
+        console.log("Verification email resent successfully");
+      } else {
+        console.error("Failed to resend verification email");
+      }
+    } catch (error) {
+      console.error("Error resending email:", error);
+    }
+  };
+
+  const renderAuthContent = () => {
+    switch (authView) {
+      case "email-sent":
+        return (
+          <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <Mail className="w-8 h-8 text-blue-600" />
+              </div>
+            </div>
+            
+            <h2 className="text-lg font-bold text-gray-800">Check Your Email</h2>
+            
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>We have sent a verification link to:</p>
+              <div className="bg-gray-100 p-2 rounded border font-mono text-xs break-all">
+                {userEmail}
+              </div>
+              <p>Please check your email and click the verification link to complete your registration.</p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-xs text-yellow-800">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Important Notes:</p>
+                  <ul className="list-disc list-inside space-y-1 text-left">
+                    <li>Check your spam/junk folder if you do not see the email</li>
+                    <li>The verification link expires in 24 hours</li>
+                    <li>You can only log in after verifying your email</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-4">
+              <button
+                onClick={handleResendEmail}
+                disabled={resendCooldown > 0}
+                className="px-4 py-2 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Email"}
+              </button>
+              
+              <button
+                onClick={() => setAuthView("auth")}
+                className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Login
+              </button>
+            </div>
+
+            <div className="border-t border-gray-300 pt-4">
+              <p className="text-xs text-gray-500">
+                Already verified?{" "}
+                <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                  Try logging in
+                </Link>
+              </p>
+            </div>
+          </div>
+        );
+
+      case "email-verified":
+        return (
+          <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+            
+            <h2 className="text-lg font-bold text-green-800">Email Verified!</h2>
+            
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>Your email has been successfully verified. You can now log in to your account.</p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-4">
+              <Link
+                href="/login"
+                className="px-4 py-2 bg-green-600 text-white font-bold hover:bg-green-700 text-center block"
+              >
+                Continue to Login
+              </Link>
+            </div>
+          </div>
+        );
+
+      case "email-error":
+        return (
+          <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+            </div>
+            
+            <h2 className="text-lg font-bold text-red-800">Verification Failed</h2>
+            
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>There was a problem verifying your email. This could be because:</p>
+              <ul className="list-disc list-inside text-left space-y-1">
+                <li>The verification link has expired</li>
+                <li>The link has already been used</li>
+                <li>The link is invalid</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-4">
+              <button
+                onClick={handleResendEmail}
+                disabled={resendCooldown > 0}
+                className="px-4 py-2 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Send New Link"}
+              </button>
+              
+              <Link
+                href="/register"
+                className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 text-center block"
+              >
+                Try Again
+              </Link>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
+            <div className="space-y-4">
+              <AuthPageBase {...props} />
+              
+              {props.type === "register" && (
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold mb-1">After Registration:</p>
+                      <p>Check your email for a verification link. You must verify your email before you can log in.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {props.type === "login" && (
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold mb-1">Having trouble logging in?</p>
+                      <p>Make sure you have verified your email address. Check your inbox (including spam folder) for a verification link.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="text-center pt-4 border-t border-gray-300">
+              {props.type === "login" ? (
+                <p className="text-sm">
+                  Do not have an account?{" "}
+                  <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                    Sign up
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-sm">
+                  Already have an account?{" "}
+                  <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                    Sign in
+                  </Link>
+                </p>
+              )}
+            </div>
+
+            {showCreds && (
+              <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded text-xs">
+                <p className="font-bold mb-2">Demo Credentials:</p>
+                <p>Email: demo@example.com</p>
+                <p>Password: demo123</p>
+              </div>
+            )}
+
+            <div className="text-center">
+              <button
+                onClick={() => setShowCreds(!showCreds)}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                {showCreds ? "Hide" : "Show"} Demo Credentials
+              </button>
+            </div>
+          </div>
+        );
+    }
   };
 
   return (
@@ -78,12 +331,6 @@ export const AuthPage = (props: AuthPageProps) => {
                 <rect x="16" y="28" width="20" height="2" fill="#000" />
                 <rect x="16" y="32" width="24" height="2" fill="#000" />
                 <rect x="16" y="36" width="18" height="2" fill="#000" />
-                <path
-                  d="M42 20L50 28V20H42Z"
-                  fill="#FFCC00"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
               </svg>
             </div>
             <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
@@ -119,73 +366,10 @@ export const AuthPage = (props: AuthPageProps) => {
                 <rect x="20" y="24" width="16" height="12" fill="#FFFFFF" stroke="#000" />
                 <rect x="24" y="28" width="8" height="1" fill="#000" />
                 <rect x="24" y="32" width="8" height="1" fill="#000" />
-                <path
-                  d="M28 16L32 12L36 16"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                  fill="none"
-                />
               </svg>
             </div>
             <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
               Recycle Bin
-            </span>
-          </div>
-
-          {/* Notepad Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("notepad")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <rect x="10" y="10" width="36" height="36" fill="#FFFFFF" stroke="#000" strokeWidth="1.5" />
-                <path
-                  d="M16 18H40V42H16V18Z"
-                  fill="none"
-                  stroke="#000"
-                  strokeWidth="1"
-                />
-                <rect x="18" y="22" width="20" height="2" fill="#000" />
-                <rect x="18" y="26" width="16" height="2" fill="#000" />
-                <rect x="18" y="30" width="18" height="2" fill="#000" />
-                <rect x="18" y="34" width="14" height="2" fill="#000" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              Notepad
-            </span>
-          </div>
-
-          {/* MS Paint Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("paint")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <rect x="10" y="10" width="36" height="36" fill="#FFFFFF" stroke="#000" strokeWidth="1.5" />
-                <rect x="16" y="16" width="24" height="24" fill="#F0F0F0" stroke="#000" strokeWidth="1" />
-                <circle cx="20" cy="20" r="2" fill="red" />
-                <circle cx="24" cy="20" r="2" fill="yellow" />
-                <circle cx="28" cy="20" r="2" fill="blue" />
-                <path d="M16 28L40 28" stroke="#000" strokeWidth="1" />
-                <path d="M16 32L40 32" stroke="#000" strokeWidth="1" />
-                <rect x="20" y="36" width="12" height="4" fill="#000" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              Paint
             </span>
           </div>
         </div>
@@ -199,7 +383,12 @@ export const AuthPage = (props: AuthPageProps) => {
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
                   </svg>
-                  <span className="font-bold">Arbitrage-OS {props.type === "login" ? "Login" : "Register"}</span>
+                  <span className="font-bold">
+                    Arbitrage-OS {authView === "email-sent" ? "Email Verification" : 
+                                   authView === "email-verified" ? "Verified" :
+                                   authView === "email-error" ? "Verification Error" :
+                                   props.type === "login" ? "Login" : "Register"}
+                  </span>
                 </div>
                 <div className="flex space-x-1">
                   <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
@@ -209,7 +398,7 @@ export const AuthPage = (props: AuthPageProps) => {
                     <span className="text-xs">□</span>
                   </div>
                   <div
-                    className="w-5 h-5 border-2 border-gray-300	bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
+                    className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                     onClick={() => setActiveWindow("")}
                   >
                     <span className="text-xs">×</span>
@@ -217,35 +406,14 @@ export const AuthPage = (props: AuthPageProps) => {
                 </div>
               </div>
               <div className="p-4 bg-gray-200">
-               
-             <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-  <AuthPageBase {...props} />
-  <p className="text-xs text-center">
-    check email for code if having trouble logging in after signup
-  </p>
-  
-  <div className="text-center mt-4 pt-4 border-t border-gray-300">
-    {props.type === "login" ? (
-      <p className="text-sm">
-        Do not have an account?{" "}
-        <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
-          Sign up
-        </Link>
-      </p>
-    ) : (
-      <p className="text-sm">
-        Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
-          Sign in
-        </Link>
-      </p>
-    )}
-  </div>
-</div>
+                {renderAuthContent()}
                 <div className="mt-4 flex justify-between items-center">
                   <button 
                     className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
-                    onClick={() => setActiveWindow("")}
+                    onClick={() => {
+                      setActiveWindow("");
+                      setAuthView("auth");
+                    }}
                   >
                     Cancel
                   </button>
@@ -256,7 +424,6 @@ export const AuthPage = (props: AuthPageProps) => {
           </div>
         )}
 
-        {/* Other Windows remain the same... */}
         {/* My Computer Window */}
         {activeWindow === "my-computer" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
@@ -266,12 +433,6 @@ export const AuthPage = (props: AuthPageProps) => {
                 <span className="font-bold">My Computer</span>
               </div>
               <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
                 <div
                   className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                   onClick={() => setActiveWindow("")}
@@ -304,12 +465,6 @@ export const AuthPage = (props: AuthPageProps) => {
                 <span className="font-bold">My Documents</span>
               </div>
               <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
                 <div
                   className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                   onClick={() => setActiveWindow("")}
@@ -333,12 +488,6 @@ export const AuthPage = (props: AuthPageProps) => {
                 <span className="font-bold">Recycle Bin</span>
               </div>
               <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
                 <div
                   className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
                   onClick={() => setActiveWindow("")}
@@ -349,72 +498,6 @@ export const AuthPage = (props: AuthPageProps) => {
             </div>
             <div className="p-4 bg-gray-200">
               <p className="text-sm">Recycle Bin is empty.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Notepad Window */}
-        {activeWindow === "notepad" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <Edit className="w-4 h-4 mr-2" />
-                <span className="font-bold">Notepad</span>
-              </div>
-              <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
-                >
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200">
-              <textarea
-                className="w-full h-40 px-2 py-1 border-2 border-gray-400 bg-white focus:outline-none focus:border-blue-500"
-                placeholder="Type your notes here..."
-              />
-            </div>
-          </div>
-        )}
-
-        {/* MS Paint Window */}
-        {activeWindow === "paint" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <Brush className="w-4 h-4 mr-2" />
-                <span className="font-bold">Paint</span>
-              </div>
-              <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
-                >
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200">
-              <div className="flex space-x-2 mb-2">
-                <button className="w-6 h-6 bg-red-500 border-2 border-gray-400"></button>
-                <button className="w-6 h-6 bg-yellow-500 border-2 border-gray-400"></button>
-                <button className="w-6 h-6 bg-blue-500 border-2 border-gray-400"></button>
-              </div>
-              <canvas className="w-full h-40 border-2 border-gray-400 bg-white" />
             </div>
           </div>
         )}
@@ -436,37 +519,7 @@ export const AuthPage = (props: AuthPageProps) => {
               <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
               </svg>
-              Arbitrage-OS {props.type === "login" ? "Login" : "Register"}
-            </button>
-          )}
-          {activeWindow === "my-computer" && (
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <HardDrive className="w-4 h-4 mr-1" />
-              My Computer
-            </button>
-          )}
-          {activeWindow === "documents" && (
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <File className="w-4 h-4 mr-1" />
-              My Documents
-            </button>
-          )}
-          {activeWindow === "recycle-bin" && (
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <Trash2 className="w-4 h-4 mr-1" />
-              Recycle Bin
-            </button>
-          )}
-          {activeWindow === "notepad" && (
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <Edit className="w-4 h-4 mr-1" />
-              Notepad
-            </button>
-          )}
-          {activeWindow === "paint" && (
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <Brush className="w-4 h-4 mr-1" />
-              Paint
+              Arbitrage-OS {authView === "email-sent" ? "Email Sent" : props.type === "login" ? "Login" : "Register"}
             </button>
           )}
         </div>
