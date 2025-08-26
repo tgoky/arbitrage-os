@@ -45,9 +45,16 @@ import {
   Statistic,
   Progress
 } from 'antd';
+
+interface N8nWorkflowCreatorProps {
+  workspaceId?: string;
+  initialMode?: 'create' | 'list';
+}
+
+
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
 
-import { N8nWorkflowInput, SavedWorkflow, ExportFormat, RequiredCredential,  } from '@/types/n8nWorkflowBuilder';
+import { N8nWorkflowInput, SavedWorkflow, ExportFormat, RequiredCredential } from '@/types/n8nWorkflowBuilder';
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
@@ -56,10 +63,6 @@ const { Option } = Select;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 
-interface N8nWorkflowCreatorProps {
-  workspaceId?: string;
-  initialMode?: 'create' | 'list';
-}
 
 const N8nWorkflowCreator: React.FC<N8nWorkflowCreatorProps> = ({ 
   workspaceId,

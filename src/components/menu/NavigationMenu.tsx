@@ -47,19 +47,22 @@ const menuGroups: MenuGroupConfig[] = [
         id: "compliance",
         label: "Client",
         icon: <ShieldCheckIcon className="h-4 w-4" />,
-        items: ["Client_Profiles", "Submissions", "Hiring_Portal"],
+        items: [ "Submissions", "Hiring_Portal"],
+        //commented out client profile
       },
       {
         id: "tools",
         label: "Tools",
         icon: <BoltIcon className="h-4 w-4" />,
-        items: [ "AI_Tools", "Playbooks", "Lead_Generation"],
+        items: [ "AI_Tools"],
+        //commented out lead gen and playbooks
       },
       {
         id: "agents",
         label: "Agents",
         icon: <CubeIcon className="h-4 w-4" />,
-        items: ["Agents_Flow", "Work_Flow"],
+        items: [],
+        //commented out agent and workflow
       },
     ],
   },
@@ -83,7 +86,8 @@ const menuGroups: MenuGroupConfig[] = [
     id: "automations",
     label: "Automations",
     icon: <Workflow className="h-4 w-4" />,
-    items: ["Automations", "N8n_Builder", "N8n_Library", "Prompt_Directory"],
+    items: [ "N8n_Builder", "N8n_Library", "Prompt_Directory"],
+    //commented out automations
   },
 ];
 
