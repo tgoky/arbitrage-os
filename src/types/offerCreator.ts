@@ -491,6 +491,19 @@ export type GuaranteeType = 'none' | 'conditional' | 'strong-guarantee';
 export type BrandTone = 'assertive' | 'consultative' | 'friendly' | 'elite';
 export type PositioningAngle = 'speed' | 'certainty' | 'specialization' | 'done-for-you' | 'ROI';
 
+
+
+export interface ProgressiveValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+  warnings: Record<string, string>;
+  completionPercentage: number;
+  completedFields: number;
+  totalRequiredFields: number;
+  isReadyToGenerate: boolean;
+}
+
+
 // Form validation schemas (for frontend use)
 export interface FormValidationRules {
   founder: {

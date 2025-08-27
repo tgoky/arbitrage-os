@@ -91,9 +91,10 @@ export default function OfferCreatorPage() {
 
 
   // Hook implementations
-  const { generateOffer, generating, error: generateError, quickValidate, getBusinessInsights } = useOfferCreator();
+ const { generateOffer, generating, error: generateError, getBusinessInsights,  } = useOfferCreator();
+ 
   const { offers, loading: offersLoading, fetchOffers, deleteOffer, getOffer } = useSavedOffers();
-  const { validateInput, getOfferInsights, calculateCapacityMetrics } = useOfferValidation();
+const { validateInput, validateInputProgressive, getOfferInsights, calculateCapacityMetrics } = useOfferValidation();
   const { exportOffer, loading: exportLoading } = useOfferExport();
 
 
@@ -168,9 +169,9 @@ export default function OfferCreatorPage() {
   }, [founderInputs, marketInputs, businessInputs, pricingInputs, voiceInputs]);
 
   // Validation results
-  const validationResults = useMemo(() => {
-    return validateInput(completeInput);
-  }, [completeInput, validateInput]);
+const validationResults = useMemo(() => {
+  return validateInputProgressive(completeInput);
+}, [completeInput, validateInputProgressive]);
 
   // Business insights
   const businessInsights = useMemo(() => {
@@ -194,11 +195,13 @@ export default function OfferCreatorPage() {
 
 const onFinish = async () => {
   try {
-    // Final validation before submission
-    if (!validationResults.isValid) {
-      message.error("Please fix validation errors before generating offers");
+
+       const fullValidation = validateInputProgressive(completeInput, true);
+    if (!fullValidation.isValid) {
+      message.error("Please complete all required fields before generating");
       return;
     }
+    
 
  
     const offerInput: Partial<OfferCreatorInput> = {
@@ -352,7 +355,7 @@ const onFinish = async () => {
     }
   };
 
-  const isFormValid = validationResults.isValid;
+ const isFormValid = validationResults.isReadyToGenerate;
   const hasMinimumData = founderInputs.signatureResults.length > 0 && 
                         marketInputs.targetMarket && 
                         businessInputs.deliveryModel.length > 0;
@@ -407,14 +410,14 @@ const onFinish = async () => {
                 >
                   <div className="space-y-4">
                     <div>
-                      <Text strong>Signature results (required)</Text>
+                      <Text strong>Your Signature Wins</Text>
                       <TextArea
-                        placeholder="3-5 bullet outcomes you've produced (with numbers if possible)"
+                        placeholder="Highlight 1-2 results that prove your credibility (e.g revenue generated, leads delivered, ROI) "
                         rows={3}
                         value={founderInputs.signatureResults.join("\n")}
                         onChange={(e) => handleInputChange("founder", "signatureResults", 
                           e.target.value.split("\n").filter(line => line.trim()))}
-                        status={validationResults.errors['founder.signatureResults'] ? 'error' : undefined}
+                    
                       />
                       {validationResults.errors['founder.signatureResults'] && (
                         <Text type="danger" className="text-sm">
@@ -423,14 +426,14 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Core strengths/skills (required)</Text>
+                      <Text strong>Your Teams Strengths</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
-                        placeholder="e.g., workflow automation, sales ops, media buying"
+                        placeholder="Pick the skills your team is best at delivering (e.g workflow automation, sales optimization, content creation)."
                         value={founderInputs.coreStrengths}
                         onChange={(value) => handleInputChange("founder", "coreStrengths", value)}
-                        status={validationResults.errors['founder.coreStrengths'] ? 'error' : undefined}
+                        // status={validationResults.errors['founder.coreStrengths'] ? 'error' : undefined}
                       />
                       {validationResults.errors['founder.coreStrengths'] && (
                         <Text type="danger" className="text-sm">
@@ -439,14 +442,14 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Repeatable processes you own (required)</Text>
+                      <Text strong>Proven Processes You Run</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
-                        placeholder="SOP names / frameworks"
+                        placeholder="Select processses you can repeat for clients consistenstly y (e.g., inbound SDR, lead scoring, KPI reporting)"
                         value={founderInputs.processes}
                         onChange={(value) => handleInputChange("founder", "processes", value)}
-                        status={validationResults.errors['founder.processes'] ? 'error' : undefined}
+                        // status={validationResults.errors['founder.processes'] ? 'error' : undefined}
                       />
                       {validationResults.errors['founder.processes'] && (
                         <Text type="danger" className="text-sm">
@@ -455,15 +458,15 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Industry knowledge (required)</Text>
+                      <Text strong>Industries You Know Well</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
-                        placeholder="Pick 1-3 industries you understand"
+                        placeholder="Choose the industries you have direct experience in (e.g ecommerce, consulting, SaaS)"
                         value={founderInputs.industries}
                         onChange={(value) => handleInputChange("founder", "industries", value)}
                         maxTagCount={3}
-                        status={validationResults.errors['founder.industries'] ? 'error' : undefined}
+                        // status={validationResults.errors['founder.industries'] ? 'error' : undefined}
                       />
                       {validationResults.errors['founder.industries'] && (
                         <Text type="danger" className="text-sm">
@@ -472,9 +475,9 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Proof assets (optional)</Text>
+                      <Text strong>Proof & Case Studies</Text>
                       <TextArea
-                        placeholder="Links or text: case studies, logos, testimonials, certifications, awards"
+                        placeholder="Add links or text for case studies, testimonials, logos, certifications or awards"
                         rows={2}
                         value={founderInputs.proofAssets.join("\n")}
                         onChange={(e) => handleInputChange("founder", "proofAssets", 
@@ -498,12 +501,12 @@ const onFinish = async () => {
                 >
                   <div className="space-y-4">
                     <div>
-                      <Text strong>Primary target market (required)</Text>
+                      <Text strong>Your Target Market</Text>
                       <Input
-                        placeholder="e.g., SMB services, clinics, trades, agencies, local retail"
+                        placeholder="Which type of businesses are you serving? (e.g SMBs, startups, enterprises). "
                         value={marketInputs.targetMarket}
                         onChange={(e) => handleInputChange("market", "targetMarket", e.target.value)}
-                        status={validationResults.errors['market.targetMarket'] ? 'error' : undefined}
+                        // status={validationResults.errors['market.targetMarket'] ? 'error' : undefined}
                       />
                       {validationResults.errors['market.targetMarket'] && (
                         <Text type="danger" className="text-sm">
@@ -512,12 +515,12 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Ideal buyer role (required)</Text>
+                      <Text strong>Your Buyer Persona</Text>
                       <Input
-                        placeholder="e.g., owner/operator, practice manager, GM, director"
+                        placeholder="Who inside the company makes the decision to hire you? (e.g., CEO, COO, Ops Director)."
                         value={marketInputs.buyerRole}
                         onChange={(e) => handleInputChange("market", "buyerRole", e.target.value)}
-                        status={validationResults.errors['market.buyerRole'] ? 'error' : undefined}
+                        // status={validationResults.errors['market.buyerRole'] ? 'error' : undefined}
                       />
                       {validationResults.errors['market.buyerRole'] && (
                         <Text type="danger" className="text-sm">
@@ -526,15 +529,15 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Top 3 buyer pains (required)</Text>
+                      <Text strong>Biggest Buyer Problems</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
-                        placeholder="Bullet points of customer pains"
+                        placeholder="What are the top challenges your buyers face? (e.g  lack of leads, slow sales, poor conversion)."
                         value={marketInputs.pains}
                         onChange={(value) => handleInputChange("market", "pains", value)}
                         maxTagCount={5}
-                        status={validationResults.errors['market.pains'] ? 'error' : undefined}
+                        // status={validationResults.errors['market.pains'] ? 'error' : undefined}
                       />
                       {validationResults.errors['market.pains'] && (
                         <Text type="danger" className="text-sm">
@@ -543,14 +546,14 @@ const onFinish = async () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Outcomes they will pay for (required)</Text>
+                      <Text strong>Results Buyers Want</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
-                        placeholder="e.g., revenue lift, cost cut, time saved, compliance, lead volume"
+                        placeholder=": List the outcomes clients value enough to pay for (e.g., revenue lift, lower costs, faster response)."
                         value={marketInputs.outcomes}
                         onChange={(value) => handleInputChange("market", "outcomes", value)}
-                        status={validationResults.errors['market.outcomes'] ? 'error' : undefined}
+                        // status={validationResults.errors['market.outcomes'] ? 'error' : undefined}
                       />
                       {validationResults.errors['market.outcomes'] && (
                         <Text type="danger" className="text-sm">
@@ -574,14 +577,14 @@ const onFinish = async () => {
                 >
                   <div className="space-y-4">
                     <div>
-                      <Text strong>Delivery model (required)</Text>
+                      <Text strong>How You Deliver</Text>
                       <Select
                         mode="multiple"
                         style={{ width: "100%" }}
-                        placeholder="Choose 1-3 options"
+                        placeholder="Select your service model (e.g done-for-you, coaching, SaaS, hybrid) "
                         value={businessInputs.deliveryModel}
                         onChange={(value) => handleInputChange("business", "deliveryModel", value)}
-                        status={validationResults.errors['business.deliveryModel'] ? 'error' : undefined}
+                        // status={validationResults.errors['business.deliveryModel'] ? 'error' : undefined}
                       >
                         <Option value="productized-service">Productized Service</Option>
                         <Option value="monthly-retainer">Monthly Retainer</Option>
@@ -598,12 +601,12 @@ const onFinish = async () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Text strong>Capacity (required)</Text>
+                        <Text strong>Max Clients You Can Handle</Text>
                         <Input
-                          placeholder="Max concurrent clients"
+                          placeholder="What's your concurrent client capacity (e.g 5 at once, 20 at once)?"
                           value={businessInputs.capacity}
                           onChange={(e) => handleInputChange("business", "capacity", e.target.value)}
-                          status={validationResults.errors['business.capacity'] ? 'error' : undefined}
+                          // status={validationResults.errors['business.capacity'] ? 'error' : undefined}
                         />
                         {validationResults.errors['business.capacity'] && (
                           <Text type="danger" className="text-sm">
@@ -612,12 +615,12 @@ const onFinish = async () => {
                         )}
                       </div>
                       <div>
-                        <Text strong>Monthly hours (required)</Text>
+                        <Text strong>Monthly Hours You will invest</Text>
                         <Input
-                          placeholder="Monthly hours available"
+                          placeholder="Roughly how many hours per month can your team put into delivery?"
                           value={businessInputs.monthlyHours}
                           onChange={(e) => handleInputChange("business", "monthlyHours", e.target.value)}
-                          status={validationResults.errors['business.monthlyHours'] ? 'error' : undefined}
+                          // status={validationResults.errors['business.monthlyHours'] ? 'error' : undefined}
                         />
                         {validationResults.errors['business.monthlyHours'] && (
                           <Text type="danger" className="text-sm">
@@ -626,12 +629,12 @@ const onFinish = async () => {
                         )}
                       </div>
                       <div>
-                        <Text strong>Preferred ACV (required)</Text>
+                        <Text strong>Your Target Deal Size</Text>
                         <Input
-                          placeholder="e.g., $50,000"
+                          placeholder="What's your ideal annual contract value per client (e.g $20k, $50k)? "
                           value={businessInputs.acv}
                           onChange={(e) => handleInputChange("business", "acv", e.target.value)}
-                          status={validationResults.errors['business.acv'] ? 'error' : undefined}
+                          // status={validationResults.errors['business.acv'] ? 'error' : undefined}
                         />
                         {validationResults.errors['business.acv'] && (
                           <Text type="danger" className="text-sm">
@@ -641,11 +644,11 @@ const onFinish = async () => {
                       </div>
                     </div>
                     <div>
-                      <Text strong>Fulfillment stack (optional)</Text>
+                      <Text strong>Your Fulfillment Tools</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
-                        placeholder="Tech/tools you'll use internally"
+                        placeholder="List the main tools/softwate you'll use to deliver (e.g., HubSpot, Zapier, Figma). "
                         value={businessInputs.fulfillmentStack}
                         onChange={(value) => handleInputChange("business", "fulfillmentStack", value)}
                       />
@@ -693,12 +696,12 @@ const onFinish = async () => {
                 >
                   <div className="space-y-6">
                     <div>
-                      <Text strong className="block mb-2">Price posture</Text>
+                      <Text strong className="block mb-2">Your Pricing Style</Text>
                       <Select
                         value={pricingInputs.pricePosture}
                         onChange={(value) => handleInputChange("pricing", "pricePosture", value)}
                         style={{ width: "100%" }}
-                        placeholder="Select price posture"
+                        placeholder="Do you position as value-priced(ROI focus), premium or budget?"
                       >
                         <Option value="value-priced">Value-Priced (ROI focus)</Option>
                         <Option value="market-priced">Market-Priced (Competitive)</Option>
@@ -706,12 +709,12 @@ const onFinish = async () => {
                       </Select>
                     </div>
                     <div>
-                      <Text strong className="block mb-2">Contract style</Text>
+                      <Text strong className="block mb-2">Contract setup</Text>
                       <Select
                         value={pricingInputs.contractStyle}
                         onChange={(value) => handleInputChange("pricing", "contractStyle", value)}
                         style={{ width: "100%" }}
-                        placeholder="Select contract style"
+                        placeholder="Do you prefer month-to-month, 6 month or anuual agreements"
                       >
                         <Option value="month-to-month">Month-to-Month</Option>
                         <Option value="3-month-min">3-Month Minimum</Option>
@@ -720,12 +723,12 @@ const onFinish = async () => {
                       </Select>
                     </div>
                     <div>
-                      <Text strong className="block mb-2">Guarantee posture</Text>
+                      <Text strong className="block mb-2">Your Guarantee</Text>
                       <Select
                         value={pricingInputs.guarantee}
                         onChange={(value) => handleInputChange("pricing", "guarantee", value)}
                         style={{ width: "100%" }}
-                        placeholder="Select guarantee posture"
+                        placeholder="Do you offer refunds, performance guarentees or none? "
                       >
                         <Option value="none">None</Option>
                         <Option value="conditional">Conditional (if client follows process)</Option>
@@ -748,12 +751,12 @@ const onFinish = async () => {
                 >
                   <div className="space-y-6">
                     <div>
-                      <Text strong className="block mb-2">Brand tone</Text>
+                      <Text strong className="block mb-2">Your Brand Voice</Text>
                       <Select
                         value={voiceInputs.brandTone}
                         onChange={(value) => handleInputChange("voice", "brandTone", value)}
                         style={{ width: "100%" }}
-                        placeholder="Select brand tone"
+                        placeholder="How should your messaging sound? (e.g consultative, bold, advisory,friendly) "
                       >
                         <Option value="assertive">Assertive (Confident, direct)</Option>
                         <Option value="consultative">Consultative (Advisory, helpful)</Option>
@@ -762,12 +765,12 @@ const onFinish = async () => {
                       </Select>
                     </div>
                     <div>
-                      <Text strong className="block mb-2">Positioning angle</Text>
+                      <Text strong className="block mb-2">Your Core Angle</Text>
                       <Select
                         value={voiceInputs.positioning}
                         onChange={(value) => handleInputChange("voice", "positioning", value)}
                         style={{ width: "100%" }}
-                        placeholder="Select positioning angle"
+                        placeholder="What's the #1 lens you use to sell? (e.g ROI focus, compliance, time saved , quality"
                       >
                         <Option value="speed">Speed (Fast results, quick turnaround)</Option>
                         <Option value="certainty">Certainty (Guaranteed outcomes)</Option>
@@ -786,7 +789,7 @@ const onFinish = async () => {
                         onChange={(value) => handleInputChange("voice", "differentiators", value)}
                         maxTagCount={5}
                         className="w-full"
-                        status={validationResults.errors['voice.differentiators'] ? 'error' : undefined}
+                      
                       />
                       {validationResults.errors['voice.differentiators'] && (
                         <Text type="danger" className="text-sm">
@@ -849,6 +852,30 @@ const onFinish = async () => {
                         }}
                       />
                     </div>
+                    <Card title="Form Completion" className="mb-6">
+  <div className="space-y-3">
+    <div>
+      <Text strong>Progress: {validationResults.completionPercentage}%</Text>
+      <Progress 
+        percent={validationResults.completionPercentage} 
+        status={validationResults.completionPercentage === 100 ? "success" : "active"}
+        strokeColor={{
+          "0%": "#ff4d4f",
+          "50%": "#faad14", 
+          "100%": "#52c41a",
+        }}
+      />
+    </div>
+    <div className="text-sm text-gray-600">
+      {validationResults.completedFields} of {validationResults.totalRequiredFields} required fields completed
+    </div>
+    {validationResults.isReadyToGenerate && !validationResults.isValid && (
+      <div className="text-sm text-orange-600">
+        Ready to generate! Complete remaining fields for best results.
+      </div>
+    )}
+  </div>
+</Card>
                     <div>
                       <Text strong>Confidence Score: </Text>
                       <Text>{livePreview.confidenceScore}%</Text>
