@@ -288,12 +288,13 @@ export async function POST(req: NextRequest) {
         user.id, 
         workspace.id
       );
-      
+   
+
       console.log('✅ Report generated and saved:', {
-        reportId: result.reportId,
-        tokensUsed: result.report.tokensUsed,
-        nicheName: result.report.nicheOverview?.name
-      });
+  reportId: result.reportId,
+  tokensUsed: result.report.tokensUsed,
+  nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
+});
       
     } catch (serviceError) {
       console.error('💥 Service error during generation:', serviceError);
@@ -309,27 +310,26 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ LOG USAGE
-    console.log('📊 Logging usage...');
-    try {
-      await logUsage({
-        userId: user.id,
-        feature: 'niche_research',
-        tokens: result.report.tokensUsed,
-        timestamp: new Date(),
-        metadata: {
-          reportId: result.reportId,
-          primaryObjective: validation.data.primaryObjective,
-          marketType: validation.data.marketType,
-          budget: validation.data.budget,
-          skillsCount: validation.data.skills?.length || 0,
-          nicheName: result.report.nicheOverview?.name
-        }
-      });
-      console.log('✅ Usage logged successfully');
-    } catch (logError) {
-      console.error('⚠️ Usage logging failed (non-critical):', logError);
+   console.log('📊 Logging usage...');
+try {
+  await logUsage({
+    userId: user.id,
+    feature: 'niche_research',
+    tokens: result.report.tokensUsed,
+    timestamp: new Date(),
+    metadata: {
+      reportId: result.reportId,
+      primaryObjective: validation.data.primaryObjective,
+      marketType: validation.data.marketType,
+      budget: validation.data.budget,
+      skillsCount: validation.data.skills?.length || 0,
+      nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
     }
-
+  });
+  console.log('✅ Usage logged successfully');
+} catch (logError) {
+  console.error('⚠️ Usage logging failed (non-critical):', logError);
+}
     console.log('🎉 Niche research generation completed successfully');
     return NextResponse.json({
       success: true,
