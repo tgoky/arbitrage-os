@@ -730,7 +730,7 @@ const onFinish = async (values: any) => {
               name="email"
               label="Email"
               rules={[{ required: true, type: 'email' }]}
-              initialValue="consultant@example.com"
+              initialValue=""
             >
               <Input prefix={<UserOutlined />} />
             </Form.Item>
@@ -748,7 +748,7 @@ const onFinish = async (values: any) => {
               name="company"
               label="Company"
               rules={[{ required: true }]}
-              initialValue="Growth Partners Inc."
+              initialValue=""
             >
               <Input />
             </Form.Item>
@@ -764,7 +764,7 @@ const onFinish = async (values: any) => {
               name="clientCompany"
               label="Company Name"
               rules={[{ required: true }]}
-              initialValue="TechFlow Solutions"
+              initialValue=""
             >
               <Input />
             </Form.Item>
@@ -773,7 +773,7 @@ const onFinish = async (values: any) => {
               name="industry"
               label="Industry"
               rules={[{ required: true }]}
-              initialValue="SaaS"
+              initialValue=""
             >
               <Select>
                 <Option value="SaaS">SaaS</Option>
@@ -791,7 +791,7 @@ const onFinish = async (values: any) => {
               name="contactName"
               label="Contact Name"
               rules={[{ required: true }]}
-              initialValue="Sarah Johnson"
+              initialValue=""
             >
               <Input />
             </Form.Item>
@@ -800,7 +800,7 @@ const onFinish = async (values: any) => {
               name="contactRole"
               label="Contact Role"
               rules={[{ required: true }]}
-              initialValue="CEO"
+              initialValue=""
             >
               <Input />
             </Form.Item>
@@ -818,7 +818,7 @@ const onFinish = async (values: any) => {
           name="expertise"
           label="Your Core Skills/Services"
           rules={[{ required: true }]}
-          initialValue={['SEO', 'PPC', 'Content Marketing', 'Conversion Optimization']}
+          initialValue={[]}
         >
           <Select
             mode="tags"
@@ -831,7 +831,7 @@ const onFinish = async (values: any) => {
           name="experience"
           label="Your Experience & Achievements"
           rules={[{ required: true, min: 50 }]}
-          initialValue="Over 8 years of experience helping B2B SaaS companies scale from startup to $10M+ ARR. Successfully implemented growth strategies for 150+ clients, with an average revenue increase of 180% within 12 months. Specialized in full-funnel optimization, from lead generation to customer retention."
+          initialValue=""
         >
           <TextArea rows={4} placeholder="Describe your relevant experience, years in business, notable results..." showCount maxLength={2000} />
         </Form.Item>

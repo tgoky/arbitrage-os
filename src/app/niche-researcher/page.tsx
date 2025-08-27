@@ -586,7 +586,7 @@ const getRequiredFieldsForStep = (step: number): string[] => {
               
               <Form.Item
                 name="skills"
-                label="Key Skills Available (Select all that apply)"
+                label="What Your Team Can Do (Select all that apply)"
               >
                 <Select
                   mode="multiple"
@@ -597,7 +597,7 @@ const getRequiredFieldsForStep = (step: number): string[] => {
               
               <Form.Item
                 name="timeCommitment"
-                label="Time Commitment (Optional)"
+                label="Hours per Week You’ll Invest” (Optional)"
               >
                 <Select placeholder="Select time commitment">
                   <Option value="5-10">5-10 hours/week</Option>
