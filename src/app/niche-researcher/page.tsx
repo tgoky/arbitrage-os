@@ -47,7 +47,7 @@ RiseOutlined,
 
 } from '@ant-design/icons';
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
-import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
+import { NicheResearchInput, GeneratedNicheReport, MultiNicheReport } from '@/types/nicheResearcher';
 import { debounce } from 'lodash';
 import LoadingOverlay from './LoadingOverlay';
 
@@ -114,6 +114,9 @@ const NicheResearcher = () => {
   const [previousReports, setPreviousReports] = useState<any[]>([]);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({});
+
+  const [multiNicheReport, setMultiNicheReport] = useState<MultiNicheReport | null>(null);
+const [selectedNicheTab, setSelectedNicheTab] = useState(0);
 
   const {
     generateNicheReport,
@@ -229,6 +232,7 @@ const NicheResearcher = () => {
 
   // Form submission
   // Form submission
+// Form submission
 const onFinish = async (values: FormValues) => {
   try {
     console.log('🔍 Form submission started');
@@ -305,16 +309,22 @@ const onFinish = async (values: FormValues) => {
       return;
     }
 
+    // Generate multi-niche report
     const result = await generateNicheReport(requestData);
     
-    setReportData(result.report);
+    // ✅ UPDATED: Set multi-niche report state
+    setMultiNicheReport(result.report);
     setCurrentReportId(result.reportId);
     setReportGenerated(true);
     setCurrentStep(5);
+    setSelectedNicheTab(result.report.recommendedNiche); // Start with recommended niche
+    
+    // Clear old single niche state (if it exists)
+    setReportData(null);
     
     notification.success({
-      message: 'Niche Research Report Generated!',
-      description: `Found your perfect niche opportunities`,
+      message: 'Found 3 Perfect Niche Opportunities!',
+      description: `We've identified your top matches with AI recommendations`,
       placement: 'topRight',
     });
     
@@ -327,7 +337,6 @@ const onFinish = async (values: FormValues) => {
     });
   }
 };
-
   // Navigation functions
  const nextStep = () => {
   saveCurrentStepData();

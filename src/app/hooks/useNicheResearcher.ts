@@ -1,7 +1,8 @@
 // hooks/useNicheResearcher.ts - UPDATED TO MATCH NEW API STRUCTURE
 import { useState } from 'react';
 import { message } from 'antd';
-import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
+// import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
+import { NicheResearchInput, GeneratedNicheReport, MultiNicheReport } from '@/types/nicheResearcher';
 
 export interface NicheReportSummary {
   id: string;
@@ -62,20 +63,20 @@ export function useNicheResearcher() {
     }
   };
 
-  const generateNicheReport = async (input: NicheResearchInput): Promise<{
-    reportId: string;
-    report: GeneratedNicheReport;
-  }> => {
+const generateNicheReport = async (input: NicheResearchInput): Promise<{
+  reportId: string;
+  report: MultiNicheReport;
+}> => {
     setLoading(true);
     setError(null);
     
     try {
       console.log('Generating niche report with input:', input);
       
-      const response = await handleApiCall<{
-        reportId: string;
-        report: GeneratedNicheReport;
-      }>(
+    const response = await handleApiCall<{
+  reportId: string;
+  report: MultiNicheReport;
+}>(
         '/api/niche-research',
         {
           method: 'POST',
