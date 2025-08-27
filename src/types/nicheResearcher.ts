@@ -26,6 +26,7 @@ export interface NicheResearchInput {
   validationData?: string[];
   competitionPreference?: 'low-competition' | 'high-potential';
   scalabilityPreference?: 'stay-small' | 'grow-fast' | 'build-exit';
+    targetArea?: string;
   
   // System field
   userId?: string;

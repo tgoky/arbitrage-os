@@ -129,6 +129,29 @@ body {
   overflow-x: hidden;
 }
 
+/* Remove vertical borders from comparison table */
+.comparison-table table {
+  border: none;
+  border-collapse: collapse;
+}
+
+.comparison-table th,
+.comparison-table td {
+  border-left: none !important;
+  border-right: none !important;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.comparison-table thead th {
+  border-top: none;
+ 
+}
+
+.comparison-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .content {
   flex: 1;
   min-width: 0; /* Important: allows flex item to shrink below content size */

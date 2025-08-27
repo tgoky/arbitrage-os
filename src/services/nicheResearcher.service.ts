@@ -430,7 +430,9 @@ Target Customer Size: ${input.customerSize}
 Budget Available: ${input.budget}
 ${input.timeCommitment ? `Time Commitment: ${input.timeCommitment} hours/week` : ''}
 ${input.teamSize ? `Team Size: ${input.teamSize}` : ''}
+// Update this line:
 ${input.geographicFocus ? `Geographic Focus: ${input.geographicFocus}` : ''}
+${input.targetArea ? `Target Area: ${input.targetArea}` : ''}
 
 **SKILLS & CAPABILITIES:**
 ${input.skills && input.skills.length > 0 ? `Available Skills: ${input.skills.join(', ')}` : 'No specific skills provided'}

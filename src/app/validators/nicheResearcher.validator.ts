@@ -11,6 +11,7 @@ const nicheResearchSchema = z.object({
   customerSize: z.enum(['startups', 'smb', 'enterprise', 'consumers', 'government']),
   industries: z.array(z.string()).optional(),
   geographicFocus: z.enum(['local', 'regional', 'us-only', 'global']).optional(),
+    targetArea: z.string().max(100, 'Target area is too long').optional(),
   
   // Constraints & Resources - REQUIRED budget, others optional
   budget: z.enum(['<10k', '10k-50k', '50k-250k', '250k+']),
@@ -35,6 +36,7 @@ const nicheResearchSchema = z.object({
   userId: z.string().optional()
 });
 
+
 export function validateNicheResearchInput(data: any): 
   | { success: true; data: z.infer<typeof nicheResearchSchema> }
   | { success: false; errors: any[] } {
@@ -52,9 +54,25 @@ export function validateNicheResearchInput(data: any):
       validationData: Array.isArray(data.validationData) ? data.validationData : [],
       // Clean string fields
       problems: data.problems || undefined,
+      targetArea: data.targetArea || undefined,
     };
 
     const validated = nicheResearchSchema.parse(cleanedData);
+    
+    // Custom validation: targetArea required for local/regional
+    if ((validated.geographicFocus === 'local' || validated.geographicFocus === 'regional') 
+        && !validated.targetArea?.trim()) {
+      console.error('❌ Target area required for local/regional focus');
+      return {
+        success: false,
+        errors: [{
+          code: 'custom',
+          path: ['targetArea'],
+          message: `Target ${validated.geographicFocus === 'local' ? 'city/area' : 'region'} is required when geographic focus is ${validated.geographicFocus}`
+        }]
+      };
+    }
+    
     console.log('✅ Validation successful');
     return { success: true, data: validated };
   } catch (error) {
@@ -66,6 +84,7 @@ export function validateNicheResearchInput(data: any):
     return { success: false, errors: [{ message: 'Validation failed' }] };
   }
 }
+
 
 // Business logic validation for better UX
 export function validateNicheResearchBusinessRules(data: z.infer<typeof nicheResearchSchema>): {
