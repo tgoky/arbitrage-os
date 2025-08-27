@@ -1,6 +1,13 @@
 // services/nicheResearcher.service.ts - COMPLETE AND PROPER VERSION
 import { OpenRouterClient } from '@/lib/openrouter';
-import { NicheResearchInput, GeneratedNicheReport, NicheReportMetadata } from '@/types/nicheResearcher';
+import { 
+  NicheResearchInput, 
+  GeneratedNicheReport, 
+  NicheReportMetadata,
+  MultiNicheReport,
+  NicheComparisonMatrix,
+  NicheScore
+} from '@/types/nicheResearcher';
 import { Redis } from '@upstash/redis';
 
 export class NicheResearcherService {
@@ -16,53 +23,52 @@ export class NicheResearcherService {
   }
 
   // Main wrapper method for generating and saving reports
-  async generateAndSaveNicheReport(
-    input: NicheResearchInput, 
-    userId: string, 
-    workspaceId: string
-  ): Promise<{
-    report: GeneratedNicheReport;
-    reportId: string;
-  }> {
-    console.log('🚀 Starting niche report generation for user:', userId);
-    
-    // Generate report using AI
-    const report = await this.generateNicheReport(input);
-    
-    // Save to database
-    const reportId = await this.saveNicheReport(userId, workspaceId, report, input);
-    
-    console.log('✅ Niche report generated and saved with ID:', reportId);
-    
-    return {
-      report,
-      reportId,
-    };
+ async generateAndSaveNicheReport(
+  input: NicheResearchInput, 
+  userId: string, 
+  workspaceId: string
+): Promise<{
+  report: MultiNicheReport;  // Changed from GeneratedNicheReport
+  reportId: string;
+}> {
+  console.log('🚀 Starting niche report generation for user:', userId);
+  
+  // Generate report using AI
+  const report = await this.generateNicheReport(input);
+  
+  // Save to database
+  const reportId = await this.saveNicheReport(userId, workspaceId, report, input);
+  
+  console.log('✅ Niche report generated and saved with ID:', reportId);
+  
+  return {
+    report,
+    reportId,
+  };
+}
+  async generateNicheReport(input: NicheResearchInput): Promise<MultiNicheReport> {
+  const startTime = Date.now();
+  
+  // Check cache first
+  const cacheKey = this.generateCacheKey(input);
+  const cached = await this.redis.get(cacheKey);
+  if (cached) {
+    console.log('📋 Using cached niche report');
+    return JSON.parse(cached as string);
   }
 
-  async generateNicheReport(input: NicheResearchInput): Promise<GeneratedNicheReport> {
-    const startTime = Date.now();
-    
-    // Check cache first
-    const cacheKey = this.generateCacheKey(input);
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      console.log('📋 Using cached niche report');
-      return JSON.parse(cached as string);
-    }
+  console.log('🤖 Generating new niche report with AI');
 
-    console.log('🤖 Generating new niche report with AI');
-
-    // Build comprehensive analysis prompt
-    const prompt = this.buildNicheAnalysisPrompt(input);
-    
-    // Generate report using AI
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-5-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert business consultant and market researcher specializing in niche identification and opportunity analysis. Generate comprehensive, data-driven niche research reports that are practical, actionable, and tailored to the individual's unique background and constraints.
+  // Build comprehensive analysis prompt
+  const prompt = this.buildNicheAnalysisPrompt(input);
+  
+  // Generate report using AI
+  const response = await this.openRouterClient.complete({
+    model: 'openai/gpt-5-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `You are an expert business consultant and market researcher specializing in niche identification and opportunity analysis. Generate comprehensive, data-driven niche research reports that are practical, actionable, and tailored to the individual's unique background and constraints.
 
 Focus on finding the perfect intersection of:
 1. Market demand and growth potential
@@ -71,90 +77,119 @@ Focus on finding the perfect intersection of:
 4. Monetization and scalability opportunities
 
 Provide specific, actionable recommendations with real market insights.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 4000
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 4000
+  });
+
+  const parsedReport = this.parseNicheReportResponse(response.content, input);
+  
+  const nicheReport: MultiNicheReport = {
+    ...parsedReport,
+    tokensUsed: response.usage.total_tokens,
+    generationTime: Date.now() - startTime
+  };
+
+  // Cache for 4 hours
+  await this.redis.set(cacheKey, JSON.stringify(nicheReport), { ex: 14400 });
+  
+  return nicheReport;
+}
+
+
+private parseNicheReportResponse(content: string, input: NicheResearchInput): Omit<MultiNicheReport, 'tokensUsed' | 'generationTime'> {
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Validate the multi-niche structure
+      if (!parsed.niches || !Array.isArray(parsed.niches) || parsed.niches.length !== 3) {
+        throw new Error('Invalid multi-niche response format');
+      }
+      
+      return parsed;
+    }
+    throw new Error('No valid JSON found');
+  } catch (error) {
+    return this.generateFallbackMultiNicheReport(input);
+  }
+}
+
+async saveNicheReport(
+  userId: string, 
+  workspaceId: string, 
+  report: MultiNicheReport,
+  input: NicheResearchInput
+): Promise<string> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    // Get the recommended niche from the report
+    const recommendedNiche = report.niches[report.recommendedNiche];
+    
+    // Create metadata from the input and report
+    const metadata: NicheReportMetadata = {
+      primaryObjective: input.primaryObjective,
+      marketType: input.marketType,
+      customerSize: input.customerSize,
+      budget: input.budget,
+      generatedAt: new Date().toISOString(),
+      tokensUsed: report.tokensUsed,
+      generationTime: report.generationTime,
+      topNiches: report.niches.map((niche, index) => ({
+        name: niche.nicheOverview.name,
+        matchScore: this.calculateMatchScore(input, niche),
+        category: input.marketType,
+        isRecommended: index === report.recommendedNiche
+      })),
+      // Additional metadata
+      riskAppetite: input.riskAppetite,
+      geographicFocus: input.geographicFocus,
+      teamSize: input.teamSize,
+      timeCommitment: input.timeCommitment,
+      skills: input.skills || [],
+      industries: input.industries || [],
+      originalInput: input,
+      // Add multi-niche specific metadata
+      recommendedNicheIndex: report.recommendedNiche,
+      recommendationReason: report.recommendationReason,
+      totalNiches: report.niches.length
+    };
+    
+    const deliverable = await prisma.deliverable.create({
+      data: {
+        title: `Multi-Niche Research Report - ${recommendedNiche.nicheOverview.name} (Recommended)`,
+        content: JSON.stringify(report),
+        type: 'niche_research',
+        user_id: userId,
+        workspace_id: workspaceId,
+        metadata: metadata,
+        tags: [
+          'niche-research',
+          'multi-niche',
+          input.primaryObjective,
+          input.marketType,
+          input.customerSize,
+          input.budget,
+          input.riskAppetite,
+          ...(input.skills || []).map(s => s.toLowerCase().replace(/\s+/g, '-')),
+          ...(input.industries || []).map(i => i.toLowerCase().replace(/\s+/g, '-'))
+        ].filter(Boolean)
+      }
     });
 
-    const parsedReport = this.parseNicheReportResponse(response.content, input);
-    
-    const nicheReport: GeneratedNicheReport = {
-      ...parsedReport,
-      tokensUsed: response.usage.total_tokens,
-      generationTime: Date.now() - startTime
-    };
-
-    // Cache for 4 hours
-    await this.redis.set(cacheKey, JSON.stringify(nicheReport), { ex: 14400 });
-    
-    return nicheReport;
+    return deliverable.id;
+  } catch (error) {
+    console.error('Error saving niche report:', error);
+    throw error;
   }
-
-  async saveNicheReport(
-    userId: string, 
-    workspaceId: string, 
-    report: GeneratedNicheReport, 
-    input: NicheResearchInput
-  ): Promise<string> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      // Create metadata from the input and report
-      const metadata: NicheReportMetadata = {
-        primaryObjective: input.primaryObjective,
-        marketType: input.marketType,
-        customerSize: input.customerSize,
-        budget: input.budget,
-        generatedAt: new Date().toISOString(),
-        tokensUsed: report.tokensUsed,
-        generationTime: report.generationTime,
-        topNiches: [{
-          name: report.nicheOverview.name,
-          matchScore: this.calculateMatchScore(input, report),
-          category: input.marketType
-        }],
-        // Additional metadata
-        riskAppetite: input.riskAppetite,
-        geographicFocus: input.geographicFocus,
-        teamSize: input.teamSize,
-        timeCommitment: input.timeCommitment,
-        skills: input.skills || [],
-        industries: input.industries || [],
-        originalInput: input
-      };
-      
-      const deliverable = await prisma.deliverable.create({
-        data: {
-          title: `${report.nicheOverview.name} - Niche Research Report`,
-          content: JSON.stringify(report),
-          type: 'niche_research',
-          user_id: userId,
-          workspace_id: workspaceId,
-          metadata: metadata,
-          tags: [
-            'niche-research',
-            input.primaryObjective,
-            input.marketType,
-            input.customerSize,
-            input.budget,
-            input.riskAppetite,
-            ...(input.skills || []).map(s => s.toLowerCase().replace(/\s+/g, '-')),
-            ...(input.industries || []).map(i => i.toLowerCase().replace(/\s+/g, '-'))
-          ].filter(Boolean)
-        }
-      });
-
-      return deliverable.id;
-    } catch (error) {
-      console.error('Error saving niche report:', error);
-      throw error;
-    }
-  }
+}
 
   async getNicheReport(userId: string, reportId: string) {
     try {
@@ -190,56 +225,59 @@ Provide specific, actionable recommendations with real market insights.`
     }
   }
 
-  async getUserNicheReports(userId: string, workspaceId?: string) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const whereClause: any = {
-        user_id: userId,
-        type: 'niche_research'
-      };
+async getUserNicheReports(userId: string, workspaceId?: string) {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    const whereClause: any = {
+      user_id: userId,
+      type: 'niche_research'
+    };
 
-      if (workspaceId) {
-        whereClause.workspace_id = workspaceId;
-      }
+    if (workspaceId) {
+      whereClause.workspace_id = workspaceId;
+    }
 
-      const reports = await prisma.deliverable.findMany({
-        where: whereClause,
-        orderBy: { created_at: 'desc' },
-        include: {
-          workspace: {
-            select: {
-              id: true,
-              name: true
-            }
+    const reports = await prisma.deliverable.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      include: {
+        workspace: {
+          select: {
+            id: true,
+            name: true
           }
         }
-      });
+      }
+    });
 
-      return reports.map(report => {
-        const metadata = report.metadata as NicheReportMetadata;
-        const reportContent = JSON.parse(report.content) as GeneratedNicheReport;
-        
-        return {
-          id: report.id,
-          title: report.title,
-          nicheName: reportContent.nicheOverview?.name || 'Untitled Niche',
-          marketSize: reportContent.marketDemand?.marketSize || 'Unknown',
-          primaryObjective: metadata?.primaryObjective || 'Not specified',
-          marketType: metadata?.marketType || 'Not specified',
-          budget: metadata?.budget || 'Not specified',
-          tokensUsed: metadata?.tokensUsed || 0,
-          generationTime: metadata?.generationTime || 0,
-          createdAt: report.created_at,
-          updatedAt: report.updated_at,
-          workspace: report.workspace
-        };
-      });
-    } catch (error) {
-      console.error('Error fetching user niche reports:', error);
-      return [];
-    }
+    return reports.map(report => {
+      const metadata = report.metadata as NicheReportMetadata;
+      // CHANGED: Parse as MultiNicheReport instead of GeneratedNicheReport
+      const reportContent = JSON.parse(report.content) as MultiNicheReport;
+      const recommendedNiche = reportContent.niches?.[reportContent.recommendedNiche];
+      
+      return {
+        id: report.id,
+        title: report.title,
+        // CHANGED: Use recommended niche data instead of direct properties
+        nicheName: recommendedNiche?.nicheOverview?.name || 'Multi-Niche Report',
+        marketSize: recommendedNiche?.marketDemand?.marketSize || 'Unknown',
+        primaryObjective: metadata?.primaryObjective || 'Not specified',
+        marketType: metadata?.marketType || 'Not specified',
+        budget: metadata?.budget || 'Not specified',
+        tokensUsed: metadata?.tokensUsed || 0,
+        generationTime: metadata?.generationTime || 0,
+        createdAt: report.created_at,
+        updatedAt: report.updated_at,
+        workspace: report.workspace
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching user niche reports:', error);
+    return [];
   }
+}
 
   async deleteNicheReport(userId: string, reportId: string): Promise<boolean> {
     try {
@@ -260,33 +298,39 @@ Provide specific, actionable recommendations with real market insights.`
     }
   }
 
-  async exportNicheReport(reportId: string, format: 'html' | 'json' = 'html'): Promise<void> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const deliverable = await prisma.deliverable.findUnique({
-        where: { id: reportId }
-      });
+async exportNicheReport(reportId: string, format: 'html' | 'json' = 'html'): Promise<void> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    const deliverable = await prisma.deliverable.findUnique({
+      where: { id: reportId }
+    });
 
-      if (!deliverable) {
-        throw new Error('Report not found');
-      }
-
-      const report = JSON.parse(deliverable.content) as GeneratedNicheReport;
-      const metadata = deliverable.metadata as NicheReportMetadata;
-
-      if (format === 'html') {
-        const htmlContent = this.generateHTMLReport(report, metadata);
-        this.downloadFile(htmlContent, `${deliverable.title}.html`, 'text/html');
-      } else {
-        const jsonContent = JSON.stringify({ report, metadata }, null, 2);
-        this.downloadFile(jsonContent, `${deliverable.title}.json`, 'application/json');
-      }
-    } catch (error) {
-      console.error('Error exporting niche report:', error);
-      throw error;
+    if (!deliverable) {
+      throw new Error('Report not found');
     }
+
+    // CHANGED: Parse as MultiNicheReport instead of GeneratedNicheReport
+    const report = JSON.parse(deliverable.content) as MultiNicheReport;
+    const metadata = deliverable.metadata as NicheReportMetadata;
+    
+    // CHANGED: Get the recommended niche for HTML export
+    const recommendedNiche = report.niches[report.recommendedNiche];
+
+    if (format === 'html') {
+      // CHANGED: Pass the recommended niche to generateHTMLReport
+      const htmlContent = this.generateHTMLReport(recommendedNiche, metadata);
+      this.downloadFile(htmlContent, `${deliverable.title}.html`, 'text/html');
+    } else {
+      // For JSON, export the entire multi-niche report
+      const jsonContent = JSON.stringify({ report, metadata }, null, 2);
+      this.downloadFile(jsonContent, `${deliverable.title}.json`, 'application/json');
+    }
+  } catch (error) {
+    console.error('Error exporting niche report:', error);
+    throw error;
   }
+}
 
   private calculateMatchScore(input: NicheResearchInput, report: GeneratedNicheReport): number {
     let score = 0;
@@ -368,11 +412,15 @@ Provide specific, actionable recommendations with real market insights.`
     return alignmentMap[objective]?.(report) || 10;
   }
 
-  private buildNicheAnalysisPrompt(input: NicheResearchInput): string {
+private buildNicheAnalysisPrompt(input: NicheResearchInput): string {
     return `
-**NICHE RESEARCH ANALYSIS REQUEST**
+**GENERATE 3 DISTINCT SPECIFIC NICHE OPPORTUNITIES**
 
-Generate a comprehensive niche research report based on the following inputs. Respond with ONLY a valid JSON object matching the exact structure specified.
+Generate exactly 3 different, specific niche opportunities based on the following inputs. Each niche should be:
+1. Highly specific (not broad categories)
+2. Distinct from the other two
+3. Tailored to the client's exact profile
+4. Immediately actionable with clear next steps
 
 **CLIENT PROFILE:**
 Primary Objective: ${input.primaryObjective}
@@ -401,69 +449,251 @@ ${input.scalabilityPreference ? `Scalability Preference: ${input.scalabilityPref
 
 **REQUIRED JSON STRUCTURE:**
 {
-  "nicheOverview": {
-    "name": "Specific niche name that aligns with inputs",
-    "summary": "2-3 sentence overview of the niche opportunity",
-    "whyItFits": "Explanation of why this niche matches the client's profile"
-  },
-  "marketDemand": {
-    "marketSize": "Market size estimate with currency",
-    "trend": "growing|plateauing|declining",
-    "willingnessToPay": "Price sensitivity and willingness to pay"
-  },
-  "painPoints": [
+  "niches": [
     {
-      "problem": "Specific customer problem",
-      "intensity": "High|Medium|Low"
-    }
-  ],
-  "competitiveLandscape": {
-    "competitors": [
-      {
-        "name": "Competitor name",
-        "description": "What they do and their positioning"
+      "nicheOverview": {
+        "name": "Specific niche name #1",
+        "summary": "2-3 sentence overview of the niche opportunity",
+        "whyItFits": "Explanation of why this specific niche matches the client's profile"
+      },
+      "marketDemand": {
+        "marketSize": "Market size estimate with currency",
+        "trend": "growing|plateauing|declining",
+        "willingnessToPay": "Price sensitivity and willingness to pay"
+      },
+      "painPoints": [
+        {
+          "problem": "Specific customer problem",
+          "intensity": "High|Medium|Low"
+        }
+      ],
+      "competitiveLandscape": {
+        "competitors": [
+          {
+            "name": "Competitor name",
+            "description": "What they do and their positioning"
+          }
+        ],
+        "gapAnalysis": "Market gaps and opportunities",
+        "barrierToEntry": "Low|Medium|High"
+      },
+      "arbitrageOpportunity": {
+        "explanation": "The specific arbitrage or unfair advantage",
+        "concreteAngle": "Specific positioning or approach to exploit"
+      },
+      "entryOffers": [
+        {
+          "positioning": "How to position the offer",
+          "businessModel": "Revenue model",
+          "pricePoint": "Suggested pricing"
+        }
+      ],
+      "gtmStrategy": {
+        "primaryChannel": "Best go-to-market channel for this client",
+        "justification": "Why this channel fits their constraints and skills"
+      },
+      "scalabilityExit": {
+        "scalabilityScore": "High|Medium|Low",
+        "exitPotential": "Exit opportunities and timeline"
+      },
+      "riskFactors": [
+        {
+          "risk": "Potential risk",
+          "impact": "High|Medium|Low"
+        }
+      ],
+      "scorecard": {
+        "marketDemand": "High|Medium|Low",
+        "competition": "High|Medium|Low",
+        "easeOfEntry": "High|Medium|Low",
+        "profitability": "High|Medium|Low"
       }
-    ],
-    "gapAnalysis": "Market gaps and opportunities",
-    "barrierToEntry": "Low|Medium|High"
-  },
-  "arbitrageOpportunity": {
-    "explanation": "The specific arbitrage or unfair advantage",
-    "concreteAngle": "Specific positioning or approach to exploit"
-  },
-  "entryOffers": [
+    },
     {
-      "positioning": "How to position the offer",
-      "businessModel": "Revenue model",
-      "pricePoint": "Suggested pricing"
+      "nicheOverview": {
+        "name": "Specific niche name #2",
+        "summary": "2-3 sentence overview of the second distinct niche opportunity",
+        "whyItFits": "Explanation of why this specific niche matches the client's profile"
+      },
+      "marketDemand": {
+        "marketSize": "Market size estimate with currency",
+        "trend": "growing|plateauing|declining",
+        "willingnessToPay": "Price sensitivity and willingness to pay"
+      },
+      "painPoints": [
+        {
+          "problem": "Specific customer problem",
+          "intensity": "High|Medium|Low"
+        }
+      ],
+      "competitiveLandscape": {
+        "competitors": [
+          {
+            "name": "Competitor name",
+            "description": "What they do and their positioning"
+          }
+        ],
+        "gapAnalysis": "Market gaps and opportunities",
+        "barrierToEntry": "Low|Medium|High"
+      },
+      "arbitrageOpportunity": {
+        "explanation": "The specific arbitrage or unfair advantage",
+        "concreteAngle": "Specific positioning or approach to exploit"
+      },
+      "entryOffers": [
+        {
+          "positioning": "How to position the offer",
+          "businessModel": "Revenue model",
+          "pricePoint": "Suggested pricing"
+        }
+      ],
+      "gtmStrategy": {
+        "primaryChannel": "Best go-to-market channel for this client",
+        "justification": "Why this channel fits their constraints and skills"
+      },
+      "scalabilityExit": {
+        "scalabilityScore": "High|Medium|Low",
+        "exitPotential": "Exit opportunities and timeline"
+      },
+      "riskFactors": [
+        {
+          "risk": "Potential risk",
+          "impact": "High|Medium|Low"
+        }
+      ],
+      "scorecard": {
+        "marketDemand": "High|Medium|Low",
+        "competition": "High|Medium|Low",
+        "easeOfEntry": "High|Medium|Low",
+        "profitability": "High|Medium|Low"
+      }
+    },
+    {
+      "nicheOverview": {
+        "name": "Specific niche name #3",
+        "summary": "2-3 sentence overview of the third distinct niche opportunity",
+        "whyItFits": "Explanation of why this specific niche matches the client's profile"
+      },
+      "marketDemand": {
+        "marketSize": "Market size estimate with currency",
+        "trend": "growing|plateauing|declining",
+        "willingnessToPay": "Price sensitivity and willingness to pay"
+      },
+      "painPoints": [
+        {
+          "problem": "Specific customer problem",
+          "intensity": "High|Medium|Low"
+        }
+      ],
+      "competitiveLandscape": {
+        "competitors": [
+          {
+            "name": "Competitor name",
+            "description": "What they do and their positioning"
+          }
+        ],
+        "gapAnalysis": "Market gaps and opportunities",
+        "barrierToEntry": "Low|Medium|High"
+      },
+      "arbitrageOpportunity": {
+        "explanation": "The specific arbitrage or unfair advantage",
+        "concreteAngle": "Specific positioning or approach to exploit"
+      },
+      "entryOffers": [
+        {
+          "positioning": "How to position the offer",
+          "businessModel": "Revenue model",
+          "pricePoint": "Suggested pricing"
+        }
+      ],
+      "gtmStrategy": {
+        "primaryChannel": "Best go-to-market channel for this client",
+        "justification": "Why this channel fits their constraints and skills"
+      },
+      "scalabilityExit": {
+        "scalabilityScore": "High|Medium|Low",
+        "exitPotential": "Exit opportunities and timeline"
+      },
+      "riskFactors": [
+        {
+          "risk": "Potential risk",
+          "impact": "High|Medium|Low"
+        }
+      ],
+      "scorecard": {
+        "marketDemand": "High|Medium|Low",
+        "competition": "High|Medium|Low",
+        "easeOfEntry": "High|Medium|Low",
+        "profitability": "High|Medium|Low"
+      }
     }
   ],
-  "gtmStrategy": {
-    "primaryChannel": "Best go-to-market channel for this client",
-    "justification": "Why this channel fits their constraints and skills"
-  },
-  "scalabilityExit": {
-    "scalabilityScore": "High|Medium|Low",
-    "exitPotential": "Exit opportunities and timeline"
-  },
-  "riskFactors": [
-    {
-      "risk": "Potential risk",
-      "impact": "High|Medium|Low"
-    }
-  ],
-  "scorecard": {
-    "marketDemand": "High|Medium|Low",
-    "competition": "High|Medium|Low",
-    "easeOfEntry": "High|Medium|Low",
-    "profitability": "High|Medium|Low"
+  "recommendedNiche": 0,
+  "recommendationReason": "Clear explanation of why niche #1 (or #2 or #3) is the best choice for this specific client based on their profile, constraints, and goals",
+  "comparisonMatrix": {
+    "criteria": ["Market Demand", "Competition Level", "Skill Fit", "Budget Alignment", "Time to Revenue"],
+    "scores": [
+      {
+        "nicheIndex": 0,
+        "scores": { 
+          "marketDemand": 85, 
+          "competitionLevel": 40, 
+          "skillFit": 95, 
+          "budgetAlignment": 80, 
+          "timeToRevenue": 70 
+        },
+        "totalScore": 74
+      },
+      {
+        "nicheIndex": 1,
+        "scores": { 
+          "marketDemand": 75, 
+          "competitionLevel": 60, 
+          "skillFit": 80, 
+          "budgetAlignment": 90, 
+          "timeToRevenue": 85 
+        },
+        "totalScore": 78
+      },
+      {
+        "nicheIndex": 2,
+        "scores": { 
+          "marketDemand": 95, 
+          "competitionLevel": 80, 
+          "skillFit": 70, 
+          "budgetAlignment": 60, 
+          "timeToRevenue": 50 
+        },
+        "totalScore": 71
+      }
+    ]
   }
 }
 
+**NICHE SPECIFICITY REQUIREMENTS:**
+- Instead of "Marketing for SMBs" → "LinkedIn Lead Generation for SaaS Startups"
+- Instead of "Consulting" → "Salesforce Implementation for Manufacturing Companies"
+- Instead of "E-commerce" → "Subscription Boxes for Pet Supplements"
+- Instead of "Web Development" → "Custom WordPress Solutions for Local Dental Practices"
+- Instead of "Content Creation" → "Technical Documentation for Fintech APIs"
+
+Each niche should:
+1. Target a SPECIFIC customer segment (not "small businesses" but "veterinary clinics with 2-5 doctors")
+2. Solve a SPECIFIC problem (not "marketing" but "automated appointment booking integration")
+3. Have a SPECIFIC solution approach (not "consulting" but "done-for-you implementation with 30-day setup")
+4. Include SPECIFIC pricing and business model
+
+**DIVERSIFICATION STRATEGY:**
+Make the 3 niches diverse across:
+- Risk levels (one lower risk, one medium, one higher risk/reward)
+- Time to market (one quick win, one medium-term, one longer-term build)
+- Business models (service vs product vs hybrid approaches)
+- Market maturity (emerging opportunity vs established market vs blue ocean)
+
 **ANALYSIS REQUIREMENTS:**
-1. Find a niche that specifically aligns with the client's objective (${input.primaryObjective})
-2. Respect budget constraints (${input.budget}) in recommendations
-3. Consider risk appetite (${input.riskAppetite}) in opportunity selection
+1. Each niche must align with the client's objective (${input.primaryObjective})
+2. Respect budget constraints (${input.budget}) in all recommendations
+3. Consider risk appetite (${input.riskAppetite}) when suggesting the recommended niche
 4. Match market type preference (${input.marketType}) and customer size (${input.customerSize})
 5. Leverage available skills: ${input.skills?.join(', ') || 'General business skills'}
 6. Consider geographic constraints: ${input.geographicFocus || 'No geographic restrictions'}
@@ -472,44 +702,115 @@ ${input.scalabilityPreference ? `Scalability Preference: ${input.scalabilityPref
 9. Avoid excluded industries: ${input.excludedIndustries?.join(', ') || 'No industry restrictions'}
 10. Align with monetization preferences: ${input.monetizationPreference || 'Flexible revenue models'}
 
+**RECOMMENDATION LOGIC:**
+The recommendedNiche should be the index (0, 1, or 2) of the niche that:
+- Best balances opportunity size with execution feasibility
+- Aligns most closely with the client's risk appetite and primary objective  
+- Leverages their strongest skills and available resources
+- Offers the clearest path to their desired outcome (${input.primaryObjective})
+- Fits within their constraints (budget: ${input.budget}, time: ${input.timeCommitment || 'flexible'})
+
 **CRITICAL INSTRUCTIONS:**
 - Provide realistic market size estimates based on actual data
-- Include 2-4 specific competitors for credibility
+- Include 2-4 specific competitors per niche for credibility
 - Ensure all recommendations are actionable within the specified budget
-- Address both opportunities AND realistic challenges
-- Make recommendations specific to the input constraints
+- Address both opportunities AND realistic challenges for each niche
+- Make each niche immediately actionable with concrete first steps
 - Focus on niches with genuine market demand and growth potential
 - Consider the client's skill set when suggesting market entry strategies
-- Provide concrete next steps that can be executed immediately
+- Provide concrete next steps that can be executed immediately for each niche
+- Score each niche fairly across all criteria (0-100 scale)
+- Calculate totalScore as the average of all criterion scores
 
 Return ONLY the JSON object with no additional text, markdown formatting, or code blocks.
 `;
   }
 
-  private parseNicheReportResponse(content: string, input: NicheResearchInput): Omit<GeneratedNicheReport, 'tokensUsed' | 'generationTime'> {
-    try {
-      console.log('🔍 Parsing AI response for niche report');
-      
-      // Extract JSON from response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        
-        // Validate required fields
-        if (!parsed.nicheOverview || !parsed.marketDemand || !parsed.competitiveLandscape) {
-          throw new Error('Missing required fields in AI response');
-        }
-        
-        console.log('✅ Successfully parsed AI response');
-        return parsed;
-      }
-      
-      throw new Error('No valid JSON found in AI response');
-    } catch (error) {
-      console.warn('⚠️ Failed to parse AI response, using fallback:', error);
-      return this.generateFallbackReport(input);
+
+private generateFallbackMultiNicheReport(input: NicheResearchInput): Omit<MultiNicheReport, 'tokensUsed' | 'generationTime'> {
+  console.log('🔄 Generating fallback multi-niche report');
+  
+  const primarySkill = input.skills?.[0] || 'Business Development';
+  const baseNicheName = `${primarySkill} for ${input.customerSize === 'smb' ? 'Small Businesses' : 'Enterprises'}`;
+  
+  // Generate the base fallback report once
+  const baseFallback = this.generateFallbackReport(input);
+  
+  // Create full GeneratedNicheReport objects by adding the missing properties
+  const fallbackNiche1: GeneratedNicheReport = {
+    ...baseFallback,
+    tokensUsed: 0,
+    generationTime: 0
+  };
+  
+  const fallbackNiche2: GeneratedNicheReport = {
+    ...baseFallback,
+    tokensUsed: 0,
+    generationTime: 0,
+    nicheOverview: {
+      ...baseFallback.nicheOverview,
+      name: `${baseNicheName} - Automation Focus`,
+      summary: `An automation-focused ${input.marketType.replace('-', ' ')} opportunity targeting ${input.customerSize} businesses with process optimization.`,
     }
-  }
+  };
+  
+  const fallbackNiche3: GeneratedNicheReport = {
+    ...baseFallback,
+    tokensUsed: 0,
+    generationTime: 0,
+    nicheOverview: {
+      ...baseFallback.nicheOverview,
+      name: `${baseNicheName} - Analytics Focus`,
+      summary: `A data-driven ${input.marketType.replace('-', ' ')} opportunity helping ${input.customerSize} businesses with insights and reporting.`,
+    }
+  };
+
+  return {
+    niches: [fallbackNiche1, fallbackNiche2, fallbackNiche3],
+    recommendedNiche: 0,
+    recommendationReason: `Based on your ${input.primaryObjective} objective and ${input.riskAppetite} risk appetite, the first option offers the best balance of market opportunity and execution feasibility within your ${input.budget} budget.`,
+    comparisonMatrix: {
+      criteria: ["Market Demand", "Competition Level", "Skill Fit", "Budget Alignment", "Time to Revenue"],
+      scores: [
+        {
+          nicheIndex: 0,
+          scores: { 
+            marketDemand: 85, 
+            competitionLevel: 40, 
+            skillFit: 95, 
+            budgetAlignment: 80, 
+            timeToRevenue: 70 
+          },
+          totalScore: 74
+        },
+        {
+          nicheIndex: 1,
+          scores: { 
+            marketDemand: 75, 
+            competitionLevel: 50, 
+            skillFit: 85, 
+            budgetAlignment: 85, 
+            timeToRevenue: 60 
+          },
+          totalScore: 71
+        },
+        {
+          nicheIndex: 2,
+          scores: { 
+            marketDemand: 80, 
+            competitionLevel: 55, 
+            skillFit: 80, 
+            budgetAlignment: 75, 
+            timeToRevenue: 65 
+          },
+          totalScore: 71
+        }
+      ]
+    }
+  };
+}
+
+
 
   private generateFallbackReport(input: NicheResearchInput): Omit<GeneratedNicheReport, 'tokensUsed' | 'generationTime'> {
     console.log('🔄 Generating fallback niche report');
@@ -603,14 +904,14 @@ Return ONLY the JSON object with no additional text, markdown formatting, or cod
     };
   }
 
-  private generateHTMLReport(report: GeneratedNicheReport, metadata: NicheReportMetadata): string {
-    return `
+ private generateHTMLReport(report: GeneratedNicheReport, metadata: NicheReportMetadata): string {
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${report.nicheOverview.name} - Niche Research Report</title>
+    <title>${report.nicheOverview.name} - Recommended Niche Report</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
         .header { text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 20px; margin-bottom: 30px; }
@@ -621,6 +922,7 @@ Return ONLY the JSON object with no additional text, markdown formatting, or cod
         .high { color: #28a745; }
         .medium { color: #ffc107; }
         .low { color: #dc3545; }
+        .recommended-badge { background: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
         ul { padding-left: 20px; }
         .competitor { background: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 5px; }
     </style>
@@ -628,12 +930,15 @@ Return ONLY the JSON object with no additional text, markdown formatting, or cod
 <body>
     <div class="header">
         <h1>${report.nicheOverview.name}</h1>
-        <p><strong>Niche Research Report</strong></p>
+        <div class="recommended-badge">⭐ RECOMMENDED NICHE</div>
+        <p><strong>Multi-Niche Research Report - Top Recommendation</strong></p>
         <p>Generated: ${new Date(metadata.generatedAt).toLocaleDateString()}</p>
+        ${metadata.recommendationReason ? `<p><em>"${metadata.recommendationReason}"</em></p>` : ''}
         <div>
             <span class="tag">${metadata.primaryObjective}</span>
             <span class="tag">${metadata.marketType}</span>
             <span class="tag">${metadata.budget}</span>
+            ${metadata.totalNiches ? `<span class="tag">1 of ${metadata.totalNiches} niches</span>` : ''}
         </div>
     </div>
 
@@ -720,12 +1025,14 @@ Return ONLY the JSON object with no additional text, markdown formatting, or cod
     <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
         <p><strong>Report Statistics:</strong></p>
         <p>Tokens Used: ${metadata.tokensUsed} | Generation Time: ${metadata.generationTime}ms</p>
-        <p>Match Score: ${metadata.topNiches[0]?.matchScore || 'N/A'}/100</p>
+        <p>Match Score: ${metadata.topNiches?.find(n => n.isRecommended)?.matchScore || metadata.topNiches?.[0]?.matchScore || 'N/A'}/100</p>
+        ${metadata.totalNiches && metadata.totalNiches > 1 ? `<p><em>This is the recommended niche from ${metadata.totalNiches} analyzed opportunities</em></p>` : ''}
     </div>
 </body>
 </html>
 `;
-  }
+}
+
 
   private downloadFile(content: string, filename: string, mimeType: string): void {
     const blob = new Blob([content], { type: mimeType });

@@ -93,6 +93,27 @@ export interface Scorecard {
   profitability: 'High' | 'Medium' | 'Low';
 }
 
+// types/nicheResearcher.ts - Add these interfaces
+export interface MultiNicheReport {
+  niches: GeneratedNicheReport[];
+  recommendedNiche: number; // Index of recommended niche (0, 1, or 2)
+  recommendationReason: string;
+  comparisonMatrix: NicheComparisonMatrix;
+  generationTime: number;
+  tokensUsed: number;
+}
+
+export interface NicheComparisonMatrix {
+  criteria: string[];
+  scores: NicheScore[];
+}
+
+export interface NicheScore {
+  nicheIndex: number;
+  scores: Record<string, number>; // e.g., { marketSize: 85, competition: 60, fit: 90 }
+  totalScore: number;
+}
+
 export interface GeneratedNicheReport {
   nicheOverview: NicheOverview;
   marketDemand: MarketDemand;
@@ -120,6 +141,19 @@ export interface NicheReportMetadata {
     name: string;
     matchScore: number;
     category: string;
+    isRecommended?: boolean;
   }>;
+  // Multi-niche specific fields
+  recommendedNicheIndex?: number;
+  recommendationReason?: string;
+  totalNiches?: number;
+  // Additional optional fields
+  riskAppetite?: string;
+  geographicFocus?: string;
+  teamSize?: string;
+  timeCommitment?: string;
+  skills?: string[];
+  industries?: string[];
+  originalInput?: any;
   [key: string]: any;
 }

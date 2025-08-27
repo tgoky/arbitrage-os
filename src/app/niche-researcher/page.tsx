@@ -597,7 +597,7 @@ const getRequiredFieldsForStep = (step: number): string[] => {
               
               <Form.Item
                 name="timeCommitment"
-                label="Hours per Week You’ll Invest” (Optional)"
+                label="Hours per Week You’ll Invest (Optional)"
               >
                 <Select placeholder="Select time commitment">
                   <Option value="5-10">5-10 hours/week</Option>
