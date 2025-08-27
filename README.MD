@@ -1,1 +1,1 @@
-v.1.0.34 rollout - Arbitrage-OS
+v.3.0.34 rollout - Arbitrage-OS
