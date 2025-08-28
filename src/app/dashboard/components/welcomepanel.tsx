@@ -395,7 +395,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
             fontSize: '11px',
             color: theme === 'dark' ? '#9CA3AF' : '#6B7280'
           }}>
-             Workspace: {workspaceId || 'default'} | 
+             Workspace: {workspaceId || 'default'} 
           </div>
         )}
       </Card>
