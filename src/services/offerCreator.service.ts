@@ -27,18 +27,19 @@ export class OfferCreatorService {
     });
   }
 
-  async generateOffer(input: OfferCreatorInput): Promise<GeneratedOfferPackage> {
-    const startTime = Date.now();
+async generateOffer(input: OfferCreatorInput): Promise<GeneratedOfferPackage> {
+  const startTime = Date.now();
 
-    // Check cache first
-    const cacheKey = generateCacheKey(input);
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached as string);
-    }
+  // Check cache first
+  const cacheKey = generateCacheKey(input);
+  const cached = await this.redis.get(cacheKey);
+  if (cached) {
+    return JSON.parse(cached as string);
+  }
 
-    // Build enhanced offer creation prompt
-    const prompt = this.buildEnhancedOfferPrompt(input);
+  // Build enhanced offer creation prompt
+  const prompt = this.buildEnhancedOfferPrompt(input);
+
 
     try {
       const response = await this.openRouterClient.complete({

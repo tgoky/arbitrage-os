@@ -352,18 +352,67 @@ export async function POST(req: NextRequest) {
     // Get workspace ID from request or use default
     const workspaceId = body.workspaceId || 'default';
 
-    // ✅ Save the enhanced signature offers with improved error handling
-    console.log('💾 Saving enhanced signature offers...');
+    // ✅ Debug the data structure before saving
+    console.log('🔍 Pre-save validation check:');
+    console.log('- User ID:', user.id);
+    console.log('- Workspace ID:', workspaceId);
+    console.log('- Generated offer keys:', Object.keys(generatedOffer));
+    console.log('- Primary offer keys:', Object.keys(generatedOffer.primaryOffer));
+    console.log('- Signature offers keys:', Object.keys(generatedOffer.primaryOffer.signatureOffers));
+    console.log('- Validation data keys:', Object.keys(validation.data));
+
+    // ✅ ENHANCED Auto-save the signature offers with better error handling
+    console.log('💾 Auto-saving enhanced signature offers...');
     let offerId: string;
+    let saveSuccess = false;
+    
     try {
       const offerService = new OfferCreatorService();
       offerId = await offerService.saveOffer(user.id, workspaceId, generatedOffer, validation.data);
-      console.log('✅ Enhanced signature offers saved with ID:', offerId);
+      saveSuccess = true;
+      console.log('✅ Enhanced signature offers AUTO-SAVED with ID:', offerId);
     } catch (saveError) {
-      console.error('💥 Error saving enhanced offers:', saveError);
-      // Don't fail the request if saving fails - return the generated offers anyway
-      console.warn('⚠️ Continuing without saving due to error (offers still generated)');
-      offerId = `temp_enhanced_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.error('💥 Error auto-saving enhanced offers:', saveError);
+      
+      // Log the specific error for debugging
+      if (saveError instanceof Error) {
+        console.error('💥 Save error details:', {
+          message: saveError.message,
+          stack: saveError.stack,
+          name: saveError.name
+        });
+      }
+      
+      // Try alternative save approach
+      try {
+        console.log('🔄 Attempting simplified save approach...');
+        
+        // Create a new service instance for retry
+        const retryOfferService = new OfferCreatorService();
+        
+        // Create a simplified version for emergency save
+        const simplifiedOffer = {
+          ...generatedOffer,
+          primaryOffer: {
+            ...generatedOffer.primaryOffer,
+            signatureOffers: {
+              starter: { ...generatedOffer.primaryOffer.signatureOffers.starter },
+              core: { ...generatedOffer.primaryOffer.signatureOffers.core },
+              premium: { ...generatedOffer.primaryOffer.signatureOffers.premium }
+            }
+          }
+        };
+        
+        offerId = await retryOfferService.saveOffer(user.id, workspaceId, simplifiedOffer, validation.data);
+        saveSuccess = true;
+        console.log('✅ Enhanced offers saved with simplified approach:', offerId);
+      } catch (retryError) {
+        console.error('💥 Retry save also failed:', retryError);
+        // Generate temp ID but mark as unsaved
+        offerId = `temp_enhanced_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        saveSuccess = false;
+        console.warn('⚠️ Using temporary ID - offers not saved to database');
+      }
     }
 
     // ✅ Enhanced usage logging
@@ -376,6 +425,7 @@ export async function POST(req: NextRequest) {
         timestamp: new Date(),
         metadata: {
           offerId,
+          saved: saveSuccess, // Add save status to logging
           targetMarket: validation.data.market.targetMarket,
           industries: validation.data.founder.industries,
           deliveryModels: validation.data.business.deliveryModel,
@@ -387,25 +437,27 @@ export async function POST(req: NextRequest) {
           businessWarnings: businessValidation.warnings.length,
           businessSuggestions: businessValidation.suggestions.length,
           credibilityFactors: generatedOffer.analysis.conversionPotential.factors.length,
-          enhancedVersion: true, // Flag to distinguish from basic version
+          enhancedVersion: true,
           founderCredibility: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('credibility'))?.impact || 'Unknown',
           marketAlignment: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('alignment'))?.impact || 'Unknown'
         }
       });
       console.log('✅ Enhanced usage logged successfully');
     } catch (logError) {
-      // Don't fail the request if logging fails
       console.error('⚠️ Enhanced usage logging failed (non-critical):', logError);
     }
 
     console.log('🎉 Enhanced signature offer generation completed successfully');
+    console.log(`📊 Final status: Generated=${true}, Saved=${saveSuccess}, OfferID=${offerId}`);
     
-    // ✅ Enhanced success response with more detailed metadata
+    // ✅ Enhanced success response with save status and more detailed metadata
     return NextResponse.json({
       success: true,
       data: generatedOffer,
       meta: {
         offerId,
+        saved: saveSuccess,
+        autoSaved: saveSuccess,
         tokensUsed: generatedOffer.tokensUsed,
         generationTime: generatedOffer.generationTime,
         remaining: rateLimitResult.remaining,
@@ -442,7 +494,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 // GET method for listing enhanced signature offers
 export async function GET(req: NextRequest) {
   console.log('🚀 Enhanced Signature Offers List API Route called');

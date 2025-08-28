@@ -86,6 +86,7 @@ export default function OfferCreatorPage() {
   const [generatedOffer, setGeneratedOffer] = useState<GeneratedOfferPackage | null>(null);
   const [savedOfferId, setSavedOfferId] = useState<string | null>(null);
   const [activePanels, setActivePanels] = useState<string[]>(["1", "2", "3", "4", "5"]);
+  const [inputsChanged, setInputsChanged] = useState(false);
 
 
 
@@ -195,41 +196,39 @@ const validationResults = useMemo(() => {
 
 const onFinish = async () => {
   try {
-
-       const fullValidation = validateInputProgressive(completeInput, true);
+    const fullValidation = validateInputProgressive(completeInput, true);
     if (!fullValidation.isValid) {
       message.error("Please complete all required fields before generating");
       return;
     }
-    
 
- 
     const offerInput: Partial<OfferCreatorInput> = {
       founder: founderInputs,
       market: marketInputs,
       business: businessInputs,
       pricing: pricingInputs,
       voice: voiceInputs,
-      // userId is intentionally omitted
     };
 
     console.log("🚀 Generating signature offers with input:", offerInput);
 
-    // Ensure generateOffer in useOfferCreator hook accepts Partial<OfferCreatorInput> or adjust the type here
-    // Cast to OfferCreatorInput if the hook expects it, knowing userId will be added by the API
-    const result = await generateOffer(offerInput as unknown as OfferCreatorInput); 
+    const result = await generateOffer(offerInput as unknown as OfferCreatorInput);
 
     if (result) {
+      // Set the generated offer in state
       setGeneratedOffer(result.offer);
       setSavedOfferId(result.offerId);
+      
+      // Switch to outputs tab
       setActiveTab("outputs");
       
-      // Refresh the offers list
-      await fetchOffers(); // This will also use the authenticated user's ID
+      // Auto-refresh the offers history (this should happen automatically since 
+      // the generateOffer function in the service already saves the offer)
+      await fetchOffers();
       
       notification.success({
         message: "Signature Offers Generated Successfully",
-        description: "Your signature offers have been created and are ready to use.",
+        description: `Your offers have been generated and saved to your history.`,
         duration: 5,
       });
     }
@@ -239,31 +238,45 @@ const onFinish = async () => {
   }
 };
 
-  const handleInputChange = (
-    section: "founder" | "market" | "business" | "pricing" | "voice",
-    field: string,
-    value: any
-  ) => {
-    switch (section) {
-      case "founder":
-        setFounderInputs((prev) => ({ ...prev, [field]: value }));
-        break;
-      case "market":
-        setMarketInputs((prev) => ({ ...prev, [field]: value }));
-        break;
-      case "business":
-        setBusinessInputs((prev) => ({ ...prev, [field]: value }));
-        break;
-      case "pricing":
-        setPricingInputs((prev) => ({ ...prev, [field]: value }));
-        break;
-      case "voice":
-        setVoiceInputs((prev) => ({ ...prev, [field]: value }));
-        break;
-      default:
-        break;
-    }
-  };
+ const handleInputChange = (
+  section: "founder" | "market" | "business" | "pricing" | "voice",
+  field: string,
+  value: any
+) => {
+  // Set inputs changed flag if we have a generated offer
+  if (generatedOffer) {
+    setInputsChanged(true);
+  }
+
+  switch (section) {
+    case "founder":
+      setFounderInputs((prev) => ({ ...prev, [field]: value }));
+      break;
+    case "market":
+      setMarketInputs((prev) => ({ ...prev, [field]: value }));
+      break;
+    case "business":
+      setBusinessInputs((prev) => ({ ...prev, [field]: value }));
+      break;
+    case "pricing":
+      setPricingInputs((prev) => ({ ...prev, [field]: value }));
+      break;
+    case "voice":
+      setVoiceInputs((prev) => ({ ...prev, [field]: value }));
+      break;
+    default:
+      break;
+  }
+};
+const handleClearOffers = () => {
+  setGeneratedOffer(null);
+  setSavedOfferId(null);
+  setInputsChanged(false);
+  setActiveTab("inputs");
+  message.info("Cleared current offers. Ready to generate new ones.");
+};
+
+
 
   const handleExport = async (format: 'json' | 'html') => {
     if (!savedOfferId) {
@@ -801,7 +814,7 @@ const onFinish = async () => {
                 </Panel>
               </Collapse>
 
-              <div className="text-center mt-6">
+              {/* <div className="text-center mt-6">
                 <Button
                   type="primary"
                   size="large"
@@ -820,7 +833,56 @@ const onFinish = async () => {
                     </Text>
                   </div>
                 )}
-              </div>
+              </div> */}
+
+       
+<div className="text-center mt-6">
+  {inputsChanged && generatedOffer && (
+    <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+      <Text className="text-orange-700">
+        You made changes to your inputs. Generate new offers to see updated results.
+      </Text>
+    </div>
+  )}
+  
+  <Space>
+    {generatedOffer && (
+      <Button
+        size="large"
+        onClick={handleClearOffers}
+        icon={<ReloadOutlined />}
+        className="min-w-48"
+      >
+        Clear & Start Fresh
+      </Button>
+    )}
+    
+    <Button
+      type="primary"
+      size="large"
+      onClick={onFinish}
+      loading={generating}
+      icon={<RocketOutlined />}
+      className="min-w-48"
+      disabled={!isFormValid}
+    >
+      {generating 
+        ? "Generating Offers..." 
+        : generatedOffer && !inputsChanged
+        ? "Regenerate Offers"
+        : "Generate Signature Offers"
+      }
+    </Button>
+  </Space>
+  
+  {!isFormValid && hasMinimumData && (
+    <div className="mt-2">
+      <Text type="danger" className="text-sm">
+        Please fix validation errors above before generating
+      </Text>
+    </div>
+  )}
+</div>
             </Col>
 
             <Col xs={24} lg={8}>
@@ -1230,128 +1292,213 @@ const onFinish = async () => {
           )}
         </TabPane>
 
-        <TabPane
-          tab={
-            <span>
-              <HistoryOutlined />
-              History
-              {offers.length > 0 && <Badge count={offers.length} style={{ marginLeft: 8 }} />}
-            </span>
-          }
-          key="history"
-        >
-         <Card 
-  title="Your Saved Offers" 
-  extra={
-    <Button 
-      icon={<ReloadOutlined />} 
-      onClick={() => fetchOffers()} // Wrap in an arrow function
-      loading={offersLoading}
-    >
-      Refresh
-    </Button>
+<TabPane
+  tab={
+    <span>
+      <HistoryOutlined />
+      History
+      {(offers.length > 0 || generatedOffer) && (
+        <Badge count={offers.length + (generatedOffer ? 1 : 0)} style={{ marginLeft: 8 }} />
+      )}
+    </span>
   }
+  key="history"
 >
-            {offersLoading ? (
-              <div className="text-center py-8">
-                <Spin size="large" />
-                <div className="mt-4">Loading your offers...</div>
+  <Card 
+    title="Your Saved Offers" 
+    extra={
+      <Button 
+        icon={<ReloadOutlined />} 
+        onClick={() => fetchOffers()}
+        loading={offersLoading}
+      >
+        Refresh
+      </Button>
+    }
+  >
+    {offersLoading ? (
+      <div className="text-center py-8">
+        <Spin size="large" />
+        <div className="mt-4">Loading your offers...</div>
+      </div>
+    ) : (offers.length > 0 || generatedOffer) ? (
+      <div className="space-y-4">
+        {/* Show current generated offer first if it exists */}
+        {generatedOffer && (
+          <Card 
+            size="small"
+            className="border-l-4 border-l-green-500 "
+            title={
+              <div className="flex justify-between items-center">
+                <div>
+                  <Text strong className="text-green-700">
+                    Current Generated Offer
+                  </Text>
+                  <div className="text-sm">
+                    <Tag color="green">Just Generated</Tag>
+                    <Tag color="blue">{marketInputs.targetMarket || 'Target Market'}</Tag>
+                    <Tag color="purple">{pricingInputs.pricePosture}</Tag>
+                  </div>
+                </div>
+                <Space>
+                  <Tooltip title="View this offer">
+                    <Button 
+                      size="small" 
+                      type="primary"
+                      icon={<EyeOutlined />}
+                      onClick={() => setActiveTab("outputs")}
+                    >
+                      View
+                    </Button>
+                  </Tooltip>
+                  {savedOfferId && (
+                    <Tooltip title="This offer is saved">
+                      <Button 
+                        size="small" 
+                        icon={<SaveOutlined />}
+                        disabled
+                      >
+                        Saved
+                      </Button>
+                    </Tooltip>
+                  )}
+                </Space>
               </div>
-            ) : offers.length > 0 ? (
-              <div className="space-y-4">
-                {offers.map((offer) => (
-                  <Card 
-                    key={offer.id} 
-                    size="small"
-                    className="border-l-4 border-l-blue-500"
-                    title={
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <Text strong>{offer.title}</Text>
-                          <div className="text-sm text-gray-500">
-                            {offer.metadata?.targetMarket && (
-                              <Tag color="blue">{offer.metadata.targetMarket}</Tag>
-                            )}
-                            {offer.metadata?.pricePosture && (
-                              <Tag color="green">{offer.metadata.pricePosture}</Tag>
-                            )}
-                          </div>
-                        </div>
-                        <Space>
-                          <Tooltip title="Load this offer">
-                            <Button 
-                              size="small" 
-                              icon={<EyeOutlined />}
-                              onClick={() => handleLoadOffer(offer.id)}
-                            >
-                              Load
-                            </Button>
-                          </Tooltip>
-                          <Tooltip title="Delete this offer">
-                            <Button 
-                              size="small" 
-                              danger 
-                              icon={<DeleteOutlined />}
-                              onClick={() => handleDeleteOffer(offer.id)}
-                            >
-                              Delete
-                            </Button>
-                          </Tooltip>
-                        </Space>
-                      </div>
-                    }
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Text className="text-sm font-medium">Industries:</Text>
-                        <div className="mt-1">
-                          {offer.metadata?.industries?.map((industry, idx) => (
-                            <Tag key={idx}  color="purple">
-                              {industry}
-                            </Tag>
-                          )) || <Text type="secondary">Not specified</Text>}
-                        </div>
-                      </div>
-                      <div>
-                        <Text className="text-sm font-medium">Created:</Text>
-                        <div className="mt-1 text-sm">
-                          {new Date(offer.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div>
-                        <Text className="text-sm font-medium">Conversion Score:</Text>
-                        <div className="mt-1">
-                          {offer.metadata?.conversionScore ? (
-                            <Progress 
-                              percent={offer.metadata.conversionScore} 
-                              size="small"
-                              showInfo={false}
-                            />
-                          ) : (
-                            <Text type="secondary">Not analyzed</Text>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <HistoryOutlined style={{ fontSize: "48px", color: "#ccc" }} />
-                <Title level={4} type="secondary">
-                  No Saved Offers Yet
-                </Title>
-                <Text type="secondary">Your generated offers will appear here once you save them.</Text>
-                <div className="mt-4">
-                  <Button type="primary" onClick={() => setActiveTab("inputs")}>
-                    Create Your First Offer
-                  </Button>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Text className="text-sm font-medium">Industries:</Text>
+                <div className="mt-1">
+                  {founderInputs.industries?.map((industry, idx) => (
+                    <Tag key={idx} color="purple">
+                      {industry}
+                    </Tag>
+                  )) || <Text type="secondary">Not specified</Text>}
                 </div>
               </div>
-            )}
+              <div>
+                <Text className="text-sm font-medium">Generated:</Text>
+                <div className="mt-1 text-sm">
+                  Just now
+                </div>
+              </div>
+              <div>
+                <Text className="text-sm font-medium">Conversion Score:</Text>
+                <div className="mt-1">
+                  {generatedOffer.analysis?.conversionPotential?.score ? (
+                    <Progress 
+                      percent={generatedOffer.analysis.conversionPotential.score} 
+                      size="small"
+                      showInfo={false}
+                    />
+                  ) : (
+                    <Text type="secondary">Not analyzed</Text>
+                  )}
+                </div>
+              </div>
+            </div>
           </Card>
-        </TabPane>
+        )}
+
+        {/* Show previously saved offers */}
+        {offers.map((offer) => (
+          <Card 
+            key={offer.id} 
+            size="small"
+            className="border-l-4 border-l-blue-500"
+            title={
+              <div className="flex justify-between items-center">
+                <div>
+                  <Text strong>{offer.title}</Text>
+                  <div className="text-sm text-gray-500">
+                    {offer.metadata?.targetMarket && (
+                      <Tag color="blue">{offer.metadata.targetMarket}</Tag>
+                    )}
+                    {offer.metadata?.pricePosture && (
+                      <Tag color="green">{offer.metadata.pricePosture}</Tag>
+                    )}
+                    {savedOfferId === offer.id && (
+                      <Tag color="gold">Currently Viewing</Tag>
+                    )}
+                  </div>
+                </div>
+                <Space>
+                  <Tooltip title="Load this offer">
+                    <Button 
+                      size="small" 
+                      icon={<EyeOutlined />}
+                      type={savedOfferId === offer.id ? "primary" : "default"}
+                      onClick={() => handleLoadOffer(offer.id)}
+                    >
+                      Load
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Delete this offer">
+                    <Button 
+                      size="small" 
+                      danger 
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDeleteOffer(offer.id)}
+                    >
+                      Delete
+                    </Button>
+                  </Tooltip>
+                </Space>
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Text className="text-sm font-medium">Industries:</Text>
+                <div className="mt-1">
+                  {offer.metadata?.industries?.map((industry, idx) => (
+                    <Tag key={idx}  color="purple">
+                      {industry}
+                    </Tag>
+                  )) || <Text type="secondary">Not specified</Text>}
+                </div>
+              </div>
+              <div>
+                <Text className="text-sm font-medium">Created:</Text>
+                <div className="mt-1 text-sm">
+                  {new Date(offer.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+              <div>
+                <Text className="text-sm font-medium">Conversion Score:</Text>
+                <div className="mt-1">
+                  {offer.metadata?.conversionScore ? (
+                    <Progress 
+                      percent={offer.metadata.conversionScore} 
+                      size="small"
+                      showInfo={false}
+                    />
+                  ) : (
+                    <Text type="secondary">Not analyzed</Text>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    ) : (
+      <div className="text-center py-12">
+        <HistoryOutlined style={{ fontSize: "48px", color: "#ccc" }} />
+        <Title level={4} type="secondary">
+          No Saved Offers Yet
+        </Title>
+        <Text type="secondary">Your generated offers will appear here once you save them.</Text>
+        <div className="mt-4">
+          <Button type="primary" onClick={() => setActiveTab("inputs")}>
+            Create Your First Offer
+          </Button>
+        </div>
+      </div>
+    )}
+  </Card>
+</TabPane>
       </Tabs>
     </div>
   );
