@@ -240,7 +240,9 @@ export async function POST(req: NextRequest) {
         metadata: {
           deliverableId,
           clientName: validation.data.clientName,
-          annualSavings: validation.data.annualSavings,
+          annualClientSavings: validation.data.annualClientSavings,
+annualRevenueIncrease: validation.data.annualRevenueIncrease,
+totalClientImpact: validation.data.annualClientSavings + validation.data.annualRevenueIncrease,
           recommendedRetainer: generatedPackage.calculations?.recommendedRetainer,
           roiPercentage: generatedPackage.calculations?.roiPercentage,
           hoursPerWeek: validation.data.hoursPerWeek,

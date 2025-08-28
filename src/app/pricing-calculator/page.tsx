@@ -124,14 +124,18 @@ const exportingType = exportState.type;
 
 
   // Quick calculation results (real-time)
-  const [quickResults, setQuickResults] = useState({
-    monthlySavings: 0,
-    recommendedRetainer: 0,
-    netSavings: 0,
-    roiPercentage: 0,
-    hourlyRate: 0,
-    monthlyHours: 0
-  });
+ const [quickResults, setQuickResults] = useState({
+  totalClientImpact: 0,
+  monthlyImpact: 0,
+  recommendedRetainer: 0,
+  annualFee: 0,
+  netSavings: 0,
+  roiPercentage: 0,
+  hourlyRate: 0,
+  monthlyHours: 0,
+  savingsComponent: 0,
+  revenueComponent: 0
+});
 
 
 // Update the useEffect to handle errors gracefully
@@ -145,18 +149,18 @@ useEffect(() => {
 }, [fetchCalculations, fetchBenchmarks]);
 
   // Real-time calculation updates
-  const handleFormChange = () => {
-    const values = form.getFieldsValue();
-    if (values.annualSavings && values.hoursPerWeek && values.roiMultiple) {
-      const results = quickCalculate({
-        annualSavings: values.annualSavings,
-        hoursPerWeek: values.hoursPerWeek,
-        roiMultiple: values.roiMultiple
-      });
-      setQuickResults(results);
-    }
-  };
-
+const handleFormChange = () => {
+  const values = form.getFieldsValue();
+  if (values.annualClientSavings && values.annualRevenueIncrease && values.hoursPerWeek && values.roiMultiple) {
+    const results = quickCalculate({
+      annualClientSavings: values.annualClientSavings,
+      annualRevenueIncrease: values.annualRevenueIncrease,
+      hoursPerWeek: values.hoursPerWeek,
+      roiMultiple: values.roiMultiple
+    });
+    setQuickResults(results);
+  }
+};
   const onFinish = async (values: any) => {
     const validation = validateInput(values);
     
@@ -184,24 +188,24 @@ useEffect(() => {
       });
     }
   };
-
- const resetForm = () => {
+const resetForm = () => {
   form.resetFields();
   setQuickResults({
-    monthlySavings: 0,
+    totalClientImpact: 0,
+    monthlyImpact: 0,
     recommendedRetainer: 0,
+    annualFee: 0,
     netSavings: 0,
     roiPercentage: 0,
     hourlyRate: 0,
-    monthlyHours: 0
+    monthlyHours: 0,
+    savingsComponent: 0,
+    revenueComponent: 0
   });
   setCurrentPackage(null);
   setSavedCalculationId(null);
-  setActiveTab('calculator'); // ✅ Return to calculator tab
-  
-
+  setActiveTab('calculator');
 };
-
 
 // Handler for the View button
 const handleView = async (record: SavedCalculation) => {
@@ -464,53 +468,141 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
               disabled={!!currentPackage} // ✅ Disable switch when results generated
             />
           </div>
+<Form
+  form={form}
+  layout="vertical"
+  onFinish={onFinish}
+  onValuesChange={handleFormChange}
+  disabled={!!currentPackage}
+  initialValues={{
+    annualClientSavings: 50000,        // Default: $50K savings
+    annualRevenueIncrease: 100000,     // Default: $100K revenue lift
+    hoursPerWeek: 20,
+    roiMultiple: 5,
+    experienceLevel: 'intermediate',
+    deliveryRisk: 'medium',
+    clientUrgency: 'medium',
+    relationshipType: 'new',
+    paymentTerms: 'monthly',
+    marketDemand: 'medium',
+    competitionLevel: 'medium',
+    guaranteeOffered: false,
+    seasonality: false,
+  }}
+>
+  {/* Client Value Impact Section */}
+  <div className=" p-4 rounded-lg mb-4">
+    <Title level={5} className="mb-3 text-blue-800">
+      💰 Client Value Impact
+    </Title>
+    <Text type="secondary" className="block mb-3">
+      Break down the total measurable value you will deliver to your client
+    </Text>
+    
+    <Form.Item
+      name="annualClientSavings"
+      label={
+        <span>
+          Annual Client Savings{' '}
+          <Tooltip title="How much money will your client save each year by using your service? (reduced costs, eliminated waste, efficiency gains)">
+            <InfoCircleOutlined />
+          </Tooltip>
+        </span>
+      }
+      rules={[
+        { required: true, message: 'Please input estimated savings!' },
+        { type: 'number', min: 0, message: 'Must be positive' }
+      ]}
+    >
+      <InputNumber
+        prefix="$"
+        placeholder="50000"
+        size="large"
+        style={{ width: '100%' }}
+        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+        parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+      />
+    </Form.Item>
 
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            onValuesChange={handleFormChange}
-            disabled={!!currentPackage} // ✅ Disable entire form when results generated
-            initialValues={{
-              annualSavings: 100000,
-              hoursPerWeek: 20,
-              roiMultiple: 5,
-              experienceLevel: 'intermediate',
-              deliveryRisk: 'medium',
-              clientUrgency: 'medium',
-              relationshipType: 'new',
-              paymentTerms: 'monthly',
-              marketDemand: 'medium',
-              competitionLevel: 'medium',
-               guaranteeOffered: false,
-               seasonality: false,
-            }}
-          >
-            {/* Keep ALL your existing form fields exactly the same */}
-            <Form.Item
-              name="annualSavings"
-              label={
-                <span>
-                  Annual Client Savings{' '}
-                  <Tooltip title="How much money will your services save/make the client per year?">
-                    <InfoCircleOutlined />
-                  </Tooltip>
-                </span>
-              }
-              rules={[
-                { required: true, message: 'Please input estimated savings!' },
-                { type: 'number', min: 100, message: 'Minimum $100' }
-              ]}
-            >
-             <InputNumber
-                prefix="$"
-                placeholder="100000"
-                size="large"
-                style={{ width: '100%' }}
-                formatter={(value) => `${value}`.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')}
-                parser={(value) => value!.replace(/\\$\\s?|(,*)/g, '')}
-              />
-            </Form.Item>
+    <Form.Item
+      name="annualRevenueIncrease"
+      label={
+        <span>
+          Expected Annual Client Revenue Lift{' '}
+          <Tooltip title="How much extra money will your client earn each year from your service? (new sales, improved conversion, expanded market reach)">
+            <InfoCircleOutlined />
+          </Tooltip>
+        </span>
+      }
+      rules={[
+        { required: true, message: 'Please input expected revenue increase!' },
+        { type: 'number', min: 0, message: 'Must be positive' }
+      ]}
+    >
+      <InputNumber
+        prefix="$"
+        placeholder="100000"
+        size="large"
+        style={{ width: '100%' }}
+        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+        parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+      />
+    </Form.Item>
+
+    {/* Total Impact Display */}
+    <div className=" p-3 rounded border-2 border-blue-200">
+      <Text strong >Total Client Impact: </Text>
+      <Text className="text-xl font-bold text-green-600">
+        ${((form.getFieldValue('annualClientSavings') || 0) + (form.getFieldValue('annualRevenueIncrease') || 0)).toLocaleString()}/year
+      </Text>
+      <br />
+      <Text type="secondary" className="text-sm">
+        This is the total measurable value you deliver annually
+      </Text>
+    </div>
+  </div>
+
+  {/* Rest of your existing fields stay the same */}
+  <Form.Item
+    name="hoursPerWeek"
+    label="Hours Worked Per Week"
+    rules={[{ required: true, message: 'Please input hours!' }]}
+  >
+    <Slider
+      min={5}
+      max={40}
+      marks={{
+        5: '5h',
+        20: '20h',
+        40: '40h'
+      }}
+    />
+  </Form.Item>
+
+  <Form.Item
+    name="roiMultiple"
+    label={
+      <span>
+        ROI Multiple{' '}
+        <Tooltip title="How much should the client get back for every $1 they invest? Higher multiples for more specialized expertise.">
+          <InfoCircleOutlined />
+        </Tooltip>
+      </span>
+    }
+    rules={[{ required: true, message: 'Please select ROI multiple!' }]}
+  >
+    <Slider
+      min={2}
+      max={15}
+      step={0.5}
+      marks={{
+        2: '2x',
+        5: '5x',
+        10: '10x',
+        15: '15x'
+      }}
+    />
+  </Form.Item>
 
             <Form.Item
               name="hoursPerWeek"
@@ -716,7 +808,7 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                     <Col span={12}>
                       <Statistic
                         title="Monthly Savings"
-                        value={quickResults.monthlySavings}
+                        value={quickResults.monthlyImpact}
                         precision={0}
                         prefix="$"
                         suffix="/mo"

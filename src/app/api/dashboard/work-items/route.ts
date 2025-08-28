@@ -202,11 +202,10 @@ async function fetchAllWorkItemsFromDeliverables(userId: string, workspaceId?: s
   console.log('🔍 User ID:', userId);
   console.log('🔍 Workspace ID:', workspaceId || 'filtering disabled');
   
-
   try {
     const { prisma } = await import('@/lib/prisma');
 
-    // ✅ Build where clause for deliverable table
+    // ✅ Build where clause for deliverable table - ADD MISSING TYPES
     const whereClause: any = {
       user_id: userId,
       type: {
@@ -216,7 +215,9 @@ async function fetchAllWorkItemsFromDeliverables(userId: string, workspaceId?: s
           'pricing_calculation',
           'niche_research',
           'cold_email_generation',
-          'signature_offers'
+          'signature_offers',
+          'ad_copy_writer',        // ✅ ADD THIS
+          'n8n_workflow'           // ✅ ADD THIS
         ]
       }
     };
@@ -289,7 +290,7 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
       case 'pricing_calculation':
         workItemType = 'pricing-calc';
         const retainer = metadata.recommendedRetainer || 0;
-        subtitle = `${metadata.clientName || 'Client'} • $${retainer.toLocaleString()}`;
+        subtitle = `${metadata.clientName || 'Client'} • ${retainer.toLocaleString()}`;
         actions = ['view', 'export', 'duplicate', 'delete'];
         break;
 
@@ -307,12 +308,24 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
         break;
 
       case 'signature_offers':
-        
-          console.log(`🎯 Processing 'signature_offers' deliverable ID: ${deliverable.id}`); 
+        console.log(`🎯 Processing 'signature_offers' deliverable ID: ${deliverable.id}`); 
         workItemType = 'offer-creator';
         subtitle = `${metadata.targetMarket || 'Market'} • ${metadata.conversionScore || 0}% score`;
         actions = ['view', 'export', 'optimize', 'delete'];
         break;
+
+      // // ✅ ADD MISSING TYPES
+      // case 'ad_copy_writer':
+      //   workItemType = 'ad-writer';
+      //   subtitle = `${metadata.platform || 'Multi-platform'} • ${metadata.adCount || 0} ads`;
+      //   actions = ['view', 'copy', 'optimize', 'delete'];
+      //   break;
+
+      // case 'n8n_workflow':
+      //   workItemType = 'n8n-workflow';
+      //   subtitle = `${metadata.triggerType || 'Webhook'} • ${metadata.integrationCount || 0} nodes`;
+      //   actions = ['view', 'export', 'duplicate', 'delete'];
+      //   break;
 
       default:
         console.warn('⚠️ Unknown deliverable type:', deliverable.type);

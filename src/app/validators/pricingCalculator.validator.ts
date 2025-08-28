@@ -3,9 +3,13 @@ import { z } from 'zod';
 
 const pricingCalculatorSchema = z.object({
   // Basic Calculation Inputs
-  annualSavings: z.number()
-    .min(100, 'Annual savings must be at least $100')  // ✅ This was 100, but your hook says 1000
-    .max(50000000, 'Annual savings seems unrealistically high'),
+  annualClientSavings: z.number()
+  .min(0, 'Annual client savings must be at least $0')
+  .max(50000000, 'Annual client savings seems unrealistically high'),
+
+annualRevenueIncrease: z.number()
+  .min(0, 'Annual revenue increase must be at least $0')
+  .max(50000000, 'Annual revenue increase seems unrealistically high'),
   
   hoursPerWeek: z.number()
     .min(1, 'Hours per week must be at least 1')
@@ -111,8 +115,9 @@ export function validatePricingBusinessRules(data: z.infer<typeof pricingCalcula
 
   // Calculate implied metrics
   const monthlyHours = (data.hoursPerWeek * 4.33);
-  const monthlySavings = data.annualSavings / 12;
-  const impliedRetainer = (monthlySavings * data.roiMultiple) / 100;
+  const totalClientImpact = data.annualClientSavings + data.annualRevenueIncrease;
+const monthlyImpact = totalClientImpact / 12;
+const impliedRetainer = totalClientImpact / data.roiMultiple / 12;
   const impliedHourlyRate = impliedRetainer / monthlyHours;
 
   // Hourly rate analysis
@@ -125,13 +130,14 @@ export function validatePricingBusinessRules(data: z.infer<typeof pricingCalcula
   }
 
   // ROI analysis
-  const clientROI = ((monthlySavings - impliedRetainer) / impliedRetainer) * 100;
-  if (clientROI < 100) {
-    warnings.push('Client ROI is below 100% - may be difficult to justify');
-    recommendations.push('Consider reducing ROI multiple or demonstrating additional value');
-  } else if (clientROI > 1000) {
-    recommendations.push('Excellent client ROI - you may be underpricing your services');
-  }
+// ROI analysis
+const clientROI = ((monthlyImpact - impliedRetainer) / impliedRetainer) * 100;
+if (clientROI < 100) {
+  warnings.push('Client ROI is below 100% - may be difficult to justify');
+  recommendations.push('Consider reducing ROI multiple or demonstrating additional value');
+} else if (clientROI > 1000) {
+  recommendations.push('Excellent client ROI - you may be underpricing your services');
+}
 
   // Experience vs pricing alignment
   const experienceRateRanges = {
@@ -280,15 +286,16 @@ export function generatePricingScenarios(baseData: z.infer<typeof pricingCalcula
 // Helper function to extract key insights
 export function extractPricingInsights(data: z.infer<typeof pricingCalculatorSchema>) {
   const monthlyHours = data.hoursPerWeek * 4.33;
-  const monthlySavings = data.annualSavings / 12;
-  const impliedRetainer = (monthlySavings * data.roiMultiple) / 100;
+  const totalClientImpact = data.annualClientSavings + data.annualRevenueIncrease;
+  const monthlyImpact = totalClientImpact / 12;
+  const impliedRetainer = totalClientImpact / data.roiMultiple / 12; // Monthly retainer
   const hourlyRate = impliedRetainer / monthlyHours;
-  const clientROI = ((monthlySavings - impliedRetainer) / impliedRetainer) * 100;
+  const clientROI = ((monthlyImpact - impliedRetainer) / impliedRetainer) * 100;
 
   return {
     financials: {
       monthlyHours: Math.round(monthlyHours),
-      monthlySavings: Math.round(monthlySavings),
+      monthlyImpact: Math.round(monthlyImpact), // Changed from monthlySavings
       impliedRetainer: Math.round(impliedRetainer),
       hourlyRate: Math.round(hourlyRate),
       clientROI: Math.round(clientROI)

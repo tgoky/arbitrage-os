@@ -1,7 +1,10 @@
 // types/pricingCalculator.ts
 export interface PricingCalculatorInput {
-  // Basic Calculation Inputs
-  annualSavings: number;
+  // NEW: Split value inputs
+  annualClientSavings: number;        // Money they save
+  annualRevenueIncrease: number;      // Money they make
+  // Computed: totalClientImpact = annualClientSavings + annualRevenueIncrease
+  
   hoursPerWeek: number;
   roiMultiple: number;
   
@@ -10,7 +13,7 @@ export interface PricingCalculatorInput {
   projectName?: string;
   industry?: string;
   serviceType?: string;
-  projectDuration?: number; // in months
+  projectDuration?: number;
   
   // Advanced Pricing Factors
   experienceLevel?: 'beginner' | 'intermediate' | 'expert' | 'premium';
@@ -28,7 +31,6 @@ export interface PricingCalculatorInput {
   seasonality?: boolean;
   competitionLevel?: 'low' | 'medium' | 'high';
   
-  // System field
   userId: string;
 }
 

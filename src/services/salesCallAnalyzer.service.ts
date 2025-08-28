@@ -352,8 +352,9 @@ Make every insight specific, actionable, and tied to measurable outcomes. Provid
   private generateStructuredFallback(input: SalesCallInput): Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'> {
     const transcript = input.transcript!;
     const wordCount = transcript.split(' ').length;
-    const estimatedDuration = Math.max(Math.floor(wordCount * 2.5), 60); // 2.5 seconds per word
+    const estimatedDuration = Math.max(Math.floor(wordCount * 1.2), 60);
     const speakers = this.extractSpeakersFromTranscript(transcript);
+      const overallScore = this.calculateOverallScore(transcript, input.callType);
     
     return {
       callResults: {
@@ -364,7 +365,7 @@ Make every insight specific, actionable, and tied to measurable outcomes. Provid
         transcript: transcript.substring(0, 500) + '...',
         analysis: {
           overallScore: this.calculateOverallScore(transcript, input.callType),
-          sentiment: this.analyzeSentiment(transcript),
+          sentiment: this.analyzeSentiment(transcript, overallScore),
           keyInsights: this.generateKeyInsights(transcript, input.callType),
           actionItems: this.generateActionItems(input),
           speakerBreakdown: this.generateSpeakerBreakdown(speakers, transcript),
@@ -440,7 +441,7 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
     role: (name.toLowerCase().includes('host') || name.toLowerCase().includes('interviewer')) ? 
       'host' as const : 
       (name.toLowerCase().includes('prospect') ? 'prospect' as const : 'participant' as const),
-    speakingTime: Math.round(wordCount * 2.5), // Estimate seconds
+  speakingTime: Math.round(wordCount * 1.2), // Estimate seconds
     speakingPercentage: Math.round((wordCount / totalWords) * 100)
   }));
 }
@@ -474,24 +475,32 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
     return Math.max(10, Math.min(95, score));
   }
 
-  private analyzeSentiment(transcript: string): 'positive' | 'neutral' | 'negative' | 'mixed' {
-    const positiveWords = ['great', 'excellent', 'love', 'perfect', 'amazing', 'good', 'yes', 'absolutely', 'definitely'];
-    const negativeWords = ['bad', 'terrible', 'hate', 'no', 'never', 'problem', 'issue', 'difficult', 'impossible'];
+  // private analyzeSentiment(transcript: string): 'positive' | 'neutral' | 'negative' | 'mixed' {
+  //   const positiveWords = ['great', 'excellent', 'love', 'perfect', 'amazing', 'good', 'yes', 'absolutely', 'definitely'];
+  //   const negativeWords = ['bad', 'terrible', 'hate', 'no', 'never', 'problem', 'issue', 'difficult', 'impossible'];
     
-    const text = transcript.toLowerCase();
-    const positiveCount = positiveWords.reduce((count, word) => 
-      count + (text.match(new RegExp(`\\b${word}\\b`, 'g'))?.length || 0), 0);
+  //   const text = transcript.toLowerCase();
+  //   const positiveCount = positiveWords.reduce((count, word) => 
+  //     count + (text.match(new RegExp(`\\b${word}\\b`, 'g'))?.length || 0), 0);
     
-    const negativeCount = negativeWords.reduce((count, word) => 
-      count + (text.match(new RegExp(`\\b${word}\\b`, 'g'))?.length || 0), 0);
+  //   const negativeCount = negativeWords.reduce((count, word) => 
+  //     count + (text.match(new RegExp(`\\b${word}\\b`, 'g'))?.length || 0), 0);
     
-    const ratio = positiveCount - negativeCount;
+  //   const ratio = positiveCount - negativeCount;
     
-    if (ratio > 2) return 'positive';
-    if (ratio < -2) return 'negative';
-    if (positiveCount > 0 && negativeCount > 0) return 'mixed';
-    return 'neutral';
-  }
+  //   if (ratio > 2) return 'positive';
+  //   if (ratio < -2) return 'negative';
+  //   if (positiveCount > 0 && negativeCount > 0) return 'mixed';
+  //   return 'neutral';
+  // }
+
+  private analyzeSentiment(transcript: string, overallScore: number): 'positive' | 'neutral' | 'negative' | 'mixed' {
+  // Use the performance score as primary indicator
+  if (overallScore >= 75) return 'positive';
+  if (overallScore >= 60) return 'neutral';
+  if (overallScore >= 40) return 'mixed';
+  return 'negative';
+}
 
   private generateKeyInsights(transcript: string, callType: string): string[] {
     const insights = [];
@@ -613,20 +622,20 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
     };
   }
 
-  private generateExecutiveSummary(input: SalesCallInput, transcript: string): string {
-    const sentiment = this.analyzeSentiment(transcript);
-    const callType = input.callType;
-    const company = input.companyName || 'prospect';
-    
-    return `${callType} call with ${company} completed successfully with ${sentiment} sentiment. Key objectives were addressed and clear next steps established for continued engagement.`;
-  }
-
+ private generateExecutiveSummary(input: SalesCallInput, transcript: string): string {
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
+  const sentiment = this.analyzeSentiment(transcript, overallScore);
+  const callType = input.callType;
+  const company = input.companyName || 'prospect';
+  
+  return `${callType} call with ${company} completed successfully with ${sentiment} sentiment. Key objectives were addressed and clear next steps established for continued engagement.`;
+}
   private generateDetailedReport(input: SalesCallInput, transcript: string): string {
     return `# ${input.callType.toUpperCase()} CALL ANALYSIS REPORT
 
 ## Call Overview
 **Date**: ${input.actualDate || input.scheduledDate || 'Not specified'}
-**Duration**: ${Math.floor(transcript.split(' ').length * 2.5 / 60)} minutes
+**Duration**: ${Math.floor(transcript.split(' ').length * 1.2 / 60)} minutes
 **Participants**: ${input.prospectName || 'Prospect'}, Host
 **Company**: ${input.companyName || 'Not specified'}
 
@@ -759,7 +768,7 @@ We look forward to partnering with ${input.companyName || 'your organization'}.`
         talk_time_ratio: estimatedTalkTime,
         question_count: questionCount,
         engagement_score: this.calculateEngagementScore(transcript),
-        sentiment_positive_rate: this.analyzeSentiment(transcript) === 'positive' ? 0.8 : 0.5
+        sentiment_positive_rate: this.analyzeSentiment(transcript, this.calculateOverallScore(transcript, callType)) === 'positive' ? 0.8 : 0.5
       },
       improvementAreas: this.identifyImprovementAreas(transcript, callType, questionCount)
     };
@@ -816,13 +825,13 @@ We look forward to partnering with ${input.companyName || 'your organization'}.`
   }
 
  private generateSummaryPresentation(input: SalesCallInput, transcript: string) {
-  const overallScore = this.calculateOverallScore(transcript, input.callType);
-  const sentiment = this.analyzeSentiment(transcript);
+const overallScore = this.calculateOverallScore(transcript, input.callType);
+  const sentiment = this.analyzeSentiment(transcript, overallScore);
   
   return [
     {
       title: 'Call Overview',
-      content: `${input.callType} call with ${input.companyName || 'prospect'} completed successfully. Duration: ${Math.floor(transcript.split(' ').length * 2.5 / 60)} minutes. Overall sentiment: ${sentiment}.`,
+      content: `${input.callType} call with ${input.companyName || 'prospect'} completed successfully. Duration: ${Math.floor(transcript.split(' ').length * 1.2 / 60)} minutes. Overall sentiment: ${sentiment}.`,
       visualType: 'text' as const
     },
     {
@@ -1155,7 +1164,7 @@ ${callData.analysis.keyInsights?.map((insight: string) => `• ${insight}`).join
 ${callData.analysis.actionItems?.map((item: string) => `• ${item}`).join('\n') || '• Follow up as discussed'}
 
 ## Performance Metrics
-• Talk Time: ${callData.performanceMetrics?.talkTimePercentage || 'N/A'}%
+• Talk Time: ${callData.performanceMetrics?.talkTime || 'N/A'}%
 • Questions Asked: ${metadata.questionCount || 'N/A'}
 • Engagement Score: ${callData.performanceMetrics?.engagementScore || 'N/A'}/10
 • Communication Clarity: ${callData.performanceMetrics?.clarityScore || 'N/A'}/10

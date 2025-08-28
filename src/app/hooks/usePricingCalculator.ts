@@ -1,10 +1,13 @@
-// hooks/usePricingCalculator.ts
+// hooks/usePricingCalculator.ts - FIXED
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
 
-// Types matching the backend
+// UPDATED Types matching the backend
 export interface PricingCalculatorInput {
-  annualSavings: number;
+  // NEW: Split value inputs
+  annualClientSavings: number;
+  annualRevenueIncrease: number;
+  
   hoursPerWeek: number;
   roiMultiple: number;
   clientName?: string;
@@ -25,7 +28,9 @@ export interface PricingCalculatorInput {
 }
 
 export interface PricingResults {
-  monthlySavings: number;
+  // UPDATED: New fields to match calculation changes
+  monthlyImpact: number;          // NEW: replaces monthlySavings
+  totalClientImpact: number;      // NEW: total annual impact
   recommendedRetainer: number;
   netSavings: number;
   roiPercentage: number;
@@ -33,6 +38,8 @@ export interface PricingResults {
   hourlyRate: number;
   effectiveHourlyRate: number;
   profitMargin: number;
+  annualFee: number;              // NEW: annual fee
+  
   pricingOptions: Array<{
     model: 'retainer' | 'project' | 'hourly' | 'success' | 'hybrid';
     price: number;
@@ -122,9 +129,13 @@ export interface SavedCalculation {
   clientName?: string;
   projectName?: string;
   industry?: string;
-  annualSavings: number;
+  // UPDATED: New fields to match database storage
+  annualClientSavings?: number;
+  annualRevenueIncrease?: number;
+  totalClientImpact?: number;
   recommendedRetainer: number;
   roiPercentage: number;
+    annualSavings?: number; 
   hourlyRate: number;
   createdAt: string;
   updatedAt: string;
@@ -135,7 +146,8 @@ export interface SavedCalculation {
 }
 
 export interface ComparisonScenario {
-  annualSavings: number;
+  annualClientSavings: number;
+  annualRevenueIncrease: number;
   hoursPerWeek: number;
   roiMultiple: number;
   experienceLevel?: 'beginner' | 'intermediate' | 'expert' | 'premium';
@@ -147,7 +159,7 @@ export interface ScenarioComparison {
   scenarios: Array<{
     input: ComparisonScenario;
     results: {
-      monthlySavings: number;
+      monthlyImpact: number;
       recommendedRetainer: number;
       netSavings: number;
       roiPercentage: number;
@@ -165,6 +177,8 @@ export interface ScenarioComparison {
   tokensUsed: number;
 }
 
+
+// Main pricing calculator hook
 // Main pricing calculator hook
 export const usePricingCalculator = () => {
   const [loading, setLoading] = useState(false);
@@ -211,21 +225,45 @@ export const usePricingCalculator = () => {
     }
   }, []);
 
-  const quickCalculate = useCallback((input: Pick<PricingCalculatorInput, 'annualSavings' | 'hoursPerWeek' | 'roiMultiple'>) => {
-    const monthlySavings = input.annualSavings / 12;
+
+// hooks/usePricingCalculator.ts - Updated quickCalculate function
+
+// FIXED: quickCalculate with proper typing
+  const quickCalculate = useCallback((input: Pick<PricingCalculatorInput, 'annualClientSavings' | 'annualRevenueIncrease' | 'hoursPerWeek' | 'roiMultiple'>) => {
+    // Calculate total client impact
+    const totalClientImpact = input.annualClientSavings + input.annualRevenueIncrease;
+    const monthlyImpact = totalClientImpact / 12;
     const monthlyHours = input.hoursPerWeek * 4.33;
-    const recommendedRetainer = (monthlySavings * input.roiMultiple) / 100;
-    const netSavings = monthlySavings - recommendedRetainer;
-    const roiPercentage = recommendedRetainer > 0 ? (netSavings / recommendedRetainer) * 100 : 0;
-    const hourlyRate = recommendedRetainer / monthlyHours;
+    
+    // Value-based pricing: Your annual fee = Total Impact ÷ ROI Multiple
+    const annualFee = totalClientImpact / input.roiMultiple;
+    const monthlyRetainer = annualFee / 12;
+    
+    // Client metrics after paying your fee
+    const netClientBenefit = monthlyImpact - monthlyRetainer;
+    const clientROI = monthlyRetainer > 0 ? (netClientBenefit / monthlyRetainer) * 100 : 0;
+    const hourlyRate = monthlyRetainer / monthlyHours;
 
     return {
-      monthlySavings: Math.round(monthlySavings),
-      recommendedRetainer: Math.round(recommendedRetainer),
-      netSavings: Math.round(netSavings),
-      roiPercentage: Math.round(roiPercentage),
+      // Client impact
+      totalClientImpact: Math.round(totalClientImpact),
+      monthlyImpact: Math.round(monthlyImpact),
+      
+      // Your pricing
+      recommendedRetainer: Math.round(monthlyRetainer),
+      annualFee: Math.round(annualFee),
+      
+      // Client benefit (FIXED: using proper variable name)
+      netSavings: Math.round(netClientBenefit),
+      roiPercentage: Math.round(clientROI),
+      
+      // Rates
       hourlyRate: Math.round(hourlyRate),
-      monthlyHours: Math.round(monthlyHours)
+      monthlyHours: Math.round(monthlyHours),
+      
+      // Breakdown for transparency
+      savingsComponent: Math.round(input.annualClientSavings / 12),
+      revenueComponent: Math.round(input.annualRevenueIncrease / 12),
     };
   }, []);
 
@@ -238,6 +276,7 @@ export const usePricingCalculator = () => {
     setError
   };
 };
+
 
 // Hook for managing saved calculations
 export const useSavedCalculations = () => {
@@ -559,11 +598,23 @@ export const usePricingValidation = () => {
   const validateInput = useCallback((input: Partial<PricingCalculatorInput>) => {
     const errors: Record<string, string> = {};
 
-    // Required fields validation
-    if (!input.annualSavings || input.annualSavings < 100) {
-      errors.annualSavings = 'Annual savings must be at least $1,000';
-    } else if (input.annualSavings > 50000000) {
-      errors.annualSavings = 'Annual savings seems unrealistically high';
+    // UPDATED: Validate new fields
+    if (!input.annualClientSavings || input.annualClientSavings < 0) {
+      errors.annualClientSavings = 'Annual client savings must be at least $0';
+    } else if (input.annualClientSavings > 50000000) {
+      errors.annualClientSavings = 'Annual client savings seems unrealistically high';
+    }
+
+    if (!input.annualRevenueIncrease || input.annualRevenueIncrease < 0) {
+      errors.annualRevenueIncrease = 'Annual revenue increase must be at least $0';
+    } else if (input.annualRevenueIncrease > 50000000) {
+      errors.annualRevenueIncrease = 'Annual revenue increase seems unrealistically high';
+    }
+
+    // Check total impact makes sense
+    const totalImpact = (input.annualClientSavings || 0) + (input.annualRevenueIncrease || 0);
+    if (totalImpact < 1000) {
+      errors.totalImpact = 'Total client impact must be at least $1,000';
     }
 
     if (!input.hoursPerWeek || input.hoursPerWeek < 1) {
@@ -597,12 +648,16 @@ export const usePricingValidation = () => {
     };
   }, []);
 
+
+   // UPDATED: getBusinessInsights with new calculation
   const getBusinessInsights = useCallback((input: PricingCalculatorInput) => {
+    const totalClientImpact = input.annualClientSavings + input.annualRevenueIncrease;
+    const monthlyImpact = totalClientImpact / 12;
     const monthlyHours = input.hoursPerWeek * 4.33;
-    const monthlySavings = input.annualSavings / 12;
-    const impliedRetainer = (monthlySavings * input.roiMultiple) / 100;
-    const hourlyRate = impliedRetainer / monthlyHours;
-    const clientROI = ((monthlySavings - impliedRetainer) / impliedRetainer) * 100;
+    const annualFee = totalClientImpact / input.roiMultiple;
+    const monthlyRetainer = annualFee / 12;
+    const hourlyRate = monthlyRetainer / monthlyHours;
+    const clientROI = ((monthlyImpact - monthlyRetainer) / monthlyRetainer) * 100;
 
     const insights = {
       hourlyRateCategory: hourlyRate < 100 ? 'budget' : hourlyRate < 200 ? 'standard' : hourlyRate < 400 ? 'premium' : 'luxury',
@@ -632,6 +687,5 @@ export const usePricingValidation = () => {
   return {
     validateInput,
     getBusinessInsights,
-
   };
 };

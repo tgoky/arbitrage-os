@@ -1,5 +1,5 @@
 // app/dashboard/components/WelcomePanel.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button, Card, Typography, Grid, Statistic, Space, Spin, message } from 'antd';
 import { 
   FileTextOutlined,
@@ -17,71 +17,181 @@ interface WelcomePanelProps {
   workspaceId?: string;
 }
 
+interface WorkItem {
+  id: string;
+  createdAt: string;
+  status: 'processing' | 'completed' | 'failed' | string;
+  // Add other fields as needed
+}
+
 const WelcomePanel: React.FC<WelcomePanelProps> = ({
   workspaceName,
   workspaceId
 }) => {
   const { theme } = useTheme();
   const screens = useBreakpoint();
-  const [workItems, setWorkItems] = useState<any[]>([]);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Fetch work items data (same logic as IntegratedWorkDashboard)
-  const fetchAllWorkItems = async () => {
-    setLoading(true);
+  // Memoized fetch function to prevent unnecessary re-renders
+  const fetchAllWorkItems = useCallback(async (isRetry = false) => {
+    if (!isRetry) {
+      setLoading(true);
+    }
+    setError(null);
+    
     try {
-      console.log('🔄 Fetching work items for welcome panel...');
+      console.log('🔄 Fetching work items for welcome panel...', { workspaceId, retryCount });
+      
       const url = new URL('/api/dashboard/work-items', window.location.origin);
       if (workspaceId) {
         url.searchParams.append('workspaceId', workspaceId);
       }
+      
+      // Add cache busting parameter to prevent stale data
+      url.searchParams.append('_t', Date.now().toString());
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Include auth headers if needed
+          ...(typeof window !== 'undefined' && localStorage.getItem('authToken') && {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          })
+        },
+        // Disable caching
+        cache: 'no-cache'
+      });
+
+      console.log('📡 API Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch work items: ${response.status} ${response.statusText}`);
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please log in again.');
+        }
+        if (response.status === 403) {
+          throw new Error('Access denied. Please check your permissions.');
+        }
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
+
       const data = await response.json();
+      console.log('📊 API Response data:', data);
 
       if (data.success && Array.isArray(data.data?.items)) {
         console.log(`🎉 Successfully fetched ${data.data.items.length} work items for welcome panel`);
         setWorkItems(data.data.items);
+        setRetryCount(0); // Reset retry count on success
+      } else if (data.data?.items === undefined || data.data?.items === null) {
+        console.warn('⚠️ No items found in response, setting empty array');
+        setWorkItems([]);
       } else {
         throw new Error(data.error || 'Invalid response format from unified API');
       }
     } catch (error) {
       console.error('💥 Error fetching work items for welcome panel:', error);
-      message.error('Failed to load work items');
+      setError(error instanceof Error ? error.message : 'Failed to load work items');
+      
+      // Don't show error message for auth issues, let parent handle redirect
+      if (!error?.message?.includes('Authentication')) {
+        message.error(`Failed to load work items: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      // Set empty array on error to prevent undefined issues
       setWorkItems([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId, retryCount]);
 
-  // Load data on mount
+  // Auto-retry logic
+  const handleRetry = useCallback(async () => {
+    if (retryCount < 3) {
+      setRetryCount(prev => prev + 1);
+      setTimeout(() => {
+        fetchAllWorkItems(true);
+      }, 1000 * (retryCount + 1)); // Exponential backoff
+    }
+  }, [fetchAllWorkItems, retryCount]);
+
+  // Load data on mount and when dependencies change
   useEffect(() => {
-    fetchAllWorkItems();
-  }, [workspaceId]);
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchAllWorkItems();
+      }
+    };
 
-  // Calculate summary stats (same logic as IntegratedWorkDashboard)
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [workspaceId]); // Remove fetchAllWorkItems from deps to avoid infinite loop
+
+  // Auto-retry on error
+  useEffect(() => {
+    if (error && retryCount < 3 && !error.includes('Authentication')) {
+      const timer = setTimeout(() => {
+        handleRetry();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, retryCount, handleRetry]);
+
+  // Calculate summary stats with better error handling
   const summaryStats = useMemo(() => {
+    console.log('🧮 Calculating stats with', workItems.length, 'items');
+    
+    if (!Array.isArray(workItems) || workItems.length === 0) {
+      return [
+        { title: 'Total Generated', value: 0, icon: <FileTextOutlined />, color: '#1890ff', growth: 0 },
+        { title: 'This Month', value: 0, icon: <CalendarOutlined />, color: '#52c41a', growth: 0 },
+        { title: 'In Progress', value: 0, icon: <BarChartOutlined />, color: '#faad14', growth: 0 },
+        { title: 'Completed', value: 0, icon: <RocketOutlined />, color: '#13c2c2', growth: 0 }
+      ];
+    }
+
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     
-    const thisMonthItems = workItems.filter(item => new Date(item.createdAt) >= thisMonth);
+    const thisMonthItems = workItems.filter(item => {
+      try {
+        return item.createdAt && new Date(item.createdAt) >= thisMonth;
+      } catch {
+        return false;
+      }
+    });
+    
     const lastMonthItems = workItems.filter(item => {
-      const date = new Date(item.createdAt);
-      return date >= lastMonth && date < thisMonth;
+      try {
+        const date = new Date(item.createdAt);
+        return date >= lastMonth && date < thisMonth;
+      } catch {
+        return false;
+      }
     });
     
     const thisMonthGrowth = lastMonthItems.length > 0 
       ? Math.round(((thisMonthItems.length - lastMonthItems.length) / lastMonthItems.length) * 100)
       : 0;
 
-    const processingItems = workItems.filter(item => item.status === 'processing').length;
-    const completedItems = workItems.filter(item => item.status === 'completed').length;
+    const processingItems = workItems.filter(item => 
+      item.status === 'processing' || item.status === 'in_progress' || item.status === 'pending'
+    ).length;
+    
+    const completedItems = workItems.filter(item => 
+      item.status === 'completed' || item.status === 'done' || item.status === 'finished'
+    ).length;
 
-    return [
+    const stats = [
       { 
         title: 'Total Generated', 
         value: workItems.length, 
@@ -111,6 +221,9 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         growth: 5 
       }
     ];
+
+    console.log('📈 Calculated stats:', stats);
+    return stats;
   }, [workItems]);
 
   const getCardStyles = () => ({
@@ -130,6 +243,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     },
   });
 
+  // Enhanced loading state
   if (loading) {
     return (
       <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
@@ -155,6 +269,51 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
             <p style={{ marginTop: 16, color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }}>
               Loading your statistics...
             </p>
+            {retryCount > 0 && (
+              <p style={{ marginTop: 8, color: theme === 'dark' ? '#FEF3C7' : '#D97706', fontSize: '12px' }}>
+                Retry attempt {retryCount}/3
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state with retry option
+  if (error && retryCount >= 3) {
+    return (
+      <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Title
+            level={2}
+            style={{
+              margin: 0,
+              color: theme === 'dark' ? '#f9fafb' : '#111827',
+              fontWeight: 700,
+              fontSize: '22px',
+            }}
+          >
+            Welcome to {workspaceName} Arbitrage-OS !
+          </Title>
+        </div>
+        <Card
+          styles={getParentCardStyles()}
+          style={{ borderColor: theme === 'dark' ? '#374151' : '#E5E7EB' }}
+        >
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <p style={{ color: theme === 'dark' ? '#EF4444' : '#DC2626', marginBottom: 16 }}>
+              Unable to load statistics: {error}
+            </p>
+            <Button
+              type="primary"
+              onClick={() => {
+                setRetryCount(0);
+                fetchAllWorkItems();
+              }}
+            >
+              Retry
+            </Button>
           </div>
         </Card>
       </div>
@@ -179,7 +338,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           <Button
             type="default"
             size="small"
-            onClick={fetchAllWorkItems}
+            onClick={() => fetchAllWorkItems()}
             loading={loading}
             style={{
               backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
@@ -189,6 +348,14 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           >
             Refresh
           </Button>
+          {workItems.length > 0 && (
+            <span style={{ 
+              fontSize: '12px', 
+              color: theme === 'dark' ? '#9CA3AF' : '#6B7280' 
+            }}>
+              Last updated: {new Date().toLocaleTimeString()}
+            </span>
+          )}
         </Space>
       </div>
 
@@ -230,6 +397,20 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
             </Card>
           ))}
         </div>
+        
+        {/* Debug info in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ 
+            marginTop: '12px', 
+            padding: '8px', 
+            backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
+            borderRadius: '4px',
+            fontSize: '11px',
+            color: theme === 'dark' ? '#9CA3AF' : '#6B7280'
+          }}>
+            Debug: {workItems.length} items loaded | Workspace: {workspaceId || 'default'} | Retries: {retryCount}
+          </div>
+        )}
       </Card>
     </div>
   );

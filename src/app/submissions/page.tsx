@@ -45,17 +45,6 @@ import {
   Spin,
   message
 } from 'antd';
-
-// Import your existing hooks
-// Import your existing hooks
-import { useSalesCallAnalyzer } from '../../app/hooks/useSalesCallAnalyzer';
-import { useGrowthPlan } from '../../app/hooks/useGrowthPlan';
-import { useSavedCalculations } from '../../app/hooks/usePricingCalculator';
-import { useNicheResearcher } from '../../app/hooks/useNicheResearcher';
-import { useColdEmail } from '../../app/hooks/useColdEmail';
-import { useSavedOffers } from '../../app/hooks/useOfferCreator';
-import { useAdWriter } from '../../app/hooks/useAdWriter';
-import { useN8nWorkflowBuilder } from '../hooks/useN8nWorkflowBuilder';
 import { useParsed } from "@refinedev/core";
 
 const { Title, Text } = Typography;
@@ -77,14 +66,13 @@ interface WorkItem {
   createdAt: string;
   metadata: Record<string, any>;
   actions: string[];
-  rawData: any; // Original data from the respective hook
+  rawData: any;
 }
 
 const IntegratedWorkDashboard = () => {
-   const { params, id } = useParsed();
-  // const router = useRouter();
-  // const workspaceId = router.query.workspaceId as string | undefined;
+  const { params } = useParsed();
   const workspaceId = params?.workspaceId as string | undefined;
+
   // State
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,60 +82,85 @@ const IntegratedWorkDashboard = () => {
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize all hooks
-  const salesCallAnalyzer = useSalesCallAnalyzer();
-const growthPlan = useGrowthPlan({ workspaceId });
-  const savedCalculations = useSavedCalculations();
-  const nicheResearcher = useNicheResearcher();
-  const coldEmail = useColdEmail();
-  const n8nWorkflowBuilder = useN8nWorkflowBuilder(workspaceId);
-  const savedOffers = useSavedOffers();
-  const adWriter = useAdWriter();
+  // Unified data fetching function
+  const fetchAllWorkItems = async () => {
+    setLoading(true);
+    setError(null);
 
-  
+    try {
+      console.log('🔄 Fetching all work items from unified API...');
+      
+      // Get auth token from localStorage or cookies
+      const getAuthToken = () => {
+        // Try to get from localStorage first
+        const storedSession = localStorage.getItem('supabase.auth.token');
+        if (storedSession) {
+          try {
+            const session = JSON.parse(storedSession);
+            return session.access_token;
+          } catch (e) {
+            console.warn('Failed to parse stored session');
+          }
+        }
+        
+        // Try to get from cookies
+        const cookieValue = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('sb-access-token='))
+          ?.split('=')[1];
+        
+        return cookieValue;
+      };
 
-  // Unified data fetching function (MODIFIED)
-const fetchAllWorkItems = async () => {
-  setLoading(true);
-  // const items: WorkItem[] = []; // No longer needed for initial population
+      const token = getAuthToken();
+      console.log('🔑 Using auth token:', token ? 'Present' : 'Missing');
 
-  try {
-    console.log('🔄 Fetching all work items from unified API...');
-    // Construct URL with potential workspaceId query param
-    const url = new URL('/api/dashboard/work-items', window.location.origin);
-    if (workspaceId) {
-      url.searchParams.append('workspaceId', workspaceId);
+      // Construct URL with potential workspaceId query param
+      const url = new URL('/api/dashboard/work-items', window.location.origin);
+      if (workspaceId) {
+        url.searchParams.append('workspaceId', workspaceId);
+      }
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers,
+        credentials: 'include' // Include cookies
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('📥 Unified API response:', data);
+
+      if (data.success && Array.isArray(data.data?.items)) {
+        console.log(`🎉 Successfully fetched ${data.data.items.length} work items from unified API`);
+        setWorkItems(data.data.items);
+      } else {
+        throw new Error(data.error || 'Invalid response format from unified API');
+      }
+    } catch (error) {
+      console.error('💥 Error fetching work items from unified API:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load work items');
+      message.error('Failed to load work items');
+    } finally {
+      setLoading(false);
     }
-    // Add refresh param if needed
-    // url.searchParams.append('refresh', 'true');
+  };
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`Failed to fetch work items: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    console.log('📥 Unified API response:', data);
-
-    if (data.success && Array.isArray(data.data?.items)) {
-      // Sort items if needed (API already sorts, but just in case)
-      // const sortedItems = data.data.items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      console.log(`🎉 Successfully fetched ${data.data.items.length} work items from unified API`);
-      setWorkItems(data.data.items); // Set the items directly from the API response
-    } else {
-      throw new Error(data.error || 'Invalid response format from unified API');
-    }
-  } catch (error) {
-    console.error('💥 Error fetching work items from unified API:', error);
-    message.error('Failed to load work items');
-    // Optionally, keep old items or set to empty array
-    // setWorkItems([]); 
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Load data on mount
+  // Load data on mount and when workspaceId changes
   useEffect(() => {
     fetchAllWorkItems();
   }, [workspaceId]);
@@ -228,7 +241,7 @@ const fetchAllWorkItems = async () => {
       'cold-email': 'Cold Email',
       'offer-creator': 'Offer Creator',
       'ad-writer': 'Ad Copy Writer',
-          'n8n-workflow': 'n8n Workflow' 
+      'n8n-workflow': 'n8n Workflow' 
     };
     return names[type] || type;
   };
@@ -255,7 +268,7 @@ const fetchAllWorkItems = async () => {
       'cold-email': '#eb2f96',
       'offer-creator': '#13c2c2',
       'ad-writer': '#faad14',
-          'n8n-workflow': '#fa541c' 
+      'n8n-workflow': '#fa541c' 
     };
     return colors[type] || '#666';
   };
@@ -267,69 +280,44 @@ const fetchAllWorkItems = async () => {
         case 'view':
           // Navigate to the specific tool's view page
           const viewUrls = {
-            'sales-call': `/sales-call-analyzer/${item.rawData.id}`,
-            'growth-plan': `/growth-plans/${item.rawData.id}`,
-            'pricing-calc': `/pricing-calculator/${item.rawData.id}`,
-            'niche-research': `/niche-research/${item.rawData.id}`,
-            'cold-email': `/cold-email/${item.rawData.id}`,
-            'offer-creator': `/offer-creator/${item.rawData.id}`,
-            'ad-writer': `/ad-writer/${item.rawData.id}`,
-                'n8n-workflow': `/n8n-builder/${item.rawData.id}`
+            'sales-call': `/dashboard/sales-call-analyzer/${item.metadata.deliverableId}`,
+            'growth-plan': `/dashboard/growth-plans/${item.metadata.deliverableId}`,
+            'pricing-calc': `/dashboard/pricing-calculator/${item.metadata.deliverableId}`,
+            'niche-research': `/dashboard/niche-research/${item.metadata.deliverableId}`,
+            'cold-email': `/dashboard/cold-email/${item.metadata.deliverableId}`,
+            'offer-creator': `/dashboard/offer-creator/${item.metadata.deliverableId}`,
+            'ad-writer': `/dashboard/ad-writer/${item.metadata.deliverableId}`,
+            'n8n-workflow': `/dashboard/n8n-builder/${item.metadata.deliverableId}`
           };
-          window.location.href = viewUrls[item.type] || '/';
+          
+          const viewUrl = viewUrls[item.type];
+          if (viewUrl) {
+            if (workspaceId) {
+              window.location.href = `${viewUrl}?workspaceId=${workspaceId}`;
+            } else {
+              window.location.href = viewUrl;
+            }
+          }
           break;
 
         case 'delete':
           const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
           if (deleteConfirm) {
-            // Call appropriate delete function
-            switch (item.type) {
-              case 'sales-call':
-                await salesCallAnalyzer.deleteAnalysis(item.rawData.id);
-                break;
-              case 'growth-plan':
-                await growthPlan.deletePlan(item.rawData.id);
-                break;
-              case 'pricing-calc':
-                await savedCalculations.deleteCalculation(item.rawData.id);
-                break;
-              case 'niche-research':
-                await nicheResearcher.deleteNicheReport(item.rawData.id);
-                break;
-              case 'cold-email':
-                await coldEmail.deleteEmailGeneration(item.rawData.id);
-                break;
-              case 'offer-creator':
-                await savedOffers.deleteOffer(item.rawData.id);
-                break;
-                case 'n8n-workflow':
-  await n8nWorkflowBuilder.deleteWorkflow(item.rawData.id);
-  break;
-            }
+            // Call delete API
+            await fetch(`/api/deliverables/${item.metadata.deliverableId}`, {
+              method: 'DELETE',
+              credentials: 'include'
+            });
             message.success('Item deleted successfully');
             fetchAllWorkItems(); // Refresh data
           }
           break;
 
         case 'export':
-          // Call appropriate export function
-          switch (item.type) {
-            case 'sales-call':
-              await salesCallAnalyzer.exportAnalysis(item.rawData.id);
-              break;
-            case 'growth-plan':
-              await growthPlan.exportPlan(item.rawData.id);
-              break;
-            case 'niche-research':
-              await nicheResearcher.exportNicheReport(item.rawData.id);
-              break;
-            case 'cold-email':
-              await coldEmail.exportEmails(item.rawData.id);
-              break;
-              case 'n8n-workflow':
-  await n8nWorkflowBuilder.exportWorkflow(item.rawData.id, 'json');
-  break;
-          }
+        case 'copy':
+        case 'duplicate':
+        case 'optimize':
+          message.info(`${action} functionality coming soon!`);
           break;
 
         default:
@@ -416,8 +404,25 @@ const fetchAllWorkItems = async () => {
     );
   }
 
+  if (error && workItems.length === 0) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <div style={{ color: '#ff4d4f', marginBottom: 16 }}>
+          <FileTextOutlined style={{ fontSize: 48 }} />
+        </div>
+        <Title level={4}>Failed to Load Work Items</Title>
+        <Text style={{ color: '#666' }}>{error}</Text>
+        <div style={{ marginTop: 16 }}>
+          <Button type="primary" onClick={fetchAllWorkItems}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: '24px',  minHeight: '100vh' }}>
+    <div style={{ padding: '24px', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -444,11 +449,11 @@ const fetchAllWorkItems = async () => {
             <Card style={{ borderRadius: 8, height: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <Text style={{  fontSize: 12, fontWeight: 500 }}>
+                  <Text style={{ fontSize: 12, fontWeight: 500 }}>
                     {stat.title}
                   </Text>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                    <Text style={{ fontSize: 20, fontWeight: 600,  }}>
+                    <Text style={{ fontSize: 20, fontWeight: 600 }}>
                       {stat.value.toLocaleString()}
                     </Text>
                     {stat.growth !== 0 && (
@@ -546,14 +551,10 @@ const fetchAllWorkItems = async () => {
             tab={<Badge count={getTabCount('cold-email')} offset={[8, 0]}>Emails</Badge>} 
             key="cold-email" 
           />
-          {/* <Tabs.TabPane 
-            tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offer Creator</Badge>} 
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offers</Badge>} 
             key="offer-creator" 
-          /> */}
-          {/* <Tabs.TabPane 
-  tab={<Badge count={getTabCount('n8n-workflow')} offset={[8, 0]}>n8n Workflows</Badge>} 
-  key="n8n-workflow" 
-/> */}
+          />
         </Tabs>
 
         {/* Work Items List */}
@@ -577,7 +578,6 @@ const fetchAllWorkItems = async () => {
                     border: '1px solid #514848',
                     borderRadius: 8,
                     padding: 16,
-                 
                     transition: 'all 0.2s',
                     cursor: 'pointer'
                   }}
@@ -613,7 +613,7 @@ const fetchAllWorkItems = async () => {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {/* Title and Type */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <Title level={5} style={{ margin: 0,  }}>
+                            <Title level={5} style={{ margin: 0 }}>
                               {item.title}
                             </Title>
                             <Tag color={getTypeColor(item.type)} style={{ fontSize: 10 }}>
@@ -633,62 +633,12 @@ const fetchAllWorkItems = async () => {
                               <CalendarOutlined /> {new Date(item.createdAt).toLocaleDateString()}
                             </Text>
 
-                            {/* Type-specific metadata */}
-                            {item.type === 'sales-call' && item.metadata.score && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Text style={{ fontSize: 12, color: '#999' }}>Score:</Text>
-                                <Progress 
-                                  percent={item.metadata.score} 
-                                  size="small" 
-                                  style={{ width: 60 }}
-                                  strokeColor={item.metadata.score >= 80 ? '#52c41a' : item.metadata.score >= 60 ? '#faad14' : '#ff4d4f'}
-                                />
-                              </div>
+                            {/* Type-specific metadata display */}
+                            {item.metadata.workspace && (
+                              <Tag color="blue" style={{ fontSize: 10 }}>
+                                {item.metadata.workspace.name}
+                              </Tag>
                             )}
-
-                            {item.type === 'pricing-calc' && (
-                              <>
-                                <Tag color="green">${item.metadata.hourlyRate}/hr</Tag>
-                                <Tag  color="blue">{item.metadata.roiPercentage}% ROI</Tag>
-                              </>
-                            )}
-
-                            {item.type === 'niche-research' && (
-                              <>
-                                <Tag >{item.metadata.marketSize}</Tag>
-                                <Tag>{item.metadata.primaryObjective}</Tag>
-                              </>
-                            )}
-
-                            {item.type === 'cold-email' && (
-                              <>
-                                <Tag >{item.metadata.emailCount} emails</Tag>
-                                <Tag >{item.metadata.tone}</Tag>
-                              </>
-                            )}
-
-                            {item.type === 'offer-creator' && (
-                              <>
-                                <Tag >{item.metadata.packages} packages</Tag>
-                                <Tag  color="green">{item.metadata.priceRange}</Tag>
-                              </>
-                            )}
-
-                            {item.type === 'growth-plan' && (
-                              <>
-                                <Tag >{item.metadata.timeframe}</Tag>
-                                <Tag >{item.metadata.strategies} strategies</Tag>
-                              </>
-                            )}
-                            {item.type === 'n8n-workflow' && (
-  <>
-    <Tag color="purple">{item.metadata.triggerType}</Tag>
-    <Tag>{item.metadata.integrationCount} integrations</Tag>
-    <Tag color={item.metadata.complexity === 'simple' ? 'green' : item.metadata.complexity === 'moderate' ? 'orange' : 'red'}>
-      {item.metadata.complexity}
-    </Tag>
-  </>
-)}
                           </div>
                         </div>
 

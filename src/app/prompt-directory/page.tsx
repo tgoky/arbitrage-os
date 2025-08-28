@@ -8,8 +8,10 @@ import {
   UpOutlined,
   DownOutlined,
   TagsOutlined,
-  FireOutlined
-} from '@ant-design/icons';
+  FireOutlined,
+  HeartOutlined,
+  HeartFilled
+} from '@ant-design/icons'
 import { Input, Card, Button, Typography, Tag, Divider, Space, Row, Col, Select, Tabs } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
 
@@ -61,6 +63,10 @@ import md43 from './jsons/43-pitch-deck-arc.md';
 import md44 from './jsons/44-sales-performance-analyst.md';
 import md45 from './jsons/45-sales-kpi-reporting.md';
 import md46 from './jsons/46-sales-script-gen.md';
+
+
+import { useFavorites } from '../hooks/useFavorites';
+
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -742,7 +748,17 @@ const calculateTagCounts = (prompts: Prompt[]): TagCount[] => {
     .sort((a, b) => b.count - a.count);
 };
 
-const PromptCard = ({ prompt }: { prompt: Prompt }) => {
+const PromptCard = ({ 
+  prompt, 
+  isFavorite, 
+  onToggleFavorite 
+}: { 
+  prompt: Prompt;
+  isFavorite: boolean;
+  onToggleFavorite: (id: number) => void;
+}) => {
+
+  
   const [showFullSystem, setShowFullSystem] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { theme } = useTheme();
@@ -783,36 +799,51 @@ const PromptCard = ({ prompt }: { prompt: Prompt }) => {
         flexDirection: 'column',
         height: '100%'
       }}
-      actions={[
-        <div key="actions" className="flex justify-center space-x-6 py-2">
-          <Button 
-            type="text" 
-            icon={<CopyOutlined />}
-            onClick={handleCopy}
-            className={`flex items-center justify-center border ${
-              isDark 
-                ? 'bg-black text-white hover:border-blue-400' 
-                : 'bg-white text-black hover:border-blue-300'
-            }`}
-            key="copy"
-          >
-            Copy Prompt
-          </Button>
-          <Button 
-            type="text" 
-            icon={<DownloadOutlined />}
-            onClick={handleDownload}
-            className={`flex items-center justify-center border ${
-              isDark 
-                ? 'bg-black text-white hover:border-blue-400' 
-                : 'bg-white text-black hover:border-blue-300'
-            }`}
-            key="download"
-          >
-            Download
-          </Button>
-        </div>
-      ]}
+   actions={[
+  <div key="actions" className="flex justify-between items-center w-full px-4 py-2">
+    <Button 
+      type="text" 
+      icon={isFavorite ? <HeartFilled /> : <HeartOutlined />}
+      onClick={() => onToggleFavorite(prompt.id)}
+      className={`flex items-center justify-center ${
+        isFavorite 
+          ? 'text-red-500 hover:text-red-600' 
+          : isDark 
+            ? 'text-gray-400 hover:text-red-400' 
+            : 'text-gray-500 hover:text-red-500'
+      }`}
+      size="small"
+    />
+    <div className="flex gap-2">
+      <Button 
+        type="text" 
+        icon={<CopyOutlined />}
+        onClick={handleCopy}
+        className={`flex items-center ${
+          isDark 
+            ? 'text-gray-400 hover:text-blue-400' 
+            : 'text-gray-500 hover:text-blue-500'
+        }`}
+        size="small"
+      >
+        Copy
+      </Button>
+      <Button 
+        type="text" 
+        icon={<DownloadOutlined />}
+        onClick={handleDownload}
+        className={`flex items-center ${
+          isDark 
+            ? 'text-gray-400 hover:text-blue-400' 
+            : 'text-gray-500 hover:text-blue-500'
+        }`}
+        size="small"
+      >
+        Download
+      </Button>
+    </div>
+  </div>
+]}
     >
       <div className="flex flex-col h-full">
         <div className="min-h-[3rem] mb-3">
@@ -924,226 +955,339 @@ const PromptDirectory = () => {
   const [activeTab, setActiveTab] = useState('marketing'); // Track active tab
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+    const { favorites, toggleFavorite, isFavorite, loading, user } = useFavorites();
+  
 
   const popularTags = useMemo(() => calculateTagCounts(promptTemplates), []);
 
   // Filter prompts based on active tab
-  const filteredPrompts = promptTemplates.filter(prompt => {
-    if (activeTab === 'marketing') {
-      return prompt.category.includes('Marketing');
-    } else {
-      return prompt.category.includes('Sales');
-    }
-  }).filter(prompt => {
-    const matchesSearch = 
-      prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      prompt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prompt.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTags = selectedTags.length === 0 || 
-      selectedTags.every(tag => prompt.tags.includes(tag));
-    
-    const matchesCategory = !selectedCategory || prompt.category.includes(selectedCategory);
-    
-    return matchesSearch && matchesTags && matchesCategory;
-  });
+ const filteredPrompts = promptTemplates.filter(prompt => {
+  // First filter: Tab-based filtering
+  let tabMatch = false;
+  if (activeTab === 'marketing') {
+    tabMatch = prompt.category.includes('Marketing');
+  } else if (activeTab === 'sales') {
+    tabMatch = prompt.category.includes('Sales');
+  } else if (activeTab === 'favorites') {
+    tabMatch = favorites.includes(prompt.id);
+  }
 
-  const sortedPrompts = [...filteredPrompts].sort((a, b) => {
-    if (sortBy === 'popular') return b.downloads - a.downloads;
-    if (sortBy === 'newest') return b.id - a.id;
-    if (sortBy === 'copied') return b.copyCount - a.copyCount;
-    return 0;
-  });
+  // If tab doesn't match, exclude this prompt
+  if (!tabMatch) return false;
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="text-center mb-8">
-        <Title level={2} className="flex items-center justify-center">
-          <FireOutlined className="mr-2" />
-          AI Prompt Directory
-        </Title>
-        <Text type="secondary" className="text-lg">
-          Discover ready-to-use prompts to automate your business processes
-        </Text>
-      </div>
-<Tabs 
-  activeKey={activeTab} 
-  onChange={setActiveTab} 
-  centered 
-  className="mb-8"
->
-  <TabPane tab="Marketing Templates" key="marketing">
-    <div className="mb-8">
-      <Search
-        placeholder="Search marketing prompts..."
-        allowClear
-        enterButton={<Button type="primary">Search</Button>}
-        size="large"
-        prefix={<SearchOutlined />}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4"
-      />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div className="flex flex-wrap gap-2">
-          <Select
-            placeholder="Filter by category"
-            style={{ width: 200 }}
-            onChange={setSelectedCategory}
+  // Second filter: Search, tags, and category filtering
+  const matchesSearch = 
+    prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    prompt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prompt.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
+  
+  const matchesTags = selectedTags.length === 0 || 
+    selectedTags.every(tag => prompt.tags.includes(tag));
+  
+  const matchesCategory = !selectedCategory || prompt.category.includes(selectedCategory);
+  
+  return matchesSearch && matchesTags && matchesCategory;
+});
+
+const sortedPrompts = [...filteredPrompts].sort((a, b) => {
+  if (sortBy === 'popular') return b.downloads - a.downloads;
+  if (sortBy === 'newest') return b.id - a.id;
+  if (sortBy === 'copied') return b.copyCount - a.copyCount;
+  return 0;
+});
+
+
+
+return (
+  <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="text-center mb-8">
+      <Title level={2} className="flex items-center justify-center">
+        <FireOutlined className="mr-2" />
+        AI Prompt Directory
+      </Title>
+      <Text type="secondary" className="text-lg">
+        Discover ready-to-use prompts to automate your business processes
+      </Text>
+    </div>
+    <Tabs 
+      activeKey={activeTab} 
+      onChange={setActiveTab} 
+      centered 
+      className="mb-8"
+    >
+      <TabPane tab="Marketing Templates" key="marketing">
+        <div className="mb-8">
+          <Search
+            placeholder="Search marketing prompts..."
             allowClear
-          >
-            {categories.map(category => (
-              <Option key={category} value={category}>
-                {category}
-              </Option>
-            ))}
-          </Select>
-          <Select
-            mode="multiple"
-            placeholder="Filter by tags"
-            style={{ width: 250 }}
-            onChange={setSelectedTags}
-            suffixIcon={<TagsOutlined />}
-            allowClear
-          >
-            {popularTags.map(tag => (
-              <Option key={tag.name} value={tag.name}>
-                {tag.name} <Text type="secondary">({tag.count})</Text>
-              </Option>
-            ))}
-          </Select>
-          <Button 
-            icon={<TagsOutlined />} 
-            onClick={() => {
-              setSelectedTags([]);
-              setSelectedCategory('');
-              setSearchTerm('');
-            }}
-          >
-            Clear Filters
-          </Button>
+            enterButton={<Button type="primary">Search</Button>}
+            size="large"
+            prefix={<SearchOutlined />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-4"
+          />
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Select
+                placeholder="Filter by category"
+                style={{ width: 200 }}
+                onChange={setSelectedCategory}
+                allowClear
+              >
+                {categories.map(category => (
+                  <Option key={category} value={category}>
+                    {category}
+                  </Option>
+                ))}
+              </Select>
+              <Select
+                mode="multiple"
+                placeholder="Filter by tags"
+                style={{ width: 250 }}
+                onChange={setSelectedTags}
+                suffixIcon={<TagsOutlined />}
+                allowClear
+              >
+                {popularTags.map(tag => (
+                  <Option key={tag.name} value={tag.name}>
+                    {tag.name} <Text type="secondary">({tag.count})</Text>
+                  </Option>
+                ))}
+              </Select>
+              <Button 
+                icon={<TagsOutlined />} 
+                onClick={() => {
+                  setSelectedTags([]);
+                  setSelectedCategory('');
+                  setSearchTerm('');
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+            <Select
+              defaultValue="popular"
+              style={{ width: 150 }}
+              onChange={setSortBy}
+              suffixIcon={<FireOutlined />}
+            >
+              <Option value="popular">Most Popular</Option>
+              <Option value="copied">Most Copied</Option>
+              <Option value="newest">Newest First</Option>
+            </Select>
+          </div>
         </div>
-        <Select
-          defaultValue="popular"
-          style={{ width: 150 }}
-          onChange={setSortBy}
-          suffixIcon={<FireOutlined />}
-        >
-          <Option value="popular">Most Popular</Option>
-          <Option value="copied">Most Copied</Option>
-          <Option value="newest">Newest First</Option>
-        </Select>
-      </div>
-    </div>
-    <Divider />
-    <Row gutter={[16, 16]}>
-      {sortedPrompts.map(prompt => (
-        <Col xs={24} sm={12} lg={8} key={prompt.id}>
-          <PromptCard prompt={prompt} />
-        </Col>
-      ))}
-    </Row>
-    {sortedPrompts.length === 0 && (
-      <div className="text-center py-12">
-        <Title level={4}>No marketing prompts found</Title>
-        <Text type="secondary">Try adjusting your search or filters</Text>
-      </div>
-    )}
-  </TabPane>
-  <TabPane tab="Sales Templates" key="sales">
-    <div className="mb-8">
-      <Search
-        placeholder="Search sales prompts..."
-        allowClear
-        enterButton={<Button type="primary">Search</Button>}
-        size="large"
-        prefix={<SearchOutlined />}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4"
-      />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div className="flex flex-wrap gap-2">
-          <Select
-            placeholder="Filter by category"
-            style={{ width: 200 }}
-            onChange={setSelectedCategory}
+        <Divider />
+        <Row gutter={[16, 16]}>
+          {sortedPrompts.map(prompt => (
+            <Col xs={24} sm={12} lg={8} key={prompt.id}>
+              <PromptCard 
+                prompt={prompt}
+                isFavorite={isFavorite(prompt.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            </Col>
+          ))}
+        </Row>
+        {sortedPrompts.length === 0 && (
+          <div className="text-center py-12">
+            <Title level={4}>No marketing prompts found</Title>
+            <Text type="secondary">Try adjusting your search or filters</Text>
+          </div>
+        )}
+      </TabPane>
+      
+      <TabPane tab="Sales Templates" key="sales">
+        <div className="mb-8">
+          <Search
+            placeholder="Search sales prompts..."
             allowClear
-          >
-            {categories.map(category => (
-              <Option key={category} value={category}>
-                {category}
-              </Option>
-            ))}
-          </Select>
-          <Select
-            mode="multiple"
-            placeholder="Filter by tags"
-            style={{ width: 250 }}
-            onChange={setSelectedTags}
-            suffixIcon={<TagsOutlined />}
-            allowClear
-          >
-            {popularTags.map(tag => (
-              <Option key={tag.name} value={tag.name}>
-                {tag.name} <Text type="secondary">({tag.count})</Text>
-              </Option>
-            ))}
-          </Select>
-          <Button 
-            icon={<TagsOutlined />} 
-            onClick={() => {
-              setSelectedTags([]);
-              setSelectedCategory('');
-              setSearchTerm('');
-            }}
-          >
-            Clear Filters
-          </Button>
+            enterButton={<Button type="primary">Search</Button>}
+            size="large"
+            prefix={<SearchOutlined />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-4"
+          />
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Select
+                placeholder="Filter by category"
+                style={{ width: 200 }}
+                onChange={setSelectedCategory}
+                allowClear
+              >
+                {categories.map(category => (
+                  <Option key={category} value={category}>
+                    {category}
+                  </Option>
+                ))}
+              </Select>
+              <Select
+                mode="multiple"
+                placeholder="Filter by tags"
+                style={{ width: 250 }}
+                onChange={setSelectedTags}
+                suffixIcon={<TagsOutlined />}
+                allowClear
+              >
+                {popularTags.map(tag => (
+                  <Option key={tag.name} value={tag.name}>
+                    {tag.name} <Text type="secondary">({tag.count})</Text>
+                  </Option>
+                ))}
+              </Select>
+              <Button 
+                icon={<TagsOutlined />} 
+                onClick={() => {
+                  setSelectedTags([]);
+                  setSelectedCategory('');
+                  setSearchTerm('');
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+            <Select
+              defaultValue="popular"
+              style={{ width: 150 }}
+              onChange={setSortBy}
+              suffixIcon={<FireOutlined />}
+            >
+              <Option value="popular">Most Popular</Option>
+              <Option value="copied">Most Copied</Option>
+              <Option value="newest">Newest First</Option>
+            </Select>
+          </div>
         </div>
-        <Select
-          defaultValue="popular"
-          style={{ width: 150 }}
-          onChange={setSortBy}
-          suffixIcon={<FireOutlined />}
-        >
-          <Option value="popular">Most Popular</Option>
-          <Option value="copied">Most Copied</Option>
-          <Option value="newest">Newest First</Option>
-        </Select>
-      </div>
-    </div>
+        <Divider />
+        <Row gutter={[16, 16]}>
+          {sortedPrompts.map(prompt => (
+            <Col xs={24} sm={12} lg={8} key={prompt.id}>
+              <PromptCard 
+                prompt={prompt}
+                isFavorite={isFavorite(prompt.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            </Col>
+          ))}
+        </Row>
+        {sortedPrompts.length === 0 && (
+          <div className="text-center py-12">
+            <Title level={4}>No sales prompts found</Title>
+            <Text type="secondary">Try adjusting your search or filters</Text>
+          </div>
+        )}
+      </TabPane>
+      
+      <TabPane 
+        tab={
+          <span>
+            <HeartOutlined /> Favorites ({favorites.length})
+            {!user && <Text type="secondary" style={{ marginLeft: 4 }}>(Local)</Text>}
+          </span>
+        } 
+        key="favorites"
+      >
+        <div className="mb-8">
+          <Search
+            placeholder="Search favorite prompts..."
+            allowClear
+            enterButton={<Button type="primary">Search</Button>}
+            size="large"
+            prefix={<SearchOutlined />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-4"
+          />
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Select
+                placeholder="Filter by category"
+                style={{ width: 200 }}
+                onChange={setSelectedCategory}
+                allowClear
+              >
+                {categories.map(category => (
+                  <Option key={category} value={category}>
+                    {category}
+                  </Option>
+                ))}
+              </Select>
+              <Select
+                mode="multiple"
+                placeholder="Filter by tags"
+                style={{ width: 250 }}
+                onChange={setSelectedTags}
+                suffixIcon={<TagsOutlined />}
+                allowClear
+              >
+                {popularTags.map(tag => (
+                  <Option key={tag.name} value={tag.name}>
+                    {tag.name} <Text type="secondary">({tag.count})</Text>
+                  </Option>
+                ))}
+              </Select>
+              <Button 
+                icon={<TagsOutlined />} 
+                onClick={() => {
+                  setSelectedTags([]);
+                  setSelectedCategory('');
+                  setSearchTerm('');
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+            <Select
+              defaultValue="popular"
+              style={{ width: 150 }}
+              onChange={setSortBy}
+              suffixIcon={<FireOutlined />}
+            >
+              <Option value="popular">Most Popular</Option>
+              <Option value="copied">Most Copied</Option>
+              <Option value="newest">Newest First</Option>
+            </Select>
+          </div>
+        </div>
+        <Divider />
+        <Row gutter={[16, 16]}>
+          {sortedPrompts.map(prompt => (
+            <Col xs={24} sm={12} lg={8} key={prompt.id}>
+              <PromptCard 
+                prompt={prompt}
+                isFavorite={isFavorite(prompt.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            </Col>
+          ))}
+        </Row>
+        {sortedPrompts.length === 0 && (
+          <div className="text-center py-12">
+            <HeartOutlined className="text-6xl text-gray-300 mb-4" />
+            <Title level={4}>No favorite prompts yet</Title>
+            <Text type="secondary">
+              Click the heart icon on any prompt to add it to your favorites
+            </Text>
+          </div>
+        )}
+      </TabPane>
+    </Tabs>
+
     <Divider />
-    <Row gutter={[16, 16]}>
-      {sortedPrompts.map(prompt => (
-        <Col xs={24} sm={12} lg={8} key={prompt.id}>
-          <PromptCard prompt={prompt} />
-        </Col>
-      ))}
-    </Row>
-    {sortedPrompts.length === 0 && (
-      <div className="text-center py-12">
-        <Title level={4}>No sales prompts found</Title>
-        <Text type="secondary">Try adjusting your search or filters</Text>
-      </div>
-    )}
-  </TabPane>
-</Tabs>
 
-      <Divider />
-
-      <div className="text-center">
-        <Title level={4} className="mb-2">
-          Want to contribute your own prompt?
-        </Title>
-        <Text type="secondary" className="block mb-4">
-          Join our community and share your best AI prompts
-        </Text>
-        <Space>
-          <Button type="primary">Submit Prompt</Button>
-          <Button>Browse Community</Button>
-        </Space>
-      </div>
+    <div className="text-center">
+      <Title level={4} className="mb-2">
+        Want to contribute your own prompt?
+      </Title>
+      <Text type="secondary" className="block mb-4">
+        Join our community and share your best AI prompts
+      </Text>
+      <Space>
+        <Button type="primary">Submit Prompt</Button>
+        <Button>Browse Community</Button>
+      </Space>
     </div>
-  );
-};
+  </div>
+)};
 
 export default PromptDirectory;
