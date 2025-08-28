@@ -1,4 +1,3 @@
-// app/dashboard/components/WelcomePanel.tsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button, Card, Typography, Grid, Statistic, Space, Spin, message } from 'antd';
 import { 
@@ -21,7 +20,6 @@ interface WorkItem {
   id: string;
   createdAt: string;
   status: 'processing' | 'completed' | 'failed' | string;
-  // Add other fields as needed
 }
 
 const WelcomePanel: React.FC<WelcomePanelProps> = ({
@@ -32,10 +30,9 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   const screens = useBreakpoint();
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null); // Changed from string | null to Error | null
   const [retryCount, setRetryCount] = useState(0);
 
-  // Memoized fetch function to prevent unnecessary re-renders
   const fetchAllWorkItems = useCallback(async (isRetry = false) => {
     if (!isRetry) {
       setLoading(true);
@@ -50,19 +47,16 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         url.searchParams.append('workspaceId', workspaceId);
       }
       
-      // Add cache busting parameter to prevent stale data
       url.searchParams.append('_t', Date.now().toString());
 
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Include auth headers if needed
           ...(typeof window !== 'undefined' && localStorage.getItem('authToken') && {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
           })
         },
-        // Disable caching
         cache: 'no-cache'
       });
 
@@ -84,7 +78,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
       if (data.success && Array.isArray(data.data?.items)) {
         console.log(`🎉 Successfully fetched ${data.data.items.length} work items for welcome panel`);
         setWorkItems(data.data.items);
-        setRetryCount(0); // Reset retry count on success
+        setRetryCount(0);
       } else if (data.data?.items === undefined || data.data?.items === null) {
         console.warn('⚠️ No items found in response, setting empty array');
         setWorkItems([]);
@@ -93,31 +87,30 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
       }
     } catch (error) {
       console.error('💥 Error fetching work items for welcome panel:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load work items');
+      // Ensure error is always an Error object
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      setError(errorObj);
       
       // Don't show error message for auth issues, let parent handle redirect
-      if (!error?.message?.includes('Authentication')) {
-        message.error(`Failed to load work items: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (!errorObj.message.includes('Authentication')) {
+        message.error(`Failed to load work items: ${errorObj.message}`);
       }
       
-      // Set empty array on error to prevent undefined issues
       setWorkItems([]);
     } finally {
       setLoading(false);
     }
   }, [workspaceId, retryCount]);
 
-  // Auto-retry logic
   const handleRetry = useCallback(async () => {
     if (retryCount < 3) {
       setRetryCount(prev => prev + 1);
       setTimeout(() => {
         fetchAllWorkItems(true);
-      }, 1000 * (retryCount + 1)); // Exponential backoff
+      }, 1000 * (retryCount + 1));
     }
   }, [fetchAllWorkItems, retryCount]);
 
-  // Load data on mount and when dependencies change
   useEffect(() => {
     let mounted = true;
     
@@ -132,11 +125,10 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     return () => {
       mounted = false;
     };
-  }, [workspaceId]); // Remove fetchAllWorkItems from deps to avoid infinite loop
+  }, [fetchAllWorkItems]);
 
-  // Auto-retry on error
   useEffect(() => {
-    if (error && retryCount < 3 && !error.includes('Authentication')) {
+    if (error && retryCount < 3 && !error.message.includes('Authentication')) {
       const timer = setTimeout(() => {
         handleRetry();
       }, 2000);
@@ -145,7 +137,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     }
   }, [error, retryCount, handleRetry]);
 
-  // Calculate summary stats with better error handling
   const summaryStats = useMemo(() => {
     console.log('🧮 Calculating stats with', workItems.length, 'items');
     
@@ -243,7 +234,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     },
   });
 
-  // Enhanced loading state
   if (loading) {
     return (
       <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
@@ -280,7 +270,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     );
   }
 
-  // Error state with retry option
   if (error && retryCount >= 3) {
     return (
       <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
@@ -303,7 +292,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         >
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <p style={{ color: theme === 'dark' ? '#EF4444' : '#DC2626', marginBottom: 16 }}>
-              Unable to load statistics: {error}
+              Unable to load statistics: {error.message}
             </p>
             <Button
               type="primary"
@@ -359,7 +348,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         </Space>
       </div>
 
-      {/* Stats Overview Section */}
       <Card
         styles={getParentCardStyles()}
         style={{
@@ -398,7 +386,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           ))}
         </div>
         
-        {/* Debug info in development */}
         {process.env.NODE_ENV === 'development' && (
           <div style={{ 
             marginTop: '12px', 
