@@ -386,18 +386,16 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           ))}
         </div>
         
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ 
-            marginTop: '12px', 
-            padding: '8px', 
-            backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
-            borderRadius: '4px',
-            fontSize: '11px',
-            color: theme === 'dark' ? '#9CA3AF' : '#6B7280'
-          }}>
-             Workspace: {workspaceId || 'default'} 
-          </div>
-        )}
+      <div style={{ 
+  marginTop: '12px', 
+  padding: '8px', 
+  backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
+  borderRadius: '4px',
+  fontSize: '11px',
+  color: theme === 'dark' ? '#9CA3AF' : '#6B7280'
+}}>
+  Workspace: {workspaceId || 'default'} 
+</div>
       </Card>
     </div>
   );
