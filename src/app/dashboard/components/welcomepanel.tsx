@@ -395,7 +395,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
             fontSize: '11px',
             color: theme === 'dark' ? '#9CA3AF' : '#6B7280'
           }}>
-            Debug: {workItems.length} items loaded | Workspace: {workspaceId || 'default'} | Retries: {retryCount}
+             Workspace: {workspaceId || 'default'} | 
           </div>
         )}
       </Card>
