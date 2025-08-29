@@ -121,7 +121,7 @@ export const WorkspaceDropdown = ({
             onClick={() => {
               console.log('Switching to workspace:', workspace.slug);
               switchWorkspace(workspace.slug);
-              setWorkspaceDropdownOpen(false);
+           
             }}
             className={`w-full flex items-center gap-2 px-2 py-1.5 border-none ${
               currentWorkspace?.id === workspace.id // Compare IDs for active state

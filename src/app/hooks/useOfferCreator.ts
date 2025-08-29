@@ -21,6 +21,8 @@ import type {
   ProgressiveValidationResult
 } from '@/types/offerCreator';
 
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+
 export type {
   OfferCreatorInput,
   GeneratedOfferPackage,
@@ -41,14 +43,23 @@ export const useOfferCreator = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+   const { currentWorkspace } = useWorkspaceContext(); // ADD THIS
 
   const generateOffer = useCallback(async (input: OfferCreatorInput): Promise<{
     offerId: string;
     offer: GeneratedOfferPackage;
   } | null> => {
+
+
+     // ADD WORKSPACE VALIDATION
+    if (!currentWorkspace) {
+      throw new Error('No workspace selected. Please access the offer creator from within a workspace.');
+    }
+
     setGenerating(true);
     setError(null);
 
+     
     try {
       console.log('🚀 Sending signature offer generation request...', input);
 
@@ -84,12 +95,23 @@ export const useOfferCreator = () => {
         throw new Error('Capacity is required');
       }
 
+
+      // MODIFY REQUEST TO INCLUDE WORKSPACE ID
+      const requestBody = {
+        ...input,
+        workspaceId: currentWorkspace.id // Add workspace ID
+      };
+
+ 
+
+
+
       const response = await fetch('/api/offer-creator', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(input),
+         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -131,7 +153,7 @@ export const useOfferCreator = () => {
     } finally {
       setGenerating(false);
     }
-  }, []);
+  }, [currentWorkspace]); 
 
   const getBusinessInsights = useCallback((input: OfferCreatorInput) => {
     const insights = {
@@ -438,13 +460,21 @@ export const useSavedOffers = () => {
   const [offers, setOffers] = useState<UserOffer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+   const { currentWorkspace } = useWorkspaceContext(); // ADD THIS
 
   const fetchOffers = useCallback(async (workspaceId?: string, targetMarket?: string, pricePosture?: string) => {
+     if (!currentWorkspace) {
+      console.log('No current workspace, skipping offers fetch');
+      return;
+    }
+   
+   
     setLoading(true);
     setError(null);
     
     try {
       const params = new URLSearchParams();
+       params.append('workspaceId', currentWorkspace.id); 
       if (workspaceId) params.append('workspaceId', workspaceId);
       if (targetMarket) params.append('targetMarket', targetMarket);
       if (pricePosture) params.append('pricePosture', pricePosture);
@@ -471,7 +501,7 @@ export const useSavedOffers = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+ }, [currentWorkspace?.id]);
 
   const getOffer = useCallback(async (offerId: string) => {
     setLoading(true);

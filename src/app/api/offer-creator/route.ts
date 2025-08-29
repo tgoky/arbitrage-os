@@ -1,4 +1,4 @@
-// app/api/offer-creator/route.ts - COMPLETELY UPDATED VERSION
+// app/api/offer-creator/route.ts - FIXED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -30,95 +30,111 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Robust authentication function (same as cold-email that works!)
-// Use this IMPROVED 3-method approach in ALL routes
+// ✅ FIXED: Use the EXACT same authentication function as pricing-calculator
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
-    // Method 1: Authorization header (most reliable for API calls)
+    // Method 1: Try with route handler client
+    try {
+      const supabase = createRouteHandlerClient({ 
+        cookies: () => cookieStore 
+      });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (!error && user) {
+        return { user, error: null };
+      }
+      
+      console.log('Route handler auth failed:', error);
+    } catch (helperError) {
+      console.warn('Route handler client failed:', helperError);
+    }
+    
+    // Method 2: Try with authorization header
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
+        
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           {
-            cookies: { get: () => undefined },
+            cookies: {
+              get: () => undefined,
+            },
           }
         );
         
         const { data: { user }, error } = await supabase.auth.getUser(token);
+        
         if (!error && user) {
           return { user, error: null };
         }
+        
+        console.log('Token auth failed:', error);
       } catch (tokenError) {
-        console.warn('Token auth failed:', tokenError);
+        console.warn('Token auth error:', tokenError);
       }
     }
     
-    // Method 2: SSR cookies (FIXED cookie handling)
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // FIXED: Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined; // Skip corrupted cookies
-                  }
+    // Method 3: Try with cookie validation
+    const supabaseSSR = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            try {
+              const cookie = cookieStore.get(name);
+              if (!cookie?.value) return undefined;
+              
+              // Validate base64 cookies
+              if (cookie.value.startsWith('base64-')) {
+                try {
+                  const decoded = atob(cookie.value.substring(7));
+                  JSON.parse(decoded); // Validate JSON
+                  return cookie.value;
+                } catch (e) {
+                  console.warn(`Invalid cookie ${name}, skipping...`);
+                  return undefined;
                 }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
               }
-            },
+              return cookie.value;
+            } catch (error) {
+              console.warn(`Error reading cookie ${name}:`, error);
+              return undefined;
+            }
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
-    }
+    );
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    return { user, error };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('All authentication methods failed:', error);
     return { user: null, error };
+  }
+}
+
+// ✅ FIXED: Add workspace validation function
+async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: userId
+      }
+    });
+    return !!workspace;
+  } catch (error) {
+    console.error('Error validating workspace access:', error);
+    return false;
   }
 }
 
@@ -127,7 +143,7 @@ export async function POST(req: NextRequest) {
   console.log('🚀 Enhanced Signature Offer Creator API Route called');
   
   try {
-    // ✅ Use robust authentication (same as cold-email that works)
+    // ✅ FIXED: Use the same authentication flow as pricing-calculator
     const { user, error: authError } = await getAuthenticatedUser(req);
 
     if (authError || !user) {
@@ -142,7 +158,7 @@ export async function POST(req: NextRequest) {
         } as ApiResponseOptional<never>,
         { status: 401 }
       );
-      
+
       // Clear potentially corrupted cookies
       const cookiesToClear = [
         'sb-access-token',
@@ -161,6 +177,29 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('✅ User authenticated successfully:', user.id);
+
+    // ✅ FIXED: Get workspace ID BEFORE validating it (was inside the auth failure block!)
+    const body = await req.json();
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
+
+    if (!workspaceId) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+    // ✅ FIXED: Validate workspace access after getting workspaceId
+    const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+    if (!hasAccess) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
 
     // Rate limiting for offer generation
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -182,10 +221,6 @@ export async function POST(req: NextRequest) {
     }
     console.log('✅ Rate limit check passed');
 
-    // Parse and validate request body
-    console.log('📥 Parsing request body...');
-    const body = await req.json();
-    
     // ✅ Enhanced debug logging for the new service structure
     console.log('🔍 RECEIVED BODY STRUCTURE:');
     console.log('- founder keys:', body.founder ? Object.keys(body.founder) : 'missing');
@@ -340,9 +375,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get workspace ID from request or use default
-    const workspaceId = body.workspaceId || 'default';
-
     // ✅ Debug the data structure before saving
     console.log('🔍 Pre-save validation check:');
     console.log('- User ID:', user.id);
@@ -416,6 +448,7 @@ export async function POST(req: NextRequest) {
         timestamp: new Date(),
         metadata: {
           offerId,
+          workspaceId,
           saved: saveSuccess, // Add save status to logging
           targetMarket: validation.data.market.targetMarket,
           industries: validation.data.founder.industries,
@@ -485,12 +518,13 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 // GET method for listing enhanced signature offers
 export async function GET(req: NextRequest) {
   console.log('🚀 Enhanced Signature Offers List API Route called');
   
   try {
-    // ✅ Use robust authentication (same as cold-email that works)
+    // ✅ FIXED: Use the same authentication flow as pricing-calculator
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
@@ -540,6 +574,18 @@ export async function GET(req: NextRequest) {
     const workspaceId = searchParams.get('workspaceId');
     const targetMarket = searchParams.get('targetMarket');
     const pricePosture = searchParams.get('pricePosture');
+
+    // ✅ FIXED: Validate workspace access if provided
+    if (workspaceId) {
+      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Workspace access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
 
     console.log('📋 Fetching enhanced signature offers for user:', user.id);
     console.log('🔍 Enhanced filters - workspace:', workspaceId, 'market:', targetMarket, 'pricing:', pricePosture);

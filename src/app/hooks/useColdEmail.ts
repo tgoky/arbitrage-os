@@ -1,5 +1,5 @@
 // hooks/useColdEmail.ts - SIMPLIFIED VERSION (matching working pattern)
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import { 
   ColdEmailGenerationInput, 
@@ -8,9 +8,13 @@ import {
   ColdEmailOptimizationType 
 } from '@/types/coldEmail';
 
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+
+
 export function useColdEmail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    const { currentWorkspace } = useWorkspaceContext(); // ADD THIS
 
   // ✅ Simplified API call (same as pricing calculator)
 // ✅ Enhanced handleApiCall with token refresh and better auth handling
@@ -121,7 +125,13 @@ const handleApiCall = async <T>(
   }
 };
 
-const generateEmails = async (input: ColdEmailGenerationInput): Promise<GeneratedEmail[]> => {
+const generateEmails = useCallback(async (input: ColdEmailGenerationInput): Promise<GeneratedEmail[]> => {
+  
+   if (!currentWorkspace) {
+      throw new Error('No workspace selected. Please access the cold email writer from within a workspace.');
+    }
+  
+  
   setLoading(true);
   setError(null);
   
@@ -130,6 +140,11 @@ const generateEmails = async (input: ColdEmailGenerationInput): Promise<Generate
     console.log('🚀 Input keys:', Object.keys(input));
     console.log('🚀 Input firstName:', input.firstName);
     console.log('🚀 Input method:', input.method);
+    // MODIFY REQUEST TO INCLUDE WORKSPACE ID
+      const requestData = {
+        ...input,
+        workspaceId: currentWorkspace.id
+      };
     
     const response = await handleApiCall<{
       generationId: string;
@@ -138,7 +153,7 @@ const generateEmails = async (input: ColdEmailGenerationInput): Promise<Generate
       '/api/cold-email',
       {
         method: 'POST',
-        body: JSON.stringify(input)
+         body: JSON.stringify(requestData) // Use modified data
       },
       'Failed to generate emails'
     );
@@ -174,7 +189,7 @@ const generateEmails = async (input: ColdEmailGenerationInput): Promise<Generate
   } finally {
     setLoading(false);
   }
-};
+}, [currentWorkspace]);
 
 
   const optimizeEmail = async (

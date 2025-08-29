@@ -1,4 +1,4 @@
-// app/hooks/useWorkspace.tsx
+// app/hooks/useWorkspace.tsx - FIXED VERSION
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -24,6 +24,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSwitching, setIsSwitching] = useState(false); // Separate switching state
   const [validationError, setValidationError] = useState<string | null>(null);
   const router = useRouter();
   const params = useParams();
@@ -84,7 +85,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         // No workspace in URL, set first available
         console.log('No workspace in URL, setting first available:', data[0]);
         setCurrentWorkspace(data[0]);
-        // Don't auto-redirect here - let the component handle it
       } else if (data.length === 0) {
         // No workspaces available
         setCurrentWorkspace(null);
@@ -213,49 +213,87 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // In useWorkspace hook, fix the switchWorkspace function
-// In useWorkspace hook, add debouncing
-const switchWorkspace = useCallback(async (slug: string) => {
-  if (isLoading || !workspaces.length) return;
-  
-  const workspace = workspaces.find(w => w.slug === slug);
-  if (!workspace || workspace.id === currentWorkspace?.id) return;
+  // ✅ FIXED: Simplified switchWorkspace without race conditions
+  const switchWorkspace = useCallback(async (slug: string) => {
+    // Don't block if switching is in progress, just ignore duplicate requests
+    if (isSwitching) {
+      console.log('Switch already in progress, ignoring request');
+      return;
+    }
 
-  setIsLoading(true);
-  
-  try {
-    // Clear all workspace-related data
-    if (typeof window !== 'undefined') {
-      // Clear localStorage
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('work-items-') || 
-            key.startsWith('workspace-') ||
-            key.startsWith('deliverables-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Update current workspace
-      localStorage.setItem('current-workspace', JSON.stringify(workspace));
+    // Basic validation
+    if (!workspaces.length) {
+      console.log('No workspaces available');
+      return;
     }
     
-    // Update state
-    setCurrentWorkspace(workspace);
-    
-    // Dispatch workspace change event
-    window.dispatchEvent(new CustomEvent('workspaceChanged', {
-      detail: { workspace }
-    }));
-    
-    // Navigate (use replace to avoid history issues)
-    router.replace(`/dashboard/${slug}`);
-    
-  } finally {
-    // Add small delay to prevent race conditions
-    setTimeout(() => setIsLoading(false), 500);
-  }
-}, [workspaces, currentWorkspace?.id, isLoading, router]);
+    const workspace = workspaces.find(w => w.slug === slug);
+    if (!workspace) {
+      console.log('Workspace not found:', slug);
+      return;
+    }
 
+    if (workspace.id === currentWorkspace?.id) {
+      console.log('Already in requested workspace');
+      return;
+    }
+
+    console.log('🔄 Starting workspace switch to:', workspace.name);
+    setIsSwitching(true);
+    
+    try {
+      // Update current workspace FIRST
+      setCurrentWorkspace(workspace);
+      
+      // Clear only specific workspace-related cache items
+      if (typeof window !== 'undefined') {
+        // Clear work items cache for the old workspace
+        const keysToRemove = Object.keys(localStorage).filter(key => 
+          key.startsWith('work-items-') || 
+          key.startsWith('deliverables-cache-')
+        );
+        
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        
+        // Update current workspace in localStorage
+        localStorage.setItem('current-workspace', JSON.stringify(workspace));
+      }
+      
+      // Dispatch workspace change event for other components to react
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('workspaceChanged', {
+          detail: { workspace }
+        }));
+      }
+      
+      // Navigate to new workspace (use push, not replace, for proper history)
+      const currentPath = pathname || '';
+      let newPath = `/dashboard/${slug}`;
+      
+      // Preserve the current page if it's a sub-route
+      if (currentPath.includes('/dashboard/') && currentPath.split('/').length > 3) {
+        const pathParts = currentPath.split('/');
+        pathParts[2] = slug; // Replace workspace slug
+        newPath = pathParts.join('/');
+      }
+      
+      console.log('🔄 Navigating to:', newPath);
+      router.push(newPath);
+      
+      console.log('✅ Workspace switch completed successfully');
+      
+    } catch (error) {
+      console.error('❌ Error during workspace switch:', error);
+      setValidationError('Failed to switch workspace');
+    } finally {
+      // Always clear switching state after a short delay
+      setTimeout(() => {
+        setIsSwitching(false);
+      }, 1000);
+    }
+  }, [workspaces, currentWorkspace?.id, isSwitching, router, pathname]);
 
   const deleteWorkspace = async (id: string) => {
     try {
@@ -293,7 +331,7 @@ const switchWorkspace = useCallback(async (slug: string) => {
       value={{
         currentWorkspace,
         workspaces,
-        isLoading,
+        isLoading: isLoading || isSwitching, // Include switching state in loading
         validationError,
         createWorkspace,
         updateWorkspace,

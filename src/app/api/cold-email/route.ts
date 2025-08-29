@@ -159,6 +159,27 @@ export async function POST(req: NextRequest) {
     // Parse and validate request body
     console.log('📥 Parsing request body...');
     const body = await req.json();
+     const workspaceId = body.workspaceId;
+    
+
+      if (!workspaceId) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+     // ADD: VALIDATE WORKSPACE ACCESS
+    const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+    if (!hasAccess) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
 
     console.log('🔍 Backend received body keys:', Object.keys(body));
 console.log('🔍 Backend body sample:', {
@@ -284,7 +305,7 @@ console.log('🔍 Backend body sample:', {
       result = await coldEmailService.generateAndSaveEmails(
         emailInput,
         user.id,
-        workspace.id
+           workspaceId // Use validated workspace ID
       );
       
       console.log('✅ Email generation completed successfully');
@@ -435,5 +456,21 @@ export async function GET(req: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+// ADD: Copy validateWorkspaceAccess function
+async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
+  try {
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: userId
+      }
+    });
+    return !!workspace;
+  } catch (error) {
+    console.error('Error validating workspace access:', error);
+    return false;
   }
 }

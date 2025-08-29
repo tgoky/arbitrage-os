@@ -35,6 +35,7 @@ import {
   Badge,
   Collapse,
   Tabs,
+  Alert,
   Table,
   Statistic,
   Progress,
@@ -59,6 +60,8 @@ import {
   type GeneratedOfferPackage,
   type UserOffer,
 } from "../hooks/useOfferCreator";
+
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 import {
   FounderInputs,
@@ -88,7 +91,9 @@ export default function OfferCreatorPage() {
   const [activePanels, setActivePanels] = useState<string[]>(["1", "2", "3", "4", "5"]);
   const [inputsChanged, setInputsChanged] = useState(false);
 
+ const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
 
+ 
 
 
   // Hook implementations
@@ -98,10 +103,7 @@ export default function OfferCreatorPage() {
 const { validateInput, validateInputProgressive, getOfferInsights, calculateCapacityMetrics } = useOfferValidation();
   const { exportOffer, loading: exportLoading } = useOfferExport();
 
-
-  const isLoading = generating;
-
-  // Form sections initialized empty
+   // Form sections initialized empty
   const [founderInputs, setFounderInputs] = useState<FounderInputs>({
     signatureResults: [],
     coreStrengths: [],
@@ -194,6 +196,39 @@ const validationResults = useMemo(() => {
 
  
 
+
+
+    // ADD WORKSPACE VALIDATION (same as other components)
+  if (!isWorkspaceReady) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <Spin size="large" />
+        <p className="mt-4">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Alert
+          message="Workspace Required"
+          description="The offer creator must be accessed from within a workspace. Please navigate to a workspace first."
+          type="error"
+          showIcon
+          action={
+            <Button type="primary" href="/dashboard">
+              Go to Dashboard
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  const isLoading = generating;
+
+ 
 const onFinish = async () => {
   try {
     const fullValidation = validateInputProgressive(completeInput, true);

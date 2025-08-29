@@ -28,6 +28,7 @@ import {
   Radio, 
   Space,
   Tag,
+  Spin,
   Alert,
   Collapse,
   Tooltip,
@@ -46,6 +47,8 @@ import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput, ColdEmailOptim
 import LoadingOverlay from './LoadingOverlay';
 import { createClient } from '../../utils/supabase/client'; 
 
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 const { Option } = Select;
@@ -57,6 +60,7 @@ const ColdEmailWriter = () => {
   const [generatedEmails, setGeneratedEmails] = useState<GeneratedEmail[]>([]);
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
+   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
  const [optimizedEmails, setOptimizedEmails] = useState<{[key: string]: GeneratedEmail}>({});
@@ -111,6 +115,8 @@ useEffect(() => {
     }
   });
 
+  
+
   // Listen for auth state changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED') {
@@ -120,6 +126,35 @@ useEffect(() => {
 
   return () => subscription.unsubscribe();
 }, []);
+
+
+  // ADD WORKSPACE VALIDATION (same as other components)
+  if (!isWorkspaceReady) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8 text-center">
+        <Spin size="large" />
+        <p className="mt-4">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <Alert
+          message="Workspace Required"
+          description="The cold email writer must be accessed from within a workspace. Please navigate to a workspace first."
+          type="error"
+          showIcon
+          action={
+            <Button type="primary" href="/dashboard">
+              Go to Dashboard
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   const emailMethods = [
     {
