@@ -1,7 +1,7 @@
 // hooks/useSalesCallAnalyzer.ts
 import { useState, useCallback } from 'react';
 import { SalesCallInput } from '@/types/salesCallAnalyzer';
-
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 export interface AnalysisResponse {
   analysisId: string;
   analysis: any; // GeneratedCallPackage type
@@ -29,6 +29,8 @@ export interface BusinessInsights {
 export function useSalesCallAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    const { currentWorkspace } = useWorkspaceContext(); 
+  
 // In hooks/useSalesCallAnalyzer.ts
 
 // Update the analyzeCall function:
@@ -37,12 +39,20 @@ const analyzeCall = useCallback(async (input: Omit<SalesCallInput, 'userId'>): P
   setError(null);
   
   try {
+
+     if (!currentWorkspace) {
+        throw new Error('No workspace selected. Please access the sales call analyzer from within a workspace.');
+      }
+      
     // Remove userId from the input since it's handled by the API
-    const response = await fetch('/api/sales-call-analyzer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input) // Don't include userId here
-    });
+        const response = await fetch(`/api/sales-call-analyzer?workspaceId=${currentWorkspace.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...input,
+          workspaceId: currentWorkspace.id
+        })
+      });
 
     const result = await response.json();
     
@@ -58,7 +68,7 @@ const analyzeCall = useCallback(async (input: Omit<SalesCallInput, 'userId'>): P
   } finally {
     setLoading(false);
   }
-}, []);
+  }, [currentWorkspace]);
 
   const getAnalysis = useCallback(async (analysisId: string) => {
     setLoading(true);
@@ -135,14 +145,17 @@ const analyzeCall = useCallback(async (input: Omit<SalesCallInput, 'userId'>): P
   }, []);
 
   const getUserAnalyses = useCallback(async (workspaceId?: string) => {
+     if (!currentWorkspace) {
+      console.log('No current workspace, skipping analyses fetch');
+      return [];
+    }
+
+
     setLoading(true);
     setError(null);
     
     try {
-      const url = workspaceId 
-        ? `/api/sales-call-analyzer?workspaceId=${workspaceId}`
-        : '/api/sales-call-analyzer';
-        
+ const url = `/api/sales-call-analyzer?workspaceId=${currentWorkspace.id}`;
       const response = await fetch(url);
       const result = await response.json();
       
@@ -158,7 +171,7 @@ const analyzeCall = useCallback(async (input: Omit<SalesCallInput, 'userId'>): P
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const getAnalytics = useCallback(async (
     workspaceId?: string,

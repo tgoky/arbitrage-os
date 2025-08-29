@@ -1,4 +1,4 @@
-// app/api/sales-call-analyzer/route.ts - WITH ROBUST AUTHENTICATION
+// app/api/sales-call-analyzer/route.ts - WITH WORKSPACE VALIDATION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -8,8 +8,7 @@ import { validateSalesCallInput } from '../../validators/salesCallAnalyzer.valid
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ ROBUST AUTHENTICATION (same as growth plans)
-// Use this IMPROVED 3-method approach in ALL routes
+// ROBUST AUTHENTICATION (same as pricing calculator)
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -100,6 +99,23 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
+// Validate workspace access
+async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: userId
+      }
+    });
+    return !!workspace;
+  } catch (error) {
+    console.error('Error validating workspace access:', error);
+    return false;
+  }
+}
+
 function createAuthErrorResponse() {
   const response = NextResponse.json(
     { 
@@ -131,7 +147,7 @@ export async function POST(request: NextRequest) {
   console.log('🚀 Sales Call Analyzer API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    // USE ROBUST AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser(request);
     
     if (authError || !user) {
@@ -141,7 +157,42 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Sales Call Analyzer user authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for call analysis
+    // Parse request body first to get workspace ID
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('❌ Failed to parse sales call analysis request body:', parseError);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Invalid JSON in request body' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // GET WORKSPACE ID FROM REQUEST (like pricing calculator)
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
+    
+    if (!workspaceId) {
+      return NextResponse.json({ 
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+    // VALIDATE WORKSPACE ACCESS
+    const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+    if (!hasAccess) {
+      return NextResponse.json({ 
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
+    // RATE LIMITING for call analysis
     console.log('🔍 Checking rate limits for sales call analyzer user:', user.id);
     const rateLimitResult = await rateLimit(
       `call_analysis:${user.id}`, 
@@ -165,22 +216,7 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Sales call analysis rate limit check passed');
 
-    // Parse and validate request body
-    console.log('📥 Parsing sales call analysis request body...');
-    let body;
-    try {
-      body = await request.json();
-    } catch (parseError) {
-      console.error('❌ Failed to parse sales call analysis request body:', parseError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Invalid JSON in request body' 
-        },
-        { status: 400 }
-      );
-    }
-
+    // Validate input
     console.log('🔍 Validating sales call input...');
     const validation = validateSalesCallInput(body);
     
@@ -197,31 +233,25 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Sales call input validation passed');
 
-    // ✅ GET USER'S WORKSPACE (consistent pattern)
-    console.log('🔍 Getting/creating workspace for sales call analyzer user:', user.id);
+    // VERIFY WORKSPACE EXISTS
     let workspace;
     try {
       const { prisma } = await import('@/lib/prisma');
       workspace = await prisma.workspace.findFirst({
-        where: { user_id: user.id }
+        where: { 
+          id: workspaceId,
+          user_id: user.id 
+        }
       });
 
       if (!workspace) {
-        console.log('📁 Creating default workspace for sales call analyzer user:', user.id);
-        workspace = await prisma.workspace.create({
-          data: {
-            user_id: user.id,
-            name: 'Default Workspace',
-            slug: 'default',
-            description: 'Default workspace for call analyses'
-          }
-        });
-        console.log('✅ Created sales call analyzer workspace:', workspace.id);
-      } else {
-        console.log('✅ Found existing sales call analyzer workspace:', workspace.id);
+        return NextResponse.json({ 
+          error: 'Workspace not found.',
+          code: 'WORKSPACE_NOT_FOUND'
+        }, { status: 404 });
       }
     } catch (dbError) {
-      console.error('💥 Database error getting/creating sales call analyzer workspace:', dbError);
+      console.error('💥 Database error getting workspace:', dbError);
       return NextResponse.json(
         { 
           success: false,
@@ -232,7 +262,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SERVICE HANDLES BOTH ANALYSIS AND STORAGE
+    // SERVICE HANDLES BOTH ANALYSIS AND STORAGE
     console.log('🤖 Starting sales call analysis...');
     let analysisPackage;
     let deliverableId;
@@ -246,11 +276,11 @@ export async function POST(request: NextRequest) {
       analysisPackage = await analyzerService.analyzeCall(analysisInput);
       console.log('✅ Sales call analysis completed');
       
-      // Save via service (not API)
+      // Save with validated workspace ID
       console.log('💾 Saving sales call analysis...');
       deliverableId = await analyzerService.saveCallAnalysis(
         user.id,
-        workspace.id,
+        workspaceId, // Use the validated workspace ID
         analysisPackage,
         analysisInput
       );
@@ -268,7 +298,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE for billing/analytics
+    // LOG USAGE for billing/analytics with workspace context
     console.log('📊 Logging sales call analysis usage...');
     try {
       await logUsage({
@@ -278,6 +308,8 @@ export async function POST(request: NextRequest) {
         timestamp: new Date(),
         metadata: {
           deliverableId,
+          workspaceId,
+          workspaceName: workspace.name,
           callType: validation.data.callType,
           companyName: validation.data.companyName,
           analysisId: deliverableId,
@@ -295,7 +327,9 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         analysisId: deliverableId,
-        analysis: analysisPackage
+        analysis: analysisPackage,
+        workspaceId: workspaceId,
+        workspaceName: workspace.name
       },
       meta: {
         tokensUsed: analysisPackage.tokensUsed,
@@ -322,7 +356,7 @@ export async function GET(request: NextRequest) {
   console.log('🚀 Sales Call Analyzer GET API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    // USE ROBUST AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser(request);
     
     if (authError || !user) {
@@ -332,7 +366,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Sales Call Analyzer GET user authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for list fetches
+    // RATE LIMITING for list fetches
     const rateLimitResult = await rateLimit(
       `sales_call_list:${user.id}`,
       100, // 100 list fetches per hour
@@ -357,9 +391,20 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    console.log('📋 Fetching sales call analyses for user:', user.id);
+    // VALIDATE WORKSPACE ACCESS if workspaceId provided
+    if (workspaceId) {
+      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          error: 'Workspace access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
 
-    // ✅ USE SERVICE METHOD (consistent with architecture)
+    console.log('📋 Fetching sales call analyses for user:', user.id, 'workspace:', workspaceId || 'all');
+
+    // USE SERVICE METHOD with workspace filtering
     let analyses;
     try {
       const analyzerService = new SalesCallAnalyzerService();
@@ -380,7 +425,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE for list access
+    // LOG USAGE for list access
     try {
       await logUsage({
         userId: user.id,
@@ -403,7 +448,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: analyses,
       meta: {
-        remaining: rateLimitResult.remaining
+        remaining: rateLimitResult.remaining,
+        workspaceId: workspaceId
       }
     });
 

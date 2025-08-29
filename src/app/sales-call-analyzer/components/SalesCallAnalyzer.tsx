@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useCallback} from 'react';
 import {
   SearchOutlined,
   SettingOutlined,
@@ -41,12 +41,14 @@ import {
   Col,
   Statistic,
   List,
-  Spin
+  Spin,
+  Alert
 } from 'antd';
 import { useGo } from "@refinedev/core";
 import { NewCallModal } from '../callmodel';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 import type { ColumnsType } from 'antd/es/table';
+import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 
 
 const { Title, Text } = Typography;
@@ -75,9 +77,10 @@ export default function SalesCallAnalyzerPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [analyses, setAnalyses] = useState<CallRecord[]>([]);
+    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   const go = useGo();
 
-  const {
+ const {
     getUserAnalyses,
     deleteAnalysis,
     exportAnalysis,
@@ -85,31 +88,9 @@ export default function SalesCallAnalyzerPage() {
     error
   } = useSalesCallAnalyzer();
 
-  const [filters, setFilters] = useState({
-    type: '',
-    status: ''
-  });
 
-  const callTypes = [
-    { value: 'discovery', label: 'Discovery', icon: <PhoneOutlined />, color: 'blue' },
-    { value: 'interview', label: 'Interview', icon: <UserOutlined />, color: 'purple' },
-    { value: 'sales', label: 'Sales', icon: <PhoneOutlined />, color: 'green' },
-    { value: 'podcast', label: 'Podcast', icon: <PhoneOutlined />, color: 'orange' }
-  ];
-
-  const statusOptions = [
-    { value: 'completed', label: 'Completed', color: 'success' },
-    { value: 'processing', label: 'Processing', color: 'processing' },
-    { value: 'failed', label: 'Failed', color: 'error' },
-    { value: 'pending', label: 'Pending', color: 'default' }
-  ];
-
-  // Load analyses on component mount
-  useEffect(() => {
-    loadAnalyses();
-  }, []);
-
-  const loadAnalyses = async () => {
+  // ✅ Wrap loadAnalyses with useCallback
+  const loadAnalyses = useCallback(async () => {
     try {
       const data = await getUserAnalyses();
       const formattedData = data.map((analysis: any) => ({
@@ -134,7 +115,68 @@ export default function SalesCallAnalyzerPage() {
       console.error('Failed to load analyses:', err);
       message.error('Failed to load call analyses');
     }
-  };
+  }, [getUserAnalyses]);
+
+  useEffect(() => {
+    if (currentWorkspace) {
+      loadAnalyses();
+    }
+  }, [currentWorkspace?.id, loadAnalyses]);
+
+  const [filters, setFilters] = useState({
+    type: '',
+    status: ''
+  });
+
+
+
+    // ADD WORKSPACE VALIDATION (copy from pricing calculator)
+  if (!isWorkspaceReady) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <Spin size="large" />
+        <p className="mt-4">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Alert
+          message="Workspace Required"
+          description="The sales call analyzer must be accessed from within a workspace. Please navigate to a workspace first."
+          type="error"
+          showIcon
+          action={
+            <Button type="primary" href="/dashboard">
+              Go to Dashboard
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+
+  const callTypes = [
+    { value: 'discovery', label: 'Discovery', icon: <PhoneOutlined />, color: 'blue' },
+    { value: 'interview', label: 'Interview', icon: <UserOutlined />, color: 'purple' },
+    { value: 'sales', label: 'Sales', icon: <PhoneOutlined />, color: 'green' },
+    { value: 'podcast', label: 'Podcast', icon: <PhoneOutlined />, color: 'orange' }
+  ];
+
+  const statusOptions = [
+    { value: 'completed', label: 'Completed', color: 'success' },
+    { value: 'processing', label: 'Processing', color: 'processing' },
+    { value: 'failed', label: 'Failed', color: 'error' },
+    { value: 'pending', label: 'Pending', color: 'default' }
+  ];
+
+  // Load analyses on component mount
+
+
+
 
   const handleDelete = async (analysisId: string) => {
     try {

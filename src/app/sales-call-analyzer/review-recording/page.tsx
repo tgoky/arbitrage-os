@@ -12,7 +12,9 @@ import {
   message,
   Form,
   Steps,
-  Progress
+  Progress,
+  Alert,
+  Spin
 } from 'antd';
 import { 
   UploadOutlined, 
@@ -29,6 +31,7 @@ import {
 import { useGo } from "@refinedev/core";
 import type { UploadChangeParam } from 'antd/es/upload';
 import type { UploadFile } from 'antd/es/upload/interface';
+import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 
 import { useState } from 'react';
@@ -50,6 +53,31 @@ export default function ReviewRecordingPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { analyzeCall, validateInput } = useSalesCallAnalyzer();
+    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+
+      // ADD WORKSPACE VALIDATION (same as other components)
+  if (!isWorkspaceReady) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8 text-center">
+        <Spin size="large" />
+        <p className="mt-4">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <Alert
+          message="Workspace Required"
+          description="The sales call analyzer must be accessed from within a workspace."
+          type="error"
+          showIcon
+          action={<Button type="primary" href="/dashboard">Go to Dashboard</Button>}
+        />
+      </div>
+    );
+  }
 
 
   const handleAnalyze = async (values: any) => {
