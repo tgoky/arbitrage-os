@@ -63,42 +63,51 @@ export function useNicheResearcher() {
     }
   };
 
-const generateNicheReport = async (input: NicheResearchInput): Promise<{
+  // ✅ FIXED useNicheResearcher.ts - Update generateNicheReport method:
+const generateNicheReport = async (
+  input: NicheResearchInput,
+  workspaceId: string // Add workspace parameter
+): Promise<{
   reportId: string;
   report: MultiNicheReport;
 }> => {
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
+  
+  try {
+    console.log('Generating niche report with input:', input);
     
-    try {
-      console.log('Generating niche report with input:', input);
-      
+    const requestData = {
+      ...input,
+      workspaceId // Add workspace ID to request
+    };
+    
     const response = await handleApiCall<{
-  reportId: string;
-  report: MultiNicheReport;
-}>(
-        '/api/niche-research',
-        {
-          method: 'POST',
-          body: JSON.stringify(input)
-        },
-        'Failed to generate niche report'
-      );
+      reportId: string;
+      report: MultiNicheReport;
+    }>(
+      '/api/niche-research',
+      {
+        method: 'POST',
+        body: JSON.stringify(requestData)
+      },
+      'Failed to generate niche report'
+    );
 
-      console.log('✅ Received response from API:', response);
-      
-      message.success('Niche report generated successfully!');
-      return response;
-    } catch (err) {
-      console.error('❌ Generate niche report error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-      setError(errorMessage);
-      message.error(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log('✅ Received response from API:', response);
+    
+    message.success('Niche report generated successfully!');
+    return response;
+  } catch (err) {
+    console.error('❌ Generate niche report error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Generation failed';
+    setError(errorMessage);
+    message.error(errorMessage);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getNicheReport = async (reportId: string) => {
     setLoading(true);

@@ -22,6 +22,8 @@ import {
   Checkbox,
   Row,
   Col,
+  Tabs,
+
   Avatar
 } from 'antd';
 import { 
@@ -49,7 +51,11 @@ RiseOutlined,
 import { useNicheResearcher } from '../hooks/useNicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport, MultiNicheReport } from '@/types/nicheResearcher';
 import { debounce } from 'lodash';
+import {useWorkspaceContext} from '../hooks/useWorkspaceContext'
 import LoadingOverlay from './LoadingOverlay';
+const { TabPane } = Tabs;
+
+import {SavedNicheHistory} from '../niche-researcher/SavedNicheHistory'
 
 interface FormValues {
   // Business & Strategic Goals
@@ -116,6 +122,8 @@ const NicheResearcher = () => {
   const [previousReports, setPreviousReports] = useState<any[]>([]);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({});
+  const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+
 
   const [multiNicheReport, setMultiNicheReport] = useState<MultiNicheReport | null>(null);
 const [selectedNicheTab, setSelectedNicheTab] = useState(0);
@@ -350,6 +358,10 @@ const renderSingleNicheReport = (niche: GeneratedNicheReport) => {
   // Form submission
 // Form submission
 const onFinish = async (values: FormValues) => {
+    if (!currentWorkspace) {
+    throw new Error('No workspace selected');
+  }
+  
   try {
     console.log('🔍 Form submission started');
     console.log('🔍 Current form values:', values);
@@ -430,7 +442,7 @@ const onFinish = async (values: FormValues) => {
     }
 
     // Generate multi-niche report
-    const result = await generateNicheReport(requestData);
+  const result = await generateNicheReport(requestData, currentWorkspace.id);
     
     // ✅ UPDATED: Set multi-niche report state
     setMultiNicheReport(result.report);
@@ -1449,6 +1461,15 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
           <UserOutlined className="mr-2" />
           Niche Research Report
         </Title>
+
+           {/* Add History Tab Here */}
+         <div className="mb-8">
+           <Tabs defaultActiveKey="history" type="card">
+             <TabPane tab="Generated Ads History" key="history">
+               <SavedNicheHistory />
+             </TabPane>
+           </Tabs>
+         </div>
         <Text type="secondary" className="text-lg">
           Discover your perfect business niche based on your goals, resources, and market opportunities
         </Text>

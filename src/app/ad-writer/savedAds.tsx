@@ -1,6 +1,6 @@
 "use client";
 
-import { useSavedAds, SavedAd } from "../hooks/useSavedAd"; // Fixed import path
+import { useSavedAds, SavedAd } from "../hooks/useSavedAd";
 import { useWorkspaceContext } from "../hooks/useWorkspaceContext";
 import React, { useState, useEffect } from "react";
 import {
@@ -16,6 +16,7 @@ import {
   Tooltip,
   Alert,
   Select,
+  Divider,
 } from "antd";
 import {
   EyeOutlined,
@@ -245,7 +246,7 @@ export const SavedAdsHistory = () => {
                     </div>
                   }
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
                     <div>
                       <Text className="text-sm font-medium">Platforms:</Text>
                       <div className="mt-1">
@@ -302,9 +303,59 @@ export const SavedAdsHistory = () => {
               <Card
                 key={index}
                 title={`Platform: ${ad.platform.charAt(0).toUpperCase() + ad.platform.slice(1)}`}
-                style={{ marginBottom: "16px", borderRadius: "8px" }}
+                style={{ marginBottom: "16px", borderRadius: "8px" , }}
               >
                 <Space direction="vertical" style={{ width: "100%" }}>
+                  {/* Full Scripts Section - Moved to the top */}
+                  {Array.isArray(ad.fullScripts) && ad.fullScripts.length > 0 && (
+                    <>
+                      <Title level={5}>Full Scripts</Title>
+                      <List<FullScript>
+                        dataSource={ad.fullScripts}
+                        renderItem={(script: FullScript, idx: number) => (
+                          <List.Item
+                            actions={[
+                              <Button
+                                key={`copy-script-${idx}`}
+                                size="small"
+                                icon={<CopyOutlined />}
+                                onClick={() => handleCopyText(script.script)}
+                              >
+                                Copy
+                              </Button>,
+                            ]}
+                          >
+                            <div className="w-full">
+                              <Text strong>{script.framework}</Text>
+                              <Card
+                                className="mt-2 bg-yellow-50 border-yellow-200"
+                                bodyStyle={{
+                                  padding: "12px",
+                                  fontFamily: "'Courier New', monospace",
+                                  backgroundColor: "#ffffe0",
+                                  borderLeft: "4px solid #fadb14",
+                                  color: "black",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                                }}
+                              >
+                                <pre style={{ 
+                                  whiteSpace: "pre-wrap", 
+                                  margin: 0,
+                                  lineHeight: "1.5",
+                                  fontSize: "14px"
+                                }}>
+                                  {script.script}
+                                </pre>
+                              </Card>
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                      <Divider />
+                    </>
+                  )}
+                  
+                  {/* Other sections follow */}
                   {Array.isArray(ad.headlines) && ad.headlines.length > 0 && (
                     <>
                       <Title level={5}>Headlines</Title>
@@ -312,6 +363,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.headlines}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+                          
                             actions={[
                               <Button
                                 key={`copy-headline-${idx}`}
@@ -336,6 +388,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.descriptions}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+                 
                             actions={[
                               <Button
                                 key={`copy-description-${idx}`}
@@ -360,6 +413,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.ctas}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+
                             actions={[
                               <Button
                                 key={`copy-cta-${idx}`}
@@ -384,6 +438,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.hooks}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+                     
                             actions={[
                               <Button
                                 key={`copy-hook-${idx}`}
@@ -408,6 +463,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.visualSuggestions}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+     
                             actions={[
                               <Button
                                 key={`copy-visual-${idx}`}
@@ -432,6 +488,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.fixes}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+            
                             actions={[
                               <Button
                                 key={`copy-fix-${idx}`}
@@ -456,6 +513,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.results}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+                    
                             actions={[
                               <Button
                                 key={`copy-result-${idx}`}
@@ -480,6 +538,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.proofs}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
+                              style={{ color: "black" }}
                             actions={[
                               <Button
                                 key={`copy-proof-${idx}`}
@@ -492,35 +551,6 @@ export const SavedAdsHistory = () => {
                             ]}
                           >
                             {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.fullScripts) && ad.fullScripts.length > 0 && (
-                    <>
-                      <Title level={5}>Full Scripts</Title>
-                      <List<FullScript>
-                        dataSource={ad.fullScripts}
-                        renderItem={(script: FullScript, idx: number) => (
-                          <List.Item
-                            actions={[
-                              <Button
-                                key={`copy-script-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(script.script)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            <div>
-                              <Text strong>{script.framework}</Text>
-                              <pre style={{ whiteSpace: "pre-wrap", marginTop: "8px" }}>
-                                {script.script}
-                              </pre>
-                            </div>
                           </List.Item>
                         )}
                       />

@@ -1,4 +1,4 @@
-// app/api/niche-research/route.ts - COMPLETELY UPDATED FOR NEW STRUCTURE
+// app/api/niche-research/route.ts - UPDATED WITH WORKSPACE ISOLATION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -10,7 +10,6 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
 // ✅ IMPROVED AUTH FUNCTION WITH BETTER ERROR HANDLING
-// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -101,7 +100,6 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-
 export async function POST(req: NextRequest) {
   console.log('🚀 Niche Research API Route called');
   
@@ -140,6 +138,40 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ User authenticated successfully:', user.id);
 
+    // ✅ PARSE REQUEST BODY FIRST
+    const body = await req.json();
+    console.log('📥 Parsing request body...');
+    
+    // ✅ GET WORKSPACE ID FROM BOTH SOURCES
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
+
+    if (!workspaceId) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+    // ✅ VALIDATE WORKSPACE ACCESS
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: user.id
+      }
+    });
+
+    if (!workspace) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
+    console.log('✅ Using workspace:', workspace.id);
+
     // ✅ RATE LIMITING - 3 reports per day
     console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 3, 86400); 
@@ -156,10 +188,6 @@ export async function POST(req: NextRequest) {
     }
     console.log('✅ Rate limit check passed');
 
-    // ✅ PARSE AND VALIDATE REQUEST BODY
-    console.log('📥 Parsing request body...');
-    const body = await req.json();
-    
     console.log('🔍 RECEIVED NICHE RESEARCH INPUT:', JSON.stringify(body, null, 2));
     console.log('🔍 INPUT KEYS:', Object.keys(body));
 
@@ -208,40 +236,6 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Input validation passed');
 
-    // ✅ GET OR CREATE USER'S WORKSPACE
-    console.log('🔍 Getting/creating workspace for user:', user.id);
-    let workspace;
-    try {
-      workspace = await prisma.workspace.findFirst({
-        where: { user_id: user.id }
-      });
-
-      if (!workspace) {
-        console.log('📁 Creating default workspace for user:', user.id);
-        workspace = await prisma.workspace.create({
-          data: {
-            user_id: user.id,
-            name: 'Default Workspace',
-            slug: 'default',
-            description: 'Default workspace for niche research'
-          }
-        });
-        console.log('✅ Created workspace:', workspace.id);
-      } else {
-        console.log('✅ Found existing workspace:', workspace.id);
-      }
-    } catch (dbError) {
-      console.error('💥 Database error getting/creating workspace:', dbError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Database error. Please try again.',
-          debug: dbError instanceof Error ? dbError.message : 'Unknown DB error'
-        },
-        { status: 500 }
-      );
-    }
-
     // ✅ GENERATE NICHE REPORT
     console.log('🤖 Starting niche research generation...');
     let result;
@@ -261,19 +255,18 @@ export async function POST(req: NextRequest) {
         skillsCount: researchInput.skills?.length || 0
       });
 
-      // ✅ USE NEW SERVICE METHOD
+      // ✅ USE VALIDATED WORKSPACE ID
       result = await nicheService.generateAndSaveNicheReport(
         researchInput, 
         user.id, 
-        workspace.id
+        workspace.id // Use validated workspace
       );
-   
 
       console.log('✅ Report generated and saved:', {
-  reportId: result.reportId,
-  tokensUsed: result.report.tokensUsed,
-  nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
-});
+        reportId: result.reportId,
+        tokensUsed: result.report.tokensUsed,
+        nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
+      });
       
     } catch (serviceError) {
       console.error('💥 Service error during generation:', serviceError);
@@ -289,26 +282,28 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ LOG USAGE
-   console.log('📊 Logging usage...');
-try {
-  await logUsage({
-    userId: user.id,
-    feature: 'niche_research',
-    tokens: result.report.tokensUsed,
-    timestamp: new Date(),
-    metadata: {
-      reportId: result.reportId,
-      primaryObjective: validation.data.primaryObjective,
-      marketType: validation.data.marketType,
-      budget: validation.data.budget,
-      skillsCount: validation.data.skills?.length || 0,
-      nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
+    console.log('📊 Logging usage...');
+    try {
+      await logUsage({
+        userId: user.id,
+        feature: 'niche_research',
+        tokens: result.report.tokensUsed,
+        timestamp: new Date(),
+        metadata: {
+          reportId: result.reportId,
+          workspaceId: workspace.id, // Add workspace ID to logging
+          primaryObjective: validation.data.primaryObjective,
+          marketType: validation.data.marketType,
+          budget: validation.data.budget,
+          skillsCount: validation.data.skills?.length || 0,
+          nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
+        }
+      });
+      console.log('✅ Usage logged successfully');
+    } catch (logError) {
+      console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
-  });
-  console.log('✅ Usage logged successfully');
-} catch (logError) {
-  console.error('⚠️ Usage logging failed (non-critical):', logError);
-}
+
     console.log('🎉 Niche research generation completed successfully');
     return NextResponse.json({
       success: true,
@@ -319,7 +314,8 @@ try {
       meta: {
         tokensUsed: result.report.tokensUsed,
         generationTime: result.report.generationTime,
-        remaining: rateLimitResult.remaining
+        remaining: rateLimitResult.remaining,
+        workspaceId: workspace.id // Return workspace ID for confirmation
       }
     });
 
@@ -385,7 +381,25 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // ✅ USE NEW SERVICE METHOD
+    // ✅ VALIDATE WORKSPACE ACCESS if workspaceId provided
+    if (workspaceId) {
+      const hasAccess = await prisma.workspace.findFirst({
+        where: {
+          id: workspaceId,
+          user_id: user.id
+        }
+      });
+      
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Workspace access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
+
+    // ✅ USE SERVICE METHOD WITH WORKSPACE FILTERING
     const nicheService = new NicheResearcherService();
     const reports = await nicheService.getUserNicheReports(user.id, workspaceId || undefined);
 
@@ -409,7 +423,8 @@ export async function GET(req: NextRequest) {
       success: true,
       data: reports,
       meta: {
-        remaining: rateLimitResult.remaining
+        remaining: rateLimitResult.remaining,
+        workspaceId: workspaceId // Return workspace ID for confirmation
       }
     });
 
