@@ -9,104 +9,96 @@ import { logUsage } from '@/lib/usage';
 import { z } from 'zod';
 
 // ✅ IMPROVED AUTH FUNCTION
+// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
+    // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           {
-            cookies: {
-              get: () => undefined,
-            },
+            cookies: { get: () => undefined },
           }
         );
         
         const { data: { user }, error } = await supabase.auth.getUser(token);
-        
         if (!error && user) {
-          console.log('✅ Token auth succeeded for user:', user.id);
           return { user, error: null };
         }
       } catch (tokenError) {
-        console.warn('⚠️ Token auth error:', tokenError);
+        console.warn('Token auth failed:', tokenError);
       }
     }
     
-    const supabaseSSR = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded);
-                  return cookie.value;
-                } catch (e) {
-                  return undefined;
+    // Method 2: SSR cookies (FIXED cookie handling)
+    try {
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              try {
+                const cookie = cookieStore.get(name);
+                if (!cookie?.value) return undefined;
+                
+                // FIXED: Proper base64 cookie handling
+                if (cookie.value.startsWith('base64-')) {
+                  try {
+                    const decoded = atob(cookie.value.substring(7));
+                    JSON.parse(decoded); // Validate it's valid JSON
+                    return cookie.value;
+                  } catch (e) {
+                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
+                    return undefined; // Skip corrupted cookies
+                  }
                 }
+                
+                return cookie.value;
+              } catch (error) {
+                console.warn(`Error reading cookie ${name}:`, error);
+                return undefined;
               }
-              
-              if (cookie.value.startsWith('{') || cookie.value.startsWith('[')) {
-                try {
-                  JSON.parse(cookie.value);
-                  return cookie.value;
-                } catch (e) {
-                  return undefined;
-                }
-              }
-              
-              return cookie.value;
-            } catch (error) {
-              return undefined;
-            }
+            },
           },
-        },
+        }
+      );
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        return { user, error: null };
       }
-    );
-    
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
-    
-    if (!error && user) {
-      console.log('✅ SSR auth succeeded for user:', user.id);
-      return { user, error: null };
+    } catch (ssrError) {
+      console.warn('SSR cookie auth failed:', ssrError);
     }
     
+    // Method 3: Route handler client (fallback)
     try {
       const supabase = createRouteHandlerClient({
         cookies: () => cookieStore
       });
       
       const { data: { user }, error } = await supabase.auth.getUser();
-      
       if (!error && user) {
-        console.log('✅ Route handler auth succeeded for user:', user.id);
         return { user, error: null };
       }
-    } catch (helperError) {
-      console.warn('⚠️ Route handler failed:', helperError);
+    } catch (routeError) {
+      console.warn('Route handler auth failed:', routeError);
     }
     
-    return { user: null, error: error || new Error('All auth methods failed') };
+    return { user: null, error: new Error('All authentication methods failed') };
     
   } catch (error) {
-    console.error('💥 Auth error:', error);
+    console.error('Authentication error:', error);
     return { user: null, error };
   }
 }
-
 // ✅ UPDATED SCHEMA TO MATCH NEW NICHE RESEARCH STRUCTURE
 const marketAnalysisSchema = z.object({
   // Core analysis fields

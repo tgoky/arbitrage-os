@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -46,6 +47,7 @@ import {
   message
 } from 'antd';
 import { useParsed } from "@refinedev/core";
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext'; // Add workspace context
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -71,7 +73,13 @@ interface WorkItem {
 
 const IntegratedWorkDashboard = () => {
   const { params } = useParsed();
-  const workspaceId = params?.workspaceId as string | undefined;
+  
+  // Use workspace context instead of just params
+  const { 
+    currentWorkspace, 
+    isWorkspaceReady, 
+    getWorkspaceScopedEndpoint 
+  } = useWorkspaceContext();
 
   // State
   const [activeTab, setActiveTab] = useState('all');
@@ -84,57 +92,30 @@ const IntegratedWorkDashboard = () => {
   const [pageSize, setPageSize] = useState(10);
   const [error, setError] = useState<string | null>(null);
 
-  // Unified data fetching function
+  // Unified data fetching function with workspace context
   const fetchAllWorkItems = async () => {
+    if (!isWorkspaceReady || !currentWorkspace) {
+      console.log('Workspace not ready, skipping fetch');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      console.log('🔄 Fetching all work items from unified API...');
+      console.log('🔄 Fetching all work items from unified API for workspace:', currentWorkspace.name);
       
-      // Get auth token from localStorage or cookies
-      const getAuthToken = () => {
-        // Try to get from localStorage first
-        const storedSession = localStorage.getItem('supabase.auth.token');
-        if (storedSession) {
-          try {
-            const session = JSON.parse(storedSession);
-            return session.access_token;
-          } catch (e) {
-            console.warn('Failed to parse stored session');
-          }
-        }
-        
-        // Try to get from cookies
-        const cookieValue = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('sb-access-token='))
-          ?.split('=')[1];
-        
-        return cookieValue;
-      };
+      // Use workspace-scoped endpoint
+      const baseUrl = '/api/dashboard/work-items';
+      const url = getWorkspaceScopedEndpoint(baseUrl);
 
-      const token = getAuthToken();
-      console.log('🔑 Using auth token:', token ? 'Present' : 'Missing');
-
-      // Construct URL with potential workspaceId query param
-      const url = new URL('/api/dashboard/work-items', window.location.origin);
-      if (workspaceId) {
-        url.searchParams.append('workspaceId', workspaceId);
-      }
-
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json'
-      };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(url.toString(), {
+      const response = await fetch(url, {
         method: 'GET',
-        headers,
-        credentials: 'include' // Include cookies
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Workspace-Id': currentWorkspace.id, // Add workspace header
+        },
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -143,27 +124,48 @@ const IntegratedWorkDashboard = () => {
       }
 
       const data = await response.json();
-      console.log('📥 Unified API response:', data);
+      console.log('📥 Unified API response for workspace:', data);
 
       if (data.success && Array.isArray(data.data?.items)) {
-        console.log(`🎉 Successfully fetched ${data.data.items.length} work items from unified API`);
-        setWorkItems(data.data.items);
+        // Filter items to ensure they belong to current workspace
+        const workspaceItems = data.data.items.filter((item: any) => 
+          !item.workspace_id || item.workspace_id === currentWorkspace.id
+        );
+        
+        console.log(`🎉 Successfully fetched ${workspaceItems.length} work items for workspace: ${currentWorkspace.name}`);
+        setWorkItems(workspaceItems);
       } else {
         throw new Error(data.error || 'Invalid response format from unified API');
       }
     } catch (error) {
       console.error('💥 Error fetching work items from unified API:', error);
       setError(error instanceof Error ? error.message : 'Failed to load work items');
-      message.error('Failed to load work items');
+      message.error('Failed to load work items for this workspace');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load data on mount and when workspaceId changes
+  // Load data when workspace is ready
   useEffect(() => {
-    fetchAllWorkItems();
-  }, [workspaceId]);
+    if (isWorkspaceReady) {
+      fetchAllWorkItems();
+    }
+  }, [currentWorkspace?.id, isWorkspaceReady]);
+
+  // Listen for workspace changes
+  useEffect(() => {
+    const handleWorkspaceChange = () => {
+      setWorkItems([]);
+      setError(null);
+      if (isWorkspaceReady) {
+        fetchAllWorkItems();
+      }
+    };
+
+    window.addEventListener('workspaceChanged', handleWorkspaceChange);
+    return () => window.removeEventListener('workspaceChanged', handleWorkspaceChange);
+  }, [isWorkspaceReady]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
@@ -273,40 +275,44 @@ const IntegratedWorkDashboard = () => {
     return colors[type] || '#666';
   };
 
-  // Handle actions
+  // Handle actions with workspace context
   const handleAction = async (action: string, item: WorkItem) => {
+    if (!currentWorkspace) {
+      message.error('No workspace selected');
+      return;
+    }
+
     try {
       switch (action) {
         case 'view':
-          // Navigate to the specific tool's view page
+          // Navigate to the specific tool's view page with workspace context
           const viewUrls = {
-            'sales-call': `/dashboard/sales-call-analyzer/${item.metadata.deliverableId}`,
-            'growth-plan': `/dashboard/growth-plans/${item.metadata.deliverableId}`,
-            'pricing-calc': `/dashboard/pricing-calculator/${item.metadata.deliverableId}`,
-            'niche-research': `/dashboard/niche-research/${item.metadata.deliverableId}`,
-            'cold-email': `/dashboard/cold-email/${item.metadata.deliverableId}`,
-            'offer-creator': `/dashboard/offer-creator/${item.metadata.deliverableId}`,
-            'ad-writer': `/dashboard/ad-writer/${item.metadata.deliverableId}`,
-            'n8n-workflow': `/dashboard/n8n-builder/${item.metadata.deliverableId}`
+            'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer/${item.metadata.deliverableId}`,
+            'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans/${item.metadata.deliverableId}`,
+            'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator/${item.metadata.deliverableId}`,
+            'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research/${item.metadata.deliverableId}`,
+            'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
+            'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`,
+            'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
+            'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`
           };
           
           const viewUrl = viewUrls[item.type];
           if (viewUrl) {
-            if (workspaceId) {
-              window.location.href = `${viewUrl}?workspaceId=${workspaceId}`;
-            } else {
-              window.location.href = viewUrl;
-            }
+            window.location.href = viewUrl;
           }
           break;
 
         case 'delete':
           const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
           if (deleteConfirm) {
-            // Call delete API
-            await fetch(`/api/deliverables/${item.metadata.deliverableId}`, {
+            // Call delete API with workspace context
+            await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
               method: 'DELETE',
-              credentials: 'include'
+              credentials: 'include',
+              headers: {
+                'X-Workspace-Id': currentWorkspace.id
+              }
             });
             message.success('Item deleted successfully');
             fetchAllWorkItems(); // Refresh data
@@ -395,6 +401,16 @@ const IntegratedWorkDashboard = () => {
     return filteredItems.slice(startIndex, startIndex + pageSize);
   }, [filteredItems, currentPage, pageSize]);
 
+  // Show loading if workspace is not ready
+  if (!isWorkspaceReady) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <Spin size="large" />
+        <p style={{ marginTop: 16 }}>Loading workspace...</p>
+      </div>
+    );
+  }
+
   if (loading && workItems.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -423,14 +439,14 @@ const IntegratedWorkDashboard = () => {
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh' }}>
-      {/* Header */}
+      {/* Header with workspace context */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Title level={2} style={{ margin: 0, color: '#493c3c' }}>
             My Submissions
           </Title>
           <Text style={{ color: '#666666' }}>
-            All your AI-generated content, analysis, and deliverables in one place
+            All your AI-generated content in {currentWorkspace?.name} workspace
           </Text>
         </div>
         <Button 
@@ -479,7 +495,7 @@ const IntegratedWorkDashboard = () => {
           </Col>
         ))}
       </Row>
-
+      
       {/* Filters */}
       <Card style={{ marginBottom: 24, borderRadius: 8 }}>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -1,4 +1,4 @@
-// app/dashboard/components/ActivityFeed.tsx
+// app/dashboard/components/ActivityFeed.tsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { Card, List, Tag, Typography, Button, Grid, Spin, Progress, Badge, message } from 'antd';
 import { 
@@ -13,38 +13,26 @@ import {
   MailOutlined,
   EditOutlined,
   TagOutlined,
-  UserOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
-  TeamOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
-
-// Import only message, remove individual tool hooks
-// import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
-// import { useGrowthPlan } from '../../hooks/useGrowthPlan';
-// import { useSavedCalculations } from '../../hooks/usePricingCalculator';
-// import { useNicheResearcher } from '../../hooks/useNicheResearcher';
-// import { useColdEmail } from '../../hooks/useColdEmail';
-// import { useSavedOffers } from '../../hooks/useOfferCreator';
+import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-// Define types (ensure they match your unified API's WorkItem structure if needed)
-// These are already defined in your code, so we keep them
-// type ActivityType = 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration';
-// type ActivityStatus = 'completed' | 'processing' | 'failed' | 'queued';
-// type ToolType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator';
+type ToolType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer';
+type ActivityStatus = 'completed' | 'processing' | 'failed' | 'queued';
 
 interface EnhancedActivity {
   id: string;
-  type: 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration'; // Use ActivityType if defined
-  toolType: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator'; // Use ToolType if defined
+  type: 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration';
+  toolType: ToolType;
   action: string;
   user: string;
   target?: string;
-  status: 'completed' | 'processing' | 'failed' | 'queued'; // Use ActivityStatus if defined
+  status: ActivityStatus;
   timestamp: Date;
   metadata: {
     duration?: string;
@@ -71,152 +59,229 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
 }) => {
   const screens = useBreakpoint();
   const { theme } = useTheme();
+  const { 
+    currentWorkspace, 
+    isWorkspaceReady, 
+    getWorkspaceScopedEndpoint 
+  } = useWorkspaceContext();
+  
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState<EnhancedActivity[]>([]);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Remove individual hook initializations
-  // const salesCallAnalyzer = useSalesCallAnalyzer();
-  // const growthPlan = useGrowthPlan();
-  // const savedCalculations = useSavedCalculations();
-  // const nicheResearcher = useNicheResearcher();
-  // const coldEmail = useColdEmail();
-  // const savedOffers = useSavedOffers();
-
-  // Fetch activities from the unified API
+  // Fetch activities from the unified API with workspace context
   const fetchActivities = async () => {
+    if (!isWorkspaceReady || !currentWorkspace) {
+      return;
+    }
+
     setLoading(true);
-    // const activityList: EnhancedActivity[] = []; // No longer needed
 
     try {
-      console.log('🔄 Fetching activities from unified API...');
-      // Construct URL with potential workspaceId query param
-      const url = new URL('/api/dashboard/work-items', window.location.origin);
-      if (workspaceId) {
-        url.searchParams.append('workspaceId', workspaceId);
-      }
+      // Use workspace-scoped endpoint
+      const baseUrl = '/api/dashboard/work-items';
+      const url = getWorkspaceScopedEndpoint(baseUrl);
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Workspace-Id': currentWorkspace.id,
+        },
+        credentials: 'include'
+      });
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch activities: ${response.status} ${response.statusText}`);
       }
+      
       const data = await response.json();
-      console.log('📥 Unified API activities response:', data);
 
       if (data.success && Array.isArray(data.data?.items)) {
         // Transform WorkItems from the API into EnhancedActivities
-        const transformedActivities: EnhancedActivity[] = data.data.items.map((item: any) => {
-          // Determine action and metadata based on item.type
-          let action = 'Generated item'; // Default
-          let metadata: EnhancedActivity['metadata'] = {};
-          let user = 'AI Assistant'; // Default user
+        const transformedActivities: EnhancedActivity[] = data.data.items
+          .filter((item: any) => {
+            // Ensure item belongs to current workspace
+            return !item.workspace_id || item.workspace_id === currentWorkspace.id;
+          })
+          .map((item: any) => {
+            return transformWorkItemToActivity(item);
+          })
+          .filter((activity: EnhancedActivity | null) => activity !== null) as EnhancedActivity[];
 
-          switch (item.type) {
-            case 'sales-call':
-              action = 'Analyzed sales call';
-              user = 'AI Assistant';
-              metadata = {
-                duration: item.metadata.duration || 'N/A',
-                confidence: item.metadata.score || Math.floor(Math.random() * 40) + 60,
-                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 2000) + 1000,
-                performance: item.metadata.sentiment === 'positive' ? 85 : item.metadata.sentiment === 'negative' ? 45 : 65
-              };
-              break;
-            case 'growth-plan':
-              action = 'Generated growth strategy';
-              user = 'Strategy AI';
-              metadata = {
-                duration: '12 min', // Example, could be in item.metadata if saved
-                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 3000) + 2000,
-                outputSize: `${item.metadata.strategies || 5} strategies`, // Example
-                priority: 'high'
-              };
-              break;
-            case 'pricing-calc':
-              action = 'Calculated project pricing';
-              user = 'Pricing AI';
-              metadata = {
-                duration: '3 min', // Example
-                confidence: item.metadata.roiPercentage && item.metadata.roiPercentage > 100 ? 90 : 75,
-                outputSize: `$${item.metadata.recommendedRetainer?.toLocaleString() || '0'}`,
-                performance: item.metadata.roiPercentage || 85
-              };
-              break;
-            case 'cold-email':
-              action = 'Generated email sequence';
-              user = 'Email AI';
-              metadata = {
-                duration: '8 min', // Example
-                outputSize: `${item.metadata.emailCount || 3} emails`,
-                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 1500) + 800,
-                confidence: 82
-              };
-              break;
-            case 'niche-research':
-              action = 'Researched market niche';
-              user = 'Research AI';
-              metadata = {
-                duration: '15 min', // Example
-                tokensUsed: item.metadata.tokensUsed || Math.floor(Math.random() * 2500) + 1500,
-                outputSize: `${item.metadata.marketSize || 'Unknown'} market`,
-                confidence: 88,
-                priority: item.metadata.primaryObjective === 'market-entry' ? 'high' : 'medium'
-              };
-              break;
-            case 'offer-creator':
-              action = 'Created signature offers';
-              user = 'Offer AI';
-              metadata = {
-                duration: '10 min', // Example
-                outputSize: `${item.metadata.packages || 3} packages`,
-                confidence: 85,
-                priority: 'high'
-              };
-              break;
-            default:
-              action = `Used ${item.type}`;
-              metadata = {};
-          }
-
-          return {
-            id: `activity-${item.id}`, // Prefix to avoid potential ID clashes if needed
-            type: 'generation', // Map WorkItem.type to ActivityType as appropriate
-            toolType: item.type, // Direct mapping assuming types align or are handled
-            action,
-            user,
-            target: item.subtitle || item.title, // Use subtitle or title as the target
-            status: item.status || 'completed', // Default to completed if not present
-            timestamp: new Date(item.createdAt), // Ensure it's a Date object
-            metadata
-          };
-        });
-
-        // Sort by timestamp (newest first)
+        // Sort by timestamp (newest first) and limit
         transformedActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        const limitedActivities = transformedActivities.slice(0, maxItems);
         
-        // Limit to maxItems and update state
-        setActivities(transformedActivities.slice(0, maxItems));
-        console.log(`🎉 Successfully transformed ${transformedActivities.length} activities from unified API`);
+        setActivities(limitedActivities);
       } else {
         throw new Error(data.error || 'Invalid response format from unified API');
       }
     } catch (error) {
-      console.error('💥 Error fetching activities from unified API:', error);
-      message.error('Failed to load recent activities'); // Show user-friendly error
-      // Optionally, keep old activities or set to empty array
-      // setActivities([]); 
+      console.error('Error fetching activities:', error);
+      if (activities.length === 0) {
+        message.error('Failed to load recent activities');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchActivities();
-    // Refresh every 30 seconds for real-time feel
-    const interval = setInterval(fetchActivities, 30000);
-    return () => clearInterval(interval);
-  }, [workspaceId, maxItems]); // Add maxItems to dependency array if it can change
+  // Transform work item to activity
+  const transformWorkItemToActivity = (item: any): EnhancedActivity | null => {
+    try {
+      let action = 'Generated item';
+      let metadata: EnhancedActivity['metadata'] = {};
+      let user = 'AI Assistant';
 
-  // --- Helper functions like getCardStyles, getToolIcon, etc. remain the same ---
+      // Map item type to activity details
+      switch (item.type) {
+        case 'sales-call':
+          action = 'Analyzed sales call';
+          user = 'Sales AI';
+          metadata = {
+            duration: item.metadata?.duration || '5-15 min',
+            confidence: item.metadata?.score || Math.floor(Math.random() * 40) + 60,
+            tokensUsed: item.metadata?.tokensUsed || Math.floor(Math.random() * 2000) + 1000,
+            performance: item.metadata?.sentiment === 'positive' ? 85 : item.metadata?.sentiment === 'negative' ? 45 : 65
+          };
+          break;
+
+        case 'growth-plan':
+          action = 'Generated growth strategy';
+          user = 'Strategy AI';
+          metadata = {
+            duration: '10-15 min',
+            tokensUsed: item.metadata?.tokensUsed || Math.floor(Math.random() * 3000) + 2000,
+            outputSize: `${item.metadata?.strategies || 5} strategies`,
+            priority: 'high' as const
+          };
+          break;
+
+        case 'pricing-calc':
+          action = 'Calculated project pricing';
+          user = 'Pricing AI';
+          metadata = {
+            duration: '2-5 min',
+            confidence: item.metadata?.roiPercentage && item.metadata?.roiPercentage > 100 ? 90 : 75,
+            outputSize: `$${item.metadata?.recommendedRetainer?.toLocaleString() || '0'}`,
+            performance: item.metadata?.roiPercentage || 85
+          };
+          break;
+
+        case 'cold-email':
+          action = 'Generated email sequence';
+          user = 'Email AI';
+          metadata = {
+            duration: '5-10 min',
+            outputSize: `${item.metadata?.emailCount || 3} emails`,
+            tokensUsed: item.metadata?.tokensUsed || Math.floor(Math.random() * 1500) + 800,
+            confidence: 82
+          };
+          break;
+
+        case 'niche-research':
+          action = 'Researched market niche';
+          user = 'Research AI';
+          metadata = {
+            duration: '10-20 min',
+            tokensUsed: item.metadata?.tokensUsed || Math.floor(Math.random() * 2500) + 1500,
+            outputSize: `${item.metadata?.marketSize || 'Market'} analysis`,
+            confidence: 88,
+            priority: item.metadata?.primaryObjective === 'market-entry' ? 'high' as const : 'medium' as const
+          };
+          break;
+
+        case 'offer-creator':
+          action = 'Created signature offers';
+          user = 'Offer AI';
+          metadata = {
+            duration: '8-12 min',
+            outputSize: `${item.metadata?.packages || 3} packages`,
+            confidence: 85,
+            priority: 'high' as const
+          };
+          break;
+
+        case 'ad-writer':
+          action = 'Generated ad copy';
+          user = 'Ad AI';
+          metadata = {
+            duration: '3-8 min',
+            outputSize: `${item.metadata?.adCount || 5} ads`,
+            confidence: 80,
+            priority: 'medium' as const
+          };
+          break;
+
+        default:
+          action = `Generated ${item.type}`;
+          user = 'AI Assistant';
+          metadata = {};
+      }
+
+      return {
+        id: `activity-${item.id}`,
+        type: 'generation' as const,
+        toolType: item.type as ToolType,
+        action,
+        user,
+        target: item.subtitle || item.title,
+        status: (item.status as ActivityStatus) || 'completed',
+        timestamp: new Date(item.createdAt),
+        metadata
+      };
+
+    } catch (error) {
+      console.error('Error transforming work item to activity:', error);
+      return null;
+    }
+  };
+
+  // Load data when workspace is ready
+  useEffect(() => {
+    if (isWorkspaceReady) {
+      fetchActivities();
+    }
+  }, [currentWorkspace?.id, maxItems, isWorkspaceReady]);
+
+  // Handle workspace changes and set up refresh interval
+  useEffect(() => {
+    const handleWorkspaceChange = () => {
+      setActivities([]);
+      if (isWorkspaceReady) {
+        fetchActivities();
+      }
+    };
+
+    window.addEventListener('workspaceChanged', handleWorkspaceChange);
+
+    // Set up refresh interval (30 seconds)
+    if (isWorkspaceReady && !refreshInterval) {
+      const interval = setInterval(() => {
+        fetchActivities();
+      }, 30000);
+      setRefreshInterval(interval);
+    }
+
+    return () => {
+      window.removeEventListener('workspaceChanged', handleWorkspaceChange);
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        setRefreshInterval(null);
+      }
+    };
+  }, [isWorkspaceReady, refreshInterval]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
+  }, [refreshInterval]);
+
   const getCardStyles = () => ({
     body: {
       backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
@@ -229,34 +294,36 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     },
   });
 
-  const getToolIcon = (toolType: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' /* Use ToolType */) => {
-    const icons: Record<'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator', React.JSX.Element> = { // Use ToolType
+  const getToolIcon = (toolType: ToolType) => {
+    const icons: Record<ToolType, React.ReactElement> = {
       'sales-call': <PhoneOutlined />,
       'growth-plan': <RocketOutlined />,
       'pricing-calc': <DollarCircleOutlined />,
       'niche-research': <BulbOutlined />,
       'cold-email': <MailOutlined />,
-      'offer-creator': <EditOutlined />
+      'offer-creator': <EditOutlined />,
+      'ad-writer': <TagOutlined />
     };
     return icons[toolType] || <FileTextOutlined />;
   };
 
-  const getToolColor = (toolType: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' /* Use ToolType */) => {
-    const colors: Record<'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator', string> = { // Use ToolType
+  const getToolColor = (toolType: ToolType) => {
+    const colors: Record<ToolType, string> = {
       'sales-call': '#722ed1',
       'growth-plan': '#1890ff',
       'pricing-calc': '#52c41a',
       'niche-research': '#fa8c16',
       'cold-email': '#eb2f96',
-      'offer-creator': '#13c2c2'
+      'offer-creator': '#13c2c2',
+      'ad-writer': '#faad14'
     };
     return colors[toolType] || '#666';
   };
 
-  const getStatusIcon = (status: 'completed' | 'processing' | 'failed' | 'queued' /* Use ActivityStatus */) => {
+  const getStatusIcon = (status: ActivityStatus) => {
     const iconStyle = {
-      fontSize: 16,
-      padding: 6,
+      fontSize: 12,
+      padding: 4,
       borderRadius: 4,
       backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
     };
@@ -275,33 +342,35 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     }
   };
 
-  const getStatusColor = (status: 'completed' | 'processing' | 'failed' | 'queued' /* Use ActivityStatus */) => {
-    switch (status) {
-      case 'completed':
-        return 'green';
-      case 'processing':
-        return 'blue';
-      case 'failed':
-        return 'red';
-      case 'queued':
-        return 'orange';
-      default:
-        return 'default';
-    }
+  const getStatusColor = (status: ActivityStatus) => {
+    const colors: Record<ActivityStatus, string> = {
+      'completed': 'green',
+      'processing': 'blue',
+      'failed': 'red',
+      'queued': 'orange'
+    };
+    return colors[status] || 'default';
   };
 
   const formatTimeAgo = (timestamp: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    
-    if (hours > 0) {
-      return `${hours}h ago`;
-    } else if (minutes > 0) {
-      return `${minutes}m ago`;
-    } else {
-      return 'Just now';
+    try {
+      const now = new Date();
+      const diff = now.getTime() - timestamp.getTime();
+      const minutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (days > 0) {
+        return `${days}d ago`;
+      } else if (hours > 0) {
+        return `${hours}h ago`;
+      } else if (minutes > 0) {
+        return `${minutes}m ago`;
+      } else {
+        return 'Just now';
+      }
+    } catch (error) {
+      return 'Unknown';
     }
   };
 
@@ -320,7 +389,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     if (metadata.tokensUsed) {
       metadataItems.push(
         <span key="tokens" style={{ color: theme === 'dark' ? '#6b7280' : '#999', fontSize: 10 }}>
-          🔥 {metadata.tokensUsed.toLocaleString()} tokens
+          🔥 {metadata.tokensUsed.toLocaleString()}
         </span>
       );
     }
@@ -328,7 +397,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     if (metadata.confidence) {
       metadataItems.push(
         <span key="confidence" style={{ color: theme === 'dark' ? '#6b7280' : '#999', fontSize: 10 }}>
-          🎯 {metadata.confidence}% confidence
+          🎯 {metadata.confidence}%
         </span>
       );
     }
@@ -344,27 +413,55 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     if (metadata.performance) {
       metadataItems.push(
         <span key="performance" style={{ color: theme === 'dark' ? '#6b7280' : '#999', fontSize: 10 }}>
-          ⚡ {metadata.performance}% score
+          ⚡ {metadata.performance}%
         </span>
-      );
-    }
-
-    if (metadata.priority) {
-      metadataItems.push(
-        <Tag key="priority" color={metadata.priority === 'high' ? 'red' : metadata.priority === 'medium' ? 'orange' : 'default'} style={{ fontSize: 9, padding: '0 4px', margin: 0 }}>
-          {metadata.priority}
-        </Tag>
       );
     }
 
     return metadataItems.length > 0 ? (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
         {metadataItems}
+        {metadata.priority && (
+          <Tag 
+            color={metadata.priority === 'high' ? 'red' : metadata.priority === 'medium' ? 'orange' : 'default'} 
+            style={{ fontSize: 8, padding: '0 3px', margin: 0, lineHeight: '14px' }}
+          >
+            {metadata.priority}
+          </Tag>
+        )}
       </div>
     ) : null;
   };
 
-  // --- Render function remains largely the same, using the new state and helpers ---
+  // Don't render until workspace is ready
+  if (!isWorkspaceReady) {
+    return (
+      <Card
+        data-tour="activity-feed"
+        title="Activity Feed"
+        styles={getCardStyles()}
+        style={{
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <Spin size="small" />
+          <Text
+            style={{
+              color: theme === 'dark' ? '#9ca3af' : '#666666',
+              display: 'block',
+              marginTop: 8,
+              fontSize: 12,
+            }}
+          >
+            Loading workspace...
+          </Text>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
       data-tour="activity-feed"
@@ -433,8 +530,9 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     style={{
                       marginRight: 0,
                       textTransform: 'capitalize',
-                      fontSize: 10,
-                      padding: '0 4px',
+                      fontSize: 9,
+                      padding: '0 3px',
+                      lineHeight: '16px'
                     }}
                   >
                     {activity.status}
@@ -455,15 +553,15 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   <div style={{ position: 'relative' }}>
                     <div
                       style={{
-                        width: 32,
-                        height: 32,
+                        width: 28,
+                        height: 28,
                         borderRadius: 6,
                         backgroundColor: getToolColor(activity.toolType) + '15',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: getToolColor(activity.toolType),
-                        fontSize: 14,
+                        fontSize: 12,
                       }}
                     >
                       {getToolIcon(activity.toolType)}
@@ -472,7 +570,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                       position: 'absolute', 
                       bottom: -2, 
                       right: -2,
-                      fontSize: 10
+                      fontSize: 8
                     }}>
                       {getStatusIcon(activity.status)}
                     </div>
@@ -484,7 +582,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                       strong
                       style={{
                         color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                        fontSize: 13,
+                        fontSize: 12,
                         display: 'block',
                         marginBottom: 2,
                       }}
@@ -494,10 +592,10 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     <Text
                       style={{
                         color: theme === 'dark' ? '#9ca3af' : '#666666',
-                        fontSize: 11,
+                        fontSize: 10,
                       }}
                     >
-                      by {activity.user} {activity.target && `• ${activity.target}`} • {formatTimeAgo(activity.timestamp)}
+                      by {activity.user} {activity.target && `• ${activity.target.substring(0, 30)}${activity.target.length > 30 ? '...' : ''}`} • {formatTimeAgo(activity.timestamp)}
                     </Text>
                   </div>
                 }
@@ -529,12 +627,12 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
               fontSize: 12,
             }}
           >
-            No recent activity
+            No recent activity in {currentWorkspace?.name}
           </Text>
           <Button
             type="text"
             size="small"
-            onClick={() => window.location.href = '/tools'}
+            onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/tools`}
             style={{
               color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
               padding: 0,

@@ -3,16 +3,16 @@ import { useTheme } from "../../providers/ThemeProvider";
 import { useEffect, useRef } from "react";
 
 interface Workspace {
+  id: string;
   name: string;
-  color: string;
-  slug: string; // Add slug to interface
+  color: string | null;
+  slug: string;
 }
-
 interface WorkspaceDropdownProps {
   workspaceDropdownOpen: boolean;
-  workspaces: Workspace[];
-  currentWorkspace: string;
-  switchWorkspace: (slug: string) => void; // Switch by slug instead of name
+  workspaces: Workspace[]; // Full workspace objects
+  currentWorkspace: Workspace | null; // Full workspace object
+  switchWorkspace: (slug: string) => void;
   setCreateWorkspaceModalOpen: (open: boolean) => void;
   setWorkspaceDropdownOpen: (open: boolean) => void;
 }
@@ -117,13 +117,14 @@ export const WorkspaceDropdown = ({
       <div className="py-0.5 max-h-48 overflow-y-auto">
         {workspaces.map((workspace) => (
           <button
-            key={workspace.slug} // Use slug as key
+            key={workspace.id} // Use ID as key
             onClick={() => {
-              switchWorkspace(workspace.slug); // Pass slug instead of name
+              console.log('Switching to workspace:', workspace.slug);
+              switchWorkspace(workspace.slug);
               setWorkspaceDropdownOpen(false);
             }}
             className={`w-full flex items-center gap-2 px-2 py-1.5 border-none ${
-              workspace.name === currentWorkspace
+              currentWorkspace?.id === workspace.id // Compare IDs for active state
                 ? theme === "dark"
                   ? "bg-zinc-900"
                   : "bg-gray-100"
@@ -140,7 +141,7 @@ export const WorkspaceDropdown = ({
             <div className="flex-1 text-left">
               <div
                 className={`font-medium text-xs truncate ${
-                  workspace.name === currentWorkspace
+                  currentWorkspace?.id === workspace.id // Compare IDs for text color
                     ? theme === "dark"
                       ? "text-indigo-300"
                       : "text-indigo-600"
@@ -152,7 +153,7 @@ export const WorkspaceDropdown = ({
                 {workspace.name}
               </div>
             </div>
-            {workspace.name === currentWorkspace && (
+            {currentWorkspace?.id === workspace.id && ( // Compare IDs for checkmark
               <div className="text-green-500">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

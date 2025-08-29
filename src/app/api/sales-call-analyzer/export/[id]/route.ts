@@ -8,61 +8,36 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
 // ✅ COPY THE ROBUST AUTHENTICATION FUNCTION HERE
+// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
-
-    // Method 1: Try with route handler client
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-
-      const { data: { user }, error } = await supabase.auth.getUser();
-
-      if (!error && user) {
-        console.log('✅ Export Auth Method 1 (route handler) succeeded for user:', user.id);
-        return { user, error: null };
-      }
-
-      console.log('⚠️ Export route handler auth failed:', error?.message);
-    } catch (helperError) {
-      console.warn('⚠️ Export route handler client failed:', helperError);
-    }
-
-    // Method 2: Try with authorization header
+    
+    // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        console.log('🔍 Export trying token auth with token:', token.substring(0, 20) + '...');
-
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           {
-            cookies: {
-              get: () => undefined,
-            },
+            cookies: { get: () => undefined },
           }
         );
-
+        
         const { data: { user }, error } = await supabase.auth.getUser(token);
-
         if (!error && user) {
-          console.log('✅ Export Auth Method 2 (token) succeeded for user:', user.id);
           return { user, error: null };
         }
-
-        console.log('⚠️ Export token auth failed:', error?.message);
       } catch (tokenError) {
-        console.warn('⚠️ Export token auth error:', tokenError);
+        console.warn('Token auth failed:', tokenError);
       }
     }
-
-    // Method 3: Try with SSR cookie validation (similar to main route)
+    
+    // Method 2: SSR cookies (FIXED cookie handling)
     try {
-      const supabaseSSR = createServerClient(
+      const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
@@ -71,45 +46,55 @@ async function getAuthenticatedUser(request: NextRequest) {
               try {
                 const cookie = cookieStore.get(name);
                 if (!cookie?.value) return undefined;
-
-                // Validate base64 cookies if needed (add logic similar to main route if necessary)
-                // For simplicity, just return the value if present
+                
+                // FIXED: Proper base64 cookie handling
+                if (cookie.value.startsWith('base64-')) {
+                  try {
+                    const decoded = atob(cookie.value.substring(7));
+                    JSON.parse(decoded); // Validate it's valid JSON
+                    return cookie.value;
+                  } catch (e) {
+                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
+                    return undefined; // Skip corrupted cookies
+                  }
+                }
+                
                 return cookie.value;
               } catch (error) {
-                console.warn(`Error reading Export cookie ${name}:`, error);
+                console.warn(`Error reading cookie ${name}:`, error);
                 return undefined;
               }
-            },
-            // You might also need set/remove if the SSR client tries to update cookies
-            set(name: string, value: string, options: any) {
-              // Implementation might be needed depending on SSR client behavior
-            },
-            remove(name: string, options: any) {
-              // Implementation might be needed depending on SSR client behavior
             },
           },
         }
       );
-
-      const { data: { user }, error } = await supabaseSSR.auth.getUser();
-
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
       if (!error && user) {
-        console.log('✅ Export Auth Method 3 (SSR cookies) succeeded for user:', user.id);
-        return { user, error: null }; // Return success here as well
-      } else {
-        console.log('⚠️ Export SSR cookie auth failed:', error?.message);
+        return { user, error: null };
       }
     } catch (ssrError) {
-      console.warn('⚠️ Export SSR cookie auth error:', ssrError);
+      console.warn('SSR cookie auth failed:', ssrError);
     }
-
-
-    // If all methods fail
-    console.log('⚠️ All Export authentication methods failed');
-    return { user: null, error: new Error("All authentication methods failed") };
-
+    
+    // Method 3: Route handler client (fallback)
+    try {
+      const supabase = createRouteHandlerClient({
+        cookies: () => cookieStore
+      });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        return { user, error: null };
+      }
+    } catch (routeError) {
+      console.warn('Route handler auth failed:', routeError);
+    }
+    
+    return { user: null, error: new Error('All authentication methods failed') };
+    
   } catch (error) {
-    console.error('💥 All Export authentication methods failed with exception:', error);
+    console.error('Authentication error:', error);
     return { user: null, error };
   }
 }

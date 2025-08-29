@@ -1,4 +1,4 @@
-// src/services/workspace.service.ts (Client-side)
+// src/services/workspace.service.ts (Client-side) - Updated
 export interface Workspace {
   id: string;
   user_id: string | null;
@@ -6,7 +6,7 @@ export interface Workspace {
   slug: string;
   description?: string | null;
   color: string | null;
-  image?: string | null; // Added image support
+  image?: string | null;
   created_at: Date | null;
   updated_at: Date | null;
 }
@@ -15,7 +15,7 @@ export interface CreateWorkspaceInput {
   name: string;
   description?: string;
   color?: string;
-  image?: string; // Added image support (could be URL or base64)
+  image?: string;
 }
 
 class WorkspaceService {
@@ -138,7 +138,17 @@ class WorkspaceService {
     }
 
     const result = await response.json();
-    return result.url; // Assuming your upload API returns { url: string }
+    return result.url;
+  }
+
+  // Verify workspace belongs to current user
+  async verifyWorkspaceAccess(workspaceId: string): Promise<boolean> {
+    try {
+      await this.fetchWithAuth(`/api/workspaces/${workspaceId}`);
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
 

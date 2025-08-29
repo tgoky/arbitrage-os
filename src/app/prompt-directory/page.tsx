@@ -1003,7 +1003,8 @@ return (
     <div className="text-center mb-8">
       <Title level={2} className="flex items-center justify-center">
         <FireOutlined className="mr-2" />
-        AI Prompt Directory
+         <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS Prompt Directory
       </Title>
       <Text type="secondary" className="text-lg">
         Discover ready-to-use prompts to automate your business processes

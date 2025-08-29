@@ -1,10 +1,8 @@
 // app/api/workspaces/slug/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Helper function to get authenticated user
 async function getAuthenticatedUser() {
@@ -43,8 +41,15 @@ export async function GET(
 
     const workspace = await prisma.workspace.findFirst({
       where: {
-        user_id: user.id,
-        slug: params.slug
+        slug: params.slug,
+        user_id: user.id // Ensure user owns the workspace
+      },
+      include: {
+        _count: {
+          select: {
+            deliverables: true
+          }
+        }
       }
     });
 

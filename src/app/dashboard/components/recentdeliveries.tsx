@@ -15,22 +15,14 @@ import {
   DownloadOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { message } from 'antd'; // Import message for error handling
-
-// Remove individual hook imports
-// import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
-// import { useGrowthPlan } from '../../hooks/useGrowthPlan';
-// import { useSavedCalculations } from '../../hooks/usePricingCalculator';
-// import { useNicheResearcher } from '../../hooks/useNicheResearcher';
-// import { useColdEmail } from '../../hooks/useColdEmail';
-// import { useSavedOffers } from '../../hooks/useOfferCreator';
-// import { useAdWriter } from '../../hooks/useAdWriter';
+import { useWorkspaceContext } from '../../hooks/useWorkspaceContext'; // Add workspace context
+import { message } from 'antd';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-// Define types (keep these as they define the component's internal structure)
-type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer'; // Add 'ad-writer'
+// Define types
+type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer';
 type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
 
 interface RecentWorkItem {
@@ -57,67 +49,91 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
 }) => {
   const screens = useBreakpoint();
   const { theme } = useTheme();
+  const { 
+    currentWorkspace, 
+    isWorkspaceReady, 
+    getWorkspaceScopedEndpoint 
+  } = useWorkspaceContext();
+  
   const [loading, setLoading] = useState(false);
   const [recentWorkItems, setRecentWorkItems] = useState<RecentWorkItem[]>([]);
 
-  // Remove individual hook initializations
-  // const salesCallAnalyzer = useSalesCallAnalyzer();
-  // const growthPlan = useGrowthPlan();
-  // const savedCalculations = useSavedCalculations();
-  // const nicheResearcher = useNicheResearcher();
-  // const coldEmail = useColdEmail();
-  // const savedOffers = useSavedOffers();
+  // Fetch recent work items from the unified API with workspace context
+const fetchRecentWorkItems = async () => {
+  if (!isWorkspaceReady || !currentWorkspace) {
+    console.log('Workspace not ready for recent deliverables');
+    return;
+  }
 
-  // Fetch recent work items from the unified API
-  const fetchRecentWorkItems = async () => {
-    setLoading(true);
-    // const items: RecentWorkItem[] = []; // No longer needed
+  setLoading(true);
 
-    try {
-      console.log('🔄 Fetching recent work items from unified API...');
-      // Construct URL with potential workspaceId query param
-      const url = new URL('/api/dashboard/work-items', window.location.origin);
-      if (workspaceId) {
-        url.searchParams.append('workspaceId', workspaceId);
-      }
-      // Potentially add a limit parameter to the API if supported, or slice client-side
+  try {
+    console.log('🔄 Fetching recent work items from unified API for workspace:', currentWorkspace.name);
+    
+    // Use workspace-scoped endpoint
+    const baseUrl = '/api/dashboard/work-items';
+    const url = getWorkspaceScopedEndpoint(baseUrl);
 
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error(`Failed to fetch recent work items: ${response.status} ${response.statusText}`);
-      }
-      const data = await response.json();
-      console.log('📥 Unified API recent work items response:', data);
-
-      if (data.success && Array.isArray(data.data?.items)) {
-        // The data from the API already matches the RecentWorkItem structure closely
-        // We just need to ensure the type is correct and limit the results
-        const apiItems: RecentWorkItem[] = data.data.items;
-        
-        // Sort by creation date (newest first) and limit
-        const sortedAndLimitedItems = apiItems
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          .slice(0, maxItems);
-
-        setRecentWorkItems(sortedAndLimitedItems);
-        console.log(`🎉 Successfully fetched and set ${sortedAndLimitedItems.length} recent work items from unified API`);
-      } else {
-        throw new Error(data.error || 'Invalid response format from unified API');
-      }
-    } catch (error) {
-      console.error('💥 Error fetching recent work items from unified API:', error);
-      message.error('Failed to load recent AI work'); // Show user-friendly error
-      // Optionally, keep old items or set to empty array
-      // setRecentWorkItems([]); 
-    } finally {
-      setLoading(false);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Workspace-Id': currentWorkspace.id,
+      },
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch recent work items: ${response.status} ${response.statusText}`);
     }
-  };
+    
+    const data = await response.json();
+    console.log('📥 Unified API recent work items response:', data);
 
-  // Load data on mount
+    if (data.success && Array.isArray(data.data?.items)) {
+      // Filter items to ensure they belong to current workspace and explicitly type as RecentWorkItem[]
+      const workspaceItems: RecentWorkItem[] = data.data.items.filter((item: any) => 
+        !item.workspace_id || item.workspace_id === currentWorkspace.id
+      );
+      
+      // Sort by creation date (newest first) and limit
+      const sortedAndLimitedItems = workspaceItems
+        .sort((a: RecentWorkItem, b: RecentWorkItem) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, maxItems);
+
+      setRecentWorkItems(sortedAndLimitedItems);
+      console.log(`🎉 Successfully fetched and set ${sortedAndLimitedItems.length} recent work items for workspace: ${currentWorkspace.name}`);
+    } else {
+      throw new Error(data.error || 'Invalid response format from unified API');
+    }
+  } catch (error) {
+    console.error('💥 Error fetching recent work items from unified API:', error);
+    message.error('Failed to load recent AI work');
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // Load data when workspace is ready
   useEffect(() => {
-    fetchRecentWorkItems();
-  }, [workspaceId, maxItems]); // Add maxItems to dependencies if it can change
+    if (isWorkspaceReady) {
+      fetchRecentWorkItems();
+    }
+  }, [currentWorkspace?.id, maxItems, isWorkspaceReady]);
+
+  // Listen for workspace changes
+  useEffect(() => {
+    const handleWorkspaceChange = () => {
+      setRecentWorkItems([]);
+      if (isWorkspaceReady) {
+        fetchRecentWorkItems();
+      }
+    };
+
+    window.addEventListener('workspaceChanged', handleWorkspaceChange);
+    return () => window.removeEventListener('workspaceChanged', handleWorkspaceChange);
+  }, [isWorkspaceReady]);
 
   // Get icon for work type
   const getTypeIcon = (type: WorkItemType) => {
@@ -128,7 +144,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'niche-research': <BulbOutlined />,
       'cold-email': <MailOutlined />,
       'offer-creator': <EditOutlined />,
-      'ad-writer': <TagOutlined /> // Add icon for ad-writer
+      'ad-writer': <TagOutlined />
     };
     return icons[type] || <FileTextOutlined />;
   };
@@ -142,7 +158,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'niche-research': '#fa8c16',
       'cold-email': '#eb2f96',
       'offer-creator': '#13c2c2',
-      'ad-writer': '#faad14' // Add color for ad-writer
+      'ad-writer': '#faad14'
     };
     return colors[type] || '#666';
   };
@@ -156,25 +172,27 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'niche-research': 'Research',
       'cold-email': 'Cold Email',
       'offer-creator': 'Offers',
-      'ad-writer': 'Ads' // Add name for ad-writer
+      'ad-writer': 'Ads'
     };
     return names[type] || type;
   };
 
-  // Handle view action
+  // Handle view action with workspace context
   const handleView = (item: RecentWorkItem) => {
-    // Update view URLs to match your routing
+    if (!currentWorkspace) return;
+    
+    // Update view URLs to include workspace context
     const viewUrls: Record<WorkItemType, string> = {
-      'sales-call': `/sales-call-analyzer/${item.rawData.id?.split('-')[2] || item.rawData.id}`, // Extract ID if prefixed
-      'growth-plan': `/growth-plans/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
-      'pricing-calc': `/pricing-calculator/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
-      'niche-research': `/niche-research/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
-      'cold-email': `/cold-email/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
-      'offer-creator': `/offer-creator/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
-      'ad-writer': `/ad-writer/${item.rawData.id?.split('-')[2] || item.rawData.id}` // Add URL for ad-writer
+      'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator/${item.rawData.id?.split('-')[2] || item.rawData.id}`,
+      'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.rawData.id?.split('-')[2] || item.rawData.id}`
     };
-    // Fallback if rawData.id structure is unexpected or item.type URL isn't defined
-    const url = viewUrls[item.type] || `/ai-work-dashboard?type=${item.type}`;
+    
+    const url = viewUrls[item.type] || `/dashboard/${currentWorkspace.slug}/submissions?type=${item.type}`;
     window.location.href = url;
   };
 
@@ -190,6 +208,35 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     },
   });
 
+  // Don't render until workspace is ready
+  if (!isWorkspaceReady) {
+    return (
+      <Card
+        data-tour="recent-deliverables"
+        title="Recent Deliverables"
+        styles={getCardStyles()}
+        style={{
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <Spin size="small" />
+          <Text
+            style={{
+              color: theme === 'dark' ? '#9ca3af' : '#666666',
+              display: 'block',
+              marginTop: 8,
+              fontSize: 12,
+            }}
+          >
+            Loading workspace...
+          </Text>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
       data-tour="recent-deliverables"
@@ -203,7 +250,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
         <Button
           type="text"
           size="small"
-          onClick={() => window.location.href = '/submissions'}
+          onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/submissions`}
           style={{
             color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
             padding: 0,
@@ -244,36 +291,21 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                 backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
               }}
               actions={[
-                // <Button
-                //   type="text"
-                //   size="small"
-                //   key="view"
-                //   icon={<EyeOutlined />}
-                //   onClick={() => handleView(item)}
-                //   style={{
-                //     color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                //     padding: '0 4px',
-                //     height: 'auto',
-                //     fontSize: 12,
-                //   }}
-                // >
-                //   View
-                // </Button>,
-                // Optional: Implement export action if needed
-                // <Button
-                //   type="text"
-                //   size="small"
-                //   key="export"
-                //   icon={<DownloadOutlined />}
-                //   style={{
-                //     color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                //     padding: '0 4px',
-                //     height: 'auto',
-                //     fontSize: 12,
-                //   }}
-                // >
-                //   Export
-                // </Button>,
+                <Button
+                  type="text"
+                  size="small"
+                  key="view"
+                  icon={<EyeOutlined />}
+                  onClick={() => handleView(item)}
+                  style={{
+                    color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
+                    padding: '0 4px',
+                    height: 'auto',
+                    fontSize: 12,
+                  }}
+                >
+                  View
+                </Button>,
               ]}
             >
               <List.Item.Meta
@@ -335,15 +367,19 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                         <Tag color="green">${item.metadata.hourlyRate}/hr</Tag>
                       )}
                       {item.type === 'cold-email' && (
-                        <Tag >{item.metadata.emailCount} emails</Tag>
+                        <Tag>{item.metadata.emailCount} emails</Tag>
                       )}
                       {item.type === 'growth-plan' && (
-                        <Tag >{item.metadata.strategies} strategies</Tag>
+                        <Tag>{item.metadata.strategies} strategies</Tag>
                       )}
                       {item.type === 'offer-creator' && (
-                        <Tag >{item.metadata.packages} packages</Tag>
+                        <Tag>{item.metadata.packages} packages</Tag>
                       )}
-                      {/* Add metadata display for other types if needed */}
+                      
+                      {/* Workspace indicator */}
+                      <Tag color="blue" style={{ fontSize: 9 }}>
+                        {currentWorkspace?.name}
+                      </Tag>
                     </div>
                   </div>
                 }
@@ -374,12 +410,12 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
               fontSize: 12,
             }}
           >
-            No AI work generated yet
+            No AI work generated yet in {currentWorkspace?.name}
           </Text>
           <Button
             type="text"
             size="small"
-            onClick={() => window.location.href = '/tools'}
+            onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/tools`}
             style={{
               color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
               padding: 0,

@@ -7,6 +7,7 @@ import {
   RocketOutlined 
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
+import { useWorkspaceContext } from '../../hooks/useWorkspaceContext'; // Use the workspace context hook
 
 const { Title } = Typography;
 const { useBreakpoint } = Grid;
@@ -19,7 +20,8 @@ interface WelcomePanelProps {
 interface WorkItem {
   id: string;
   createdAt: string;
-  status: 'processing' | 'completed' | 'failed' | string;
+  status: 'processing' | 'completed' | 'failed' | 'in_progress' | 'pending' | 'done' | 'finished' | string;
+  workspace_id?: string; // Add workspace_id to work items
 }
 
 const WelcomePanel: React.FC<WelcomePanelProps> = ({
@@ -28,31 +30,43 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
 }) => {
   const { theme } = useTheme();
   const screens = useBreakpoint();
+  const { currentWorkspace, isWorkspaceReady, getWorkspaceScopedEndpoint } = useWorkspaceContext();
+  
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null); // Changed from string | null to Error | null
+  const [error, setError] = useState<Error | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
-  const fetchAllWorkItems = useCallback(async (isRetry = false) => {
-    if (!isRetry) {
-      setLoading(true);
-    }
+ const fetchAllWorkItems = useCallback(async (isRetry = false) => {
+  if (!isWorkspaceReady || !currentWorkspace) {
+    return;
+  }
+
+  if (loading && !isRetry) {
+    console.log('🚫 Fetch already in progress, skipping');
+    return;
+  }
     setError(null);
     
     try {
-      console.log('🔄 Fetching work items for welcome panel...', { workspaceId, retryCount });
+      // Use workspace-scoped endpoint
+      const baseUrl = '/api/dashboard/work-items';
+      const url = getWorkspaceScopedEndpoint(baseUrl);
       
-      const url = new URL('/api/dashboard/work-items', window.location.origin);
-      if (workspaceId) {
-        url.searchParams.append('workspaceId', workspaceId);
-      }
-      
-      url.searchParams.append('_t', Date.now().toString());
+      // Add cache busting and workspace context
+      const urlWithParams = new URL(url, window.location.origin);
+      urlWithParams.searchParams.append('_t', `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+      urlWithParams.searchParams.set('workspaceId', currentWorkspace.id);
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(urlWithParams.toString(), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Workspace-Id': currentWorkspace.id, // Add workspace header
           ...(typeof window !== 'undefined' && localStorage.getItem('authToken') && {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
           })
@@ -60,86 +74,152 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         cache: 'no-cache'
       });
 
-      console.log('📡 API Response status:', response.status);
-
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Authentication required. Please log in again.');
         }
         if (response.status === 403) {
-          throw new Error('Access denied. Please check your permissions.');
+          throw new Error('Access denied. Please check your workspace permissions.');
         }
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        if (response.status === 404) {
+          throw new Error('Workspace data not found.');
+        }
+        
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error || errorData.message) {
+            errorMessage = errorData.error || errorData.message;
+          }
+        } catch {
+          // Ignore JSON parse errors for error responses
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log('📊 API Response data:', data);
 
+      let items: WorkItem[] = [];
+      
       if (data.success && Array.isArray(data.data?.items)) {
-        console.log(`🎉 Successfully fetched ${data.data.items.length} work items for welcome panel`);
-        setWorkItems(data.data.items);
-        setRetryCount(0);
-      } else if (data.data?.items === undefined || data.data?.items === null) {
-        console.warn('⚠️ No items found in response, setting empty array');
-        setWorkItems([]);
+        items = data.data.items;
+      } else if (Array.isArray(data.data)) {
+        items = data.data;
+      } else if (Array.isArray(data.items)) {
+        items = data.items;
+      } else if (Array.isArray(data)) {
+        items = data;
+      } else if (data.success === false) {
+        throw new Error(data.error || data.message || 'API returned error status');
       } else {
-        throw new Error(data.error || 'Invalid response format from unified API');
+        items = [];
       }
+
+      // Filter items to ensure they belong to current workspace
+      const validItems = items.filter((item: any) => {
+        if (!item || typeof item !== 'object') {
+          return false;
+        }
+        
+        if (!item.id) {
+          return false;
+        }
+        
+        // Verify workspace ownership
+        if (item.workspace_id && item.workspace_id !== currentWorkspace.id) {
+          return false;
+        }
+        
+        if (!item.createdAt && (item.created_at || item.createdDate || item.timestamp)) {
+          item.createdAt = item.created_at || item.createdDate || item.timestamp;
+        }
+        
+        if (!item.createdAt) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      console.log(`Loaded ${validItems.length} work items for workspace: ${currentWorkspace.name}`);
+      setWorkItems(validItems);
+      setRetryCount(0);
+      setLastFetchTime(new Date());
+      
     } catch (error) {
-      console.error('💥 Error fetching work items for welcome panel:', error);
-      // Ensure error is always an Error object
       const errorObj = error instanceof Error ? error : new Error(String(error));
       setError(errorObj);
       
-      // Don't show error message for auth issues, let parent handle redirect
       if (!errorObj.message.includes('Authentication')) {
         message.error(`Failed to load work items: ${errorObj.message}`);
       }
       
-      setWorkItems([]);
+      if (!isRetry) {
+        setWorkItems([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, retryCount]);
+ }, [currentWorkspace?.id, isWorkspaceReady]); 
 
   const handleRetry = useCallback(async () => {
     if (retryCount < 3) {
       setRetryCount(prev => prev + 1);
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
       setTimeout(() => {
         fetchAllWorkItems(true);
-      }, 1000 * (retryCount + 1));
+      }, delay);
     }
   }, [fetchAllWorkItems, retryCount]);
 
   useEffect(() => {
     let mounted = true;
+     let timeoutId: NodeJS.Timeout;
     
-    const loadData = async () => {
-      if (mounted) {
-        await fetchAllWorkItems();
-      }
-    };
+   
+  const loadData = async () => {
+    if (mounted && isWorkspaceReady && currentWorkspace) {
+      // Debounce the fetch call
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (mounted) {
+          fetchAllWorkItems();
+        }
+      }, 300);
+    }
+  };
 
     loadData();
 
+    // Listen for workspace changes
+    const handleWorkspaceChange = () => {
+      if (mounted) {
+        setWorkItems([]);
+        setError(null);
+        setRetryCount(0);
+        loadData();
+      }
+    };
+
+    window.addEventListener('workspaceChanged', handleWorkspaceChange);
+
     return () => {
       mounted = false;
+         clearTimeout(timeoutId);
     };
-  }, [fetchAllWorkItems]);
+}, [currentWorkspace?.id]); 
 
   useEffect(() => {
     if (error && retryCount < 3 && !error.message.includes('Authentication')) {
       const timer = setTimeout(() => {
         handleRetry();
-      }, 2000);
+      }, 2000 * (retryCount + 1));
       
       return () => clearTimeout(timer);
     }
   }, [error, retryCount, handleRetry]);
 
   const summaryStats = useMemo(() => {
-    console.log('🧮 Calculating stats with', workItems.length, 'items');
-    
     if (!Array.isArray(workItems) || workItems.length === 0) {
       return [
         { title: 'Total Generated', value: 0, icon: <FileTextOutlined />, color: '#1890ff', growth: 0 },
@@ -155,15 +235,22 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     
     const thisMonthItems = workItems.filter(item => {
       try {
-        return item.createdAt && new Date(item.createdAt) >= thisMonth;
-      } catch {
+        if (!item.createdAt) return false;
+        
+        const itemDate = new Date(item.createdAt);
+        if (isNaN(itemDate.getTime())) return false;
+        
+        return itemDate >= thisMonth;
+      } catch (err) {
         return false;
       }
     });
     
     const lastMonthItems = workItems.filter(item => {
       try {
+        if (!item.createdAt) return false;
         const date = new Date(item.createdAt);
+        if (isNaN(date.getTime())) return false;
         return date >= lastMonth && date < thisMonth;
       } catch {
         return false;
@@ -172,17 +259,20 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     
     const thisMonthGrowth = lastMonthItems.length > 0 
       ? Math.round(((thisMonthItems.length - lastMonthItems.length) / lastMonthItems.length) * 100)
-      : 0;
+      : thisMonthItems.length > 0 ? 100 : 0;
 
+    const processingStatuses = ['processing', 'in_progress', 'pending', 'running', 'active'];
+    const completedStatuses = ['completed', 'done', 'finished', 'success', 'complete'];
+    
     const processingItems = workItems.filter(item => 
-      item.status === 'processing' || item.status === 'in_progress' || item.status === 'pending'
+      processingStatuses.includes(item.status?.toLowerCase?.() || '')
     ).length;
     
     const completedItems = workItems.filter(item => 
-      item.status === 'completed' || item.status === 'done' || item.status === 'finished'
+      completedStatuses.includes(item.status?.toLowerCase?.() || '')
     ).length;
 
-    const stats = [
+    return [
       { 
         title: 'Total Generated', 
         value: workItems.length, 
@@ -212,9 +302,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         growth: 5 
       }
     ];
-
-    console.log('📈 Calculated stats:', stats);
-    return stats;
   }, [workItems]);
 
   const getCardStyles = () => ({
@@ -234,7 +321,8 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     },
   });
 
-  if (loading) {
+  // Show loading while workspace is loading
+  if (!isWorkspaceReady || loading) {
     return (
       <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -257,7 +345,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <Spin size="large" />
             <p style={{ marginTop: 16, color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }}>
-              Loading your statistics...
+              {!isWorkspaceReady ? 'Loading workspace...' : 'Loading statistics...'}
             </p>
             {retryCount > 0 && (
               <p style={{ marginTop: 8, color: theme === 'dark' ? '#FEF3C7' : '#D97706', fontSize: '12px' }}>
@@ -292,12 +380,13 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         >
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <p style={{ color: theme === 'dark' ? '#EF4444' : '#DC2626', marginBottom: 16 }}>
-              Unable to load statistics: {error.message}
+              Unable to load workspace statistics: {error.message}
             </p>
             <Button
               type="primary"
               onClick={() => {
                 setRetryCount(0);
+                setError(null);
                 fetchAllWorkItems();
               }}
             >
@@ -327,7 +416,11 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           <Button
             type="default"
             size="small"
-            onClick={() => fetchAllWorkItems()}
+            onClick={() => {
+              setError(null);
+              setRetryCount(0);
+              fetchAllWorkItems();
+            }}
             loading={loading}
             style={{
               backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
@@ -337,12 +430,12 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           >
             Refresh
           </Button>
-          {workItems.length > 0 && (
+          {lastFetchTime && (
             <span style={{ 
               fontSize: '12px', 
               color: theme === 'dark' ? '#9CA3AF' : '#6B7280' 
             }}>
-              Last updated: {new Date().toLocaleTimeString()}
+              Last updated: {lastFetchTime.toLocaleTimeString()}
             </span>
           )}
         </Space>
@@ -386,16 +479,22 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           ))}
         </div>
         
-      <div style={{ 
-  marginTop: '12px', 
-  padding: '8px', 
-  backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
-  borderRadius: '4px',
-  fontSize: '11px',
-  color: theme === 'dark' ? '#9CA3AF' : '#6B7280'
-}}>
-  Workspace: {workspaceId || 'default'} 
-</div>
+        <div style={{ 
+          marginTop: '12px', 
+          padding: '8px', 
+          backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
+          borderRadius: '4px',
+          fontSize: '11px',
+          color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>Workspace: {currentWorkspace?.name || 'Unknown'} ({currentWorkspace?.id})</span>
+          {workItems.length > 0 && (
+            <span>Items loaded: {workItems.length}</span>
+          )}
+        </div>
       </Card>
     </div>
   );

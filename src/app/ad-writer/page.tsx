@@ -1191,7 +1191,9 @@ const downloadAds = () => {
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
         
-          ArbitrageOS Ad Writer
+           <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS Ad Writer
+      
         </Title>
         <Text type="secondary" className="text-lg">
           Generate high-converting ad copy tailored to your business and audience

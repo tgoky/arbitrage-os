@@ -1254,9 +1254,10 @@ const renderPlanView = () => {
 
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
-          <RocketOutlined className="mr-2 text-purple-600" />
+     
           <span className="bg-clip-text">
-            AI Growth Plan Creator
+             <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS Growth Plan Creator
           </span>
         </Title>
         <Text type="secondary" className="text-lg">

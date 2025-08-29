@@ -191,7 +191,8 @@ const N8nWorkflowLibrary = () => {
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
-          n8n Workflow Library
+       <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS n8n Workflow Library
         </Title>
         <Text type="secondary" className="text-lg">
           Discover ready-to-use n8n workflow templates to automate your business processes

@@ -31,102 +31,93 @@ const RATE_LIMITS = {
 };
 
 // ✅ Robust authentication function (same as cold-email that works!)
+// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
-    // Method 1: Try with route handler client
+    // Method 1: Authorization header (most reliable for API calls)
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: { get: () => undefined },
+          }
+        );
+        
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          return { user, error: null };
+        }
+      } catch (tokenError) {
+        console.warn('Token auth failed:', tokenError);
+      }
+    }
+    
+    // Method 2: SSR cookies (FIXED cookie handling)
+    try {
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              try {
+                const cookie = cookieStore.get(name);
+                if (!cookie?.value) return undefined;
+                
+                // FIXED: Proper base64 cookie handling
+                if (cookie.value.startsWith('base64-')) {
+                  try {
+                    const decoded = atob(cookie.value.substring(7));
+                    JSON.parse(decoded); // Validate it's valid JSON
+                    return cookie.value;
+                  } catch (e) {
+                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
+                    return undefined; // Skip corrupted cookies
+                  }
+                }
+                
+                return cookie.value;
+              } catch (error) {
+                console.warn(`Error reading cookie ${name}:`, error);
+                return undefined;
+              }
+            },
+          },
+        }
+      );
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        return { user, error: null };
+      }
+    } catch (ssrError) {
+      console.warn('SSR cookie auth failed:', ssrError);
+    }
+    
+    // Method 3: Route handler client (fallback)
     try {
       const supabase = createRouteHandlerClient({
         cookies: () => cookieStore
       });
       
       const { data: { user }, error } = await supabase.auth.getUser();
-      
       if (!error && user) {
-        console.log('✅ Auth Method 1 (route handler) succeeded for user:', user.id);
         return { user, error: null };
       }
-      
-      console.log('⚠️ Route handler auth failed:', error?.message);
-    } catch (helperError) {
-      console.warn('⚠️ Route handler client failed:', helperError);
+    } catch (routeError) {
+      console.warn('Route handler auth failed:', routeError);
     }
     
-    // Method 2: Try with authorization header
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        console.log('🔍 Trying token auth with token:', token.substring(0, 20) + '...');
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get: () => undefined,
-            },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (!error && user) {
-          console.log('✅ Auth Method 2 (token) succeeded for user:', user.id);
-          return { user, error: null };
-        }
-        
-        console.log('⚠️ Token auth failed:', error?.message);
-      } catch (tokenError) {
-        console.warn('⚠️ Token auth error:', tokenError);
-      }
-    }
-    
-    // Method 3: Try with cookie validation
-    const supabaseSSR = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              // Validate base64 cookies
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded); // Validate JSON
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`Invalid cookie ${name}, skipping...`);
-                  return undefined;
-                }
-              }
-              return cookie.value;
-            } catch (error) {
-              console.warn(`Error reading cookie ${name}:`, error);
-              return undefined;
-            }
-          },
-        },
-      }
-    );
-    
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
-    
-    if (!error && user) {
-      console.log('✅ Auth Method 3 (SSR cookies) succeeded for user:', user.id);
-    } else {
-      console.log('⚠️ SSR cookie auth failed:', error?.message);
-    }
-    
-    return { user, error };
+    return { user: null, error: new Error('All authentication methods failed') };
     
   } catch (error) {
-    console.error('💥 All authentication methods failed:', error);
+    console.error('Authentication error:', error);
     return { user: null, error };
   }
 }

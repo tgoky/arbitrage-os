@@ -10,118 +10,97 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
 // ✅ IMPROVED AUTH FUNCTION WITH BETTER ERROR HANDLING
+// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
-    // Method 1: Try with authorization header FIRST (most reliable for API calls)
+    // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        console.log('🔍 Trying token auth...');
-        
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           {
-            cookies: {
-              get: () => undefined,
-            },
+            cookies: { get: () => undefined },
           }
         );
         
         const { data: { user }, error } = await supabase.auth.getUser(token);
-        
         if (!error && user) {
-          console.log('✅ Auth Method 1 (token) succeeded for user:', user.id);
           return { user, error: null };
         }
-        
-        console.log('⚠️ Token auth failed:', error?.message);
       } catch (tokenError) {
-        console.warn('⚠️ Token auth error:', tokenError);
+        console.warn('Token auth failed:', tokenError);
       }
     }
     
-    // Method 2: Try with SSR cookies (most reliable for web requests)
-    const supabaseSSR = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              // Handle base64 encoded cookies safely
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded); // Validate it's valid JSON
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`🧹 Corrupted base64 cookie ${name}, skipping...`);
-                  return undefined;
+    // Method 2: SSR cookies (FIXED cookie handling)
+    try {
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              try {
+                const cookie = cookieStore.get(name);
+                if (!cookie?.value) return undefined;
+                
+                // FIXED: Proper base64 cookie handling
+                if (cookie.value.startsWith('base64-')) {
+                  try {
+                    const decoded = atob(cookie.value.substring(7));
+                    JSON.parse(decoded); // Validate it's valid JSON
+                    return cookie.value;
+                  } catch (e) {
+                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
+                    return undefined; // Skip corrupted cookies
+                  }
                 }
+                
+                return cookie.value;
+              } catch (error) {
+                console.warn(`Error reading cookie ${name}:`, error);
+                return undefined;
               }
-              
-              // For JSON-looking cookies, validate they're proper JSON
-              if (cookie.value.startsWith('{') || cookie.value.startsWith('[')) {
-                try {
-                  JSON.parse(cookie.value);
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`🧹 Invalid JSON cookie ${name}, skipping...`);
-                  return undefined;
-                }
-              }
-              
-              return cookie.value;
-            } catch (error) {
-              console.warn(`🧹 Error reading cookie ${name}:`, error);
-              return undefined;
-            }
+            },
           },
-        },
+        }
+      );
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        return { user, error: null };
       }
-    );
-    
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
-    
-    if (!error && user) {
-      console.log('✅ Auth Method 2 (SSR cookies) succeeded for user:', user.id);
-      return { user, error: null };
-    } else {
-      console.log('⚠️ SSR cookie auth failed:', error?.message);
+    } catch (ssrError) {
+      console.warn('SSR cookie auth failed:', ssrError);
     }
     
-    // Method 3: Fallback to route handler client
+    // Method 3: Route handler client (fallback)
     try {
       const supabase = createRouteHandlerClient({
         cookies: () => cookieStore
       });
       
       const { data: { user }, error } = await supabase.auth.getUser();
-      
       if (!error && user) {
-        console.log('✅ Auth Method 3 (route handler) succeeded for user:', user.id);
         return { user, error: null };
       }
-      
-      console.log('⚠️ Route handler auth failed:', error?.message);
-    } catch (helperError) {
-      console.warn('⚠️ Route handler client failed:', helperError);
+    } catch (routeError) {
+      console.warn('Route handler auth failed:', routeError);
     }
     
-    return { user: null, error: error || new Error('All auth methods failed') };
+    return { user: null, error: new Error('All authentication methods failed') };
     
   } catch (error) {
-    console.error('💥 All authentication methods failed:', error);
+    console.error('Authentication error:', error);
     return { user: null, error };
   }
 }
+
 
 export async function POST(req: NextRequest) {
   console.log('🚀 Niche Research API Route called');

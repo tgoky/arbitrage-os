@@ -25,35 +25,44 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie' | 'area'>('bar');
 
   // Fetch work items data
-  const fetchAllWorkItems = async () => {
-    setLoading(true);
-    try {
-      console.log('🔄 Fetching work items for statistics chart...');
-      const url = new URL('/api/dashboard/work-items', window.location.origin);
-      if (workspaceId) {
-        url.searchParams.append('workspaceId', workspaceId);
-      }
-
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error(`Failed to fetch work items: ${response.status} ${response.statusText}`);
-      }
-      const data = await response.json();
-
-      if (data.success && Array.isArray(data.data?.items)) {
-        console.log(`🎉 Successfully fetched ${data.data.items.length} work items for chart`);
-        setWorkItems(data.data.items);
-      } else {
-        throw new Error(data.error || 'Invalid response format from unified API');
-      }
-    } catch (error) {
-      console.error('💥 Error fetching work items for chart:', error);
-      message.error('Failed to load statistics');
-      setWorkItems([]);
-    } finally {
-      setLoading(false);
+// In QuickStartActions.tsx, update the fetchAllWorkItems function:
+const fetchAllWorkItems = async () => {
+  setLoading(true);
+  try {
+    // Get current workspace
+    const workspaceData = localStorage.getItem('current-workspace');
+    let currentWorkspaceId = workspaceId;
+    
+    if (!currentWorkspaceId && workspaceData) {
+      const workspace = JSON.parse(workspaceData);
+      currentWorkspaceId = workspace.id;
     }
-  };
+    
+    console.log('Fetching work items for workspace:', currentWorkspaceId);
+    const url = new URL('/api/dashboard/work-items', window.location.origin);
+    if (currentWorkspaceId) {
+      url.searchParams.append('workspaceId', currentWorkspaceId);
+    }
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Failed to fetch work items: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    if (data.success && Array.isArray(data.data?.items)) {
+      setWorkItems(data.data.items);
+    } else {
+      throw new Error(data.error || 'Invalid response format');
+    }
+  } catch (error) {
+    console.error('Error fetching work items:', error);
+    message.error('Failed to load statistics');
+    setWorkItems([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Load data on mount
   useEffect(() => {
