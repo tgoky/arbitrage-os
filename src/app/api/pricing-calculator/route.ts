@@ -1,9 +1,9 @@
-// app/api/pricing-calculator/route.ts - FIXED VERSION
+// app/api/pricing-calculator/route.ts - UPDATED WITH WORKSPACE VALIDATION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';  // Import at top
+import { prisma } from '@/lib/prisma';
 import { PricingCalculatorService } from '@/services/pricingCalculator.service';
 import { validatePricingCalculatorInput } from '../../validators/pricingCalculator.validator';
 import { rateLimit } from '@/lib/rateLimit';
@@ -111,6 +111,22 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
+// Validate workspace access
+async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
+  try {
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: userId
+      }
+    });
+    return !!workspace;
+  } catch (error) {
+    console.error('Error validating workspace access:', error);
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Use robust authentication
@@ -145,7 +161,28 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    // ✅ RATE LIMITING for pricing calculations
+    // GET WORKSPACE ID FROM REQUEST
+    const body = await req.json();
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
+    
+    if (!workspaceId) {
+      return NextResponse.json({ 
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+    // VALIDATE WORKSPACE ACCESS
+    const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+    if (!hasAccess) {
+      return NextResponse.json({ 
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
+    // RATE LIMITING for pricing calculations
     const rateLimitResult = await rateLimit(
       `pricing_calculation:${user.id}`, 
       RATE_LIMITS.CALCULATION.limit, 
@@ -162,7 +199,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse and validate request body
-    const body = await req.json();
     const validation = validatePricingCalculatorInput(body);
         
     if (!validation.success) {
@@ -179,32 +215,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ GET USER'S WORKSPACE with error handling
+    // VERIFY WORKSPACE EXISTS
     let workspace;
     try {
       workspace = await prisma.workspace.findFirst({
-        where: { user_id: user.id }
+        where: { 
+          id: workspaceId,
+          user_id: user.id 
+        }
       });
 
       if (!workspace) {
-        workspace = await prisma.workspace.create({
-          data: {
-            user_id: user.id,
-            name: 'Default Workspace',
-            slug: 'default',
-            description: 'Default workspace for pricing calculations'
-          }
-        });
+        return NextResponse.json({ 
+          error: 'Workspace not found.',
+          code: 'WORKSPACE_NOT_FOUND'
+        }, { status: 404 });
       }
     } catch (dbError) {
-      console.error('Database error getting/creating workspace:', dbError);
+      console.error('Database error getting workspace:', dbError);
       return NextResponse.json(
         { error: 'Database error. Please try again.' },
         { status: 500 }
       );
     }
 
-    // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE with error handling
+    // SERVICE HANDLES BOTH GENERATION AND STORAGE with workspace context
     let generatedPackage;
     let deliverableId;
     
@@ -212,16 +247,21 @@ export async function POST(req: NextRequest) {
       const pricingService = new PricingCalculatorService();
       const calculatorInput = { ...validation.data, userId: user.id };
       
+      console.log('Generating pricing package for workspace:', workspaceId);
+      
       // Generate the package
       generatedPackage = await pricingService.generatePricingPackage(calculatorInput);
       
-      // Save it via service (not API)
+      // Save it with the correct workspace ID
       deliverableId = await pricingService.savePricingCalculation(
         user.id,
-        workspace.id,
+        workspaceId, // Use the validated workspace ID
         generatedPackage,
         calculatorInput
       );
+      
+      console.log('Pricing calculation saved with ID:', deliverableId, 'in workspace:', workspaceId);
+      
     } catch (serviceError) {
       console.error('Service error:', serviceError);
       return NextResponse.json(
@@ -230,7 +270,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE for analytics/billing with error handling
+    // LOG USAGE for analytics/billing with workspace context
     try {
       await logUsage({
         userId: user.id,
@@ -239,10 +279,12 @@ export async function POST(req: NextRequest) {
         timestamp: new Date(),
         metadata: {
           deliverableId,
+          workspaceId,
+          workspaceName: workspace.name,
           clientName: validation.data.clientName,
           annualClientSavings: validation.data.annualClientSavings,
-annualRevenueIncrease: validation.data.annualRevenueIncrease,
-totalClientImpact: validation.data.annualClientSavings + validation.data.annualRevenueIncrease,
+          annualRevenueIncrease: validation.data.annualRevenueIncrease,
+          totalClientImpact: validation.data.annualClientSavings + validation.data.annualRevenueIncrease,
           recommendedRetainer: generatedPackage.calculations?.recommendedRetainer,
           roiPercentage: generatedPackage.calculations?.roiPercentage,
           hoursPerWeek: validation.data.hoursPerWeek,
@@ -258,7 +300,9 @@ totalClientImpact: validation.data.annualClientSavings + validation.data.annualR
       success: true,
       data: {
         calculationId: deliverableId,
-        package: generatedPackage
+        package: generatedPackage,
+        workspaceId: workspaceId, // Return workspace ID for confirmation
+        workspaceName: workspace.name
       },
       meta: {
         tokensUsed: generatedPackage.tokensUsed,
@@ -309,7 +353,7 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    // ✅ RATE LIMITING for listing
+    // RATE LIMITING for listing
     const rateLimitResult = await rateLimit(
       `pricing_list:${user.id}`,
       RATE_LIMITS.LIST.limit,
@@ -328,7 +372,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // ✅ USE SERVICE METHOD with error handling
+    // VALIDATE WORKSPACE ACCESS if workspaceId provided
+    if (workspaceId) {
+      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          error: 'Workspace access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
+
+    // USE SERVICE METHOD with workspace filtering
     let calculations;
     try {
       const pricingService = new PricingCalculatorService();
@@ -336,6 +391,9 @@ export async function GET(req: NextRequest) {
         user.id,
         workspaceId || undefined
       );
+      
+      console.log(`Fetched ${calculations.length} pricing calculations for user ${user.id} in workspace ${workspaceId || 'all'}`);
+      
     } catch (serviceError) {
       console.error('Service error fetching calculations:', serviceError);
       return NextResponse.json(
@@ -344,7 +402,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE for listing with error handling
+    // LOG USAGE for listing
     try {
       await logUsage({
         userId: user.id,
@@ -365,7 +423,8 @@ export async function GET(req: NextRequest) {
       success: true,
       data: calculations,
       meta: {
-        remaining: rateLimitResult.remaining
+        remaining: rateLimitResult.remaining,
+        workspaceId: workspaceId
       }
     });
 

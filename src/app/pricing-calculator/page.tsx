@@ -68,6 +68,7 @@ import {
 } from '../hooks/usePricingCalculator';
 
 import LoadingOverlay from './LoadingOverlay'; 
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -82,6 +83,7 @@ const PricingCalculator = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentPackage, setCurrentPackage] = useState<GeneratedPricingPackage | null>(null);
   const [savedCalculationId, setSavedCalculationId] = useState<string | null>(null);
+   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
   // Hooks
   const { generatePricing, quickCalculate, generating } = usePricingCalculator();
@@ -93,19 +95,6 @@ const PricingCalculator = () => {
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
 const [viewDetailLoading, setViewDetailLoading] = useState(false); // Loading for fetching detail
 
-const {
-
-  getCalculation, // <-- Correctly get getCalculation
-
-} = useSavedCalculations();
-
-  const calculatorDisabledStyle = {
-  pointerEvents: 'none' as const,
-  opacity: 0.6,
-  position: 'relative' as const
-};
-
-
   const [exportState, setExportState] = useState<{
   loading: boolean;
   type: string | null;
@@ -114,13 +103,17 @@ const {
   type: null
 });
 
-// Then use these derived values:
-const isExporting = exportState.loading;
-const exportingType = exportState.type;
 
 
-    // Unified loading state
-  const isGenerating = generating;
+// Update the useEffect to handle errors gracefully
+useEffect(() => {
+  fetchCalculations();
+  // Make benchmarks optional - don't block the UI if it fails
+  fetchBenchmarks().catch(err => {
+    console.warn('Benchmarks unavailable:', err);
+    // Don't show error to user, just log it
+  });
+}, [fetchCalculations, fetchBenchmarks]);
 
 
   // Quick calculation results (real-time)
@@ -137,16 +130,73 @@ const exportingType = exportState.type;
   revenueComponent: 0
 });
 
+const {
 
-// Update the useEffect to handle errors gracefully
-useEffect(() => {
-  fetchCalculations();
-  // Make benchmarks optional - don't block the UI if it fails
-  fetchBenchmarks().catch(err => {
-    console.warn('Benchmarks unavailable:', err);
-    // Don't show error to user, just log it
-  });
-}, [fetchCalculations, fetchBenchmarks]);
+  getCalculation, // <-- Correctly get getCalculation
+
+} = useSavedCalculations();
+
+
+
+
+
+ // WORKSPACE VALIDATION - AFTER ALL HOOKS
+  if (!isWorkspaceReady) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <Spin size="large" />
+        <p className="mt-4">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Alert
+          message="Workspace Required"
+          description="The pricing calculator must be accessed from within a workspace. Please navigate to a workspace first."
+          type="error"
+          showIcon
+          action={
+            <Button type="primary" href="/dashboard">
+              Go to Dashboard
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+
+
+
+
+  const calculatorDisabledStyle = {
+  pointerEvents: 'none' as const,
+  opacity: 0.6,
+  position: 'relative' as const
+};
+
+
+
+// Then use these derived values:
+const isExporting = exportState.loading;
+const exportingType = exportState.type;
+
+
+    // Unified loading state
+  const isGenerating = generating;
+
+
+
+
+
+
+
+
+
+
 
   // Real-time calculation updates
 const handleFormChange = () => {
@@ -373,7 +423,9 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
   const insights = getBusinessInsightsForCurrent();
 
   return (
+    
     <div className="max-w-7xl mx-auto px-4 py-8">
+      
            <LoadingOverlay visible={isGenerating} />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">

@@ -1,6 +1,7 @@
 // hooks/usePricingCalculator.ts - FIXED
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 // UPDATED Types matching the backend
 export interface PricingCalculatorInput {
@@ -184,6 +185,8 @@ export const usePricingCalculator = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { currentWorkspace } = useWorkspaceContext();
 
   const generatePricing = useCallback(async (input: PricingCalculatorInput): Promise<{
     calculationId: string;
@@ -193,12 +196,21 @@ export const usePricingCalculator = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/pricing-calculator', {
+      // Check if we have a current workspace
+      if (!currentWorkspace) {
+        throw new Error('No workspace selected. Please access the pricing calculator from within a workspace.');
+      }
+
+      // Add workspace ID to the URL
+      const response = await fetch(`/api/pricing-calculator?workspaceId=${currentWorkspace.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+          ...input,
+          workspaceId: currentWorkspace.id // Also add to body for extra safety
+        }),
       });
 
       if (!response.ok) {
@@ -213,6 +225,16 @@ export const usePricingCalculator = () => {
       }
 
       message.success('Pricing package generated successfully!');
+      
+      // Dispatch workspace data change event to refresh dashboard components
+      window.dispatchEvent(new CustomEvent('workspaceDataChanged', {
+        detail: { 
+          workspace: currentWorkspace,
+          type: 'new-pricing-calculation',
+          data: data.data
+        }
+      }));
+      
       return data.data;
       
     } catch (err) {
@@ -223,8 +245,7 @@ export const usePricingCalculator = () => {
     } finally {
       setGenerating(false);
     }
-  }, []);
-
+  }, [currentWorkspace]); // Add currentWorkspace to dependencies
 
 // hooks/usePricingCalculator.ts - Updated quickCalculate function
 
