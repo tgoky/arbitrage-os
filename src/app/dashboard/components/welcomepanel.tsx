@@ -38,129 +38,48 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
- const fetchAllWorkItems = useCallback(async (isRetry = false) => {
-  if (!isWorkspaceReady || !currentWorkspace) {
-    return;
-  }
+// In WelcomePanel.tsx, update fetchAllWorkItems:
+const fetchAllWorkItems = useCallback(async (isRetry = false) => {
+  // if (!isWorkspaceReady || !currentWorkspace || loading) {
+  //   return;
+  // }
 
-  if (loading && !isRetry) {
-    console.log('🚫 Fetch already in progress, skipping');
-    return;
-  }
-    setError(null);
+  setLoading(true);
+ try {
+    const url = `${getWorkspaceScopedEndpoint('/api/dashboard/work-items')}&_t=${Date.now()}`;
     
-    try {
-      // Use workspace-scoped endpoint
-      const baseUrl = '/api/dashboard/work-items';
-      const url = getWorkspaceScopedEndpoint(baseUrl);
-      
-      // Add cache busting and workspace context
-      const urlWithParams = new URL(url, window.location.origin);
-      urlWithParams.searchParams.append('_t', `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
-      urlWithParams.searchParams.set('workspaceId', currentWorkspace.id);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Workspace-Id': currentWorkspace.id,
+      },
+      cache: 'no-cache'
+    });
 
-      const response = await fetch(urlWithParams.toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'X-Workspace-Id': currentWorkspace.id, // Add workspace header
-          ...(typeof window !== 'undefined' && localStorage.getItem('authToken') && {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          })
-        },
-        cache: 'no-cache'
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required. Please log in again.');
-        }
-        if (response.status === 403) {
-          throw new Error('Access denied. Please check your workspace permissions.');
-        }
-        if (response.status === 404) {
-          throw new Error('Workspace data not found.');
-        }
-        
-        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.error || errorData.message) {
-            errorMessage = errorData.error || errorData.message;
-          }
-        } catch {
-          // Ignore JSON parse errors for error responses
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-
-      let items: WorkItem[] = [];
-      
-      if (data.success && Array.isArray(data.data?.items)) {
-        items = data.data.items;
-      } else if (Array.isArray(data.data)) {
-        items = data.data;
-      } else if (Array.isArray(data.items)) {
-        items = data.items;
-      } else if (Array.isArray(data)) {
-        items = data;
-      } else if (data.success === false) {
-        throw new Error(data.error || data.message || 'API returned error status');
-      } else {
-        items = [];
-      }
-
-      // Filter items to ensure they belong to current workspace
-      const validItems = items.filter((item: any) => {
-        if (!item || typeof item !== 'object') {
-          return false;
-        }
-        
-        if (!item.id) {
-          return false;
-        }
-        
-        // Verify workspace ownership
-        if (item.workspace_id && item.workspace_id !== currentWorkspace.id) {
-          return false;
-        }
-        
-        if (!item.createdAt && (item.created_at || item.createdDate || item.timestamp)) {
-          item.createdAt = item.created_at || item.createdDate || item.timestamp;
-        }
-        
-        if (!item.createdAt) {
-          return false;
-        }
-        
-        return true;
-      });
-      
-      console.log(`Loaded ${validItems.length} work items for workspace: ${currentWorkspace.name}`);
-      setWorkItems(validItems);
-      setRetryCount(0);
-      setLastFetchTime(new Date());
-      
-    } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      setError(errorObj);
-      
-      if (!errorObj.message.includes('Authentication')) {
-        message.error(`Failed to load work items: ${errorObj.message}`);
-      }
-      
-      if (!isRetry) {
-        setWorkItems([]);
-      }
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status}`);
     }
- }, [currentWorkspace?.id, isWorkspaceReady]); 
+
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.data?.items)) {
+      setWorkItems(data.data.items);
+           setLastFetchTime(new Date()); // Add this line
+      setRetryCount(0); // Reset retry count on success
+    }
+    
+  } catch (error) {
+    console.error('Error fetching work items:', error);
+    if (!isRetry && retryCount < 2) {
+      setTimeout(() => fetchAllWorkItems(true), 2000);
+      setRetryCount(prev => prev + 1);
+    }
+  } finally {
+    setLoading(false);
+  }
+}, [currentWorkspace?.id, isWorkspaceReady]);
+
 
   const handleRetry = useCallback(async () => {
     if (retryCount < 3) {

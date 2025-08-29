@@ -154,18 +154,30 @@ const IntegratedWorkDashboard = () => {
   }, [currentWorkspace?.id, isWorkspaceReady]);
 
   // Listen for workspace changes
-  useEffect(() => {
-    const handleWorkspaceChange = () => {
-      setWorkItems([]);
-      setError(null);
-      if (isWorkspaceReady) {
+// In IntegratedWorkDashboard, update the workspace change effect:
+useEffect(() => {
+  const handleWorkspaceChange = () => {
+    console.log('Workspace changed, clearing data and refetching...');
+    setWorkItems([]); // Clear immediately
+    setError(null);
+    setCurrentPage(1); // Reset pagination
+    
+    if (isWorkspaceReady && currentWorkspace) {
+      // Add small delay to ensure workspace is fully switched
+      setTimeout(() => {
         fetchAllWorkItems();
-      }
-    };
+      }, 100);
+    }
+  };
 
-    window.addEventListener('workspaceChanged', handleWorkspaceChange);
-    return () => window.removeEventListener('workspaceChanged', handleWorkspaceChange);
-  }, [isWorkspaceReady]);
+  window.addEventListener('workspaceChanged', handleWorkspaceChange);
+  window.addEventListener('workspaceDataChanged', handleWorkspaceChange); // Add this
+  
+  return () => {
+    window.removeEventListener('workspaceChanged', handleWorkspaceChange);
+    window.removeEventListener('workspaceDataChanged', handleWorkspaceChange); // Add this
+  };
+}, [isWorkspaceReady, currentWorkspace?.id]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {

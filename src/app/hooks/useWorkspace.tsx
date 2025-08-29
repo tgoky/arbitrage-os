@@ -216,42 +216,43 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   // In useWorkspace hook, fix the switchWorkspace function
 // In useWorkspace hook, add debouncing
 const switchWorkspace = useCallback(async (slug: string) => {
-  console.log('switchWorkspace called with slug:', slug);
+  if (isLoading || !workspaces.length) return;
   
-  // Prevent rapid successive calls
-  if (isLoading) {
-    console.log('🚫 Workspace switch already in progress');
-    return;
-  }
-  
-  setValidationError(null);
   const workspace = workspaces.find(w => w.slug === slug);
+  if (!workspace || workspace.id === currentWorkspace?.id) return;
+
+  setIsLoading(true);
   
-  if (workspace && workspace.id !== currentWorkspace?.id) {
-    setIsLoading(true);
-    
-    try {
-      // Set workspace state
-      setCurrentWorkspace(workspace);
+  try {
+    // Clear all workspace-related data
+    if (typeof window !== 'undefined') {
+      // Clear localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('work-items-') || 
+            key.startsWith('workspace-') ||
+            key.startsWith('deliverables-')) {
+          localStorage.removeItem(key);
+        }
+      });
       
-      // Update localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('current-workspace', JSON.stringify(workspace));
-        
-        // Clear ALL cached data
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('work-items-') || key.startsWith('workspace-')) {
-            localStorage.removeItem(key);
-          }
-        });
-      }
-      
-      // Navigate with replace to avoid history issues
-      router.replace(`/dashboard/${slug}`);
-      
-    } finally {
-      setIsLoading(false);
+      // Update current workspace
+      localStorage.setItem('current-workspace', JSON.stringify(workspace));
     }
+    
+    // Update state
+    setCurrentWorkspace(workspace);
+    
+    // Dispatch workspace change event
+    window.dispatchEvent(new CustomEvent('workspaceChanged', {
+      detail: { workspace }
+    }));
+    
+    // Navigate (use replace to avoid history issues)
+    router.replace(`/dashboard/${slug}`);
+    
+  } finally {
+    // Add small delay to prevent race conditions
+    setTimeout(() => setIsLoading(false), 500);
   }
 }, [workspaces, currentWorkspace?.id, isLoading, router]);
 
