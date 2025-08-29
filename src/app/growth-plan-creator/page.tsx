@@ -77,6 +77,7 @@ import { useGrowthPlan } from '../hooks/useGrowthPlan';
 import { GrowthPlanInput, SavedGrowthPlan, GrowthPlanSummary } from '@/types/growthPlan';
 import { debounce } from 'lodash';
 import LoadingOverlay from './LoadingOverlay';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -92,6 +93,10 @@ export default function GrowthPlanCreatorPage() {
   const [timeframe, setTimeframe] = useState('6m');
   const [currentStage, setCurrentStage] = useState(0);
   const [showSimulation, setShowSimulation] = useState(false);
+
+    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+
+    
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<SavedGrowthPlan | null>(null);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
@@ -126,11 +131,10 @@ export default function GrowthPlanCreatorPage() {
     cleanup
   } = useGrowthPlan({ 
     autoFetch: true,
-    workspaceId: 'default' 
+    workspaceId: currentWorkspace?.id // Use current workspace ID
   });
 
-   const isLoading = generationLoading;
-  // Cleanup on unmount
+    // Cleanup on unmount
   useEffect(() => {
   setIsMounted(true); // Ensure it's set to true on mount
   
@@ -192,6 +196,37 @@ useEffect(() => {
     }, 300),
     [searchPlans, fetchPlans, isMounted]
   );
+
+    // ADD WORKSPACE VALIDATION (same as pricing calculator)
+  if (!isWorkspaceReady) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <Spin size="large" />
+        <p className="mt-4">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Alert
+          message="Workspace Required"
+          description="The growth plan creator must be accessed from within a workspace. Please navigate to a workspace first."
+          type="error"
+          showIcon
+          action={
+            <Button type="primary" href="/dashboard">
+              Go to Dashboard
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+   const isLoading = generationLoading;
+
 
   // Data sanitization function
   const sanitizeChartData = (data: any[]): any[] | null => {

@@ -1,6 +1,7 @@
 // hooks/useGrowthPlan.ts - ALL ISSUES FIXED
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { message, notification } from 'antd';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import {
   GrowthPlanInput,
   GeneratedGrowthPlan,
@@ -24,6 +25,7 @@ interface UseGrowthPlanOptions {
 
 export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
   // ✅ FIXED: Mounted state tracking
+    const { currentWorkspace } = useWorkspaceContext();
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -98,12 +100,17 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     timeframe?: string;
     limit?: number;
     offset?: number;
-  }): Promise<GrowthPlanSummary[]> => {
+ }): Promise<GrowthPlanSummary[]> => {
+    if (!currentWorkspace) {
+      console.log('No current workspace, skipping growth plans fetch');
+      return [];
+    }
     setLoading(true);
     setError(null);
     
     try {
       const params = new URLSearchParams();
+         params.set('workspaceId', currentWorkspace.id);
       if (options.workspaceId) params.set('workspaceId', options.workspaceId);
       if (filters?.industry) params.set('industry', filters.industry);
       if (filters?.timeframe) params.set('timeframe', filters.timeframe);
@@ -135,10 +142,13 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         setLoading(false);
       }
     }
-  }, [options.workspaceId]);
+  }, [currentWorkspace?.id]); 
 
   // ✅ FIXED: generateGrowthPlan with proper isMounted calls
   const generateGrowthPlan = useCallback(async (input: Omit<GrowthPlanInput, 'userId'>): Promise<GeneratedGrowthPlan | null> => {
+        if (!currentWorkspace) {
+      throw new Error('No workspace selected. Please access the growth plan creator from within a workspace.');
+    }
     cleanup();
     
     const controller = new AbortController();
@@ -156,10 +166,11 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         throw new Error('At least one expertise area is required');
       }
 
-      const requestData: CreateGrowthPlanRequest = {
-        input,
-        workspaceId: options.workspaceId
-      };
+     const requestData: CreateGrowthPlanRequest = {
+      input,
+      workspaceId: currentWorkspace.id // Use current workspace instead of options
+    };
+
 
       console.log('🚀 Generating growth plan with data:', {
         clientCompany: input.clientCompany,
@@ -279,7 +290,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
         setAbortController(null);
       }
     }
-  }, [options.workspaceId, cleanup, fetchPlans, fetchPlan]);
+  }, [currentWorkspace, cleanup, fetchPlans, fetchPlan]); 
 
   // Update a growth plan
   const updatePlan = useCallback(async (

@@ -200,6 +200,23 @@ export async function POST(request: NextRequest) {
     
     const { input, workspaceId } = body;
 
+      if (!workspaceId) {
+      return NextResponse.json({ 
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+      // VALIDATE WORKSPACE ACCESS
+    const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+    if (!hasAccess) {
+      return NextResponse.json({ 
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
+
     if (!input) {
       console.error('❌ Growth plan input is missing');
       return NextResponse.json(
@@ -353,16 +370,15 @@ if (!finalWorkspaceId || typeof finalWorkspaceId !== 'string' || !/^[0-9a-fA-F]{
 // Now use finalWorkspaceId in the save call
 console.log('💾 Saving growth plan to database...');
 console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWorkspaceId); // Extra debug log
-let planId;
-try {
-  planId = await growthPlanService.saveGrowthPlan(
-    userId,
-    finalWorkspaceId, // <-- Use the validated ID
-    plan,
-    inputWithUserId
-  );
-  console.log('✅ Growth plan saved with ID:', planId);
-} catch (saveError) {
+  let planId;
+    try {
+      planId = await growthPlanService.saveGrowthPlan(
+        userId,
+        workspaceId, // Use the validated workspace ID directly
+        plan,
+        inputWithUserId
+      );
+    } catch (saveError) {
 
       console.error('💥 Error saving growth plan:', saveError);
       return NextResponse.json(
@@ -379,18 +395,20 @@ try {
     console.log('📊 Logging growth plan usage...');
     try {
       await logUsage({
-        userId,
-        feature: 'growth_plan_generation',
-        tokens: plan.tokensUsed,
-        timestamp: new Date(),
-        metadata: {
-          planId,
-          clientCompany: input.clientCompany,
-          industry: input.industry,
-          timeframe: input.timeframe,
-          generationTime: plan.generationTime
-        }
-      });
+      userId,
+      feature: 'growth_plan_generation',
+      tokens: plan.tokensUsed,
+      timestamp: new Date(),
+      metadata: {
+        planId,
+        workspaceId, // ADD THIS
+        workspaceName: workspace.name, // ADD THIS (get workspace object first)
+        clientCompany: input.clientCompany,
+        industry: input.industry,
+        timeframe: input.timeframe,
+        generationTime: plan.generationTime
+      }
+    });
       console.log('✅ Growth plan usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
@@ -487,6 +505,18 @@ export async function GET(request: NextRequest) {
     }
 
   const { searchParams } = new URL(request.url);
+   const workspaceId = searchParams.get('workspaceId');
+
+    if (workspaceId) {
+      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          error: 'Workspace access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
+
 // Get raw workspaceId from query params
 const rawWorkspaceId = searchParams.get('workspaceId'); // This could be 'default', a UUID, or null
 const limit = parseInt(searchParams.get('limit') || '20');
@@ -552,7 +582,7 @@ try {
   // Pass the validated/resolved workspaceId
   plans = await growthPlanService.getUserGrowthPlans(
     userId,
-    finalWorkspaceIdForFetch // <-- Use the resolved ID here
+    workspaceId || undefined
   );
   console.log('✅ Retrieved', plans.length, 'growth plans');
 } catch (serviceError) {
@@ -621,5 +651,20 @@ try {
       },
       { status: 500 }
     );
+  }
+}
+
+async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
+  try {
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: userId
+      }
+    });
+    return !!workspace;
+  } catch (error) {
+    console.error('Error validating workspace access:', error);
+    return false;
   }
 }
