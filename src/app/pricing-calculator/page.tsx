@@ -105,16 +105,16 @@ const [viewDetailLoading, setViewDetailLoading] = useState(false); // Loading fo
 
 
 
-// Update the useEffect to handle errors gracefully
+// Update the useEffect in PricingCalculator component:
 useEffect(() => {
-  fetchCalculations();
+  if (currentWorkspace) {
+    fetchCalculations(); // Remove the parameter
+  }
   // Make benchmarks optional - don't block the UI if it fails
   fetchBenchmarks().catch(err => {
     console.warn('Benchmarks unavailable:', err);
-    // Don't show error to user, just log it
   });
-}, [fetchCalculations, fetchBenchmarks]);
-
+}, [fetchCalculations, fetchBenchmarks, currentWorkspace?.id]); // Add currentWorkspace dependency
 
   // Quick calculation results (real-time)
  const [quickResults, setQuickResults] = useState({
@@ -230,6 +230,9 @@ const handleFormChange = () => {
       setCurrentPackage(result.package);
       setSavedCalculationId(result.calculationId);
       setActiveTab('results');
+
+         // Refresh saved calculations to show the new one
+    fetchCalculations();
       
       notification.success({
         message: 'Pricing Package Generated!',

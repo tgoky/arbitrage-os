@@ -304,15 +304,21 @@ export const useSavedCalculations = () => {
   const [calculations, setCalculations] = useState<SavedCalculation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+   const { currentWorkspace } = useWorkspaceContext(); 
+  
 
-  const fetchCalculations = useCallback(async (workspaceId?: string) => {
+ const fetchCalculations = useCallback(async () => { // Remove workspaceId parameter
+    if (!currentWorkspace) {
+      console.log('No current workspace, skipping calculations fetch');
+      return [];
+    }
+
     setLoading(true);
     setError(null);
     
     try {
-      const url = workspaceId 
-        ? `/api/pricing-calculator?workspaceId=${workspaceId}`
-        : '/api/pricing-calculator';
+      // Always use current workspace
+      const url = `/api/pricing-calculator?workspaceId=${currentWorkspace.id}`;
         
       const response = await fetch(url);
       
@@ -323,8 +329,9 @@ export const useSavedCalculations = () => {
       const data = await response.json();
       
       if (data.success) {
+        console.log(`Fetched ${data.data.length} calculations for workspace: ${currentWorkspace.name}`);
         setCalculations(data.data);
-          return data.data; // <-- ADD THIS LINE
+        return data.data;
       } else {
         throw new Error(data.error || 'Failed to fetch calculations');
       }
@@ -333,11 +340,12 @@ export const useSavedCalculations = () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
       message.error(errorMessage);
-        return []; 
+      return []; 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentWorkspace?.id]); // Update dependencies
+  
 
   const getCalculation = useCallback(async (calculationId: string) => {
     setLoading(true);
