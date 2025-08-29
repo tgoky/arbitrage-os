@@ -140,9 +140,26 @@ const { validateInput, validateInputProgressive, getOfferInsights, calculateCapa
   });
 
   // Load saved offers on component mount
+  // useEffect(() => {
+  //   fetchOffers();
+  // }, [fetchOffers]);
   useEffect(() => {
+  if (isWorkspaceReady && currentWorkspace) {
     fetchOffers();
-  }, [fetchOffers]);
+  }
+}, [isWorkspaceReady, currentWorkspace?.id]);
+
+// ADD THIS - Fetch offers when workspace changes  
+useEffect(() => {
+  const handleWorkspaceChange = () => {
+    if (currentWorkspace) {
+      fetchOffers();
+    }
+  };
+
+  window.addEventListener('workspaceChanged', handleWorkspaceChange);
+  return () => window.removeEventListener('workspaceChanged', handleWorkspaceChange);
+}, [currentWorkspace]);
 
   // Fix the tab change handler type issue
   const handleTabChange = (activeKey: string) => {

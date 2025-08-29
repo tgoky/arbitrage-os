@@ -250,7 +250,8 @@ const fetchRecentWorkItems = async () => {
         <Button
           type="text"
           size="small"
-          onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/submissions`}
+          onClick={() => window.location.href = `/submissions`}
+                    // onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/submissions`}
           style={{
             color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
             padding: 0,
@@ -296,7 +297,8 @@ const fetchRecentWorkItems = async () => {
                   size="small"
                   key="view"
                   icon={<EyeOutlined />}
-                  onClick={() => handleView(item)}
+                  // onClick={() => handleView(item)}
+                        onClick={() => window.location.href = `/submissions`}
                   style={{
                     color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
                     padding: '0 4px',

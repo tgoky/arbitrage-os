@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { message } from 'antd';
 import { type Platform, isValidPlatform, convertToPlatforms } from '@/types/adWriter';
+import { useWorkspaceContext } from './useWorkspaceContext';
 
 export interface AdWriterInput {
   businessName: string;
@@ -54,6 +55,14 @@ export function useAdWriter() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+   const { currentWorkspace } = useWorkspaceContext();
+   
+     const getCurrentWorkspaceId = () => {
+    if (!currentWorkspace) {
+      throw new Error('No workspace selected');
+    }
+    return currentWorkspace.id;
+  };
 
   // Cleanup function for aborting requests
   const cleanup = () => {
@@ -84,11 +93,12 @@ export function useAdWriter() {
       }
 
       // ✅ FIXED: Convert platforms to the correct format before sending
-      const requestData = {
-        ...input,
-        // Convert string[] to Platform[] on the backend, but send as-is for now
-        activePlatforms: input.activePlatforms || []
-      };
+  const requestData = {
+  ...input,
+  workspaceId: getCurrentWorkspaceId(), // Add this line
+  activePlatforms: input.activePlatforms || []
+};
+
 
       // LOG THE EXACT DATA BEING SENT
       console.log('Sending data to API:', JSON.stringify(requestData, null, 2));

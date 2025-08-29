@@ -12,7 +12,7 @@ import { convertToPlatforms, type Platform } from '@/types/adWriter'; // ✅ Imp
 
 // EXACT COPY of pricing calculator's robust authentication function
 // Use this IMPROVED 3-method approach in ALL routes
-async function getAuthenticatedUser(request: NextRequest) {
+export async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
@@ -140,7 +140,39 @@ export async function POST(req: NextRequest) {
     
     console.log('User authenticated:', user.id);
 
-    // ✅ RATE LIMITING for ad generation (same pattern as pricing calculator)
+    // Parse request body FIRST
+    const body = await req.json();
+    console.log('Request body received:', JSON.stringify(body, null, 2));
+
+    // THEN get workspace ID from both sources
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
+
+    if (!workspaceId) {
+      return NextResponse.json({ 
+        error: 'Workspace ID required',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+    // Validate workspace access
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: user.id
+      }
+    });
+
+    if (!workspace) {
+      return NextResponse.json({ 
+        error: 'Workspace access denied',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
+    console.log('Using workspace:', workspace.id);
+
+    // RATE LIMITING for ad generation (same pattern as pricing calculator)
     const rateLimitResult = await rateLimit(
       `ad_writer:${user.id}`,
       25, // 25 ad generations per hour
@@ -158,9 +190,8 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-
     // Parse and validate request body
-    const body = await req.json();
+ 
     console.log('Request body received:', JSON.stringify(body, null, 2));
     
     const validation = validateAdWriterInput(body);
@@ -186,31 +217,7 @@ export async function POST(req: NextRequest) {
 
     console.log('Validation passed');
 
-    // ✅ GET USER'S WORKSPACE with error handling (EXACT SAME as pricing calculator)
-    let workspace;
-    try {
-      workspace = await prisma.workspace.findFirst({
-        where: { user_id: user.id }
-      });
-
-      if (!workspace) {
-        console.log('Creating default workspace for user');
-        workspace = await prisma.workspace.create({
-          data: {
-            user_id: user.id,
-            name: 'Default Workspace',
-            slug: 'default',
-            description: 'Default workspace for ad campaigns'
-          }
-        });
-      }
-    } catch (dbError) {
-      console.error('Database error getting/creating workspace:', dbError);
-      return NextResponse.json(
-        { error: 'Database error. Please try again.' },
-        { status: 500 }
-      );
-    }
+   
 
     console.log('Using workspace:', workspace.id);
 

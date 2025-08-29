@@ -350,40 +350,40 @@ useEffect(() => {
   // Create action menu
   const createActionMenu = (item: WorkItem) => (
     <Menu onClick={({ key }) => handleAction(key, item)}>
-      {item.actions.includes('view') && (
+      {/* {item.actions.includes('view') && (
         <Menu.Item key="view" icon={<EyeOutlined />}>
           View Details
         </Menu.Item>
-      )}
-      {item.actions.includes('edit') && (
+      )} */}
+      {/* {item.actions.includes('edit') && (
         <Menu.Item key="edit" icon={<EditOutlined />}>
           Edit
         </Menu.Item>
-      )}
-      {item.actions.includes('export') && (
+      )} */}
+      {/* {item.actions.includes('export') && (
         <Menu.Item key="export" icon={<DownloadOutlined />}>
           Export
         </Menu.Item>
-      )}
-      {item.actions.includes('copy') && (
+      )} */}
+      {/* {item.actions.includes('copy') && (
         <Menu.Item key="copy" icon={<ShareAltOutlined />}>
           Copy to Clipboard
         </Menu.Item>
-      )}
+      )} */}
       {item.actions.includes('duplicate') && (
         <Menu.Item key="duplicate" icon={<ShareAltOutlined />}>
           Duplicate
         </Menu.Item>
       )}
-      {item.actions.includes('optimize') && (
+      {/* {item.actions.includes('optimize') && (
         <Menu.Item key="optimize" icon={<BarChartOutlined />}>
           Optimize
         </Menu.Item>
-      )}
+      )} */}
       <Menu.Divider />
-      <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
+      {/* <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
         Delete
-      </Menu.Item>
+      </Menu.Item> */}
     </Menu>
   );
 
@@ -671,9 +671,9 @@ useEffect(() => {
                         </div>
 
                         {/* Actions */}
-                        <Dropdown overlay={createActionMenu(item)} trigger={['click']}>
+                        {/* <Dropdown overlay={createActionMenu(item)} trigger={['click']}>
                           <Button type="text" icon={<EllipsisOutlined />} />
-                        </Dropdown>
+                        </Dropdown> */}
                       </div>
                     </div>
                   </div>

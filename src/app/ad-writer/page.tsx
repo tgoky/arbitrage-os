@@ -45,6 +45,7 @@ import {
 import { useAdWriter, type AdWriterInput, type GeneratedAd, type FullScript } from '../hooks/useAdWriter';
 import { LoadingAnimation, loadingMessages } from './Loading';
 import LoadingOverlay from './LoadingOverlay';
+import {SavedAdsHistory} from './savedAds'
 
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -487,6 +488,8 @@ const nextStep = async () => {
   }
 };
 
+
+
   const prevStep = () => {
     // ✅ Save current step data before going back
     saveCurrentStepData();
@@ -570,7 +573,8 @@ const downloadAds = () => {
               <UserOutlined className="mr-2" />
               Business Information
             </Title>
-            
+
+      
             {error && (
               <Alert
                 message="Error"
@@ -1126,6 +1130,7 @@ const downloadAds = () => {
                     </div>
                   </TabPane>
                 ))}
+               
               </Tabs>
             </Card>
             
@@ -1200,6 +1205,16 @@ const downloadAds = () => {
         </Text>
       </div>
       
+
+        {/* Add History Tab Here */}
+    <div className="mb-8">
+      <Tabs defaultActiveKey="history" type="card">
+        <TabPane tab="Generated Ads History" key="history">
+          <SavedAdsHistory />
+        </TabPane>
+      </Tabs>
+    </div>
+    
       <div className="mb-8">
         <Progress 
           percent={(currentStep / (steps.length - 1)) * 100} 
