@@ -338,9 +338,9 @@ export function useAdWriter() {
     const errors: string[] = [];
 
 
-//        if (!input.adLength) {
-//   errors.push('Ad length is required');
-// }
+       if (!input.adLength) {
+  errors.push('Ad length is required');
+}
 
     // Required fields validation
     if (!input.businessName?.trim()) {

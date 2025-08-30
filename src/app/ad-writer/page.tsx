@@ -271,31 +271,32 @@ const AdWriter = () => {
     console.log('Active platforms:', activePlatforms);
 
     // ✅ FIXED: Use combined data for the request
-    const requestData: AdWriterInput = {
-      businessName: allData.businessName || '',
-      personalTitle: allData.personalTitle || '',
-      valueProposition: allData.valueProposition || '',
-      offerName: allData.offerName || '',
-      offerDescription: allData.offerDescription || '',
-      features: allData.features || [],
-      pricing: allData.pricing || '',
-      uniqueMechanism: allData.uniqueMechanism || '',
-      idealCustomer: allData.idealCustomer || '',
-      primaryPainPoint: allData.primaryPainPoint || '',
-      failedSolutions: allData.failedSolutions || '',
-      coreResult: allData.coreResult || '',
-      secondaryBenefits: allData.secondaryBenefits || [],
-      timeline: allData.timeline || '',
-      activePlatforms: activePlatforms, // This comes from state
-      adType: allData.adType || 'conversion',
-      tone: allData.tone || 'professional',
-      caseStudy1: allData.caseStudy1 || '',
-      credentials: allData.credentials || '',
-      cta: allData.cta || '',
-      url: allData.url || '',
-      urgency: allData.urgency || '',
-      leadMagnet: allData.leadMagnet || ''
-    };
+  const requestData: AdWriterInput = {
+  businessName: allData.businessName || '',
+  personalTitle: allData.personalTitle || '',
+  valueProposition: allData.valueProposition || '',
+  offerName: allData.offerName || '',
+  offerDescription: allData.offerDescription || '',
+  features: allData.features || [],
+  pricing: allData.pricing || '',
+  uniqueMechanism: allData.uniqueMechanism || '',
+  idealCustomer: allData.idealCustomer || '',
+  primaryPainPoint: allData.primaryPainPoint || '',
+  failedSolutions: allData.failedSolutions || '',
+  coreResult: allData.coreResult || '',
+  secondaryBenefits: allData.secondaryBenefits || [],
+  timeline: allData.timeline || '',
+  activePlatforms: activePlatforms,
+  adType: allData.adType || 'conversion',
+  tone: allData.tone || 'professional',
+  adLength: allData.adLength || 'medium', // ✅ ADD THIS LINE
+  caseStudy1: allData.caseStudy1 || '',
+  credentials: allData.credentials || '',
+  cta: allData.cta || '',
+  url: allData.url || '',
+  urgency: allData.urgency || '',
+  leadMagnet: allData.leadMagnet || ''
+};
 
     // ✅ Debug: Log the exact data being sent
     console.log('Final request data:', JSON.stringify(requestData, null, 2));
@@ -468,9 +469,17 @@ const nextStep = async () => {
   saveCurrentStepData();
   
   switch (currentStep) {
-    case 0:
-      isValid = await validateBusinessFields();
-      break;
+   case 0:
+  isValid = await form.validateFields(['businessName', 'valueProposition', 'offerName', 'offerDescription', 'pricing', 'uniqueMechanism', 'adLength'])
+    .then(() => true)
+    .catch((errorInfo) => {
+      const firstError = errorInfo.errorFields[0];
+      if (firstError) {
+        message.error(`Please fill in: ${firstError.name[0]}`);
+      }
+      return false;
+    });
+  break;
     case 1:
       isValid = await form.validateFields(['idealCustomer', 'primaryPainPoint', 'coreResult'])
         .then(() => true)
@@ -478,7 +487,8 @@ const nextStep = async () => {
       break;
     case 2:
       // ✅ NO PLATFORM REQUIREMENT - only validate form fields
-      isValid = await form.validateFields(['adType', 'tone', 'adLength', 'cta', 'url'])
+
+  isValid = await form.validateFields(['adType', 'tone', 'cta', 'url'])
         .then(() => true)
         .catch(() => false);
       break;
