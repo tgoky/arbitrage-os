@@ -24,6 +24,18 @@ export interface BusinessInputs {
   fulfillmentStack: string[];
 }
 
+export interface ProgressiveValidationResult {
+  isValid: boolean;
+  isReadyToGenerate: boolean;
+  errors: Record<string, string>;
+  warnings: Record<string, string>;
+  completionPercentage: number;
+  completedFields: number;
+  totalRequiredFields: number;
+  essentialComplete?: number;
+  totalEssential?: number;
+}
+
 export interface PricingInputs {
   pricePosture: 'value-priced' | 'market-priced' | 'premium';
   contractStyle: 'month-to-month' | '3-month-min' | '6-month-min' | 'project';

@@ -224,7 +224,6 @@ export const useOfferCreator = () => {
 // SIGNATURE OFFER VALIDATION HOOK - ONE CLEAN VERSION
 // ============================================================================
 export const useOfferValidation = () => {
-  // Progressive validation function
   const validateInputProgressive = useCallback((
     input: Partial<OfferCreatorInput>, 
     showAllErrors = false
@@ -255,66 +254,85 @@ export const useOfferValidation = () => {
       }
     };
 
-    // Founder validation
-    if (shouldValidateSection(input.founder, 'founder')) {
+    // HARD ERRORS - Only truly essential fields prevent generation
+    // Founder validation - Only check if showAllErrors OR if we have some founder data
+    if (showAllErrors || (input.founder?.signatureResults?.length || input.founder?.coreStrengths?.length)) {
       if (!(input.founder?.signatureResults?.length || 0)) {
         errors['founder.signatureResults'] = 'At least one signature result is required';
       }
       if (!(input.founder?.coreStrengths?.length || 0)) {
         errors['founder.coreStrengths'] = 'At least one core strength is required';
       }
+      // MOVED TO WARNING - processes not absolutely essential
       if (!(input.founder?.processes?.length || 0)) {
-        errors['founder.processes'] = 'At least one process is required';
+        warnings['founder.processes'] = 'Adding proven processes strengthens your offers';
       }
       if (!(input.founder?.industries?.length || 0)) {
         errors['founder.industries'] = 'At least one industry is required';
-      } else if ((input.founder?.industries?.length || 0) > 3) {
-        errors['founder.industries'] = 'Maximum 3 industries allowed for focused positioning';
+      }
+      
+      // MOVED TO WARNING - Don't block generation for too many industries
+      if ((input.founder?.industries?.length || 0) > 3) {
+        warnings['founder.industries'] = 'Consider focusing on 1-2 industries for stronger positioning';
       }
     }
 
-    // Market validation
-    if (shouldValidateSection(input.market, 'market')) {
+    // Market validation - Only check if showAllErrors OR if we have some market data
+    if (showAllErrors || input.market?.targetMarket || input.market?.buyerRole) {
       if (!input.market?.targetMarket || input.market.targetMarket.length < 3) {
         errors['market.targetMarket'] = 'Target market must be at least 3 characters';
       }
       if (!input.market?.buyerRole || input.market.buyerRole.length < 3) {
-        errors['market.buyerRole'] = 'Buyer role must be at least 3 characters';
+        errors['market.buyerRole'] = 'Buyer role required';
       }
-      if (!(input.market?.pains?.length || 0)) {
-        errors['market.pains'] = 'At least one pain point is required';
+      // MADE LESS STRICT - only require if trying to validate
+      if (showAllErrors && !(input.market?.pains?.length || 0)) {
+        warnings['market.pains'] = 'Adding pain points will improve your offers';
       }
-      if (!(input.market?.outcomes?.length || 0)) {
-        errors['market.outcomes'] = 'At least one outcome is required';
+      if (showAllErrors && !(input.market?.outcomes?.length || 0)) {
+        warnings['market.outcomes'] = 'Adding desired outcomes will improve your offers';
       }
     }
 
-    // Business validation
-    if (shouldValidateSection(input.business, 'business')) {
+    // Business validation - Only check if showAllErrors OR if we have some business data
+    if (showAllErrors || input.business?.deliveryModel?.length || input.business?.capacity) {
       if (!(input.business?.deliveryModel?.length || 0)) {
         errors['business.deliveryModel'] = 'At least one delivery model is required';
       }
+      // MADE LESS STRICT - capacity and hours become warnings unless fully validating
       if (!input.business?.capacity) {
-        errors['business.capacity'] = 'Capacity is required';
+        if (showAllErrors) {
+          errors['business.capacity'] = 'Capacity is required';
+        } else {
+          warnings['business.capacity'] = 'Adding capacity helps generate better pricing';
+        }
       }
       if (!input.business?.monthlyHours) {
-        errors['business.monthlyHours'] = 'Monthly hours is required';
+        if (showAllErrors) {
+          errors['business.monthlyHours'] = 'Monthly hours is required';
+        } else {
+          warnings['business.monthlyHours'] = 'Adding monthly hours helps with capacity planning';
+        }
       }
       if (!input.business?.acv) {
-        errors['business.acv'] = 'Annual Contract Value is required';
+        if (showAllErrors) {
+          errors['business.acv'] = 'Annual Contract Value is required';
+        } else {
+          warnings['business.acv'] = 'Adding ACV helps with pricing strategy';
+        }
       }
 
-      // Business logic validation for capacity vs hours
+      // MOVED TO WARNINGS - Capacity vs hours guidance (don't block generation)
       if (input.business?.capacity && input.business?.monthlyHours) {
         const capacity = parseInt(input.business.capacity);
         const monthlyHours = parseInt(input.business.monthlyHours);
         
-        if (!isNaN(capacity) && !isNaN(monthlyHours)) {
+        if (!isNaN(capacity) && !isNaN(monthlyHours) && capacity > 0) {
           const hoursPerClient = monthlyHours / capacity;
           if (hoursPerClient < 5) {
-            errors['business.capacity'] = 'Hours per client seems too low (less than 5 hours)';
+            warnings['business.capacity'] = 'Consider increasing hours per client (currently less than 5 hours per client)';
           } else if (hoursPerClient > 80) {
-            errors['business.monthlyHours'] = 'Hours per client seems too high (more than 80 hours)';
+            warnings['business.monthlyHours'] = 'Consider adjusting capacity or hours (currently over 80 hours per client)';
           }
         }
       }
@@ -331,78 +349,122 @@ export const useOfferValidation = () => {
       errors['pricing.guarantee'] = 'Guarantee option is required';
     }
 
-    // Voice validation
+    // Voice validation - Only require differentiators for generation
     if (!input.voice?.brandTone) {
-      errors['voice.brandTone'] = 'Brand tone is required';
+      // These have defaults, so just warn
+      warnings['voice.brandTone'] = 'Brand tone helps tailor your messaging';
     }
     if (!input.voice?.positioning) {
-      errors['voice.positioning'] = 'Positioning angle is required';
+      warnings['voice.positioning'] = 'Positioning angle helps focus your value proposition';
     }
-    if (shouldValidateSection(input.voice, 'voice')) {
-      if (!(input.voice?.differentiators?.length || 0)) {
+    
+    // Differentiators are essential for good offers
+    if (!(input.voice?.differentiators?.length || 0)) {
+      if (showAllErrors || input.voice?.differentiators !== undefined) {
         errors['voice.differentiators'] = 'At least one differentiator is required';
       }
     }
 
-    // ACV validation based on price posture
+    // ALL BUSINESS LOGIC MOVED TO WARNINGS - Don't block generation
+    
+    // ACV validation based on price posture - NOW WARNINGS ONLY
     if (input.business?.acv && input.pricing?.pricePosture) {
       const acvMatch = input.business.acv.match(/[\d,]+/);
       if (acvMatch) {
         const acvValue = parseInt(acvMatch[0].replace(/,/g, ''));
         
         if (input.pricing.pricePosture === 'premium' && acvValue < 25000) {
-          warnings['business.acv'] = 'Premium pricing typically requires higher ACV (>$25K)';
+          warnings['business.acv'] = 'Premium pricing typically works better with higher ACV (>$25K), but you can still proceed';
         }
         
         if (input.pricing.pricePosture === 'value-priced' && acvValue > 100000) {
-          warnings['pricing.pricePosture'] = 'Value pricing at this ACV level may not be optimal';
+          warnings['pricing.pricePosture'] = 'Value pricing at this ACV level may not be optimal, but can work with strong ROI positioning';
         }
       }
     }
 
-    // Calculate completion percentage
-    const totalRequiredFields = 14;
-    const completedFields = [
+    // Delivery model and contract alignment - NOW WARNING ONLY
+    if (input.business?.deliveryModel?.includes('one-time-project') && 
+        input.pricing?.contractStyle !== 'project') {
+      warnings['pricing.contractStyle'] = 'Consider project-based contract style for one-time project delivery';
+    }
+
+    // Industry and tone alignment - NOW WARNING ONLY
+    const techIndustries = ['saas', 'software', 'tech', 'technology'];
+    const hasTechIndustry = input.founder?.industries?.some(industry => 
+      techIndustries.some(tech => industry.toLowerCase().includes(tech))
+    );
+    
+    if (hasTechIndustry && input.voice?.brandTone === 'friendly') {
+      warnings['voice.brandTone'] = 'Consider "consultative" or "assertive" tone for tech industries, though friendly can work too';
+    }
+
+    // Premium pricing without guarantee - NOW WARNING ONLY
+    if (input.pricing?.pricePosture === 'premium' && input.pricing?.guarantee === 'none') {
+      warnings['pricing.guarantee'] = 'Consider adding a guarantee for premium pricing to reduce buyer risk';
+    }
+
+    // Calculate completion percentage based on ESSENTIAL fields only
+    const essentialFields = [
       (input.founder?.signatureResults?.length || 0) > 0,
       (input.founder?.coreStrengths?.length || 0) > 0,
-      (input.founder?.processes?.length || 0) > 0,
       (input.founder?.industries?.length || 0) > 0,
       (input.market?.targetMarket?.length || 0) > 2,
       (input.market?.buyerRole?.length || 0) > 2,
+      (input.business?.deliveryModel?.length || 0) > 0,
+      (input.voice?.differentiators?.length || 0) > 0,
+    ];
+    
+    const optionalFields = [
+      (input.founder?.processes?.length || 0) > 0,
       (input.market?.pains?.length || 0) > 0,
       (input.market?.outcomes?.length || 0) > 0,
-      (input.business?.deliveryModel?.length || 0) > 0,
-      (input.business?.capacity?.length || 0) > 0,
-      (input.business?.monthlyHours?.length || 0) > 0,
-      (input.business?.acv?.length || 0) > 0,
+      !!input.business?.capacity,
+      !!input.business?.monthlyHours,
+      !!input.business?.acv,
       !!input.pricing?.pricePosture,
-      (input.voice?.differentiators?.length || 0) > 0,
-    ].filter(Boolean).length;
+    ];
 
-    const completionPercentage = Math.round((completedFields / totalRequiredFields) * 100);
+    const completedEssential = essentialFields.filter(Boolean).length;
+    const completedOptional = optionalFields.filter(Boolean).length;
+    const totalEssential = essentialFields.length;
+    const totalOptional = optionalFields.length;
+    
+    const completionPercentage = Math.round(
+      ((completedEssential * 2) + completedOptional) / ((totalEssential * 2) + totalOptional) * 100
+    );
+
+    // FIXED: Only check ERRORS for isValid, not warnings
+    const hasBlockingErrors = Object.keys(errors).length > 0;
+    const hasMinimumRequired = completedEssential >= 5; // Need at least 5 of 7 essential fields
 
     return {
-      isValid: Object.keys(errors).length === 0 && completedFields === totalRequiredFields,
+      isValid: !hasBlockingErrors && completedEssential === totalEssential && completedOptional === totalOptional,
+      isReadyToGenerate: !hasBlockingErrors && hasMinimumRequired, // Can generate with minimal required fields
       errors,
       warnings,
       completionPercentage,
-      completedFields,
-      totalRequiredFields,
-      isReadyToGenerate: completedFields >= 10 // Allow generation with most fields complete
+      completedFields: completedEssential + completedOptional,
+      totalRequiredFields: totalEssential + totalOptional,
+      essentialComplete: completedEssential,
+      totalEssential: totalEssential
     };
   }, []);
 
+
   // Simple validation for backward compatibility
-  const validateInput = useCallback((input: Partial<OfferCreatorInput>) => {
+ const validateInput = useCallback((input: Partial<OfferCreatorInput>) => {
     const result = validateInputProgressive(input, true);
     return {
       isValid: result.isValid,
-      errors: result.errors
+      errors: result.errors,
+      warnings: result.warnings // Include warnings in simple validation too
     };
   }, [validateInputProgressive]);
 
+
+  
   const getOfferInsights = useCallback((input: OfferCreatorInput) => {
-    // Your existing insights logic here...
     return {
       credibility: { score: 75, factors: ['Strong results'] },
       marketFit: { score: 80, factors: ['Good alignment'] },
@@ -411,6 +473,7 @@ export const useOfferValidation = () => {
       recommendations: ['Keep improving']
     };
   }, []);
+
 
   const calculateCapacityMetrics = useCallback((input: OfferCreatorInput) => {
     const capacity = parseInt(input.business.capacity);

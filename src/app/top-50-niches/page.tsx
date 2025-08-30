@@ -605,24 +605,23 @@ const NichesPage: React.FC = () => {
     );
   };
 
-  const renderCompanies = (companies: string[]) => {
-    return (
-      <div className="flex flex-wrap gap-2 justify-center">
-        {companies.map((company, index) => {
-          const colorIndex = index % TAG_COLORS.length;
-          return (
-            <span 
-              key={company}
-              className={`px-3 py-1 rounded-full text-sm ${TAG_COLORS[colorIndex]}`}
-            >
-              {company}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
-
+ const renderCompanies = (companies: string[]) => {
+  return (
+    <div className="flex flex-col gap-1 min-w-[120px]">
+      {companies.map((company, index) => {
+        const colorIndex = index % TAG_COLORS.length;
+        return (
+          <span 
+            key={company}
+            className={`px-3 py-1 rounded-full text-xs ${TAG_COLORS[colorIndex]} whitespace-nowrap text-center block min-w-[100px]`}
+          >
+            {company}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
   const columns = [
     {
       title: 'Rank',
@@ -681,37 +680,57 @@ const NichesPage: React.FC = () => {
     },
   ];
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Centered Header Section */}
-      <div className="mb-8 text-center">
-        <Title level={2} className="mb-2">Top 50 Profitable Niches</Title>
-        <Text type="secondary" className="text-lg block mb-4">
-          Discover high-potential industries with detailed metrics on revenue potential, market size, and growth rates.
-        </Text>
-        
-        {/* Centered Search Bar */}
-        <div className="flex justify-center">
-          <Input
-            placeholder="Search niches..."
-            prefix={<SearchOutlined />}
-            size="large"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="max-w-md w-full"
-          />
-        </div>
+return (
+  <div className="max-w-7xl mx-auto px-4 py-8">
+    {/* Centered Header Section */}
+    <div className="mb-8 text-center">
+      <Title level={2} className="mb-2">Top 50 Profitable Niches</Title>
+      <Text type="secondary" className="text-lg block mb-4">
+        Discover high-potential industries with detailed metrics on revenue potential, market size, and growth rates.
+      </Text>
+      
+      {/* Centered Search Bar */}
+      <div className="flex justify-center">
+        <Input
+          placeholder="Search niches..."
+          prefix={<SearchOutlined />}
+          size="large"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="max-w-md w-full"
+        />
       </div>
-
-      <Table
-        columns={columns}
-        dataSource={filteredNiches}
-        pagination={false}
-        className="minimalist-table"
-        bordered={false}
-      />
     </div>
-  );
+
+    <Table
+      columns={columns}
+      dataSource={filteredNiches}
+      pagination={false}
+      className="minimalist-table"
+      bordered={false}
+      scroll={{ x: true }}
+      // Remove vertical lines and customize table styling
+      components={{
+        body: {
+          cell: (props: any) => (
+            <td 
+              {...props} 
+              style={{ 
+                ...props.style, 
+                borderRight: 'none',
+                borderLeft: 'none'
+              }} 
+            />
+          ),
+        },
+      }}
+      // Custom table styling to remove vertical lines
+      style={{
+        border: 'none',
+      }}
+    />
+  </div>
+);
 };
 
 export default NichesPage;

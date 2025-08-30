@@ -90,6 +90,7 @@ export default function OfferCreatorPage() {
   const [savedOfferId, setSavedOfferId] = useState<string | null>(null);
   const [activePanels, setActivePanels] = useState<string[]>(["1", "2", "3", "4", "5"]);
   const [inputsChanged, setInputsChanged] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
 
  const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
 
@@ -248,12 +249,11 @@ const validationResults = useMemo(() => {
  
 const onFinish = async () => {
   try {
-    const fullValidation = validateInputProgressive(completeInput, true);
-    if (!fullValidation.isValid) {
-      message.error("Please complete all required fields before generating");
-      return;
-    }
-
+   const fullValidation = validateInputProgressive(completeInput, true);
+if (!fullValidation.isReadyToGenerate) {  // ← Use isReadyToGenerate instead
+  message.error("Please complete essential fields before generating");
+  return;
+}
     const offerInput: Partial<OfferCreatorInput> = {
       founder: founderInputs,
       market: marketInputs,
@@ -320,15 +320,66 @@ const onFinish = async () => {
       break;
   }
 };
-const handleClearOffers = () => {
+// const handleClearOffers = () => {
+//   setGeneratedOffer(null);
+//   setSavedOfferId(null);
+//   setInputsChanged(false);
+//   setActiveTab("inputs");
+//     setGeneratedOffer(null);
+//   setSavedOfferId(null);
+//   setInputsChanged(false);
+  
+//   message.info("Cleared current offers. Ready to generate new ones.");
+// };
+
+// Add this new function for clearing everything
+const handleClearAll = () => {
+  // Clear generated offers
   setGeneratedOffer(null);
   setSavedOfferId(null);
   setInputsChanged(false);
+  
+  // Clear all form inputs with a slight delay to ensure state updates
+  setTimeout(() => {
+    setFounderInputs({
+      signatureResults: [],
+      coreStrengths: [],
+      processes: [],
+      industries: [],
+      proofAssets: [],
+    });
+    
+    setMarketInputs({
+      targetMarket: "",
+      buyerRole: "",
+      pains: [],
+      outcomes: [],
+    });
+    
+    setBusinessInputs({
+      deliveryModel: [],
+      capacity: "",
+      monthlyHours: "",
+      acv: "",
+      fulfillmentStack: [],
+    });
+    
+    setPricingInputs({
+      pricePosture: "value-priced",
+      contractStyle: "month-to-month",
+      guarantee: "none",
+    });
+    
+    setVoiceInputs({
+      brandTone: "consultative",
+      positioning: "ROI",
+      differentiators: [],
+    });
+  }, 50);
+  
   setActiveTab("inputs");
-  message.info("Cleared current offers. Ready to generate new ones.");
+  message.success("All fields cleared successfully!");
 };
-
-
 
   const handleExport = async (format: 'json' | 'html') => {
     if (!savedOfferId) {
@@ -427,7 +478,7 @@ const handleClearOffers = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-        <LoadingOverlay visible={isLoading} />
+        <LoadingOverlay visible={isLoading}    onComplete={() => setShowOverlay(false)}  />
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
@@ -507,7 +558,7 @@ const handleClearOffers = () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Proven Processes You Run</Text>
+                      <Text strong>Proven Processes You Run: Required</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
@@ -594,7 +645,7 @@ const handleClearOffers = () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Biggest Buyer Problems</Text>
+                      <Text strong>Biggest Buyer Problems: Required</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
@@ -611,7 +662,7 @@ const handleClearOffers = () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Results Buyers Want</Text>
+                      <Text strong>Results Buyers Want: Required</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
@@ -633,7 +684,7 @@ const handleClearOffers = () => {
                   header={
                     <div className="flex items-center">
                       <SettingOutlined className="mr-2" />
-                      <span className="font-medium">Business Model & Capacity</span>
+                      <span className="font-medium">Business Model & Capacity: Required Fields</span>
                       {(validationResults.errors['business.deliveryModel'] || validationResults.errors['business.capacity']) && 
                        <Badge status="error" style={{ marginLeft: 8 }} />}
                     </div>
@@ -887,8 +938,8 @@ const handleClearOffers = () => {
                 )}
               </div> */}
 
-       
-<div className="text-center mt-6">
+ 
+ <div className="text-center mt-6">
   {inputsChanged && generatedOffer && (
     <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
       <Text className="text-orange-700">
@@ -896,18 +947,44 @@ const handleClearOffers = () => {
       </Text>
     </div>
   )}
-  
-  <Space>
-    {generatedOffer && (
-      <Button
-        size="large"
-        onClick={handleClearOffers}
-        icon={<ReloadOutlined />}
-        className="min-w-48"
-      >
-        Clear & Start Fresh
-      </Button>
-    )}
+    {/* Show warnings if they exist but allow generation */}
+ {/* Show warnings if they exist but allow generation */}
+{Object.keys(validationResults.warnings || {}).length > 0 && (
+  <div className="mb-4 p-4 border-l-4 border-yellow-400 bg-yellow-50 rounded-lg shadow-sm animate-fadeIn">
+    <div className="flex">
+      <div className="flex-shrink-0">
+        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+      </div>
+      <div className="ml-3">
+        <h3 className="text-sm font-medium text-yellow-800">Suggestions to improve your offers</h3>
+        <div className="mt-2 text-sm text-yellow-700">
+          <ul className="list-disc pl-5 space-y-1">
+            {Object.entries(validationResults.warnings || {}).slice(0, 3).map(([field, warning]) => (
+              <li key={field}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-3 text-xs text-yellow-600 italic">
+          These are suggestions - you can still generate offers.
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<Space>
+   {generatedOffer && (
+    <Button
+      size="large"
+      onClick={handleClearAll}  // ← Change from handleClearOffers to handleClearAll
+      icon={<ReloadOutlined />}
+      className="min-w-48"
+    >
+      Clear & Start Fresh
+    </Button>
+  )}
     
     <Button
       type="primary"
@@ -927,10 +1004,10 @@ const handleClearOffers = () => {
     </Button>
   </Space>
   
-  {!isFormValid && hasMinimumData && (
+ {!isFormValid && hasMinimumData && (
     <div className="mt-2">
       <Text type="danger" className="text-sm">
-        Please fix validation errors above before generating
+        Please complete required fields to generate offers
       </Text>
     </div>
   )}
@@ -983,11 +1060,16 @@ const handleClearOffers = () => {
     <div className="text-sm text-gray-600">
       {validationResults.completedFields} of {validationResults.totalRequiredFields} required fields completed
     </div>
-    {validationResults.isReadyToGenerate && !validationResults.isValid && (
-      <div className="text-sm text-orange-600">
-        Ready to generate! Complete remaining fields for best results.
-      </div>
-    )}
+   {validationResults.isReadyToGenerate && !validationResults.isValid && (
+  <div className="text-sm text-green-600">
+    Ready to generate! Complete remaining fields for best results.
+  </div>
+)}
+{Object.keys(validationResults.warnings || {}).length > 0 && (
+  <div className="text-sm text-yellow-600">
+    Has suggestions for improvement
+  </div>
+)}
   </div>
 </Card>
                     <div>

@@ -13,7 +13,6 @@ import { ThemeProvider } from "../providers/ThemeProvider";
 import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
 import { WorkspaceProvider } from "../app/hooks/useWorkspace";
 import { TutorialProvider } from "@providers/tutorial-provider/TutorialProvider";
-
 export const metadata: Metadata = {
   title: "Arbitrage-OS",
   description: "Arbitrage AI Operating System",
@@ -326,7 +325,9 @@ export default function RootLayout({
                       </TutorialProvider>
                 </SidebarProvider>
               </WorkspaceProvider> {/* ✅ Close WorkspaceProvider */}
+
             </ThemeProvider>
+   
           </RefineKbarProvider>
         </Suspense>
       </body>

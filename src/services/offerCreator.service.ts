@@ -30,24 +30,34 @@ export class OfferCreatorService {
 async generateOffer(input: OfferCreatorInput): Promise<GeneratedOfferPackage> {
   const startTime = Date.now();
 
-  // Check cache first
+  // Check cache first with proper error handling
   const cacheKey = generateCacheKey(input);
-  const cached = await this.redis.get(cacheKey);
-  if (cached) {
-    return JSON.parse(cached as string);
+  try {
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      // Handle both string and object cases safely
+      if (typeof cached === 'string') {
+        return JSON.parse(cached);
+      } else if (typeof cached === 'object' && cached !== null) {
+        return cached as GeneratedOfferPackage;
+      }
+    }
+  } catch (cacheError) {
+    console.warn('Cache retrieval/parsing error, proceeding with fresh generation:', cacheError);
+    // Clear corrupted cache entry
+    await this.redis.del(cacheKey).catch(() => {});
   }
 
   // Build enhanced offer creation prompt
   const prompt = this.buildEnhancedOfferPrompt(input);
 
-
-    try {
-      const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-5-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an elite business strategist who creates breakthrough signature offers for service businesses. Your offers are known for their specificity, compelling outcomes, and strong guarantees that convert prospects into premium clients.
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-5-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an elite business strategist who creates breakthrough signature offers for service businesses. Your offers are known for their specificity, compelling outcomes, and strong guarantees that convert prospects into premium clients.
 
 CRITICAL SUCCESS FACTORS:
 1. CONCRETE DELIVERABLES: Never use vague terms like "strategy" or "plan" - specify exactly what tangible assets or measurable actions the client receives
@@ -57,35 +67,40 @@ CRITICAL SUCCESS FACTORS:
 5. VALUE JUSTIFICATION: Pricing must align with the tangible value and scope of deliverables
 
 Your goal is to create offers that make prospects think "I need this" immediately upon reading them.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 6000
-      });
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 6000
+    });
 
-      const parsedOffer = this.parseOfferResponse(response.content, input);
-      const analysis = this.generateOfferAnalysis(input, parsedOffer);
+    const parsedOffer = this.parseOfferResponse(response.content, input);
+    const analysis = this.generateOfferAnalysis(input, parsedOffer);
 
-      const offerPackage: GeneratedOfferPackage = {
-        primaryOffer: parsedOffer,
-        analysis,
-        tokensUsed: response.usage.total_tokens,
-        generationTime: Date.now() - startTime
-      };
+    const offerPackage: GeneratedOfferPackage = {
+      primaryOffer: parsedOffer,
+      analysis,
+      tokensUsed: response.usage.total_tokens,
+      generationTime: Date.now() - startTime
+    };
 
-      // Cache for 4 hours
+    // Cache for 4 hours with proper error handling
+    try {
       await this.redis.set(cacheKey, JSON.stringify(offerPackage), { ex: 14400 });
-
-      return offerPackage;
-    } catch (error) {
-      console.error('Error generating offer:', error);
-      throw new Error('Failed to generate offer. Please try again.');
+    } catch (cacheSetError) {
+      console.warn('Failed to cache offer, but generation succeeded:', cacheSetError);
+      // Don't throw error - generation was successful
     }
+
+    return offerPackage;
+  } catch (error) {
+    console.error('Error generating offer:', error);
+    throw new Error('Failed to generate offer. Please try again.');
   }
+}
 
   private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
     // Calculate pricing targets

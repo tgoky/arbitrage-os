@@ -151,20 +151,21 @@ export const Menu = () => {
     switchWorkspace(workspaceSlug);
     setWorkspaceDropdownOpen(false);
   };
-
-  const toggleGroup = (groupId: string) => {
-    console.log(`User manually toggled group: ${groupId}`);
-    userHasInteractedRef.current = true;
-    setExpandedGroups((prev) => {
-      if (prev.includes(groupId)) {
-        console.log(`Collapsing group: ${groupId}`);
-        return [];
-      } else {
-        console.log(`Expanding group: ${groupId}`);
-        return [groupId];
-      }
-    });
-  };
+const toggleGroup = (groupId: string) => {
+  console.log(`User manually toggled group: ${groupId}`);
+  userHasInteractedRef.current = true;
+  setExpandedGroups((prev) => {
+    if (prev.includes(groupId)) {
+      // Remove the group if it's currently expanded
+      console.log(`Collapsing group: ${groupId}`);
+      return prev.filter(id => id !== groupId);
+    } else {
+      // Add the group to the expanded list (keep others open)
+      console.log(`Expanding group: ${groupId}`);
+      return [...prev, groupId];
+    }
+  });
+};
 
   if (workspaceLoading) {
     return (
