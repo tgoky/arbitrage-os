@@ -227,7 +227,8 @@ export async function POST(req: NextRequest) {
     const adGenerationInput = {
       ...validation.data,
       userId: user.id,
-      platforms: validatedPlatforms // ✅ Now properly typed as Platform[]
+      platforms: validatedPlatforms, // ✅ Now properly typed as Platform[]
+       adLength: validation.data.adLength || 'medium'
     };
 
     console.log('Calling AdWriterService with:', JSON.stringify(adGenerationInput, null, 2));

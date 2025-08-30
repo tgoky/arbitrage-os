@@ -25,6 +25,7 @@ export interface AdWriterInput {
   caseStudy1?: string;
   credentials?: string;
   cta: string;
+  adLength: 'short' | 'medium' | 'long'; 
   url: string;
   urgency?: string;
   leadMagnet?: string;
@@ -333,7 +334,13 @@ export function useAdWriter() {
   };
 
   const validateInput = (input: Partial<AdWriterInput>): string[] => {
+ 
     const errors: string[] = [];
+
+
+//        if (!input.adLength) {
+//   errors.push('Ad length is required');
+// }
 
     // Required fields validation
     if (!input.businessName?.trim()) {

@@ -1,4 +1,5 @@
-// types/adWriter.ts - UPDATED with Full Scripts
+// types/adWriter.ts - UPDATED with Ad Length Control
+
 export interface AdGenerationInput {
   businessName: string;
   personalTitle?: string;
@@ -17,6 +18,8 @@ export interface AdGenerationInput {
   platforms: Platform[];
   adType: 'awareness' | 'conversion' | 'lead' | 'traffic';
   tone: 'professional' | 'friendly' | 'urgent' | 'humorous' | 'inspirational';
+  // ✅ NEW: Add ad length control
+  adLength: 'short' | 'medium' | 'long';
   caseStudy1?: string;
   credentials?: string;
   cta: string;
@@ -29,13 +32,11 @@ export interface AdGenerationInput {
 
 export type Platform = 'facebook' | 'google' | 'linkedin' | 'tiktok' | 'generic';
 
-// ✅ NEW: Full Script interface
 export interface FullScript {
   framework: string;
   script: string;
 }
 
-// ✅ UPDATED: Add fullScripts to GeneratedAd interface
 export interface GeneratedAd {
   platform: Platform;
   headlines: string[];
@@ -46,7 +47,6 @@ export interface GeneratedAd {
   fixes?: string[];
   results?: string[];
   proofs?: string[];
-  // ✅ NEW: Add full scripts array
   fullScripts?: FullScript[];
 }
 
@@ -56,6 +56,34 @@ export type AdOptimizationType =
   | 'benefits'
   | 'social-proof'
   | 'simplify';
+
+// ✅ NEW: Ad length configurations
+export const AD_LENGTH_CONFIGS = {
+  short: {
+    label: 'Short Ads',
+    description: 'Concise, impactful copy (1–2 lines)',
+    headlineLength: '5-8 words',
+    descriptionLength: '1-2 sentences',
+    maxChars: { headline: 50, description: 150 },
+    bestFor: 'TikTok, Instagram Stories, quick attention grabbers'
+  },
+  medium: {
+    label: 'Medium Ads', 
+    description: 'Well-rounded copy highlighting key benefits (2–3 sentences)',
+    headlineLength: '8-12 words',
+    descriptionLength: '2-3 sentences',
+    maxChars: { headline: 80, description: 300 },
+    bestFor: 'Facebook, LinkedIn, Google Search'
+  },
+  long: {
+    label: 'Long Ads',
+    description: 'Detailed copy with full story (3+ sentences)',
+    headlineLength: '10-15 words',
+    descriptionLength: '3-5 sentences',
+    maxChars: { headline: 120, description: 500 },
+    bestFor: 'Blog promotions, detailed explanations, email campaigns'
+  }
+} as const;
 
 export function isValidPlatform(platform: string): platform is Platform {
   return ['facebook', 'google', 'linkedin', 'tiktok', 'generic'].includes(platform);

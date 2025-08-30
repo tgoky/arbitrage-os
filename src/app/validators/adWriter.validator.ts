@@ -21,6 +21,12 @@ const adWriterSchema = z.object({
   coreResult: z.string().min(5, "Core result must be at least 5 characters").max(200),
   secondaryBenefits: z.array(z.string()).max(3).optional().default([]),
   timeline: z.string().optional().default(""),
+
+
+  //ad length
+  adLength: z.enum(['short', 'medium', 'long']).optional().default('medium'),
+
+
   
   // ✅ UPDATED: Platforms are now optional
   activePlatforms: z.array(z.string()).optional().default([]),

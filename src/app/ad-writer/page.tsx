@@ -45,6 +45,7 @@ import {
 import { useAdWriter, type AdWriterInput, type GeneratedAd, type FullScript } from '../hooks/useAdWriter';
 import { LoadingAnimation, loadingMessages } from './Loading';
 import LoadingOverlay from './LoadingOverlay';
+import { AD_LENGTH_CONFIGS } from '@/types/adWriter';
 import {SavedAdsHistory} from './savedAds'
 
 
@@ -477,7 +478,7 @@ const nextStep = async () => {
       break;
     case 2:
       // ✅ NO PLATFORM REQUIREMENT - only validate form fields
-      isValid = await form.validateFields(['adType', 'tone', 'cta', 'url'])
+      isValid = await form.validateFields(['adType', 'tone', 'adLength', 'cta', 'url'])
         .then(() => true)
         .catch(() => false);
       break;
@@ -616,6 +617,32 @@ const downloadAds = () => {
                 maxLength={500}
               />
             </Form.Item>
+
+            <Form.Item
+  name="adLength"
+  label="Ad Length"
+  initialValue="medium"
+  rules={[{ required: true, message: 'Please select ad length!' }]}
+  tooltip="Choose the appropriate length for your campaign goals"
+>
+  <Radio.Group>
+    <Space direction="vertical">
+      {Object.entries(AD_LENGTH_CONFIGS).map(([key, config]) => (
+        <Radio key={key} value={key}>
+          <div>
+            <div className="font-medium">{config.label}</div>
+            <div className="text-gray-500 text-sm">
+              {config.description}
+            </div>
+            <div className="text-gray-400 text-xs">
+              Best for: {config.bestFor}
+            </div>
+          </div>
+        </Radio>
+      ))}
+    </Space>
+  </Radio.Group>
+</Form.Item>
             
             <Divider />
             
@@ -1214,7 +1241,7 @@ const downloadAds = () => {
         </TabPane>
       </Tabs>
     </div>
-    
+
       <div className="mb-8">
         <Progress 
           percent={(currentStep / (steps.length - 1)) * 100} 
