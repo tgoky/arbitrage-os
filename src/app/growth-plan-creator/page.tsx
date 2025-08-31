@@ -614,7 +614,7 @@ const onFinish = async (values: any) => {
       </Card>
 
       {/* Analytics Overview */}
-      {analytics && (
+      {/* {analytics && (
         <Card title="Analytics Overview">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
@@ -641,7 +641,7 @@ const onFinish = async (values: any) => {
             </div>
           </div>
         </Card>
-      )}
+      )} */}
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

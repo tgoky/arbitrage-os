@@ -482,7 +482,8 @@ const handleClearAll = () => {
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />
-          Signature Offer Creator
+          <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS  Signature Offer Creator
         </Title>
         <Text type="secondary" className="text-lg">
           Transform your expertise into compelling signature offers that sell themselves

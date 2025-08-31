@@ -676,7 +676,8 @@ const handleOptimizeEmail = async (
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <MailOutlined className="mr-2" />
-          AI Cold Email Writer
+          <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS Cold Email Writer
         </Title>
         <Text type="secondary" className="text-lg">
           Generate high-converting cold emails tailored to your ideal prospects

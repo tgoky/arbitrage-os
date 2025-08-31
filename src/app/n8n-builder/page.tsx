@@ -728,7 +728,8 @@ const CreateWorkflow = () => (
     <div className="text-center mb-8">
       <Title level={2} className="flex items-center justify-center">
         <ThunderboltOutlined className="mr-2" />
-        n8n Workflow Creator
+        <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS  n8n Workflow Creator
       </Title>
       <Text type="secondary" className="text-lg">
         Design powerful automation workflows with AI assistance for your business processes

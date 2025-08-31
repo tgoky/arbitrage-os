@@ -40,12 +40,13 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
 
 // In WelcomePanel.tsx, update fetchAllWorkItems:
 const fetchAllWorkItems = useCallback(async (isRetry = false) => {
-  // if (!isWorkspaceReady || !currentWorkspace || loading) {
-  //   return;
-  // }
+  // Remove 'loading' from the dependency check - this causes infinite loops
+  if (!isWorkspaceReady || !currentWorkspace) {
+    return;
+  }
 
   setLoading(true);
- try {
+  try {
     const url = `${getWorkspaceScopedEndpoint('/api/dashboard/work-items')}&_t=${Date.now()}`;
     
     const response = await fetch(url, {
@@ -65,20 +66,27 @@ const fetchAllWorkItems = useCallback(async (isRetry = false) => {
     
     if (data.success && Array.isArray(data.data?.items)) {
       setWorkItems(data.data.items);
-           setLastFetchTime(new Date()); // Add this line
-      setRetryCount(0); // Reset retry count on success
+      setLastFetchTime(new Date());
+      setRetryCount(0);
+      setError(null); // Clear any previous errors
+    } else {
+      // Handle case where API returns success but no items
+      setWorkItems([]);
+      setLastFetchTime(new Date());
     }
     
   } catch (error) {
     console.error('Error fetching work items:', error);
+    setError(error as Error);
+    
     if (!isRetry && retryCount < 2) {
       setTimeout(() => fetchAllWorkItems(true), 2000);
       setRetryCount(prev => prev + 1);
     }
   } finally {
-    setLoading(false);
+    setLoading(false); // Always set loading to false
   }
-}, [currentWorkspace?.id, isWorkspaceReady]);
+}, [currentWorkspace, isWorkspaceReady, getWorkspaceScopedEndpoint, retryCount]);
 
 
   const handleRetry = useCallback(async () => {
@@ -91,42 +99,43 @@ const fetchAllWorkItems = useCallback(async (isRetry = false) => {
     }
   }, [fetchAllWorkItems, retryCount]);
 
-  useEffect(() => {
-    let mounted = true;
-     let timeoutId: NodeJS.Timeout;
-    
-   
+useEffect(() => {
+  let mounted = true;
+  let timeoutId: NodeJS.Timeout | undefined;
+  
   const loadData = async () => {
     if (mounted && isWorkspaceReady && currentWorkspace) {
-      // Debounce the fetch call
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        if (mounted) {
-          fetchAllWorkItems();
-        }
-      }, 300);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      // Remove the timeout delay for initial load
+      fetchAllWorkItems();
     }
   };
 
-    loadData();
+  loadData();
+
 
     // Listen for workspace changes
-    const handleWorkspaceChange = () => {
-      if (mounted) {
-        setWorkItems([]);
-        setError(null);
-        setRetryCount(0);
-        loadData();
-      }
-    };
+const handleWorkspaceChange = () => {
+    if (mounted) {
+      setWorkItems([]);
+      setError(null);
+      setRetryCount(0);
+      loadData();
+    }
+  };
 
-    window.addEventListener('workspaceChanged', handleWorkspaceChange);
+  window.addEventListener('workspaceChanged', handleWorkspaceChange);
 
-    return () => {
-      mounted = false;
-         clearTimeout(timeoutId);
-    };
-}, [currentWorkspace?.id]); 
+  return () => {
+    mounted = false;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    window.removeEventListener('workspaceChanged', handleWorkspaceChange);
+  };
+}, [currentWorkspace?.id, isWorkspaceReady]); 
 
   useEffect(() => {
     if (error && retryCount < 3 && !error.message.includes('Authentication')) {
@@ -398,22 +407,24 @@ const fetchAllWorkItems = useCallback(async (isRetry = false) => {
           ))}
         </div>
         
-        <div style={{ 
-          marginTop: '12px', 
-          padding: '8px', 
-          backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
-          borderRadius: '4px',
-          fontSize: '11px',
-          color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span>Workspace: {currentWorkspace?.name || 'Unknown'} ({currentWorkspace?.id})</span>
-          {workItems.length > 0 && (
-            <span>Items loaded: {workItems.length}</span>
-          )}
-        </div>
+       <div style={{ 
+  marginTop: '12px', 
+  padding: '8px', 
+  backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
+  borderRadius: '4px',
+  fontSize: '11px',
+  color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+}}>
+  <span>
+    Workspace: {currentWorkspace?.name || 'Unknown'} ({currentWorkspace?.id || 'No ID'})
+  </span>
+  {workItems.length > 0 && (
+    <span>Items loaded: {workItems.length}</span>
+  )}
+</div>
       </Card>
     </div>
   );

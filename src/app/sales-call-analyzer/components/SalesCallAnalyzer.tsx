@@ -413,7 +413,8 @@ export default function SalesCallAnalyzerPage() {
        <Spin spinning={loading} tip="Loading analysis data...">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Title level={3} className="mb-1">Sales Calls</Title>
+          <Title level={3} className="mb-1"> <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS Sales Calls Analyzer</Title>
           <Text type="secondary">View and manage your AI-analyzed sales calls</Text>
         </div>
         <Space>

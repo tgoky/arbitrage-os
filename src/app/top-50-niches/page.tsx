@@ -643,7 +643,7 @@ const NichesPage: React.FC = () => {
       ),
     },
     {
-      title: 'Example Companies',
+      title: 'Sample Companies',
       dataIndex: 'companies',
       key: 'companies',
       render: renderCompanies,

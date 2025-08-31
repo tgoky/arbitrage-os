@@ -121,49 +121,61 @@ const WorkspaceHomePage = () => {
   };
 
   // Show loading during boot sequence OR workspace loading
-  if (isLoading || workspaceLoading) {
-    return (
-      <div className={`fixed inset-0 flex flex-col items-center justify-center ${
-        theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
-        <div className="w-full max-w-md px-8">
-          <div className="flex items-center mb-2">
-            <div className={`w-4 h-4 rounded-full mr-2 ${
-              progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
-            }`}></div>
-              <h2 className={`text-xl font-mono font-medium ${
-        theme === 'dark' ? 'text-white' : 'text-gray-900'
-      }`}>
-        {workspaceLoading ? 'Loading Workspaces' : progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
-      </h2>
-          </div>
-          
-          <div className={`w-full h-2 rounded-full overflow-hidden ${
-            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+// Replace your loading screen section with this updated version:
+
+if (isLoading || workspaceLoading) {
+  return (
+    <div className={`fixed inset-0 flex flex-col items-center justify-center ${
+      theme === 'dark' ? 'bg-black' : 'bg-white'
+    }`}>
+      {/* Logo */}
+      <div className="mb-1 flex justify-center">
+        <img
+          src={theme === 'dark' ? '/aoswhite.png' : '/aosblack.png'}
+          alt="Arbitrage-OS Logo"
+          className="h-80 w-auto"
+        />
+      </div>
+      
+      {/* Loading content - moved closer to logo */}
+      <div className="w-full max-w-md px-8 flex flex-col items-center">
+        <div className="flex items-center mb-3 w-full">
+          <div className={`w-4 h-4 rounded-full mr-2 ${
+            progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
+          }`}></div>
+          <h2 className={`text-xl font-mono font-medium ${
+            theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
-            <div 
-              className={`h-full transition-all duration-300 ease-out ${
-                progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
-              }`}
-              style={{ width: workspaceLoading ? '100%' : `${progress}%` }}
-            ></div>
-          </div>
-          
-          <div className="mt-4 font-mono text-sm space-y-1">
-            <p className={progress > 20 || workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
-              {progress > 20 || workspaceLoading ? '✓' : '⌛'} Initializing system...
-            </p>
-            <p className={progress > 50 || workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
-              {progress > 50 || workspaceLoading ? '✓' : '⌛'} Loading workspaces...
-            </p>
-            <p className={progress > 80 && !workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
-              {progress > 80 && !workspaceLoading ? '✓' : '⌛'} Preparing dashboard...
-            </p>
-          </div>
+            {workspaceLoading ? 'Loading Workspaces' : progress >= 100 ? 'Ready' : 'Booting Arbitrage-OS'}
+          </h2>
+        </div>
+        
+        <div className={`w-full h-2 rounded-full overflow-hidden mb-3 ${
+          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+        }`}>
+          <div 
+            className={`h-full transition-all duration-300 ease-out ${
+              progress >= 100 ? 'bg-green-500' : 'bg-indigo-500'
+            }`}
+            style={{ width: workspaceLoading ? '100%' : `${progress}%` }}
+          ></div>
+        </div>
+        
+        <div className="font-mono text-sm space-y-1 w-full">
+          <p className={progress > 20 || workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
+            {progress > 20 || workspaceLoading ? '✓' : '⌛'} Initializing system...
+          </p>
+          <p className={progress > 50 || workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
+            {progress > 50 || workspaceLoading ? '✓' : '⌛'} Loading workspaces...
+          </p>
+          <p className={progress > 80 && !workspaceLoading ? 'text-gray-400' : 'text-gray-500'}>
+            {progress > 80 && !workspaceLoading ? '✓' : '⌛'} Preparing dashboard...
+          </p>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">

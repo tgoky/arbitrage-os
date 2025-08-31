@@ -22,7 +22,8 @@ module.exports = {
         jetblack: '#1A1A1A',      // true jet-like black
         raisinblack: '#202020',   // muted, slightly brown-black
         onyx: '#353535',          // warm dark gray-black
-        trueblack: '#000000',     // pure black (for contrast only)
+        trueblack: '#000000',  
+        customGreen: '#5CC49D',   // pure black (for contrast only)
       },
     },
   },

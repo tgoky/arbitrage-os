@@ -14,7 +14,10 @@ import {
   ToolOutlined,
   FilterOutlined,
   ThunderboltOutlined,
-  PlusOutlined
+  PlusOutlined,
+  CheckOutlined,
+  ClockCircleOutlined,
+  LinkOutlined
 } from '@ant-design/icons';
 import {
   Card,
@@ -28,7 +31,12 @@ import {
   Row,
   Col,
   Rate,
-  Image
+  Image,
+  Modal,
+  Divider,
+  List,
+  Tooltip,
+  Alert
 } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
 import { AITool, aiTools } from './aitoolbank/aitoolbanks';
@@ -46,6 +54,8 @@ const AIToolsDashboard = () => {
   const [sortBy, setSortBy] = useState<'rating' | 'name'>('rating');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<AITool | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Extract unique categories and subcategories
   const categories = aiTools
@@ -82,6 +92,9 @@ const AIToolsDashboard = () => {
       case 'Video & Visual': return <VideoCameraOutlined />;
       case 'Audio & Voice': return <AudioOutlined />;
       case 'Code & Development': return <CodeOutlined />;
+      case 'Business & Productivity': return <ToolOutlined />;
+      case 'UGC & Content': return <FileTextOutlined />;
+      case 'Research & Analysis': return <ExperimentOutlined />;
       default: return <ToolOutlined />;
     }
   };
@@ -95,6 +108,9 @@ const AIToolsDashboard = () => {
       default: return 'default';
     }
   };
+const getAffiliateStatusColor = (status: string) => {
+  return 'green';
+};
 
   const toggleFavorite = (toolId: string) => {
     const newFavorites = new Set(favorites);
@@ -106,40 +122,61 @@ const AIToolsDashboard = () => {
     setFavorites(newFavorites);
   };
 
+  const handleToolClick = (tool: AITool) => {
+    setSelectedTool(tool);
+    setIsModalVisible(true);
+  };
+
+ const handleTryTool = (e: React.MouseEvent, tool: AITool) => {
+  e.stopPropagation();
+  // Use optional chaining to safely access affiliateLink
+  if (tool.affiliateLink) {
+    window.open(tool.affiliateLink, '_blank');
+  } else {
+    window.open(tool.url, '_blank');
+  }
+};
+
   return (
     <div style={{
-      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#0a0a0a' : '#f5f5f5',
       padding: 24,
       minHeight: '100vh'
     }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <Space align="center" size="middle">
-          <ThunderboltOutlined
-            style={{
-              fontSize: 18,
-              color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-            }}
-          />
-          <Title
-            level={2}
-            style={{
-              margin: 0,
-              color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-            }}
-          >
-            AI Tools Library
-          </Title>
+          <div style={{
+            background: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)',
+            borderRadius: 12,
+            padding: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <ThunderboltOutlined style={{ fontSize: 24, color: 'white' }} />
+          </div>
+          <div>
+            <Title
+              level={2}
+              style={{
+                margin: 0,
+                color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
+                fontWeight: 700
+              }}
+            >
+              AI Tools Library
+            </Title>
+            <Text
+              style={{
+                color: theme === 'dark' ? '#9ca3af' : '#666666',
+                fontSize: 16
+              }}
+            >
+              Discover {aiTools.length}+ AI tools with affiliate programs
+            </Text>
+          </div>
         </Space>
-        <div style={{ marginTop: 8 }}>
-          <Text
-            style={{
-              color: theme === 'dark' ? '#9ca3af' : '#666666',
-            }}
-          >
-            Discover the best AI tools for every business need
-          </Text>
-        </div>
       </div>
 
       {/* Search and Filters */}
@@ -147,94 +184,137 @@ const AIToolsDashboard = () => {
         style={{
           marginBottom: 24,
           backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
-          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0'
+          borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+          borderRadius: 12,
+          boxShadow: theme === 'dark' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0, 0, 0, 0.06)'
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Search
             placeholder="Search AI tools by name, description or tags..."
             allowClear
-            enterButton={<Button type="primary">Search</Button>}
+            enterButton={<Button type="primary" icon={<SearchOutlined />}>Search</Button>}
             size="large"
-            prefix={<SearchOutlined />}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ borderRadius: 8 }}
           />
-          <Space wrap>
-            <Select
-              placeholder="Filter by category"
-              style={{ width: 200 }}
-              value={selectedCategory}
-              onChange={setSelectedCategory}
-              suffixIcon={<FilterOutlined />}
-            >
-              <Option value="All">All Categories</Option>
-              {categories.map(category => (
-                <Option key={category} value={category}>
-                  <Space>
-                    {getCategoryIcon(category)}
-                    {category}
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-            <Select
-              placeholder="Filter by subcategory"
-              style={{ width: 200 }}
-              value={selectedSubcategory}
-              onChange={setSelectedSubcategory}
-              disabled={selectedCategory === 'All'}
-            >
-              <Option value="All">All Subcategories</Option>
-              {subcategories
-                .filter(sub => selectedCategory === 'All' || aiTools.some(t => t.category === selectedCategory && t.subcategory === sub))
-                .map(subcategory => (
-                  <Option key={subcategory} value={subcategory}>{subcategory}</Option>
-                ))}
-            </Select>
-            <Button
-              type={showFavoritesOnly ? 'primary' : 'default'}
-              icon={<StarOutlined />}
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              style={{
-                color: showFavoritesOnly ? '#ffc107' : undefined,
-                borderColor: showFavoritesOnly ? '#ffc107' : undefined,
-                backgroundColor: showFavoritesOnly ? 'rgba(255, 193, 7, 0.1)' : undefined
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12} md={6}>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8, color: theme === 'dark' ? '#d1d5db' : '#4b5563' }}>
+                  Category
+                </Text>
+                <Select
+                  style={{ width: '100%' }}
+                  value={selectedCategory}
+                  onChange={setSelectedCategory}
+                  suffixIcon={<FilterOutlined />}
+                >
+                  <Option value="All">All Categories</Option>
+                  {categories.map(category => (
+                    <Option key={category} value={category}>
+                      <Space>
+                        {getCategoryIcon(category)}
+                        {category}
+                      </Space>
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            </Col>
+            
+            <Col xs={24} sm={12} md={6}>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8, color: theme === 'dark' ? '#d1d5db' : '#4b5563' }}>
+                  Subcategory
+                </Text>
+                <Select
+                  style={{ width: '100%' }}
+                  value={selectedSubcategory}
+                  onChange={setSelectedSubcategory}
+                  disabled={selectedCategory === 'All'}
+                >
+                  <Option value="All">All Subcategories</Option>
+                  {subcategories
+                    .filter(sub => selectedCategory === 'All' || aiTools.some(t => t.category === selectedCategory && t.subcategory === sub))
+                    .map(subcategory => (
+                      <Option key={subcategory} value={subcategory}>{subcategory}</Option>
+                    ))}
+                </Select>
+              </div>
+            </Col>
+            
+            <Col xs={24} sm={12} md={6}>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8, color: theme === 'dark' ? '#d1d5db' : '#4b5563' }}>
+                  Pricing
+                </Text>
+                <Select
+                  style={{ width: '100%' }}
+                  value={selectedPricing}
+                  onChange={setSelectedPricing}
+                  suffixIcon={<DollarOutlined />}
+                >
+                  <Option value="All">All Pricing</Option>
+                  <Option value="Free">Free</Option>
+                  <Option value="Freemium">Freemium</Option>
+                  <Option value="Paid">Paid</Option>
+                  <Option value="Enterprise">Enterprise</Option>
+                </Select>
+              </div>
+            </Col>
+            
+            <Col xs={24} sm={12} md={6}>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8, color: theme === 'dark' ? '#d1d5db' : '#4b5563' }}>
+                  Sort & Filter
+                </Text>
+                <Space.Compact style={{ width: '100%' }}>
+                  <Select
+                    style={{ width: '60%' }}
+                    value={sortBy}
+                    onChange={setSortBy}
+                  >
+                    <Option value="rating">
+                      <Space>
+                        <StarOutlined />
+                        Rating
+                      </Space>
+                    </Option>
+                    <Option value="name">Name (A-Z)</Option>
+                  </Select>
+                  <Button
+                    style={{ width: '40%' }}
+                    type={showFavoritesOnly ? 'primary' : 'default'}
+                    icon={<StarOutlined />}
+                    onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  >
+                    Favs
+                  </Button>
+                </Space.Compact>
+              </div>
+            </Col>
+          </Row>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text type="secondary">
+              Showing {sortedTools.length} of {aiTools.length} AI tools
+            </Text>
+            <Button 
+              type="link" 
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('All');
+                setSelectedSubcategory('All');
+                setSelectedPricing('All');
+                setShowFavoritesOnly(false);
               }}
             >
-              Favorites
+              Clear all filters
             </Button>
-            <Select
-              placeholder="Filter by pricing"
-              style={{ width: 200 }}
-              value={selectedPricing}
-              onChange={setSelectedPricing}
-              suffixIcon={<DollarOutlined />}
-            >
-              <Option value="All">All Pricing Models</Option>
-              <Option value="Free">Free</Option>
-              <Option value="Freemium">Freemium</Option>
-              <Option value="Paid">Paid</Option>
-              <Option value="Enterprise">Enterprise</Option>
-            </Select>
-            <Select
-              placeholder="Sort by"
-              style={{ width: 200 }}
-              value={sortBy}
-              onChange={setSortBy}
-            >
-              <Option value="rating">
-                <Space>
-                  <StarOutlined />
-                  Rating (High to Low)
-                </Space>
-              </Option>
-              <Option value="name">Name (A-Z)</Option>
-            </Select>
-          </Space>
-          <Text type="secondary">
-            Showing {sortedTools.length} of {aiTools.length} AI tools
-          </Text>
+          </div>
         </Space>
       </Card>
 
@@ -244,46 +324,82 @@ const AIToolsDashboard = () => {
           {sortedTools.map(tool => {
             const displayedFeatures = tool.features.slice(0, 3);
             const remainingFeaturesCount = tool.features.length - 3;
+            
             return (
-              <Col key={tool.id} xs={24} sm={12} lg={8} xl={8}>
+              <Col key={tool.id} xs={24} sm={12} lg={8} xl={6}>
                 <Card
                   hoverable
+                  onClick={() => handleToolClick(tool)}
                   style={{
                     height: '100%',
                     backgroundColor: theme === 'dark' ? '#111111' : '#ffffff',
-                    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+                    borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+                    borderRadius: 12,
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    boxShadow: theme === 'dark' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0, 0, 0, 0.06)'
                   }}
-                  bodyStyle={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}
-                  cover={
-                    <div style={{ height: 150, overflow: 'hidden', position: 'relative' }}>
-                      <Image
-                        alt={tool.name}
-                        src={tool.imageUrl || 'https://via.placeholder.com/150?text=Logo'}
-                        fallback="https://via.placeholder.com/150?text=Logo"
-                        preview={false}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      />
-                      <Tag
-                        color={getPricingColor(tool.pricing)}
-                        style={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          zIndex: 1
-                        }}
-                      >
-                        {tool.pricing}
-                      </Tag>
-                    </div>
-                  }
+                  bodyStyle={{ flexGrow: 1, display: 'flex', flexDirection: 'column', padding: 16 }}
+                 // Replace the Card cover section with this updated version
+cover={
+  <div style={{ 
+    height: 140, 
+    overflow: 'hidden', 
+    position: 'relative',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    background: theme === 'dark' ? '#1f2937' : '#f9fafb',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16
+  }}>
+    <Image
+      alt={tool.name}
+      src={tool.imageUrl || 'https://via.placeholder.com/150?text=Logo'}
+      fallback="https://via.placeholder.com/150?text=Logo"
+      preview={false}
+      style={{ 
+        maxWidth: '80%', 
+        maxHeight: '80%', 
+        objectFit: 'contain' 
+      }}
+    />
+    <div style={{ 
+      position: 'absolute', 
+      top: 12, 
+      right: 12, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: 8 
+    }}>
+      <Tag
+        color={getPricingColor(tool.pricing)}
+        style={{ margin: 0, fontWeight: 600 }}
+      >
+        {tool.pricing}
+      </Tag>
+      {tool.affiliateStatus?.includes('Active') && (
+        <Tooltip title={tool.affiliateStatus}>
+          <Tag
+            color="green"
+            style={{ margin: 0 }}
+            icon={<CheckOutlined />}
+          >
+            Affiliate
+          </Tag>
+        </Tooltip>
+      )}
+    </div>
+  </div>
+}
                   actions={[
                     <div key={`actions-${tool.id}`} style={{ 
                       display: 'flex', 
-                      justifyContent: 'center',
-                      gap: 8,
-                      padding: '0 8px'
+                      justifyContent: 'space-between',
+                      padding: '0 16px',
+                      alignItems: 'center'
                     }}>
                       <Button
                         icon={<StarOutlined />}
@@ -291,83 +407,108 @@ const AIToolsDashboard = () => {
                           e.stopPropagation();
                           toggleFavorite(tool.id);
                         }}
-                        type={favorites.has(tool.id) ? 'primary' : 'default'}
+                        type={favorites.has(tool.id) ? 'primary' : 'text'}
                         style={{
-                          width: 48,
                           color: favorites.has(tool.id) ? '#ffc107' : undefined,
-                          borderColor: favorites.has(tool.id) ? '#ffc107' : undefined,
-                          backgroundColor: favorites.has(tool.id) ? 'rgba(255, 193, 7, 0.1)' : undefined
                         }}
                       />
-                      <Button
-                        type="primary"
-                        href={tool.url}
-                        target="_blank"
-                        icon={<RocketOutlined />}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          width: 'calc(100% - 56px)',
-                          backgroundColor: '#15140f',
-                          borderColor: '#343436'
-                        }}
-                      >
-                        Try Tool
-                      </Button>
+
+<Button
+  type="primary"
+  onClick={(e) => handleTryTool(e, tool)}
+  icon={tool.affiliateStatus?.includes('Active') ? <LinkOutlined /> : <RocketOutlined />}
+  style={{
+    backgroundColor: tool.affiliateStatus?.includes('Active') ? '#10b981' : '#3b82f6',
+    borderColor: tool.affiliateStatus?.includes('Active') ? '#10b981' : '#3b82f6',
+    fontWeight: 600
+  }}
+>
+  {tool.affiliateStatus?.includes('Active') ? 'Get Link' : 'Try Tool'}
+</Button>
                     </div>
                   ]}
                 >
-                  <Card.Meta
-                    title={
-                      <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a', fontSize: 18 }}>
+                  <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ marginBottom: 12 }}>
+                      <Text strong style={{ 
+                        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a', 
+                        fontSize: 16,
+                        display: 'block',
+                        lineHeight: 1.4
+                      }}>
                         {tool.name}
                       </Text>
-                    }
-                    description={
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <Paragraph
-                          type="secondary"
-                          ellipsis={{ rows: 2, expandable: false, symbol: 'more' }}
-                          style={{ marginBottom: 8 }}
-                        >
-                          {tool.description}
-                        </Paragraph>
-                        <Rate
-                          disabled
-                          defaultValue={tool.rating}
-                          allowHalf
-                          style={{ fontSize: 14 }}
-                          character={<StarOutlined />}
-                        />
-                        <div>
-                          <Text strong style={{ fontSize: 14 }}>Best For:</Text>
-                          <br />
-                          <Text type="secondary" style={{ fontSize: 13 }}>{tool.useCase}</Text>
-                        </div>
-                        <div>
-                          <Text strong style={{ fontSize: 14 }}>Key Features:</Text>
-                          <br />
-                          <Space wrap size={[0, 4]} style={{ marginTop: 4 }}>
-                            {displayedFeatures.map((feature, index) => (
-                              <Tag key={index} style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>{feature}</Tag>
-                            ))}
-                            {remainingFeaturesCount > 0 && (
-                              <Tag icon={<PlusOutlined />} style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>
-                                {remainingFeaturesCount}
-                              </Tag>
-                            )}
-                          </Space>
-                        </div>
-                        <div>
-                          <Text strong style={{ fontSize: 14 }}>Categories:</Text>
-                          <br />
-                          <Space wrap size={[0, 4]} style={{ marginTop: 4 }}>
-                            <Tag style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>{tool.category}</Tag>
-                            <Tag style={{ margin: 0, marginRight: 4, marginBottom: 4 }}>{tool.subcategory}</Tag>
-                          </Space>
-                        </div>
-                      </Space>
-                    }
-                  />
+                      <Paragraph
+                        type="secondary"
+                        ellipsis={{ rows: 2, expandable: false }}
+                        style={{ 
+                          marginBottom: 12,
+                          fontSize: 13,
+                          lineHeight: 1.4,
+                          minHeight: 40
+                        }}
+                      >
+                        {tool.description}
+                      </Paragraph>
+                    </div>
+
+                    <div style={{ marginBottom: 12 }}>
+                      <Rate
+                        disabled
+                        defaultValue={tool.rating}
+                        allowHalf
+                        style={{ fontSize: 14 }}
+                        character={<StarOutlined />}
+                      />
+                      <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                        {tool.rating}/5
+                      </Text>
+                    </div>
+
+                    <div style={{ marginBottom: 12 }}>
+                      <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Best For:</Text>
+                      <Text type="secondary" style={{ fontSize: 12, lineHeight: 1.4 }}>
+                        {tool.useCase}
+                      </Text>
+                    </div>
+
+                    <div style={{ marginTop: 'auto' }}>
+                      <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Key Features:</Text>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {displayedFeatures.map((feature, index) => (
+                          <Tag 
+                            key={index} 
+                            style={{ 
+                              margin: 0, 
+                              fontSize: 11,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              background: theme === 'dark' ? '#374151' : '#f3f4f6',
+                              border: 'none',
+                              color: theme === 'dark' ? '#d1d5db' : '#4b5563'
+                            }}
+                          >
+                            {feature}
+                          </Tag>
+                        ))}
+                        {remainingFeaturesCount > 0 && (
+                          <Tag 
+                            style={{ 
+                              margin: 0, 
+                              fontSize: 11,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              background: theme === 'dark' ? '#374151' : '#f3f4f6',
+                              border: 'none',
+                              color: theme === 'dark' ? '#d1d5db' : '#4b5563'
+                            }}
+                          >
+                            +{remainingFeaturesCount}
+                          </Tag>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </Card>
               </Col>
             );
@@ -389,12 +530,137 @@ const AIToolsDashboard = () => {
               setSelectedCategory('All');
               setSelectedSubcategory('All');
               setSelectedPricing('All');
+              setShowFavoritesOnly(false);
             }}
           >
             Reset Filters
           </Button>
         </Empty>
       )}
+
+      {/* Tool Detail Modal */}
+      <Modal
+        title={selectedTool?.name}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setIsModalVisible(false)}>
+            Close
+          </Button>,
+          <Button 
+            key="try" 
+            type="primary" 
+            onClick={(e) => selectedTool && handleTryTool(e, selectedTool)}
+            icon={selectedTool?.affiliateStatus?.includes('Active') ? <LinkOutlined /> : <RocketOutlined />}
+          >
+            {selectedTool?.affiliateStatus?.includes('Active') ? 'Get Affiliate Link' : 'Visit Website'}
+          </Button>
+        ]}
+        width={700}
+        style={{ top: 20 }}
+      >
+        {selectedTool && (
+          <div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+              <Image
+                src={selectedTool.imageUrl || 'https://via.placeholder.com/150?text=Logo'}
+                width={100}
+                height={100}
+                style={{ objectFit: 'contain', borderRadius: 8 }}
+                fallback="https://via.placeholder.com/150?text=Logo"
+              />
+              <div style={{ flex: 1 }}>
+                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                  <div>
+                    <Text strong>Description: </Text>
+                    <Text>{selectedTool.description}</Text>
+                  </div>
+                  <div>
+                    <Text strong>Rating: </Text>
+                    <Rate disabled defaultValue={selectedTool.rating} allowHalf style={{ fontSize: 14 }} />
+                    <Text> ({selectedTool.rating}/5)</Text>
+                  </div>
+                  <div>
+                    <Text strong>Pricing: </Text>
+                    <Tag color={getPricingColor(selectedTool.pricing)}>
+                      {selectedTool.pricing}
+                    </Tag>
+                  </div>
+
+{selectedTool?.affiliateStatus?.includes('Active') && (
+  <div>
+    <Text strong>Affiliate Status: </Text>
+    <Tag color="green">
+      {selectedTool.affiliateStatus}
+    </Tag>
+  </div>
+)}
+                </Space>
+              </div>
+            </div>
+
+            <Divider />
+
+            <Row gutter={24}>
+              <Col span={12}>
+                <Title level={5}>Pros</Title>
+                <List
+                  size="small"
+                  dataSource={selectedTool.pros}
+                  renderItem={(item: string) => (
+                    <List.Item>
+                      <Text style={{ color: '#52c41a' }}>✓</Text>
+                      <Text style={{ marginLeft: 8 }}>{item}</Text>
+                    </List.Item>
+                  )}
+                />
+              </Col>
+              <Col span={12}>
+                <Title level={5}>Cons</Title>
+                <List
+                  size="small"
+                  dataSource={selectedTool.cons}
+                  renderItem={(item: string) => (
+                    <List.Item>
+                      <Text style={{ color: '#ff4d4f' }}>✗</Text>
+                      <Text style={{ marginLeft: 8 }}>{item}</Text>
+                    </List.Item>
+                  )}
+                />
+              </Col>
+            </Row>
+
+            <Divider />
+
+            <Title level={5}>Features</Title>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedTool.features.map((feature, index) => (
+                <Tag key={index} color="blue">{feature}</Tag>
+              ))}
+            </div>
+
+            <Title level={5}>Use Case</Title>
+            <Text>{selectedTool.useCase}</Text>
+
+            <Divider />
+
+            <Title level={5}>Categories</Title>
+            <Space>
+              <Tag>{selectedTool.category}</Tag>
+              <Tag>{selectedTool.subcategory}</Tag>
+            </Space>
+
+            <Divider />
+
+            <Title level={5}>Tags</Title>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {selectedTool.tags.map((tag, index) => (
+                <Tag key={index}>{tag}</Tag>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

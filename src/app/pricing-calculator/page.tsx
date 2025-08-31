@@ -660,46 +660,9 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
     />
   </Form.Item>
 
-            <Form.Item
-              name="hoursPerWeek"
-              label="Hours Worked Per Week"
-              rules={[{ required: true, message: 'Please input hours!' }]}
-            >
-              <Slider
-                min={5}
-                max={40}
-                marks={{
-                  5: '5h',
-                  20: '20h',
-                  40: '40h'
-                }}
-              />
-            </Form.Item>
+        
 
-            <Form.Item
-              name="roiMultiple"
-              label={
-                <span>
-                  ROI Multiple{' '}
-                  <Tooltip title="How much of the value created should you capture? Higher multiples for specialized expertise.">
-                    <InfoCircleOutlined />
-                  </Tooltip>
-                </span>
-              }
-              rules={[{ required: true, message: 'Please select ROI multiple!' }]}
-            >
-              <Slider
-                min={2}
-                max={15}
-                step={0.5}
-                marks={{
-                  2: '2x',
-                  5: '5x',
-                  10: '10x',
-                  15: '15x'
-                }}
-              />
-            </Form.Item>
+          
                   {/* Advanced Fields */}
                   {showAdvanced && (
                     <>

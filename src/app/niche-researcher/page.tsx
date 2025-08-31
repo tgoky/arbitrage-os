@@ -1459,13 +1459,15 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <UserOutlined className="mr-2" />
-          Niche Research Report
+          
+              <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS Niche Research Report
         </Title>
 
            {/* Add History Tab Here */}
          <div className="mb-8">
            <Tabs defaultActiveKey="history" type="card">
-             <TabPane tab="Generated Ads History" key="history">
+             <TabPane tab="Generated Niche History" key="history">
                <SavedNicheHistory />
              </TabPane>
            </Tabs>
