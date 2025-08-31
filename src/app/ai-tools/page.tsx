@@ -147,7 +147,7 @@ const getAffiliateStatusColor = (status: string) => {
       <div style={{ marginBottom: 24 }}>
         <Space align="center" size="middle">
           <div style={{
-            background: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)',
+            background: 'linear-gradient(135deg, #5CC49D 0%, #5CC49D 100%)',
             borderRadius: 12,
             padding: 12,
             display: 'flex',
@@ -165,7 +165,8 @@ const getAffiliateStatusColor = (status: string) => {
                 fontWeight: 700
               }}
             >
-              AI Tools Library
+                   <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS  Tools Library
             </Title>
             <Text
               style={{
