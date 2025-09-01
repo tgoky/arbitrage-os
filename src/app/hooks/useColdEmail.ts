@@ -217,58 +217,68 @@ const generateEmails = useCallback(async (input: ColdEmailGenerationInput): Prom
     }
   };
 
-  const getTemplates = async (options?: {
-    category?: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
-    includePublic?: boolean;
-  }): Promise<EmailTemplate[]> => {
-    try {
-      const params = new URLSearchParams();
-      if (options?.category) params.set('category', options.category);
-      if (options?.includePublic) params.set('includePublic', 'true');
-
-      const url = `/api/cold-email/templates${params.toString() ? `?${params.toString()}` : ''}`;
-      
-      return await handleApiCall<EmailTemplate[]>(
-        url,
-        { method: 'GET' },
-        'Failed to fetch templates'
-      );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
-      message.error(errorMessage);
-      throw err;
+ const getTemplates = async (options?: {
+  category?: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
+  includePublic?: boolean;
+}): Promise<EmailTemplate[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (options?.category) params.set('category', options.category);
+    if (options?.includePublic) params.set('includePublic', 'true');
+    
+    // ADDED: Include current workspace ID
+    if (currentWorkspace?.id) {
+      params.set('workspaceId', currentWorkspace.id);
     }
-  };
+
+    const url = `/api/cold-email/templates${params.toString() ? `?${params.toString()}` : ''}`;
+    
+    return await handleApiCall<EmailTemplate[]>(
+      url,
+      { method: 'GET' },
+      'Failed to fetch templates'
+    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
+    message.error(errorMessage);
+    throw err;
+  }
+};
 
   const createTemplate = async (templateData: {
-    name: string;
-    description?: string;
-    subject: string;
-    body: string;
-    category: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
-    tags?: string[];
-    variables?: string[];
-    isPublic?: boolean;
-  }): Promise<EmailTemplate> => {
-    try {
-      const data = await handleApiCall<EmailTemplate>(
-        '/api/cold-email/templates',
-        {
-          method: 'POST',
-          body: JSON.stringify(templateData)
-        },
-        'Failed to create template'
-      );
+  name: string;
+  description?: string;
+  subject: string;
+  body: string;
+  category: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
+  tags?: string[];
+  variables?: string[];
+  isPublic?: boolean;
+}): Promise<EmailTemplate> => {
+  try {
+    // ADDED: Include workspace ID in request body
+    const requestData = {
+      ...templateData,
+      workspaceId: currentWorkspace?.id
+    };
+    
+    const data = await handleApiCall<EmailTemplate>(
+      '/api/cold-email/templates',
+      {
+        method: 'POST',
+        body: JSON.stringify(requestData)
+      },
+      'Failed to create template'
+    );
 
-      message.success('Template created successfully!');
-      return data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
-      message.error(errorMessage);
-      throw err;
-    }
-  };
-
+    message.success('Template created successfully!');
+    return data;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
+    message.error(errorMessage);
+    throw err;
+  }
+};
   const updateTemplate = async (
     templateId: string, 
     updateData: Partial<{

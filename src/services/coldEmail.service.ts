@@ -553,141 +553,97 @@ ${input.workEmail}`;
   }
 
   // TEMPLATE MANAGEMENT METHODS (unchanged)
-  async getUserTemplates(userId: string, options?: {
-    category?: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
-    includePublic?: boolean;
-  }) {
-    try {
-      // Get user's workspace
+async getUserTemplates(userId: string, options?: {
+  category?: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
+  includePublic?: boolean;
+  workspaceId?: string; // ADDED: Workspace filtering
+}) {
+  try {
+    // FIXED: Use provided workspace or get user's workspace
+    let workspaceId = options?.workspaceId;
+    
+    if (!workspaceId) {
       const workspace = await this.getUserWorkspace(userId);
       if (!workspace) return [];
-
-      // Build where clause
-      const whereClause: any = {
-        OR: [
-          { user_id: userId }, // User's own templates
-        ]
-      };
-
-      // Include public templates if requested
-      if (options?.includePublic) {
-        whereClause.OR.push({ 
-          AND: [
-            { metadata: { path: ['isPublic'], equals: true } },
-            { type: 'email_template' }
-          ]
-        });
-      }
-
-      // Add category filter if specified
-      if (options?.category) {
-        whereClause.AND = [
-          { metadata: { path: ['category'], equals: options.category } }
-        ];
-      }
-
-      const { prisma } = await import('@/lib/prisma');
-      const templates = await prisma.deliverable.findMany({
-        where: {
-          ...whereClause,
-          type: 'email_template'
-        },
-        orderBy: { created_at: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          metadata: true,
-          tags: true,
-          created_at: true,
-          updated_at: true
-        }
-      });
-
-      return templates.map(template => {
-        // Safely parse metadata with type checking
-        const metadata = isValidMetadata(template.metadata) 
-          ? template.metadata as TemplateMetadata
-          : {};
-
-        return {
-          id: template.id,
-          name: template.title,
-          subject: metadata.subject || '',
-          body: template.content,
-          category: metadata.category || 'outreach' as const,
-          description: metadata.description || '',
-          variables: metadata.variables || [],
-          tags: template.tags,
-          isPublic: metadata.isPublic || false,
-          createdAt: template.created_at,
-          updatedAt: template.updated_at
-        };
-      });
-
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      return [];
+      workspaceId = workspace.id;
     }
-  }
 
-  async createTemplate(userId: string, templateData: {
-    name: string;
-    description?: string;
-    subject: string;
-    body: string;
-    category: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
-    tags?: string[];
-    variables?: string[];
-    isPublic?: boolean;
-  }) {
-    try {
-      // Get user's workspace
-      const workspace = await this.getUserWorkspace(userId);
-      if (!workspace) {
-        throw new Error('No workspace found for user');
-      }
+    // Build where clause with workspace filtering
+    const whereClause: any = {
+      workspace_id: workspaceId, // ADDED: Filter by workspace
+      type: 'email_template',
+      OR: [
+        { user_id: userId }, // User's own templates
+      ]
+    };
 
-      const { prisma } = await import('@/lib/prisma');
-      const template = await prisma.deliverable.create({
-        data: {
-          title: templateData.name,
-          content: templateData.body,
-          type: 'email_template',
-          user_id: userId,
-          workspace_id: workspace.id,
-          metadata: {
-            subject: templateData.subject,
-            category: templateData.category,
-            description: templateData.description,
-            variables: templateData.variables || [],
-            isPublic: templateData.isPublic || false
-          },
-          tags: templateData.tags || []
-        }
+    // Include public templates if requested (but still within workspace)
+    if (options?.includePublic) {
+      whereClause.OR.push({ 
+        AND: [
+          { metadata: { path: ['isPublic'], equals: true } },
+          { workspace_id: workspaceId } // ADDED: Public templates in same workspace
+        ]
       });
+    }
+
+    // Add category filter if specified
+    if (options?.category) {
+      whereClause.metadata = { path: ['category'], equals: options.category };
+    }
+
+    const { prisma } = await import('@/lib/prisma');
+    const templates = await prisma.deliverable.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        metadata: true,
+        tags: true,
+        created_at: true,
+        updated_at: true,
+        workspace: { // ADDED: Include workspace info
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    return templates.map(template => {
+      const metadata = isValidMetadata(template.metadata) 
+        ? template.metadata as TemplateMetadata
+        : {};
 
       return {
         id: template.id,
         name: template.title,
-        subject: templateData.subject,
+        subject: metadata.subject || '',
         body: template.content,
-        category: templateData.category,
-        description: templateData.description,
-        variables: templateData.variables || [],
+        category: metadata.category || 'outreach' as const,
+        description: metadata.description || '',
+        variables: metadata.variables || [],
         tags: template.tags,
-        isPublic: templateData.isPublic || false,
+        isPublic: metadata.isPublic || false,
         createdAt: template.created_at,
-        updatedAt: template.updated_at
+        updatedAt: template.updated_at,
+        workspace: template.workspace // ADDED: Include workspace in response
       };
+    });
 
-    } catch (error) {
-      console.error('Error creating template:', error);
-      throw error;
-    }
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    return [];
   }
+}
 
-  async updateTemplate(userId: string, templateId: string, updateData: Partial<{
+ async createTemplate(
+  userId: string, 
+  workspaceId: string, // ADDED: Required workspace parameter
+  templateData: {
     name: string;
     description?: string;
     subject: string;
@@ -696,22 +652,96 @@ ${input.workEmail}`;
     tags?: string[];
     variables?: string[];
     isPublic?: boolean;
-  }>) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      // First check if template exists and belongs to user
-      const existingTemplate = await prisma.deliverable.findFirst({
-        where: {
-          id: templateId,
-          user_id: userId,
-          type: 'email_template'
-        }
-      });
-
-      if (!existingTemplate) {
-        return null;
+  }
+) {
+  try {
+    // ADDED: Validate workspace access
+    const { prisma } = await import('@/lib/prisma');
+    
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: userId
       }
+    });
+
+    if (!workspace) {
+      throw new Error('Workspace not found or access denied');
+    }
+
+    const template = await prisma.deliverable.create({
+      data: {
+        title: templateData.name,
+        content: templateData.body,
+        type: 'email_template',
+        user_id: userId,
+        workspace_id: workspaceId, // ADDED: Associate with workspace
+        metadata: {
+          subject: templateData.subject,
+          category: templateData.category,
+          description: templateData.description,
+          variables: templateData.variables || [],
+          isPublic: templateData.isPublic || false
+        },
+        tags: templateData.tags || []
+      }
+    });
+
+    return {
+      id: template.id,
+      name: template.title,
+      subject: templateData.subject,
+      body: template.content,
+      category: templateData.category,
+      description: templateData.description,
+      variables: templateData.variables || [],
+      tags: template.tags,
+      isPublic: templateData.isPublic || false,
+      createdAt: template.created_at,
+      updatedAt: template.updated_at
+    };
+
+  } catch (error) {
+    console.error('Error creating template:', error);
+    throw error;
+  }
+}
+
+ async updateTemplate(
+  userId: string, 
+  templateId: string, 
+  updateData: Partial<{
+    name: string;
+    description?: string;
+    subject: string;
+    body: string;
+    category: 'outreach' | 'follow_up' | 'introduction' | 'meeting' | 'demo';
+    tags?: string[];
+    variables?: string[];
+    isPublic?: boolean;
+  }>
+) {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    // FIXED: Check template exists, belongs to user, AND is in user's workspace
+    const existingTemplate = await prisma.deliverable.findFirst({
+      where: {
+        id: templateId,
+        user_id: userId,
+        type: 'email_template',
+        workspace: { // ADDED: Ensure workspace ownership
+          user_id: userId
+        }
+      },
+      include: {
+        workspace: true
+      }
+    });
+
+    if (!existingTemplate) {
+      return null;
+    }
 
       // Build update data
       const updateFields: any = {};
@@ -764,26 +794,29 @@ ${input.workEmail}`;
     }
   }
 
-  async deleteTemplate(userId: string, templateId: string) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const result = await prisma.deliverable.deleteMany({
-        where: {
-          id: templateId,
-          user_id: userId,
-          type: 'email_template'
+async deleteTemplate(userId: string, templateId: string) {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    // FIXED: Ensure template belongs to user AND is in user's workspace
+    const result = await prisma.deliverable.deleteMany({
+      where: {
+        id: templateId,
+        user_id: userId,
+        type: 'email_template',
+        workspace: { // ADDED: Workspace ownership check
+          user_id: userId
         }
-      });
+      }
+    });
 
-      return result.count > 0;
+    return result.count > 0;
 
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      throw error;
-    }
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    throw error;
   }
-
+}
   private async getUserWorkspace(userId: string) {
     try {
       const { prisma } = await import('@/lib/prisma');
