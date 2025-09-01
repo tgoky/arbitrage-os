@@ -11,7 +11,7 @@ import { logUsage } from '@/lib/usage';
 import { convertToPlatforms, type Platform } from '@/types/adWriter';
 
 // MOVED INSIDE: Authentication function (no longer exported)
-export async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
