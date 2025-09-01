@@ -117,19 +117,22 @@ useEffect(() => {
 }, [fetchCalculations, fetchBenchmarks, currentWorkspace?.id]); // Add currentWorkspace dependency
 
   // Quick calculation results (real-time)
- const [quickResults, setQuickResults] = useState({
+const [quickResults, setQuickResults] = useState({
   totalClientImpact: 0,
   monthlyImpact: 0,
+  directSavingsComponent: 0,      // NEW
+  revenueComponent: 0,            // NEW  
+  timeValueComponent: 0,          // NEW
   recommendedRetainer: 0,
   annualFee: 0,
   netSavings: 0,
   roiPercentage: 0,
   hourlyRate: 0,
   monthlyHours: 0,
-  savingsComponent: 0,
-  revenueComponent: 0
+  clientHourlyValue: 95,          // NEW
+  hoursFreedAnnually: 0,          // NEW
+  timeValueRatio: 0,              // NEW
 });
-
 const {
 
   getCalculation, // <-- Correctly get getCalculation
@@ -206,11 +209,13 @@ const handleFormChange = () => {
       annualClientSavings: values.annualClientSavings,
       annualRevenueIncrease: values.annualRevenueIncrease,
       hoursPerWeek: values.hoursPerWeek,
-      roiMultiple: values.roiMultiple
+      roiMultiple: values.roiMultiple,
+      industry: values.industry || 'Technology'  // FIXED: Add industry parameter
     });
     setQuickResults(results);
   }
 };
+
   const onFinish = async (values: any) => {
     const validation = validateInput(values);
     
@@ -241,19 +246,24 @@ const handleFormChange = () => {
       });
     }
   };
-const resetForm = () => {
+
+  const resetForm = () => {
   form.resetFields();
   setQuickResults({
     totalClientImpact: 0,
     monthlyImpact: 0,
+    directSavingsComponent: 0,      // FIXED: Use correct field name
+    revenueComponent: 0,
+    timeValueComponent: 0,          // FIXED: Add missing field
     recommendedRetainer: 0,
     annualFee: 0,
     netSavings: 0,
     roiPercentage: 0,
     hourlyRate: 0,
     monthlyHours: 0,
-    savingsComponent: 0,
-    revenueComponent: 0
+    clientHourlyValue: 95,          // FIXED: Add missing field
+    hoursFreedAnnually: 0,          // FIXED: Add missing field
+    timeValueRatio: 0,              // FIXED: Add missing field
   });
   setCurrentPackage(null);
   setSavedCalculationId(null);
@@ -323,14 +333,13 @@ const handleViewCancel = () => {
 
 
 const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | 'complete') => {
-  // Set loading state for the specific export type
   setExportState({ loading: true, type: format });
 
   try {
-    // Use current form values and quick results instead of requiring savedCalculationId
     const values = form.getFieldsValue();
     
-    if (!values.annualSavings || !values.hoursPerWeek || !values.roiMultiple) {
+    // FIXED: Use correct field names
+    if (!values.annualClientSavings || !values.annualRevenueIncrease || !values.hoursPerWeek || !values.roiMultiple) {
       notification.error({
         message: 'Incomplete Form',
         description: 'Please fill in the basic pricing information before exporting.'
@@ -342,13 +351,15 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
       clientName: values.clientName || 'Valued Client',
       projectName: values.projectName || 'AI Services Project',
       industry: values.industry || 'Technology',
-      annualSavings: values.annualSavings,
+      annualClientSavings: values.annualClientSavings,        // FIXED
+      annualRevenueIncrease: values.annualRevenueIncrease,    // FIXED
       recommendedRetainer: quickResults.recommendedRetainer,
       netSavings: quickResults.netSavings,
       roiPercentage: quickResults.roiPercentage,
       hourlyRate: quickResults.hourlyRate,
       monthlyHours: quickResults.monthlyHours
     };
+
 
     console.log('Exporting with data:', calculationData, 'format:', format);
     
@@ -415,14 +426,14 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
 };
 
 
-  const getBusinessInsightsForCurrent = () => {
-    const values = form.getFieldsValue();
-    if (values.annualSavings && values.hoursPerWeek && values.roiMultiple) {
-      return getBusinessInsights(values);
-    }
-    return null;
-  };
-
+ const getBusinessInsightsForCurrent = () => {
+  const values = form.getFieldsValue();
+  // FIXED: Use correct field names
+  if (values.annualClientSavings && values.annualRevenueIncrease && values.hoursPerWeek && values.roiMultiple) {
+    return getBusinessInsights(values);
+  }
+  return null;
+};
   const insights = getBusinessInsightsForCurrent();
 
   return (
@@ -816,117 +827,216 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
             </Col>
 
             <Col xs={24} lg={12}>
-              <Card>
-                <Title level={4} className="flex items-center mb-4">
-                  <PieChartOutlined className="mr-2" />
-                  Live Preview
-                </Title>
+            <Card>
+  <Title level={4} className="flex items-center mb-4">
+    <PieChartOutlined className="mr-2" />
+    Live Preview
+  </Title>
 
-                <div className="space-y-4">
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Statistic
-                        title="Monthly Savings"
-                        value={quickResults.monthlyImpact}
-                        precision={0}
-                        prefix="$"
-                        suffix="/mo"
-                      />
-                    </Col>
-                    <Col span={12}>
-                      <Statistic
-                        title="Monthly Hours"
-                        value={quickResults.monthlyHours}
-                        precision={0}
-                        suffix="hrs"
-                      />
-                    </Col>
-                  </Row>
+  <div className="space-y-4">
+    {/* Value Breakdown - NEW SECTION */}
+    <div className=" p-3 rounded">
+    <Title level={5} className="mb-2">Client Value Breakdown</Title>
+      <Row gutter={8}>
+        <Col span={8}>
+          <Statistic
+            title="Cost Savings"
+            value={quickResults.directSavingsComponent || 0}
+            precision={0}
+            prefix="$"
+            suffix="/mo"
+            valueStyle={{ fontSize: '14px' }}
+          />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Revenue Lift"
+            value={quickResults.revenueComponent || 0}
+            precision={0}
+            prefix="$"
+            suffix="/mo"
+            valueStyle={{ fontSize: '14px' }}
+          />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Time Value"
+            value={quickResults.timeValueComponent || 0}
+            precision={0}
+            prefix="$"
+            suffix="/mo"
+            valueStyle={{ fontSize: '14px', color: '#52c41a' }}
+          />
+        </Col>
+      </Row>
+      
+      <Divider style={{ margin: '12px 0' }} />
+      
+      <Statistic
+        title="Total Monthly Impact"
+        value={quickResults.monthlyImpact}
+        precision={0}
+        prefix="$"
+        suffix="/mo"
+        valueStyle={{ color: '#3f8600', fontSize: '1.2em', fontWeight: 'bold' }}
+      />
+    </div>
 
-                  <Divider />
+    <Row gutter={16}>
+      <Col span={12}>
+        <Statistic
+          title="Monthly Hours Freed"
+          value={quickResults.monthlyHours}
+          precision={0}
+          suffix="hrs"
+        />
+      </Col>
+      <Col span={12}>
+        <Statistic
+          title="Client Hourly Value"
+          value={quickResults.clientHourlyValue || 95}
+          precision={0}
+          prefix="$"
+          suffix="/hr"
+          valueStyle={{ color: '#52c41a' }}
+        />
+      </Col>
+    </Row>
 
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Statistic
-                        title="Recommended Retainer"
-                        value={quickResults.recommendedRetainer}
-                        precision={0}
-                        prefix="$"
-                        valueStyle={{ color: '#3f8600', fontSize: '1.2em', fontWeight: 'bold' }}
-                        suffix="/mo"
-                      />
-                    </Col>
-                    <Col span={12}>
-                      <Statistic
-                        title="Hourly Rate"
-                        value={quickResults.hourlyRate}
-                        precision={0}
-                        prefix="$"
-                        suffix="/hr"
-                      />
-                    </Col>
-                  </Row>
+    <Divider />
 
-                  <Divider />
+    <Row gutter={16}>
+      <Col span={12}>
+        <Statistic
+          title="Recommended Retainer"
+          value={quickResults.recommendedRetainer}
+          precision={0}
+          prefix="$"
+          valueStyle={{ color: '#3f8600', fontSize: '1.2em', fontWeight: 'bold' }}
+          suffix="/mo"
+        />
+      </Col>
+      <Col span={12}>
+        <Statistic
+          title="Your Hourly Rate"
+          value={quickResults.hourlyRate}
+          precision={0}
+          prefix="$"
+          suffix="/hr"
+        />
+      </Col>
+    </Row>
 
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Statistic
-                        title="Client Net Savings"
-                        value={quickResults.netSavings}
-                        precision={0}
-                        prefix="$"
-                        suffix="/mo"
-                      />
-                    </Col>
-                    <Col span={12}>
-                      <Statistic
-                        title="Client ROI"
-                        value={quickResults.roiPercentage}
-                        precision={0}
-                        suffix="%"
-                        valueStyle={{
-                          color: quickResults.roiPercentage >= 100 ? '#3f8600' : '#cf1322'
-                        }}
-                      />
-                    </Col>
-                  </Row>
+    <Divider />
 
-                  {quickResults.roiPercentage > 0 && quickResults.roiPercentage < 100 && (
-                    <Alert
-                      message="Low Client ROI"
-                      description="Consider adjusting your ROI multiple or scope to improve client value."
-                      type="warning"
-                      showIcon
-                    />
-                  )}
+    <Row gutter={16}>
+      <Col span={12}>
+        <Statistic
+          title="Client Net Benefit"
+          value={quickResults.netSavings}
+          precision={0}
+          prefix="$"
+          suffix="/mo"
+          valueStyle={{
+            color: quickResults.netSavings >= 0 ? '#3f8600' : '#cf1322'
+          }}
+        />
+      </Col>
+      <Col span={12}>
+        <Statistic
+          title="Client ROI"
+          value={quickResults.roiPercentage}
+          precision={0}
+          suffix="%"
+          valueStyle={{
+            color: quickResults.roiPercentage >= 100 ? '#3f8600' : '#cf1322'
+          }}
+        />
+      </Col>
+    </Row>
 
-                  {insights && (
-                    <div className="mt-6">
-                      <Title level={5}>Business Insights</Title>
-                      <Space direction="vertical" className="w-full">
-                        <Tag color={insights.hourlyRateCategory === 'premium' ? 'gold' : 'blue'}>
-                          {insights.hourlyRateCategory.toUpperCase()} Pricing
-                        </Tag>
-                        <Tag color={insights.clientROICategory === 'excellent' ? 'green' : 'orange'}>
-                          {insights.clientROICategory.toUpperCase()} Client ROI
-                        </Tag>
-                        
-                        {insights.recommendations.length > 0 && (
-                          <div>
-                            <Text strong>Recommendations:</Text>
-                            <ul className="mt-2">
-                              {insights.recommendations.map((rec, idx) => (
-                                <li key={idx} className="text-sm">{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </Space>
-                    </div>
-                  )}
-                </div>
-              </Card>
+    {/* Time Impact Insights - NEW SECTION */}
+    {quickResults.hoursFreedAnnually > 0 && (
+      <div className=" p-3 rounded border border-green-200">
+        <Title level={5} className="mb-2 text-green-800">Annual Time Impact</Title>
+        <div className="space-y-1">
+          <Text className="text-sm">
+            Total hours freed: <strong>{(quickResults.hoursFreedAnnually || 0).toLocaleString()} hours/year</strong>
+          </Text>
+          <Text className="text-sm block">
+            Time value at ${quickResults.clientHourlyValue}/hr: <strong>
+              ${((quickResults.hoursFreedAnnually || 0) * (quickResults.clientHourlyValue || 95)).toLocaleString()}/year
+            </strong>
+          </Text>
+          <Text className="text-sm block text-green-700">
+            Time represents <strong>
+              {quickResults.timeValueRatio ? Math.round(quickResults.timeValueRatio * 100) : 0}%
+            </strong> of total client value
+          </Text>
+        </div>
+      </div>
+    )}
+
+    {/* ROI Warning */}
+    {quickResults.roiPercentage > 0 && quickResults.roiPercentage < 100 && (
+      <Alert
+        message="Low Client ROI"
+        description="Consider adjusting your ROI multiple or increasing the time value component to improve client value proposition."
+        type="warning"
+        showIcon
+      />
+    )}
+
+    {/* Excellent ROI Alert */}
+    {quickResults.roiPercentage > 500 && (
+      <Alert
+        message="Excellent Client ROI"
+        description="Your client gets exceptional value. You may be underpricing your services."
+        type="success"
+        showIcon
+      />
+    )}
+
+    {/* Business Insights */}
+    {insights && (
+      <div className="mt-6">
+        <Title level={5}>Business Insights</Title>
+        <Space direction="vertical" className="w-full">
+          <Tag color={insights.hourlyRateCategory === 'premium' ? 'gold' : 'blue'}>
+            {insights.hourlyRateCategory.toUpperCase()} Pricing
+          </Tag>
+          <Tag color={insights.clientROICategory === 'excellent' ? 'green' : 'orange'}>
+            {insights.clientROICategory.toUpperCase()} Client ROI
+          </Tag>
+          
+          {insights.recommendations.length > 0 && (
+            <div>
+              <Text strong>Recommendations:</Text>
+              <ul className="mt-2">
+                {insights.recommendations.map((rec, idx) => (
+                  <li key={idx} className="text-sm">{rec}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Space>
+      </div>
+    )}
+
+    {/* Value Proposition Preview - NEW SECTION */}
+    {quickResults.monthlyImpact > 0 && quickResults.recommendedRetainer > 0 && (
+      <div className=" p-3 rounded border border-blue-200">
+        <Title level={5} className="mb-2 text-blue-800">Value Proposition Preview</Title>
+        <Text className="text-sm">
+          We will deliver <strong>${quickResults.monthlyImpact.toLocaleString()}/month</strong> in measurable impact 
+          through cost savings, revenue growth, and <strong>{quickResults.monthlyHours} hours</strong> of freed time. 
+          Your investment of <strong>${quickResults.recommendedRetainer.toLocaleString()}/month</strong> delivers 
+          <strong>{quickResults.roiPercentage.toFixed(0)}% ROI</strong>
+        </Text>
+      </div>
+    )}
+  </div>
+</Card>
 
               {/* Benchmarks Card */}
            {benchmarks?.industrySpecific?.hourlyRates && (

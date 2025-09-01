@@ -123,51 +123,57 @@ IMPORTANT: Always respond with valid JSON. Ensure all numeric values are properl
 
 // services/pricingCalculator.service.ts - UPDATED calculateBasePricing method
 
+
 private calculateBasePricing(input: PricingCalculatorInput) {
   try {
-    // NEW: Calculate total client impact
-    const totalClientImpact = input.annualClientSavings + input.annualRevenueIncrease;
-    const monthlyImpact = totalClientImpact / 12;
-    const monthlyHours = (input.hoursPerWeek * 4.33); // Average weeks per month
+    // FIXED: Calculate total client impact INCLUDING time value
+    const directSavings = input.annualClientSavings;
+    const revenueIncrease = input.annualRevenueIncrease;
     
-    // NEW: Value-based pricing calculation
-    // Your fee = Total Impact ÷ ROI Multiple
+    // NEW: Calculate time value - key missing piece
+    const annualHours = input.hoursPerWeek * 52; // Hours saved per year
+    
+    // Time value calculation - use client's blended rate or market rate
+    // Option 1: Use your implied rate as proxy for their time value
+    const impliedHourlyRate = this.calculateImpliedRate(input);
+    
+    // Option 2: Use industry standard multiplier (safer approach)
+    const clientBlendedRate = this.estimateClientHourlyValue(input);
+    
+    const timeValueAnnual = annualHours * clientBlendedRate;
+    
+    // CORRECTED: Total impact now includes all three value streams
+    const totalClientImpact = directSavings + revenueIncrease + timeValueAnnual;
+    const monthlyImpact = totalClientImpact / 12;
+    const monthlyHours = input.hoursPerWeek * 4.33;
+    
+    // Your pricing: Total Impact ÷ ROI Multiple
     let baseRetainer = totalClientImpact / input.roiMultiple;
     const monthlyRetainer = baseRetainer / 12;
     
-    // Sanity check: Ensure hourly rate is reasonable
-    const impliedHourlyRate = monthlyRetainer / monthlyHours;
-    const minHourlyRate = 50;
-    const maxHourlyRate = 500;
-    
-    let finalMonthlyRetainer = monthlyRetainer;
-    
-    if (impliedHourlyRate < minHourlyRate) {
-      finalMonthlyRetainer = monthlyHours * minHourlyRate;
-      console.log(`Adjusted pricing: hourly rate was too low (${impliedHourlyRate.toFixed(2)}), set to minimum ${minHourlyRate}`);
-    } else if (impliedHourlyRate > maxHourlyRate) {
-      finalMonthlyRetainer = monthlyHours * maxHourlyRate;
-      console.log(`Adjusted pricing: hourly rate was too high (${impliedHourlyRate.toFixed(2)}), capped at ${maxHourlyRate}`);
-    }
-    
     // Apply risk adjustments
     const riskFactor = this.calculateRiskFactor(input);
-    const adjustedRetainer = finalMonthlyRetainer * riskFactor;
+    const adjustedRetainer = monthlyRetainer * riskFactor;
     
-    // Calculate client metrics
+    // Calculate client metrics AFTER including time value
     const netClientBenefit = monthlyImpact - adjustedRetainer;
     const clientROI = adjustedRetainer > 0 ? (netClientBenefit / adjustedRetainer) * 100 : 0;
     
     return {
-      // Client impact breakdown
+      // Client impact breakdown (FIXED)
       totalClientImpact: Math.round(totalClientImpact),
       monthlyImpact: Math.round(monthlyImpact),
+      
+      // Value components for transparency (NEW)
+      directSavingsComponent: Math.round(directSavings / 12),
+      revenueComponent: Math.round(revenueIncrease / 12),
+      timeValueComponent: Math.round(timeValueAnnual / 12),
       
       // Your pricing
       recommendedRetainer: Math.round(adjustedRetainer),
       annualFee: Math.round(adjustedRetainer * 12),
       
-      // Client benefit after your fee
+      // Client benefit after your fee (NOW POSITIVE)
       netSavings: Math.round(netClientBenefit),
       roiPercentage: Math.round(clientROI * 100) / 100,
       
@@ -176,14 +182,52 @@ private calculateBasePricing(input: PricingCalculatorInput) {
       monthlyHours: Math.round(monthlyHours),
       riskFactor: Math.round(riskFactor * 100) / 100,
       
-      // Value components for transparency
-      savingsComponent: Math.round(input.annualClientSavings / 12),
-      revenueComponent: Math.round(input.annualRevenueIncrease / 12),
+      // Time value insights (NEW)
+      hoursFreedAnnually: annualHours,
+      clientHourlyValue: clientBlendedRate,
+      timeValueRatio: timeValueAnnual / totalClientImpact, // What % of value is time
     };
   } catch (error: any) {
     console.error('Error in calculateBasePricing:', error?.message);
     throw new Error('Failed to calculate base pricing: ' + error?.message);
   }
+}
+
+
+// NEW: Helper method to estimate client's hourly value
+private estimateClientHourlyValue(input: PricingCalculatorInput): number {
+  // Base rates by industry (conservative estimates)
+  const industryRates: Record<string, number> = {
+    'Technology': 95,
+    'Finance': 120,
+    'Healthcare': 85,
+    'Manufacturing': 75,
+    'Consulting': 110,
+    'Real Estate': 70,
+    'Education': 60
+  };
+  
+  const baseRate = industryRates[input.industry || 'Technology'] || 85;
+  
+  // Adjust based on company size/type (proxy via client urgency/relationship)
+  let multiplier = 1.0;
+  
+  if (input.clientUrgency === 'high') multiplier *= 1.3; // High urgency = bigger company
+  if (input.relationshipType === 'strategic') multiplier *= 1.2; // Strategic = enterprise
+  if (input.deliveryRisk === 'high') multiplier *= 1.1; // Complex = skilled team
+  
+  return Math.round(baseRate * multiplier);
+}
+
+
+// NEW: Calculate what their current implied rate would be
+private calculateImpliedRate(input: PricingCalculatorInput): number {
+  const monthlyHours = input.hoursPerWeek * 4.33;
+  const totalImpactExcludingTime = input.annualClientSavings + input.annualRevenueIncrease;
+  const monthlyImpactExcludingTime = totalImpactExcludingTime / 12;
+  const impliedRetainer = totalImpactExcludingTime / input.roiMultiple / 12;
+  
+  return Math.round(impliedRetainer / monthlyHours);
 }
 
 

@@ -250,44 +250,70 @@ export const usePricingCalculator = () => {
 // hooks/usePricingCalculator.ts - Updated quickCalculate function
 
 // FIXED: quickCalculate with proper typing
-  const quickCalculate = useCallback((input: Pick<PricingCalculatorInput, 'annualClientSavings' | 'annualRevenueIncrease' | 'hoursPerWeek' | 'roiMultiple'>) => {
-    // Calculate total client impact
-    const totalClientImpact = input.annualClientSavings + input.annualRevenueIncrease;
-    const monthlyImpact = totalClientImpact / 12;
-    const monthlyHours = input.hoursPerWeek * 4.33;
-    
-    // Value-based pricing: Your annual fee = Total Impact ÷ ROI Multiple
-    const annualFee = totalClientImpact / input.roiMultiple;
-    const monthlyRetainer = annualFee / 12;
-    
-    // Client metrics after paying your fee
-    const netClientBenefit = monthlyImpact - monthlyRetainer;
-    const clientROI = monthlyRetainer > 0 ? (netClientBenefit / monthlyRetainer) * 100 : 0;
-    const hourlyRate = monthlyRetainer / monthlyHours;
+// FIXED: quickCalculate with proper typing and time value calculation
+const quickCalculate = useCallback((input: Pick<PricingCalculatorInput, 'annualClientSavings' | 'annualRevenueIncrease' | 'hoursPerWeek' | 'roiMultiple' | 'industry'>) => {
+  // Calculate total client impact INCLUDING time value
+  const directSavings = input.annualClientSavings;
+  const revenueIncrease = input.annualRevenueIncrease;
+  
+  // NEW: Calculate time value - key missing piece
+  const annualHours = input.hoursPerWeek * 52; // Hours saved per year
+  
+  // Estimate client's hourly value based on industry
+  const industryRates: Record<string, number> = {
+    'Technology': 95,
+    'Finance': 120,
+    'Healthcare': 85,
+    'Manufacturing': 75,
+    'Consulting': 110,
+    'Real Estate': 70,
+    'Education': 60
+  };
+  const clientHourlyValue = industryRates[input.industry || 'Technology'] || 95;
+  const timeValueAnnual = annualHours * clientHourlyValue;
+  
+  // CORRECTED: Total impact now includes all three value streams
+  const totalClientImpact = directSavings + revenueIncrease + timeValueAnnual;
+  const monthlyImpact = totalClientImpact / 12;
+  const monthlyHours = input.hoursPerWeek * 4.33;
+  
+  // Value-based pricing: Your annual fee = Total Impact ÷ ROI Multiple
+  const annualFee = totalClientImpact / input.roiMultiple;
+  const monthlyRetainer = annualFee / 12;
+  
+  // Client metrics after paying your fee
+  const netClientBenefit = monthlyImpact - monthlyRetainer;
+  const clientROI = monthlyRetainer > 0 ? (netClientBenefit / monthlyRetainer) * 100 : 0;
+  const hourlyRate = monthlyRetainer / monthlyHours;
 
-    return {
-      // Client impact
-      totalClientImpact: Math.round(totalClientImpact),
-      monthlyImpact: Math.round(monthlyImpact),
-      
-      // Your pricing
-      recommendedRetainer: Math.round(monthlyRetainer),
-      annualFee: Math.round(annualFee),
-      
-      // Client benefit (FIXED: using proper variable name)
-      netSavings: Math.round(netClientBenefit),
-      roiPercentage: Math.round(clientROI),
-      
-      // Rates
-      hourlyRate: Math.round(hourlyRate),
-      monthlyHours: Math.round(monthlyHours),
-      
-      // Breakdown for transparency
-      savingsComponent: Math.round(input.annualClientSavings / 12),
-      revenueComponent: Math.round(input.annualRevenueIncrease / 12),
-    };
-  }, []);
-
+  return {
+    // Client impact
+    totalClientImpact: Math.round(totalClientImpact),
+    monthlyImpact: Math.round(monthlyImpact),
+    
+    // Value breakdown components (FIXED: correct field names)
+    directSavingsComponent: Math.round(directSavings / 12),
+    revenueComponent: Math.round(revenueIncrease / 12),
+    timeValueComponent: Math.round(timeValueAnnual / 12),
+    
+    // Your pricing
+    recommendedRetainer: Math.round(monthlyRetainer),
+    annualFee: Math.round(annualFee),
+    
+    // Client benefit (FIXED: using proper variable name)
+    netSavings: Math.round(netClientBenefit),
+    roiPercentage: Math.round(clientROI),
+    
+    // Rates
+    hourlyRate: Math.round(hourlyRate),
+    monthlyHours: Math.round(monthlyHours),
+    
+    // Time value insights (NEW)
+    clientHourlyValue,
+    hoursFreedAnnually: annualHours,
+    timeValueRatio: timeValueAnnual / totalClientImpact, // What % of value is time
+  };
+}, []);
   return {
     loading,
     generating,
