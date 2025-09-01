@@ -123,12 +123,37 @@ export interface OfferAnalysis {
 }
 
 // Type for the complete generated offer package
+// Type for the complete generated offer package - FIXED VERSION
 export interface GeneratedOfferPackage {
+  // Direct properties (not nested under primaryOffer)
+  signatureOffers: {
+    starter: SignatureOffer;
+    core: SignatureOffer;
+    premium: SignatureOffer;
+  };
+  comparisonTable: {
+    features: ComparisonFeature[];
+  };
+  pricing: {
+    starter: string;
+    core: string;
+    premium: string;
+  };
+  analysis: OfferAnalysis;
+  tokensUsed: number;
+  generationTime: number;
+  originalInput?: OfferCreatorInput; // Add this for loading saved offers
+}
+
+
+
+export interface GeneratedOfferWithPrimaryOffer {
   primaryOffer: GeneratedOffer;
   analysis: OfferAnalysis;
   tokensUsed: number;
   generationTime: number;
 }
+
 
 // Type for saved offers
 export interface SavedOffer {
@@ -798,7 +823,11 @@ export function isGeneratedOfferPackage(data: any): data is GeneratedOfferPackag
   return (
     data &&
     typeof data === 'object' &&
-    data.primaryOffer &&
+    data.signatureOffers &&
+    data.signatureOffers.starter &&
+    data.signatureOffers.core &&
+    data.signatureOffers.premium &&
+    data.pricing &&
     data.analysis &&
     typeof data.tokensUsed === 'number' &&
     typeof data.generationTime === 'number'

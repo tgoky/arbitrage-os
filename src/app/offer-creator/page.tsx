@@ -290,6 +290,17 @@ if (!fullValidation.isReadyToGenerate) {  // ← Use isReadyToGenerate instead
   }
 };
 
+
+
+const hasValidOfferStructure = (offer: GeneratedOfferPackage | null): boolean => {
+  return !!(
+    offer?.signatureOffers?.starter &&
+    offer?.signatureOffers?.core &&
+    offer?.signatureOffers?.premium &&
+    offer?.pricing
+  );
+};
+
  const handleInputChange = (
   section: "founder" | "market" | "business" | "pricing" | "voice",
   field: string,
@@ -1221,211 +1232,255 @@ const handleClearAll = () => {
           </Row>
         </TabPane>
 
-        <TabPane
-          tab={
-            <span>
-              <FileTextOutlined />
-              Generated Offers
-              {generatedOffer && <Badge dot style={{ marginLeft: 8 }} />}
-            </span>
-          }
-          key="outputs"
-          disabled={!generatedOffer}
-        >
-          {generatedOffer ? (
-            <div className="space-y-8">
-              <Card>
-                <div className="flex justify-between items-center flex-wrap gap-4">
-                  <Title level={4}>Your Signature Offers</Title>
-                  <Space>
-                    <Button
-                      icon={<CopyOutlined />}
-                      onClick={() => {
-                        navigator.clipboard.writeText(JSON.stringify(generatedOffer, null, 2));
-                        message.success("Copied to clipboard!");
-                      }}
-                    >
-                      Copy JSON
-                    </Button>
-                    <Button 
-                      icon={<DownloadOutlined />} 
-                      onClick={() => handleExport("html")}
-                      loading={exportLoading}
-                    >
-                      Export HTML
-                    </Button>
-                    <Button 
-                      icon={<DownloadOutlined />} 
-                      onClick={() => handleExport("json")}
-                      loading={exportLoading}
-                    >
-                      Export JSON
-                    </Button>
-                  </Space>
-                </div>
-              </Card>
+       <TabPane
+  tab={
+    <span>
+      <FileTextOutlined />
+      Generated Offers
+      {generatedOffer && <Badge dot style={{ marginLeft: 8 }} />}
+    </span>
+  }
+  key="outputs"
+  disabled={!generatedOffer}
+>
+  {generatedOffer && hasValidOfferStructure(generatedOffer) ? (
+    <div className="space-y-8">
+      {/* Your existing Card with title and buttons */}
+      <Card>
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <Title level={4}>Your Signature Offers</Title>
+          <Space>
+            <Button
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(JSON.stringify(generatedOffer, null, 2));
+                message.success("Copied to clipboard!");
+              }}
+            >
+              Copy JSON
+            </Button>
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={() => handleExport("html")}
+              loading={exportLoading}
+            >
+              Export HTML
+            </Button>
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={() => handleExport("json")}
+              loading={exportLoading}
+            >
+              Export JSON
+            </Button>
+          </Space>
+        </div>
+      </Card>
 
-              <Card title="Signature Offers">
-                <Tabs type="card">
-                  <TabPane tab="Starter" key="starter">
-                    <OfferPreview 
-                      offer={generatedOffer.primaryOffer.signatureOffers.starter} 
-                      pricing={generatedOffer.primaryOffer.pricing.starter} 
-                    />
-                  </TabPane>
-                  <TabPane tab="Core" key="core">
-                    <OfferPreview 
-                      offer={generatedOffer.primaryOffer.signatureOffers.core} 
-                      pricing={generatedOffer.primaryOffer.pricing.core} 
-                    />
-                  </TabPane>
-                  <TabPane tab="Premium" key="premium">
-                    <OfferPreview 
-                      offer={generatedOffer.primaryOffer.signatureOffers.premium} 
-                      pricing={generatedOffer.primaryOffer.pricing.premium} 
-                    />
-                  </TabPane>
-                </Tabs>
-              </Card>
+      {/* Fixed Signature Offers section with safe access */}
+      <Card title="Signature Offers">
+        <Tabs type="card">
+          <TabPane tab="Starter" key="starter">
+            <OfferPreview 
+              offer={generatedOffer.signatureOffers.starter} 
+              pricing={generatedOffer.pricing.starter} 
+            />
+          </TabPane>
+          <TabPane tab="Core" key="core">
+            <OfferPreview 
+              offer={generatedOffer.signatureOffers.core} 
+              pricing={generatedOffer.pricing.core} 
+            />
+          </TabPane>
+          <TabPane tab="Premium" key="premium">
+            <OfferPreview 
+              offer={generatedOffer.signatureOffers.premium} 
+              pricing={generatedOffer.pricing.premium} 
+            />
+          </TabPane>
+        </Tabs>
+      </Card>
 
-              <Card title="Feature Comparison">
-                <Table
-                  dataSource={generatedOffer.primaryOffer.comparisonTable.features.map((feature, idx) => ({
-                    ...feature,
-                    key: idx,
-                  }))}
-                  pagination={false}
-                  columns={[
-                    {
-                      title: "Feature",
-                      dataIndex: "name",
-                      key: "name",
-                    },
-                    {
-                      title: "Starter",
-                      dataIndex: "starter",
-                      key: "starter",
-                      render: (text: string) =>
-                        text === "✓" ? (
-                          <CheckCircleOutlined style={{ color: "green" }} />
-                        ) : text === "✕" ? (
-                          <span style={{ color: "red" }}>✕</span>
-                        ) : (
-                          text
-                        ),
-                    },
-                    {
-                      title: "Core",
-                      dataIndex: "core",
-                      key: "core",
-                      render: (text: string) =>
-                        text === "✓" ? (
-                          <CheckCircleOutlined style={{ color: "green" }} />
-                        ) : text === "✕" ? (
-                          <span style={{ color: "red" }}>✕</span>
-                        ) : (
-                          text
-                        ),
-                    },
-                    {
-                      title: "Premium",
-                      dataIndex: "premium",
-                      key: "premium",
-                      render: (text: string) =>
-                        text === "✓" ? (
-                          <CheckCircleOutlined style={{ color: "green" }} />
-                        ) : text === "✕" ? (
-                          <span style={{ color: "red" }}>✕</span>
-                        ) : (
-                          text
-                        ),
-                    },
-                  ]}
-                />
-              </Card>
+      {/* Safe access for Feature Comparison */}
+      {generatedOffer.comparisonTable?.features && (
+        <Card title="Feature Comparison">
+          <Table
+            dataSource={generatedOffer.comparisonTable.features.map((feature, idx) => ({
+              ...feature,
+              key: idx,
+            }))}
+            pagination={false}
+            columns={[
+              {
+                title: "Feature",
+                dataIndex: "name",
+                key: "name",
+              },
+              {
+                title: "Starter",
+                dataIndex: "starter",
+                key: "starter",
+                render: (text: string) =>
+                  text === "✓" ? (
+                    <CheckCircleOutlined style={{ color: "green" }} />
+                  ) : text === "✕" ? (
+                    <span style={{ color: "red" }}>✕</span>
+                  ) : (
+                    text
+                  ),
+              },
+              {
+                title: "Core",
+                dataIndex: "core",
+                key: "core",
+                render: (text: string) =>
+                  text === "✓" ? (
+                    <CheckCircleOutlined style={{ color: "green" }} />
+                  ) : text === "✕" ? (
+                    <span style={{ color: "red" }}>✕</span>
+                  ) : (
+                    text
+                  ),
+              },
+              {
+                title: "Premium",
+                dataIndex: "premium",
+                key: "premium",
+                render: (text: string) =>
+                  text === "✓" ? (
+                    <CheckCircleOutlined style={{ color: "green" }} />
+                  ) : text === "✕" ? (
+                    <span style={{ color: "red" }}>✕</span>
+                  ) : (
+                    text
+                  ),
+              },
+            ]}
+          />
+        </Card>
+      )}
 
-              <Card title="Pricing Summary">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 border rounded">
-                    <Title level={4}>Starter</Title>
-                    <Title level={2} className="text-blue-600">
-                      {generatedOffer.primaryOffer.pricing.starter}
-                    </Title>
-                    <Text type="secondary">{generatedOffer.primaryOffer.signatureOffers.starter.term}</Text>
-                  </div>
-                  <div className="text-center p-4 border rounded">
-                    <Title level={4}>Core (Recommended)</Title>
-                    <Title level={2} className="text-blue-800">
-                      {generatedOffer.primaryOffer.pricing.core}
-                    </Title>
-                    <Text type="secondary">{generatedOffer.primaryOffer.signatureOffers.core.term}</Text>
-                  </div>
-                  <div className="text-center p-4 border rounded">
-                    <Title level={4}>Premium</Title>
-                    <Title level={2} className="text-purple-600">
-                      {generatedOffer.primaryOffer.pricing.premium}
-                    </Title>
-                    <Text type="secondary">{generatedOffer.primaryOffer.signatureOffers.premium.term}</Text>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Analysis Results */}
-              {generatedOffer.analysis && (
-                <Card title="Offer Analysis">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Text strong>Conversion Potential Score</Text>
-                      <div className="mt-2">
-                        <Progress 
-                          percent={generatedOffer.analysis.conversionPotential.score} 
-                          status="active"
-                          strokeColor="#52c41a"
-                        />
-                        <Text>{generatedOffer.analysis.conversionPotential.score}%</Text>
-                      </div>
-                    </div>
-                    <div>
-                      <Text strong>Key Factors</Text>
-                      <ul className="mt-2 text-sm">
-                        {generatedOffer.analysis.conversionPotential.factors.map((factor, idx) => (
-                          <li key={idx} className={`
-                            ${factor.impact === 'High' ? 'text-green-700' : 
-                              factor.impact === 'Medium' ? 'text-yellow-700' : 'text-red-700'}
-                          `}>
-                            {factor.factor} ({factor.impact})
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              <Card title="Next Steps">
-                <Steps progressDot current={0} direction="vertical">
-                  <Step title="Review generated offers" description="Make any necessary adjustments to the offers" />
-                  <Step title="Create sales collateral" description="Generate one-pagers and proposal templates" />
-                  <Step title="Set up fulfillment systems" description="Prepare your delivery processes and tools" />
-                  <Step title="Launch to market" description="Start promoting your new signature offers" />
-                </Steps>
-              </Card>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <BulbOutlined style={{ fontSize: "48px", color: "#ccc" }} />
-              <Title level={3} type="secondary">
-                No Offers Generated Yet
+      {/* Safe access for Pricing Summary */}
+      {generatedOffer.pricing && generatedOffer.signatureOffers && (
+        <Card title="Pricing Summary">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 border rounded">
+              <Title level={4}>Starter</Title>
+              <Title level={2} className="text-blue-600">
+                {generatedOffer.pricing.starter || 'Price TBD'}
               </Title>
-              <Text type="secondary">Fill out the input form and generate your signature offers to see them here.</Text>
-              <div className="mt-4">
-                <Button type="primary" onClick={() => setActiveTab("inputs")}>
-                  Go to Inputs
-                </Button>
+              <Text type="secondary">
+                {generatedOffer.signatureOffers.starter?.term || 'Term TBD'}
+              </Text>
+            </div>
+            <div className="text-center p-4 border rounded">
+              <Title level={4}>Core (Recommended)</Title>
+              <Title level={2} className="text-blue-800">
+                {generatedOffer.pricing.core || 'Price TBD'}
+              </Title>
+              <Text type="secondary">
+                {generatedOffer.signatureOffers.core?.term || 'Term TBD'}
+              </Text>
+            </div>
+            <div className="text-center p-4 border rounded">
+              <Title level={4}>Premium</Title>
+              <Title level={2} className="text-purple-600">
+                {generatedOffer.pricing.premium || 'Price TBD'}
+              </Title>
+              <Text type="secondary">
+                {generatedOffer.signatureOffers.premium?.term || 'Term TBD'}
+              </Text>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Analysis Results with safe access */}
+      {generatedOffer.analysis && (
+        <Card title="Offer Analysis">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Text strong>Conversion Potential Score</Text>
+              <div className="mt-2">
+                <Progress 
+                  percent={generatedOffer.analysis.conversionPotential?.score || 0} 
+                  status="active"
+                  strokeColor="#52c41a"
+                />
+                <Text>{generatedOffer.analysis.conversionPotential?.score || 0}%</Text>
               </div>
             </div>
-          )}
-        </TabPane>
+            <div>
+              <Text strong>Key Factors</Text>
+              <ul className="mt-2 text-sm">
+                {generatedOffer.analysis.conversionPotential?.factors?.map((factor, idx) => (
+                  <li key={idx} className={`
+                    ${factor.impact === 'High' ? 'text-green-700' : 
+                      factor.impact === 'Medium' ? 'text-yellow-700' : 'text-red-700'}
+                  `}>
+                    {factor.factor} ({factor.impact})
+                  </li>
+                )) || <li>No factors available</li>}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Next Steps */}
+      <Card title="Next Steps">
+        <Steps progressDot current={0} direction="vertical">
+          <Step title="Review generated offers" description="Make any necessary adjustments to the offers" />
+          <Step title="Create sales collateral" description="Generate one-pagers and proposal templates" />
+          <Step title="Set up fulfillment systems" description="Prepare your delivery processes and tools" />
+          <Step title="Launch to market" description="Start promoting your new signature offers" />
+        </Steps>
+      </Card>
+    </div>
+  ) : generatedOffer ? (
+    // Handle case where generatedOffer exists but has invalid structure
+    <div className="text-center py-12">
+      <Alert
+        message="Invalid Offer Structure"
+        description="The generated offer data appears to be incomplete or corrupted. Please try regenerating your offers."
+        type="error"
+        showIcon
+        action={
+          <Space>
+            <Button size="small" onClick={() => setActiveTab("inputs")}>
+              Back to Inputs
+            </Button>
+            <Button size="small" type="primary" onClick={onFinish} loading={generating}>
+              Regenerate Offers
+            </Button>
+          </Space>
+        }
+      />
+      <div className="mt-4">
+        <details>
+          <summary className="cursor-pointer text-sm text-gray-500">Show raw data (for debugging)</summary>
+          <pre className="mt-2 text-xs text-left bg-gray-100 p-4 rounded overflow-auto">
+            {JSON.stringify(generatedOffer, null, 2)}
+          </pre>
+        </details>
+      </div>
+    </div>
+  ) : (
+    // No offer generated yet
+    <div className="text-center py-12">
+      <BulbOutlined style={{ fontSize: "48px", color: "#ccc" }} />
+      <Title level={3} type="secondary">
+        No Offers Generated Yet
+      </Title>
+      <Text type="secondary">Fill out the input form and generate your signature offers to see them here.</Text>
+      <div className="mt-4">
+        <Button type="primary" onClick={() => setActiveTab("inputs")}>
+          Go to Inputs
+        </Button>
+      </div>
+    </div>
+  )}
+</TabPane>
 
 <TabPane
   tab={

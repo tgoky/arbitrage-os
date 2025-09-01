@@ -27,6 +27,7 @@ export class OfferCreatorService {
     });
   }
 
+
 async generateOffer(input: OfferCreatorInput): Promise<GeneratedOfferPackage> {
   const startTime = Date.now();
 
@@ -35,7 +36,6 @@ async generateOffer(input: OfferCreatorInput): Promise<GeneratedOfferPackage> {
   try {
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      // Handle both string and object cases safely
       if (typeof cached === 'string') {
         return JSON.parse(cached);
       } else if (typeof cached === 'object' && cached !== null) {
@@ -44,11 +44,9 @@ async generateOffer(input: OfferCreatorInput): Promise<GeneratedOfferPackage> {
     }
   } catch (cacheError) {
     console.warn('Cache retrieval/parsing error, proceeding with fresh generation:', cacheError);
-    // Clear corrupted cache entry
     await this.redis.del(cacheKey).catch(() => {});
   }
 
-  // Build enhanced offer creation prompt
   const prompt = this.buildEnhancedOfferPrompt(input);
 
   try {
@@ -80,11 +78,16 @@ Your goal is to create offers that make prospects think "I need this" immediatel
     const parsedOffer = this.parseOfferResponse(response.content, input);
     const analysis = this.generateOfferAnalysis(input, parsedOffer);
 
+    // FIXED: Create the flat structure that matches your actual API response
     const offerPackage: GeneratedOfferPackage = {
-      primaryOffer: parsedOffer,
+      // Direct properties (not nested under primaryOffer)
+      signatureOffers: parsedOffer.signatureOffers,
+      comparisonTable: parsedOffer.comparisonTable,
+      pricing: parsedOffer.pricing,
       analysis,
       tokensUsed: response.usage.total_tokens,
-      generationTime: Date.now() - startTime
+      generationTime: Date.now() - startTime,
+      originalInput: input // Add this for loading saved offers
     };
 
     // Cache for 4 hours with proper error handling
@@ -92,7 +95,6 @@ Your goal is to create offers that make prospects think "I need this" immediatel
       await this.redis.set(cacheKey, JSON.stringify(offerPackage), { ex: 14400 });
     } catch (cacheSetError) {
       console.warn('Failed to cache offer, but generation succeeded:', cacheSetError);
-      // Don't throw error - generation was successful
     }
 
     return offerPackage;
@@ -101,6 +103,7 @@ Your goal is to create offers that make prospects think "I need this" immediatel
     throw new Error('Failed to generate offer. Please try again.');
   }
 }
+
 
   private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
     // Calculate pricing targets
@@ -386,123 +389,124 @@ Generate offers that make prospects immediately understand the value and want to
     );
   }
 
-  private generateEnhancedFallbackOffer(input: OfferCreatorInput): GeneratedOffer {
-    const targetACV = this.parseACV(input.business.acv);
-    const starterPrice = Math.round(targetACV * 0.65 / 12);
-    const corePrice = Math.round(targetACV / 12);
-    const premiumPrice = Math.round(targetACV * 1.75 / 12);
+private generateEnhancedFallbackOffer(input: OfferCreatorInput): GeneratedOffer {
+  const targetACV = this.parseACV(input.business.acv);
+  const starterPrice = Math.round(targetACV * 0.65 / 12);
+  const corePrice = Math.round(targetACV / 12);
+  const premiumPrice = Math.round(targetACV * 1.75 / 12);
 
-    const primaryIndustry = input.founder.industries[0] || 'Business';
-    const primaryPain = input.market.pains[0] || 'operational inefficiency';
-    const primaryOutcome = input.market.outcomes[0] || 'improved performance';
-    const primaryStrength = input.founder.coreStrengths[0] || 'consulting';
+  const primaryIndustry = input.founder.industries[0] || 'Business';
+  const primaryPain = input.market.pains[0] || 'operational inefficiency';
+  const primaryOutcome = input.market.outcomes[0] || 'improved performance';
+  const primaryStrength = input.founder.coreStrengths[0] || 'consulting';
 
-    // Generate industry-specific deliverables
-    const deliverables = this.generateIndustryDeliverables(primaryIndustry, input);
+  // Generate industry-specific deliverables
+  const deliverables = this.generateIndustryDeliverables(primaryIndustry, input);
 
-    return {
-      signatureOffers: {
-        starter: {
-          name: `The ${primaryIndustry} ${primaryOutcome.split(' ')[0]} Kickstart`,
-          for: `${input.market.targetMarket} ${input.market.buyerRole}s who need to quickly address ${primaryPain} without overwhelming their current operations`,
-          promise: `Eliminate ${primaryPain} with a proven system that delivers measurable ${primaryOutcome} within 30 days`,
-          scope: [
-            deliverables.starter.primary,
-            deliverables.starter.secondary,
-            deliverables.starter.support
-          ],
-          proof: [
-            input.founder.signatureResults[0] || `Documented success in ${primaryIndustry}`,
-            `Proven ${primaryStrength} methodology`,
-            `${input.founder.industries.length} industry specialization`
-          ],
-          timeline: '30-45 days for core deliverables',
-          milestones: [
-            `Week 1: ${deliverables.starter.milestone1}`,
-            `Week 2: ${deliverables.starter.milestone2}`,
-            `Week 4: ${deliverables.starter.milestone3}`
-          ],
-          pricing: `$${starterPrice.toLocaleString()}/month`,
-          term: input.pricing.contractStyle,
-          guarantee: this.generateSpecificGuarantee(input.pricing.guarantee, 'starter', deliverables.starter.guarantee),
-          clientLift: `Achieve ${deliverables.starter.outcome} within 45 days`,
-          requirements: 'Access to current systems, 2 hours weekly for implementation calls'
-        },
-        core: {
-          name: `The ${primaryIndustry} ${primaryOutcome.split(' ')[0]} Engine`,
-          for: `Established ${input.market.targetMarket} organizations ready to systematically transform ${primaryPain} into sustainable competitive advantage`,
-          promise: `Build a complete ${primaryOutcome} system that runs automatically while delivering consistent, measurable results`,
-          scope: [
-            deliverables.core.primary,
-            deliverables.core.secondary,
-            deliverables.core.optimization,
-            deliverables.core.support
-          ],
-          proof: [
-            input.founder.signatureResults[0] || `Multiple success stories in ${primaryIndustry}`,
-            input.founder.signatureResults[1] || 'Proven transformation methodology',
-            `Advanced ${primaryStrength} certification`
-          ],
-          timeline: '90 days for complete system deployment',
-          milestones: [
-            `Month 1: ${deliverables.core.milestone1}`,
-            `Month 2: ${deliverables.core.milestone2}`,
-            `Month 3: ${deliverables.core.milestone3}`
-          ],
-          pricing: `$${corePrice.toLocaleString()}/month`,
-          term: input.pricing.contractStyle,
-          guarantee: this.generateSpecificGuarantee(input.pricing.guarantee, 'core', deliverables.core.guarantee),
-          clientLift: `Achieve ${deliverables.core.outcome} within 90 days`,
-          requirements: 'Dedicated team member, full data access, weekly strategy sessions'
-        },
-        premium: {
-          name: `The 180-Day ${primaryIndustry} Excellence Build`,
-          for: `High-growth ${input.market.targetMarket} leaders seeking to establish market dominance through superior ${primaryOutcome} capabilities`,
-          promise: `Build and deploy a custom ${primaryOutcome} infrastructure that positions your organization as the industry leader`,
-          scope: [
-            deliverables.premium.strategic,
-            deliverables.premium.implementation,
-            deliverables.premium.optimization,
-            deliverables.premium.training,
-            deliverables.premium.ongoing
-          ],
-          proof: [
-            input.founder.signatureResults[0] || `C-level advisory experience in ${primaryIndustry}`,
-            'White-glove transformation expertise',
-            'Industry-leading methodology development'
-          ],
-          timeline: '6 months for complete transformation',
-          milestones: [
-            `Month 1-2: ${deliverables.premium.milestone1}`,
-            `Month 3-4: ${deliverables.premium.milestone2}`,
-            `Month 5-6: ${deliverables.premium.milestone3}`
-          ],
-          pricing: `$${premiumPrice.toLocaleString()}/month`,
-          term: input.pricing.contractStyle === 'project' ? 'Project-based engagement' : `${input.pricing.contractStyle} with quarterly reviews`,
-          guarantee: this.generateSpecificGuarantee(input.pricing.guarantee, 'premium', deliverables.premium.guarantee),
-          clientLift: `Achieve ${deliverables.premium.outcome} and establish market leadership position`,
-          requirements: 'Executive sponsorship, dedicated project team, comprehensive data access'
-        }
+  // FIXED: Return the flat structure instead of nested under primaryOffer
+  return {
+    signatureOffers: {
+      starter: {
+        name: `The ${primaryIndustry} ${primaryOutcome.split(' ')[0]} Kickstart`,
+        for: `${input.market.targetMarket} ${input.market.buyerRole}s who need to quickly address ${primaryPain} without overwhelming their current operations`,
+        promise: `Eliminate ${primaryPain} with a proven system that delivers measurable ${primaryOutcome} within 30 days`,
+        scope: [
+          deliverables.starter.primary,
+          deliverables.starter.secondary,
+          deliverables.starter.support
+        ],
+        proof: [
+          input.founder.signatureResults[0] || `Documented success in ${primaryIndustry}`,
+          `Proven ${primaryStrength} methodology`,
+          `${input.founder.industries.length} industry specialization`
+        ],
+        timeline: '30-45 days for core deliverables',
+        milestones: [
+          `Week 1: ${deliverables.starter.milestone1}`,
+          `Week 2: ${deliverables.starter.milestone2}`,
+          `Week 4: ${deliverables.starter.milestone3}`
+        ],
+        pricing: `$${starterPrice.toLocaleString()}/month`,
+        term: input.pricing.contractStyle,
+        guarantee: this.generateSpecificGuarantee(input.pricing.guarantee, 'starter', deliverables.starter.guarantee),
+        clientLift: `Achieve ${deliverables.starter.outcome} within 45 days`,
+        requirements: 'Access to current systems, 2 hours weekly for implementation calls'
       },
-      comparisonTable: {
-        features: [
-          { name: 'System Scope', starter: 'Single Channel Focus', core: 'Multi-Channel Integration', premium: 'Custom Infrastructure Build' },
-          { name: 'Implementation Speed', starter: '30-45 days', core: '90 days', premium: '180 days (strategic)' },
-          { name: 'Deliverable Volume', starter: deliverables.comparison.volume.starter, core: deliverables.comparison.volume.core, premium: deliverables.comparison.volume.premium },
-          { name: 'Support Level', starter: 'Guided Setup', core: 'Hands-on Management', premium: 'White-glove Partnership' },
-          { name: 'Optimization Frequency', starter: 'Monthly', core: 'Weekly', premium: 'Real-time + Strategic' },
-          { name: 'Team Training', starter: 'Basic Handover', core: 'Process Training', premium: 'Comprehensive Certification' },
-          { name: 'Strategic Input', starter: 'Templates & Guides', core: 'Custom Strategy', premium: 'Executive Advisory' },
-          { name: 'Guarantee Level', starter: 'Deliverable-based', core: 'Performance-based', premium: 'Outcome-based' }
-        ]
+      core: {
+        name: `The ${primaryIndustry} ${primaryOutcome.split(' ')[0]} Engine`,
+        for: `Established ${input.market.targetMarket} organizations ready to systematically transform ${primaryPain} into sustainable competitive advantage`,
+        promise: `Build a complete ${primaryOutcome} system that runs automatically while delivering consistent, measurable results`,
+        scope: [
+          deliverables.core.primary,
+          deliverables.core.secondary,
+          deliverables.core.optimization,
+          deliverables.core.support
+        ],
+        proof: [
+          input.founder.signatureResults[0] || `Multiple success stories in ${primaryIndustry}`,
+          input.founder.signatureResults[1] || 'Proven transformation methodology',
+          `Advanced ${primaryStrength} certification`
+        ],
+        timeline: '90 days for complete system deployment',
+        milestones: [
+          `Month 1: ${deliverables.core.milestone1}`,
+          `Month 2: ${deliverables.core.milestone2}`,
+          `Month 3: ${deliverables.core.milestone3}`
+        ],
+        pricing: `$${corePrice.toLocaleString()}/month`,
+        term: input.pricing.contractStyle,
+        guarantee: this.generateSpecificGuarantee(input.pricing.guarantee, 'core', deliverables.core.guarantee),
+        clientLift: `Achieve ${deliverables.core.outcome} within 90 days`,
+        requirements: 'Dedicated team member, full data access, weekly strategy sessions'
       },
-      pricing: {
-        starter: `$${starterPrice.toLocaleString()}/month`,
-        core: `$${corePrice.toLocaleString()}/month`,
-        premium: `$${premiumPrice.toLocaleString()}/month`
+      premium: {
+        name: `The 180-Day ${primaryIndustry} Excellence Build`,
+        for: `High-growth ${input.market.targetMarket} leaders seeking to establish market dominance through superior ${primaryOutcome} capabilities`,
+        promise: `Build and deploy a custom ${primaryOutcome} infrastructure that positions your organization as the industry leader`,
+        scope: [
+          deliverables.premium.strategic,
+          deliverables.premium.implementation,
+          deliverables.premium.optimization,
+          deliverables.premium.training,
+          deliverables.premium.ongoing
+        ],
+        proof: [
+          input.founder.signatureResults[0] || `C-level advisory experience in ${primaryIndustry}`,
+          'White-glove transformation expertise',
+          'Industry-leading methodology development'
+        ],
+        timeline: '6 months for complete transformation',
+        milestones: [
+          `Month 1-2: ${deliverables.premium.milestone1}`,
+          `Month 3-4: ${deliverables.premium.milestone2}`,
+          `Month 5-6: ${deliverables.premium.milestone3}`
+        ],
+        pricing: `$${premiumPrice.toLocaleString()}/month`,
+        term: input.pricing.contractStyle === 'project' ? 'Project-based engagement' : `${input.pricing.contractStyle} with quarterly reviews`,
+        guarantee: this.generateSpecificGuarantee(input.pricing.guarantee, 'premium', deliverables.premium.guarantee),
+        clientLift: `Achieve ${deliverables.premium.outcome} and establish market leadership position`,
+        requirements: 'Executive sponsorship, dedicated project team, comprehensive data access'
       }
-    };
-  }
+    },
+    comparisonTable: {
+      features: [
+        { name: 'System Scope', starter: 'Single Channel Focus', core: 'Multi-Channel Integration', premium: 'Custom Infrastructure Build' },
+        { name: 'Implementation Speed', starter: '30-45 days', core: '90 days', premium: '180 days (strategic)' },
+        { name: 'Deliverable Volume', starter: deliverables.comparison.volume.starter, core: deliverables.comparison.volume.core, premium: deliverables.comparison.volume.premium },
+        { name: 'Support Level', starter: 'Guided Setup', core: 'Hands-on Management', premium: 'White-glove Partnership' },
+        { name: 'Optimization Frequency', starter: 'Monthly', core: 'Weekly', premium: 'Real-time + Strategic' },
+        { name: 'Team Training', starter: 'Basic Handover', core: 'Process Training', premium: 'Comprehensive Certification' },
+        { name: 'Strategic Input', starter: 'Templates & Guides', core: 'Custom Strategy', premium: 'Executive Advisory' },
+        { name: 'Guarantee Level', starter: 'Deliverable-based', core: 'Performance-based', premium: 'Outcome-based' }
+      ]
+    },
+    pricing: {
+      starter: `$${starterPrice.toLocaleString()}/month`,
+      core: `$${corePrice.toLocaleString()}/month`,
+      premium: `$${premiumPrice.toLocaleString()}/month`
+    }
+  };
+}
 
   private generateIndustryDeliverables(industry: string, input: OfferCreatorInput) {
     const capacity = parseInt(input.business.capacity) || 10;
@@ -744,65 +748,67 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
     return Math.min(100, score);
   }
 
-  async saveOffer(userId: string, workspaceId: string, offer: GeneratedOfferPackage, input: OfferCreatorInput): Promise<string> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      console.log('📝 Creating signature offer deliverable...');
-      
-      // Create a clean copy of the offer to avoid circular references
-      const cleanOffer = {
-        signatureOffers: offer.primaryOffer.signatureOffers || {},
-        comparisonTable: offer.primaryOffer.comparisonTable || {},
-        pricing: offer.primaryOffer.pricing || {},
-        analysis: offer.analysis || {},
-        tokensUsed: offer.tokensUsed || 0,
-        generationTime: offer.generationTime || 0,
-        originalInput: input
-      };
-      
-      const serializedOffer = JSON.stringify(cleanOffer, null, 2);
-      
-      const deliverable = await prisma.deliverable.create({
-        data: {
-          title: `Signature Offers - ${input.market.targetMarket}`,
-          content: serializedOffer,
-          type: 'signature_offers',
-          user_id: userId,
-          workspace_id: workspaceId || 'default',
-          metadata: {
-            targetMarket: input.market.targetMarket,
-            buyerRole: input.market.buyerRole,
-            industries: input.founder.industries,
-            deliveryModels: input.business.deliveryModel,
-            pricePosture: input.pricing.pricePosture,
-            brandTone: input.voice.brandTone,
-            positioning: input.voice.positioning,
-            conversionScore: offer.analysis?.conversionPotential?.score || 75,
-            generatedAt: new Date().toISOString(),
-            tokensUsed: offer.tokensUsed || 0,
-            generationTime: offer.generationTime || 0,
-            capacity: input.business.capacity,
-            monthlyHours: input.business.monthlyHours,
-            acv: input.business.acv
-          },
-          tags: [
-            'signature-offers',
-            'business-strategy',
-            input.market.targetMarket.toLowerCase().replace(/\s/g, '-'),
-            input.pricing.pricePosture,
-            ...input.founder.industries.map(i => i.toLowerCase().replace(/\s/g, '-'))
-          ]
-        }
-      });
 
-      console.log('✅ Signature offer deliverable created successfully with ID:', deliverable.id);
-      return deliverable.id;
-    } catch (error) {
-      console.error('💥 Error saving signature offers:', error);
-      throw error;
-    }
+async saveOffer(userId: string, workspaceId: string, offer: GeneratedOfferPackage, input: OfferCreatorInput): Promise<string> {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    console.log('📝 Creating signature offer deliverable...');
+    
+    // FIXED: Create a clean copy that matches the flat structure
+    const cleanOffer = {
+      signatureOffers: offer.signatureOffers || {},
+      comparisonTable: offer.comparisonTable || {},
+      pricing: offer.pricing || {},
+      analysis: offer.analysis || {},
+      tokensUsed: offer.tokensUsed || 0,
+      generationTime: offer.generationTime || 0,
+      originalInput: input
+    };
+    
+    const serializedOffer = JSON.stringify(cleanOffer, null, 2);
+    
+    const deliverable = await prisma.deliverable.create({
+      data: {
+        title: `Signature Offers - ${input.market.targetMarket}`,
+        content: serializedOffer,
+        type: 'signature_offers',
+        user_id: userId,
+        workspace_id: workspaceId || 'default',
+        metadata: {
+          targetMarket: input.market.targetMarket,
+          buyerRole: input.market.buyerRole,
+          industries: input.founder.industries,
+          deliveryModels: input.business.deliveryModel,
+          pricePosture: input.pricing.pricePosture,
+          brandTone: input.voice.brandTone,
+          positioning: input.voice.positioning,
+          conversionScore: offer.analysis?.conversionPotential?.score || 75,
+          generatedAt: new Date().toISOString(),
+          tokensUsed: offer.tokensUsed || 0,
+          generationTime: offer.generationTime || 0,
+          capacity: input.business.capacity,
+          monthlyHours: input.business.monthlyHours,
+          acv: input.business.acv
+        },
+        tags: [
+          'signature-offers',
+          'business-strategy',
+          input.market.targetMarket.toLowerCase().replace(/\s/g, '-'),
+          input.pricing.pricePosture,
+          ...input.founder.industries.map(i => i.toLowerCase().replace(/\s/g, '-'))
+        ]
+      }
+    });
+
+    console.log('✅ Signature offer deliverable created successfully with ID:', deliverable.id);
+    return deliverable.id;
+  } catch (error) {
+    console.error('💥 Error saving signature offers:', error);
+    throw error;
   }
+}
+
 
   async getUserOffers(userId: string, workspaceId?: string): Promise<UserOffer[]> {
     try {
@@ -846,7 +852,7 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
     }
   }
 
-  async getOffer(userId: string, offerId: string) {
+ async getOffer(userId: string, offerId: string) {
   try {
     const { prisma } = await import('@/lib/prisma');
     
@@ -870,59 +876,57 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
       parsedOffer = JSON.parse(deliverable.content);
     } catch (parseError) {
       console.error('Error parsing offer content:', parseError);
-      // Use enhanced fallback to ensure complete structure
+      // FIXED: Use the flat structure for fallback
       parsedOffer = {
-        primaryOffer: {
-          signatureOffers: {
-            starter: {
-              name: 'Error loading Starter offer',
-              for: 'Not available',
-              promise: 'Not available',
-              scope: [],
-              proof: [], // Ensure proof is an array
-              timeline: 'Not available',
-              milestones: [],
-              pricing: 'Not available',
-              term: 'Not available',
-              guarantee: 'Not available',
-              clientLift: 'Not available',
-              requirements: 'Not available'
-            },
-            core: {
-              name: 'Error loading Core offer',
-              for: 'Not available',
-              promise: 'Not available',
-              scope: [],
-              proof: [], // Ensure proof is an array
-              timeline: 'Not available',
-              milestones: [],
-              pricing: 'Not available',
-              term: 'Not available',
-              guarantee: 'Not available',
-              clientLift: 'Not available',
-              requirements: 'Not available'
-            },
-            premium: {
-              name: 'Error loading Premium offer',
-              for: 'Not available',
-              promise: 'Not available',
-              scope: [],
-              proof: [], // Ensure proof is an array
-              timeline: 'Not available',
-              milestones: [],
-              pricing: 'Not available',
-              term: 'Not available',
-              guarantee: 'Not available',
-              clientLift: 'Not available',
-              requirements: 'Not available'
-            }
+        signatureOffers: {
+          starter: {
+            name: 'Error loading Starter offer',
+            for: 'Not available',
+            promise: 'Not available',
+            scope: [],
+            proof: [],
+            timeline: 'Not available',
+            milestones: [],
+            pricing: 'Not available',
+            term: 'Not available',
+            guarantee: 'Not available',
+            clientLift: 'Not available',
+            requirements: 'Not available'
           },
-          comparisonTable: { features: [] },
-          pricing: {
-            starter: 'Not available',
-            core: 'Not available',
-            premium: 'Not available'
+          core: {
+            name: 'Error loading Core offer',
+            for: 'Not available',
+            promise: 'Not available',
+            scope: [],
+            proof: [],
+            timeline: 'Not available',
+            milestones: [],
+            pricing: 'Not available',
+            term: 'Not available',
+            guarantee: 'Not available',
+            clientLift: 'Not available',
+            requirements: 'Not available'
+          },
+          premium: {
+            name: 'Error loading Premium offer',
+            for: 'Not available',
+            promise: 'Not available',
+            scope: [],
+            proof: [],
+            timeline: 'Not available',
+            milestones: [],
+            pricing: 'Not available',
+            term: 'Not available',
+            guarantee: 'Not available',
+            clientLift: 'Not available',
+            requirements: 'Not available'
           }
+        },
+        comparisonTable: { features: [] },
+        pricing: {
+          starter: 'Not available',
+          core: 'Not available',
+          premium: 'Not available'
         },
         analysis: { conversionPotential: { score: 0, factors: [] } },
         tokensUsed: 0,
@@ -944,6 +948,7 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
     throw error;
   }
 }
+
 
   async optimizeOffer(userId: string, offerId: string, optimizationType: OptimizationType): Promise<OptimizationResult> {
     try {

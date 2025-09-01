@@ -288,23 +288,30 @@ useEffect(() => {
   };
 
   // Handle actions with workspace context
-  const handleAction = async (action: string, item: WorkItem) => {
-    if (!currentWorkspace) {
-      message.error('No workspace selected');
-      return;
-    }
+// Updated handleAction function for your IntegratedWorkDashboard.tsx
 
-    try {
-      switch (action) {
-        case 'view':
-          // Navigate to the specific tool's view page with workspace context
+const handleAction = async (action: string, item: WorkItem) => {
+  if (!currentWorkspace) {
+    message.error('No workspace selected');
+    return;
+  }
+
+  try {
+    switch (action) {
+      case 'view':
+        // For offer creator, use the specific offer creator detail page
+        if (item.type === 'offer-creator') {
+          const viewUrl = `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`;
+          window.location.href = viewUrl;
+        } else {
+          // For other types, could use a generic work item detail page or specific pages
+          // For now, let's create specific routes for each type
           const viewUrls = {
             'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer/${item.metadata.deliverableId}`,
             'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans/${item.metadata.deliverableId}`,
             'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator/${item.metadata.deliverableId}`,
             'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research/${item.metadata.deliverableId}`,
             'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
-            'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`,
             'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
             'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`
           };
@@ -312,78 +319,188 @@ useEffect(() => {
           const viewUrl = viewUrls[item.type];
           if (viewUrl) {
             window.location.href = viewUrl;
+          } else {
+            message.warning('View details not available for this item type yet');
           }
-          break;
+        }
+        break;
 
-        case 'delete':
-          const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
-          if (deleteConfirm) {
-            // Call delete API with workspace context
-            await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
+      case 'edit':
+        // Navigate to the specific tool for editing
+        const editUrls = {
+          'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer?load=${item.metadata.deliverableId}`,
+          'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans?load=${item.metadata.deliverableId}`,
+          'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator?load=${item.metadata.deliverableId}`,
+          'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research?load=${item.metadata.deliverableId}`,
+          'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email?load=${item.metadata.deliverableId}`,
+          'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator?load=${item.metadata.deliverableId}`,
+          'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer?load=${item.metadata.deliverableId}`,
+          'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder?load=${item.metadata.deliverableId}`
+        };
+        
+        const editUrl = editUrls[item.type];
+        if (editUrl) {
+          window.location.href = editUrl;
+        } else {
+          message.warning('Edit functionality not available for this item type');
+        }
+        break;
+
+      case 'delete':
+        const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
+        if (deleteConfirm) {
+          try {
+            const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
               method: 'DELETE',
               credentials: 'include',
               headers: {
                 'X-Workspace-Id': currentWorkspace.id
               }
             });
-            message.success('Item deleted successfully');
-            fetchAllWorkItems(); // Refresh data
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.error || `Delete failed with status ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+              message.success('Item deleted successfully');
+              fetchAllWorkItems(); // Refresh data
+            } else {
+              throw new Error(result.error || 'Delete operation failed');
+            }
+          } catch (deleteError) {
+            console.error('Delete error:', deleteError);
+            message.error(deleteError instanceof Error ? deleteError.message : 'Failed to delete item');
           }
-          break;
+        }
+        break;
 
-        case 'export':
-        case 'copy':
-        case 'duplicate':
-        case 'optimize':
-          message.info(`${action} functionality coming soon!`);
-          break;
+      case 'export':
+        try {
+          // First fetch the deliverable data
+          const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
+            credentials: 'include',
+            headers: {
+              'X-Workspace-Id': currentWorkspace.id
+            }
+          });
 
-        default:
-          message.info(`${action} action not implemented yet`);
-      }
-    } catch (error) {
-      console.error(`Error performing ${action}:`, error);
-      message.error(`Failed to ${action} item`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch item data for export');
+          }
+
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch item data');
+          }
+
+          // Create export blob
+          const exportData = {
+            title: item.title,
+            type: item.type,
+            content: data.data.content,
+            metadata: data.data.metadata,
+            createdAt: data.data.createdAt,
+            updatedAt: data.data.updatedAt
+          };
+
+          const dataStr = JSON.stringify(exportData, null, 2);
+          const dataBlob = new Blob([dataStr], { type: 'application/json' });
+          const url = URL.createObjectURL(dataBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.json`;
+          link.click();
+          URL.revokeObjectURL(url);
+
+          message.success('Exported successfully');
+        } catch (exportError) {
+          console.error('Export error:', exportError);
+          message.error(exportError instanceof Error ? exportError.message : 'Failed to export item');
+        }
+        break;
+
+      case 'copy':
+        try {
+          // Fetch the deliverable data to copy
+          const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
+            credentials: 'include',
+            headers: {
+              'X-Workspace-Id': currentWorkspace.id
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch item data for copying');
+          }
+
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch item data');
+          }
+
+          // Copy content to clipboard
+          navigator.clipboard.writeText(JSON.stringify(data.data.content, null, 2));
+          message.success('Content copied to clipboard');
+        } catch (copyError) {
+          console.error('Copy error:', copyError);
+          message.error(copyError instanceof Error ? copyError.message : 'Failed to copy content');
+        }
+        break;
+
+      case 'duplicate':
+      case 'optimize':
+        message.info(`${action} functionality coming soon!`);
+        break;
+
+      default:
+        message.info(`${action} action not implemented yet`);
     }
-  };
+  } catch (error) {
+    console.error(`Error performing ${action}:`, error);
+    message.error(`Failed to ${action} item`);
+  }
+};
 
   // Create action menu
   const createActionMenu = (item: WorkItem) => (
     <Menu onClick={({ key }) => handleAction(key, item)}>
-      {/* {item.actions.includes('view') && (
+      {item.actions.includes('view') && (
         <Menu.Item key="view" icon={<EyeOutlined />}>
           View Details
         </Menu.Item>
-      )} */}
-      {/* {item.actions.includes('edit') && (
+      )} 
+      {item.actions.includes('edit') && (
         <Menu.Item key="edit" icon={<EditOutlined />}>
           Edit
         </Menu.Item>
-      )} */}
-      {/* {item.actions.includes('export') && (
+      )}
+      {item.actions.includes('export') && (
         <Menu.Item key="export" icon={<DownloadOutlined />}>
           Export
         </Menu.Item>
-      )} */}
-      {/* {item.actions.includes('copy') && (
+      )}
+      {item.actions.includes('copy') && (
         <Menu.Item key="copy" icon={<ShareAltOutlined />}>
           Copy to Clipboard
         </Menu.Item>
-      )} */}
+      )}
       {item.actions.includes('duplicate') && (
         <Menu.Item key="duplicate" icon={<ShareAltOutlined />}>
           Duplicate
         </Menu.Item>
       )}
-      {/* {item.actions.includes('optimize') && (
+      {item.actions.includes('optimize') && (
         <Menu.Item key="optimize" icon={<BarChartOutlined />}>
           Optimize
         </Menu.Item>
-      )} */}
+      )}
       <Menu.Divider />
-      {/* <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
+      <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
         Delete
-      </Menu.Item> */}
+      </Menu.Item>
     </Menu>
   );
 
@@ -670,10 +787,10 @@ useEffect(() => {
                           </div>
                         </div>
 
-                        {/* Actions */}
-                        {/* <Dropdown overlay={createActionMenu(item)} trigger={['click']}>
+                    
+                        <Dropdown overlay={createActionMenu(item)} trigger={['click']}>
                           <Button type="text" icon={<EllipsisOutlined />} />
-                        </Dropdown> */}
+                        </Dropdown>
                       </div>
                     </div>
                   </div>
