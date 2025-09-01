@@ -160,11 +160,34 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
     const includePublic = searchParams.get('includePublic') === 'true';
+     const workspaceId = searchParams.get('workspaceId') ?? undefined; // Convert null to undefined
+
+         // ADDED: Validate workspace access if provided
+    if (workspaceId) {
+      const { prisma } = await import('@/lib/prisma');
+      const workspace = await prisma.workspace.findFirst({
+        where: {
+          id: workspaceId,
+          user_id: user.id
+        }
+      });
+
+            if (!workspace) {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Workspace not found or access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
+
+
 
     const coldEmailService = new ColdEmailService();
     const templates = await coldEmailService.getUserTemplates(user.id, {
       category: category as any,
-      includePublic
+      includePublic,
+      workspaceId 
     });
 
     // ✅ Log template fetch usage
@@ -176,6 +199,7 @@ export async function GET(req: NextRequest) {
       metadata: {
         category,
         includePublic,
+            workspaceId, 
         resultCount: templates.length
       }
     });
@@ -247,6 +271,34 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validation = templateSchema.safeParse(body);
 
+      const workspaceId = body.workspaceId;
+
+          if (!workspaceId) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace ID required.',
+        code: 'WORKSPACE_ID_REQUIRED'
+      }, { status: 400 });
+    }
+
+    // ADDED: Validate workspace access
+    const { prisma } = await import('@/lib/prisma');
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: user.id
+      }
+    });
+    
+    if (!workspace) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace not found or access denied.',
+        code: 'WORKSPACE_ACCESS_DENIED'
+      }, { status: 403 });
+    }
+
+
     if (!validation.success) {
       return NextResponse.json(
         { 
@@ -259,7 +311,7 @@ export async function POST(req: NextRequest) {
     }
 
     const coldEmailService = new ColdEmailService();
-    const template = await coldEmailService.createTemplate(user.id, validation.data);
+  const template = await coldEmailService.createTemplate(user.id, workspaceId, validation.data);
 
     // ✅ Log template creation usage
     await logUsage({
@@ -269,6 +321,7 @@ export async function POST(req: NextRequest) {
       timestamp: new Date(),
       metadata: {
         templateId: template.id,
+               workspaceId, 
         category: validation.data.category,
         bodyLength: validation.data.body.length
       }
