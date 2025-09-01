@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 
-export async function getAuthenticatedUser(request: NextRequest) {
+ async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
