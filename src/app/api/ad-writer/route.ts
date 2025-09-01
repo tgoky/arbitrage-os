@@ -1,4 +1,4 @@
-// app/api/ad-writer/route.ts - FIXED VERSION
+// app/api/ad-writer/route.ts - FIXED VERSION (No named exports)
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -8,11 +8,10 @@ import { AdWriterService } from '@/services/adWriter.service';
 import { validateAdWriterInput } from '@/app/validators/adWriter.validator';
 import { rateLimit } from '../../../lib/rateLimit';
 import { logUsage } from '@/lib/usage';
-import { convertToPlatforms, type Platform } from '@/types/adWriter'; // ✅ Import the helper function
+import { convertToPlatforms, type Platform } from '@/types/adWriter';
 
-// EXACT COPY of pricing calculator's robust authentication function
-// Use this IMPROVED 3-method approach in ALL routes
-export async function getAuthenticatedUser(request: NextRequest) {
+// MOVED INSIDE: Authentication function (no longer exported)
+async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
@@ -106,13 +105,13 @@ export async function POST(req: NextRequest) {
   try {
     console.log('=== AD WRITER API START ===');
     
-    // Use EXACT SAME robust authentication as pricing calculator
+    // Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
       console.error('Auth failed in ad writer:', authError);
       
-      // Clear corrupted cookies in response (EXACT SAME as pricing calculator)
+      // Clear corrupted cookies in response
       const response = NextResponse.json(
         { 
           error: 'Authentication required. Please clear your browser cookies and sign in again.',
@@ -121,7 +120,7 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
       
-      // Clear potentially corrupted cookies (EXACT SAME as pricing calculator)
+      // Clear potentially corrupted cookies
       const cookiesToClear = [
         'sb-access-token',
         'sb-refresh-token',
@@ -144,7 +143,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('Request body received:', JSON.stringify(body, null, 2));
 
-    // THEN get workspace ID from both sources
+    // Get workspace ID from both sources
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
 
@@ -172,7 +171,7 @@ export async function POST(req: NextRequest) {
 
     console.log('Using workspace:', workspace.id);
 
-    // RATE LIMITING for ad generation (same pattern as pricing calculator)
+    // RATE LIMITING for ad generation
     const rateLimitResult = await rateLimit(
       `ad_writer:${user.id}`,
       25, // 25 ad generations per hour
@@ -190,10 +189,8 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    // Parse and validate request body
- 
-    console.log('Request body received:', JSON.stringify(body, null, 2));
-    
+
+    // Validate input
     const validation = validateAdWriterInput(body);
     
     if (!validation.success) {
@@ -217,37 +214,30 @@ export async function POST(req: NextRequest) {
 
     console.log('Validation passed');
 
-   
-
-    console.log('Using workspace:', workspace.id);
-
-    // ✅ FIXED: Convert string platforms to Platform type and prepare data for ad generation service
+    // Convert string platforms to Platform type and prepare data
     const validatedPlatforms = convertToPlatforms(validation.data.activePlatforms || []);
     
     const adGenerationInput = {
       ...validation.data,
       userId: user.id,
-      platforms: validatedPlatforms, // ✅ Now properly typed as Platform[]
-       adLength: validation.data.adLength || 'medium'
+      platforms: validatedPlatforms,
+      adLength: validation.data.adLength || 'medium'
     };
 
     console.log('Calling AdWriterService with:', JSON.stringify(adGenerationInput, null, 2));
 
-    // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE with error handling (same pattern as pricing calculator)
+    // Generate and save ads
     let result;
-    let deliverableId;
     
     try {
       const adWriterService = new AdWriterService();
       
-      // Generate and save the ads
       result = await adWriterService.generateAndSaveAds(
         adGenerationInput,
         user.id,
         workspace.id
       );
       
-      deliverableId = result.deliverableId;
     } catch (serviceError) {
       console.error('Service error:', serviceError);
       return NextResponse.json(
@@ -263,7 +253,7 @@ export async function POST(req: NextRequest) {
       generationTime: result.generationTime
     });
 
-    // ✅ LOG USAGE for analytics/billing with error handling (same pattern as pricing calculator)
+    // Log usage for analytics/billing
     try {
       await logUsage({
         userId: user.id,
@@ -285,7 +275,7 @@ export async function POST(req: NextRequest) {
 
     console.log('Usage logged successfully');
 
-    // Return successful response (same format as pricing calculator)
+    // Return successful response
     const response = {
       success: true,
       data: {
@@ -309,7 +299,6 @@ export async function POST(req: NextRequest) {
     console.error('Error details:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
-    // Return detailed error for debugging
     return NextResponse.json(
       { 
         error: 'Failed to generate ads. Please try again.',
