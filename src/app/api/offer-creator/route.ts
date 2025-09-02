@@ -1,4 +1,5 @@
-// app/api/offer-creator/route.ts - FIXED VERSION
+// app/api/offer-creator/route.ts - FIXED TO MATCH FLAT STRUCTURE
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -30,7 +31,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ FIXED: Use the EXACT same authentication function as pricing-calculator
+// Authentication function (keeping the same as before)
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -121,7 +122,7 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-// ✅ FIXED: Add workspace validation function
+// Workspace validation function
 async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
   try {
     const { prisma } = await import('@/lib/prisma');
@@ -140,16 +141,15 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
 
 // POST method for generating signature offers
 export async function POST(req: NextRequest) {
-  console.log('🚀 Enhanced Signature Offer Creator API Route called');
+  console.log('🚀 Signature Offer Creator API Route called');
   
   try {
-    // ✅ FIXED: Use the same authentication flow as pricing-calculator
+    // Authentication
     const { user, error: authError } = await getAuthenticatedUser(req);
 
     if (authError || !user) {
-      console.error('❌ Auth failed in enhanced offer creator:', authError);
+      console.error('❌ Auth failed:', authError);
       
-      // Clear corrupted cookies in response
       const response = NextResponse.json(
         { 
           success: false,
@@ -159,7 +159,6 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
 
-      // Clear potentially corrupted cookies
       const cookiesToClear = [
         'sb-access-token',
         'sb-refresh-token',
@@ -178,7 +177,7 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // ✅ FIXED: Get workspace ID BEFORE validating it (was inside the auth failure block!)
+    // Get workspace ID
     const body = await req.json();
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
@@ -191,7 +190,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // ✅ FIXED: Validate workspace access after getting workspaceId
+    // Validate workspace access
     const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
     if (!hasAccess) {
       return NextResponse.json({ 
@@ -201,10 +200,10 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // Rate limiting for offer generation
+    // Rate limiting
     console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(
-      `enhanced_signature_offer_generation:${user.id}`,
+      `signature_offer_generation:${user.id}`,
       RATE_LIMITS.OFFER_GENERATION.limit,
       RATE_LIMITS.OFFER_GENERATION.window
     );
@@ -221,23 +220,14 @@ export async function POST(req: NextRequest) {
     }
     console.log('✅ Rate limit check passed');
 
-    // ✅ Enhanced debug logging for the new service structure
+    // Debug logging
     console.log('🔍 RECEIVED BODY STRUCTURE:');
     console.log('- founder keys:', body.founder ? Object.keys(body.founder) : 'missing');
-    console.log('- founder signatureResults length:', body.founder?.signatureResults?.length || 0);
-    console.log('- founder industries:', body.founder?.industries || []);
     console.log('- market keys:', body.market ? Object.keys(body.market) : 'missing');
-    console.log('- market targetMarket:', body.market?.targetMarket || 'missing');
-    console.log('- market pains length:', body.market?.pains?.length || 0);
     console.log('- business keys:', body.business ? Object.keys(body.business) : 'missing');
-    console.log('- business deliveryModel:', body.business?.deliveryModel || []);
-    console.log('- business capacity:', body.business?.capacity || 'missing');
     console.log('- pricing keys:', body.pricing ? Object.keys(body.pricing) : 'missing');
-    console.log('- pricing pricePosture:', body.pricing?.pricePosture || 'missing');
     console.log('- voice keys:', body.voice ? Object.keys(body.voice) : 'missing');
-    console.log('- voice positioning:', body.voice?.positioning || 'missing');
     
-    // Add userId to create proper OfferCreatorInput structure
     const inputWithUserId: OfferCreatorInput = {
       founder: body.founder || {},
       market: body.market || {},
@@ -247,53 +237,23 @@ export async function POST(req: NextRequest) {
       userId: user.id
     };
 
-    console.log('🔍 Starting enhanced validation...');
+    console.log('🔍 Starting validation...');
     const validation = validateOfferCreatorInput(inputWithUserId);
     if (!validation.success) {
-      console.error('❌ ENHANCED VALIDATION FAILED:');
+      console.error('❌ VALIDATION FAILED:');
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
       return NextResponse.json(
         { 
           success: false,
-          error: 'Invalid input for enhanced signature offer generation', 
-          details: validation.errors,
-          debug: {
-            receivedSections: {
-              founder: !!body.founder,
-              market: !!body.market,
-              business: !!body.business,
-              pricing: !!body.pricing,
-              voice: !!body.voice
-            },
-            founderValidation: {
-              hasSignatureResults: body.founder?.signatureResults?.length > 0,
-              hasCoreStrengths: body.founder?.coreStrengths?.length > 0,
-              hasProcesses: body.founder?.processes?.length > 0,
-              hasIndustries: body.founder?.industries?.length > 0
-            },
-            marketValidation: {
-              hasTargetMarket: !!body.market?.targetMarket,
-              hasBuyerRole: !!body.market?.buyerRole,
-              hasPains: body.market?.pains?.length > 0,
-              hasOutcomes: body.market?.outcomes?.length > 0
-            },
-            businessValidation: {
-              hasDeliveryModel: body.business?.deliveryModel?.length > 0,
-              hasCapacity: !!body.business?.capacity,
-              hasMonthlyHours: !!body.business?.monthlyHours,
-              hasACV: !!body.business?.acv
-            },
-            missingRequiredFields: validation.errors.filter(err => 
-              err.message?.includes('required')
-            ).map(err => err.path?.join('.'))
-          }
+          error: 'Invalid input for signature offer generation', 
+          details: validation.errors
         } as ApiResponseOptional<never>,
         { status: 400 }
       );
     }
 
     if (!validation.data) {
-      console.error('❌ Enhanced validation data is null');
+      console.error('❌ Validation data is null');
       return NextResponse.json(
         { 
           success: false,
@@ -303,63 +263,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('✅ Enhanced input validation passed');
+    console.log('✅ Input validation passed');
 
-    // ✅ Enhanced business rules validation
-    console.log('🔍 Validating enhanced business rules...');
+    // Business rules validation
+    console.log('🔍 Validating business rules...');
     const businessValidation = validateOfferBusinessRules(validation.data);
     if (!businessValidation.isValid) {
-      console.warn('⚠️ Enhanced business rules validation warnings:', businessValidation.warnings);
+      console.warn('⚠️ Business rules validation warnings:', businessValidation.warnings);
     }
-    console.log('📊 Business validation score:', businessValidation.conversionPrediction.score);
 
-    // ✅ Generate enhanced signature offers with improved error handling
-    console.log('🤖 Starting ENHANCED signature offer generation...');
+    // FIXED: Generate signature offers with flat structure
+    console.log('🤖 Starting signature offer generation...');
     let generatedOffer: GeneratedOfferPackage;
     try {
-      // ✅ Initialize the enhanced service
-      console.log('🔧 Initializing enhanced OfferCreatorService...');
+      console.log('🔧 Initializing OfferCreatorService...');
       const offerService = new OfferCreatorService();
       
-      // ✅ Call the enhanced generation method
-      console.log('⚡ Calling enhanced generateOffer method...');
+      console.log('⚡ Calling generateOffer method...');
       generatedOffer = await offerService.generateOffer(validation.data);
       
-      console.log('✅ Enhanced signature offer generation completed successfully');
-      console.log('📊 Enhanced generated offer structure:');
-      console.log('- Primary offer tiers:', Object.keys(generatedOffer.primaryOffer.signatureOffers));
-      console.log('- Starter name:', generatedOffer.primaryOffer.signatureOffers.starter.name);
-      console.log('- Core name:', generatedOffer.primaryOffer.signatureOffers.core.name);
-      console.log('- Premium name:', generatedOffer.primaryOffer.signatureOffers.premium.name);
-      console.log('- Analysis score:', generatedOffer.analysis.conversionPotential.score);
+      console.log('✅ Signature offer generation completed successfully');
+      
+      // FIXED: Debug the flat structure (no more primaryOffer)
+      console.log('📊 Generated offer structure:');
+      console.log('- Offer keys:', Object.keys(generatedOffer));
+      console.log('- Signature offers keys:', Object.keys(generatedOffer.signatureOffers || {}));
+      console.log('- Starter name:', generatedOffer.signatureOffers?.starter?.name);
+      console.log('- Core name:', generatedOffer.signatureOffers?.core?.name);
+      console.log('- Premium name:', generatedOffer.signatureOffers?.premium?.name);
+      console.log('- Analysis score:', generatedOffer.analysis?.conversionPotential?.score);
       console.log('- Tokens used:', generatedOffer.tokensUsed);
       console.log('- Generation time:', generatedOffer.generationTime + 'ms');
-      console.log('- Comparison features count:', generatedOffer.primaryOffer.comparisonTable.features.length);
+      console.log('- Comparison features count:', generatedOffer.comparisonTable?.features?.length);
       
-      // ✅ Enhanced validation of the generated offer structure
-      if (!generatedOffer.primaryOffer.signatureOffers.starter.name ||
-          !generatedOffer.primaryOffer.signatureOffers.core.name ||
-          !generatedOffer.primaryOffer.signatureOffers.premium.name) {
+      // FIXED: Validate the flat structure
+      if (!generatedOffer.signatureOffers?.starter?.name ||
+          !generatedOffer.signatureOffers?.core?.name ||
+          !generatedOffer.signatureOffers?.premium?.name) {
         console.error('❌ Generated offer missing required offer names');
         throw new Error('Generated offer structure is incomplete - missing offer names');
       }
       
-      if (!generatedOffer.primaryOffer.signatureOffers.starter.scope?.length ||
-          !generatedOffer.primaryOffer.signatureOffers.core.scope?.length ||
-          !generatedOffer.primaryOffer.signatureOffers.premium.scope?.length) {
+      if (!generatedOffer.signatureOffers?.starter?.scope?.length ||
+          !generatedOffer.signatureOffers?.core?.scope?.length ||
+          !generatedOffer.signatureOffers?.premium?.scope?.length) {
         console.error('❌ Generated offer missing required scope details');
         throw new Error('Generated offer structure is incomplete - missing scope details');
       }
       
     } catch (serviceError) {
-      console.error('💥 Enhanced service error during generation:', serviceError);
-      console.error('Enhanced service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
+      console.error('💥 Service error during generation:', serviceError);
+      console.error('Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       
-      // ✅ Enhanced error response with more context
       return NextResponse.json(
         { 
           success: false,
-          error: 'Failed to generate enhanced signature offers. Please try again.',
+          error: 'Failed to generate signature offers. Please try again.',
           debug: {
             errorType: serviceError instanceof Error ? serviceError.constructor.name : 'Unknown',
             errorMessage: serviceError instanceof Error ? serviceError.message : 'Unknown service error',
@@ -375,17 +334,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Debug the data structure before saving
+    // FIXED: Debug the flat structure before saving
     console.log('🔍 Pre-save validation check:');
     console.log('- User ID:', user.id);
     console.log('- Workspace ID:', workspaceId);
     console.log('- Generated offer keys:', Object.keys(generatedOffer));
-    console.log('- Primary offer keys:', Object.keys(generatedOffer.primaryOffer));
-    console.log('- Signature offers keys:', Object.keys(generatedOffer.primaryOffer.signatureOffers));
+    console.log('- Signature offers keys:', Object.keys(generatedOffer.signatureOffers || {}));
     console.log('- Validation data keys:', Object.keys(validation.data));
 
-    // ✅ ENHANCED Auto-save the signature offers with better error handling
-    console.log('💾 Auto-saving enhanced signature offers...');
+    // Auto-save the signature offers
+    console.log('💾 Auto-saving signature offers...');
     let offerId: string;
     let saveSuccess = false;
     
@@ -393,11 +351,10 @@ export async function POST(req: NextRequest) {
       const offerService = new OfferCreatorService();
       offerId = await offerService.saveOffer(user.id, workspaceId, generatedOffer, validation.data);
       saveSuccess = true;
-      console.log('✅ Enhanced signature offers AUTO-SAVED with ID:', offerId);
+      console.log('✅ Signature offers AUTO-SAVED with ID:', offerId);
     } catch (saveError) {
-      console.error('💥 Error auto-saving enhanced offers:', saveError);
+      console.error('💥 Error auto-saving offers:', saveError);
       
-      // Log the specific error for debugging
       if (saveError instanceof Error) {
         console.error('💥 Save error details:', {
           message: saveError.message,
@@ -406,75 +363,65 @@ export async function POST(req: NextRequest) {
         });
       }
       
-      // Try alternative save approach
+      // Try simplified save approach
       try {
         console.log('🔄 Attempting simplified save approach...');
-        
-        // Create a new service instance for retry
         const retryOfferService = new OfferCreatorService();
         
         // Create a simplified version for emergency save
         const simplifiedOffer = {
           ...generatedOffer,
-          primaryOffer: {
-            ...generatedOffer.primaryOffer,
-            signatureOffers: {
-              starter: { ...generatedOffer.primaryOffer.signatureOffers.starter },
-              core: { ...generatedOffer.primaryOffer.signatureOffers.core },
-              premium: { ...generatedOffer.primaryOffer.signatureOffers.premium }
-            }
+          signatureOffers: {
+            starter: { ...generatedOffer.signatureOffers.starter },
+            core: { ...generatedOffer.signatureOffers.core },
+            premium: { ...generatedOffer.signatureOffers.premium }
           }
         };
         
         offerId = await retryOfferService.saveOffer(user.id, workspaceId, simplifiedOffer, validation.data);
         saveSuccess = true;
-        console.log('✅ Enhanced offers saved with simplified approach:', offerId);
+        console.log('✅ Offers saved with simplified approach:', offerId);
       } catch (retryError) {
         console.error('💥 Retry save also failed:', retryError);
-        // Generate temp ID but mark as unsaved
-        offerId = `temp_enhanced_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        offerId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         saveSuccess = false;
         console.warn('⚠️ Using temporary ID - offers not saved to database');
       }
     }
 
-    // ✅ Enhanced usage logging
-    console.log('📊 Logging enhanced usage...');
+    // Usage logging
+    console.log('📊 Logging usage...');
     try {
       await logUsage({
         userId: user.id,
-        feature: 'enhanced_signature_offer_generation',
+        feature: 'signature_offer_generation',
         tokens: generatedOffer.tokensUsed || 0,
         timestamp: new Date(),
         metadata: {
           offerId,
           workspaceId,
-          saved: saveSuccess, // Add save status to logging
+          saved: saveSuccess,
           targetMarket: validation.data.market.targetMarket,
           industries: validation.data.founder.industries,
           deliveryModels: validation.data.business.deliveryModel,
           pricePosture: validation.data.pricing.pricePosture,
           brandTone: validation.data.voice.brandTone,
           positioning: validation.data.voice.positioning,
-          conversionScore: generatedOffer.analysis.conversionPotential.score,
+          conversionScore: generatedOffer.analysis?.conversionPotential?.score,
           generationTime: generatedOffer.generationTime,
           businessWarnings: businessValidation.warnings.length,
-          businessSuggestions: businessValidation.suggestions.length,
-          credibilityFactors: generatedOffer.analysis.conversionPotential.factors.length,
-          enhancedVersion: true,
-          founderCredibility: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('credibility'))?.impact || 'Unknown',
-          marketAlignment: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('alignment'))?.impact || 'Unknown'
+          businessSuggestions: businessValidation.suggestions.length
         }
       });
-      console.log('✅ Enhanced usage logged successfully');
+      console.log('✅ Usage logged successfully');
     } catch (logError) {
-      console.error('⚠️ Enhanced usage logging failed (non-critical):', logError);
+      console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
 
-    console.log('🎉 Enhanced signature offer generation completed successfully');
+    console.log('🎉 Signature offer generation completed successfully');
     console.log(`📊 Final status: Generated=${true}, Saved=${saveSuccess}, OfferID=${offerId}`);
     
-    // ✅ Enhanced success response with save status and more detailed metadata
+    // FIXED: Success response with flat structure
     return NextResponse.json({
       success: true,
       data: generatedOffer,
@@ -491,27 +438,25 @@ export async function POST(req: NextRequest) {
           suggestions: businessValidation.suggestions.slice(0, 5)
         },
         offerQuality: {
-          conversionPotential: generatedOffer.analysis.conversionPotential.score,
-          credibilityScore: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('credibility'))?.impact || 'Medium',
-          marketFitScore: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('alignment'))?.impact || 'Medium',
-          scalabilityScore: generatedOffer.analysis.conversionPotential.factors.find(f => f.factor.includes('model'))?.impact || 'Medium'
+          conversionPotential: generatedOffer.analysis?.conversionPotential?.score,
+          credibilityScore: generatedOffer.analysis?.conversionPotential?.factors?.find(f => f.factor.includes('credibility'))?.impact || 'Medium',
+          marketFitScore: generatedOffer.analysis?.conversionPotential?.factors?.find(f => f.factor.includes('alignment'))?.impact || 'Medium',
+          scalabilityScore: generatedOffer.analysis?.conversionPotential?.factors?.find(f => f.factor.includes('model'))?.impact || 'Medium'
         },
-        enhanced: true,
         version: '2.0'
       }
     } as ApiResponse<GeneratedOfferPackage>);
 
   } catch (error) {
-    console.error('💥 Unexpected Enhanced Signature Offer Creator API Error:', error);
-    console.error('Enhanced error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('💥 Unexpected Signature Offer Creator API Error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to generate enhanced signature offers. Please try again.',
+        error: 'Failed to generate signature offers. Please try again.',
         debug: {
           errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          enhanced: true
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
         }
       } as ApiResponseOptional<never>,
       { status: 500 }
@@ -519,16 +464,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET method for listing enhanced signature offers
+// GET method remains the same as it was working correctly
 export async function GET(req: NextRequest) {
-  console.log('🚀 Enhanced Signature Offers List API Route called');
+  console.log('🚀 Signature Offers List API Route called');
   
   try {
-    // ✅ FIXED: Use the same authentication flow as pricing-calculator
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
-      console.error('❌ Auth failed in enhanced offers list:', authError);
+      console.error('❌ Auth failed in offers list:', authError);
       
       const response = NextResponse.json(
         { 
@@ -539,7 +483,6 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
       
-      // Clear potentially corrupted cookies
       const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
       cookiesToClear.forEach(cookieName => {
         response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
@@ -550,15 +493,13 @@ export async function GET(req: NextRequest) {
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Rate limiting for listing offers
-    console.log('🔍 Checking rate limits for user:', user.id);
+    // Rate limiting
     const rateLimitResult = await rateLimit(
-      `enhanced_signature_offers_list:${user.id}`, 
+      `signature_offers_list:${user.id}`, 
       RATE_LIMITS.OFFER_LIST.limit, 
       RATE_LIMITS.OFFER_LIST.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -568,14 +509,13 @@ export async function GET(req: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
 
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
     const targetMarket = searchParams.get('targetMarket');
     const pricePosture = searchParams.get('pricePosture');
 
-    // ✅ FIXED: Validate workspace access if provided
+    // Validate workspace access if provided
     if (workspaceId) {
       const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
       if (!hasAccess) {
@@ -587,16 +527,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log('📋 Fetching enhanced signature offers for user:', user.id);
-    console.log('🔍 Enhanced filters - workspace:', workspaceId, 'market:', targetMarket, 'pricing:', pricePosture);
+    console.log('📋 Fetching signature offers for user:', user.id);
     
-    // ✅ Enhanced offer fetching with improved type safety
     let offers: UserOffer[];
     try {
       const offerService = new OfferCreatorService();
       offers = await offerService.getUserOffers(user.id, workspaceId || undefined);
 
-      // ✅ Enhanced filtering with better type safety
+      // Apply filters
       if (targetMarket) {
         offers = offers.filter(offer => {
           if (offer.metadata && typeof offer.metadata === 'object' && 'targetMarket' in offer.metadata) {
@@ -618,62 +556,37 @@ export async function GET(req: NextRequest) {
         });
       }
       
-      console.log('✅ Retrieved', offers.length, 'enhanced signature offers');
-      
-      // ✅ Enhanced logging of offer details
-      console.log('📊 Enhanced offers summary:');
-      const offerStats = offers.reduce((stats, offer) => {
-        const posture = offer.metadata?.pricePosture || 'unknown';
-        stats[posture] = (stats[posture] || 0) + 1;
-        return stats;
-      }, {} as Record<string, number>);
-      console.log('- Price posture distribution:', offerStats);
+      console.log('✅ Retrieved', offers.length, 'signature offers');
       
     } catch (fetchError) {
-      console.error('💥 Error fetching enhanced offers:', fetchError);
+      console.error('💥 Error fetching offers:', fetchError);
       return NextResponse.json(
         { 
           success: false,
-          error: 'Failed to fetch enhanced signature offers. Please try again.',
-          debug: {
-            errorType: fetchError instanceof Error ? fetchError.constructor.name : 'Unknown',
-            errorMessage: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
-          }
+          error: 'Failed to fetch signature offers. Please try again.'
         } as ApiResponseOptional<never>,
         { status: 500 }
       );
     }
 
-    // ✅ Enhanced usage logging for listing offers
-    console.log('📊 Logging enhanced list usage...');
+    // Usage logging
     try {
       await logUsage({
         userId: user.id,
-        feature: 'enhanced_signature_offers_list',
+        feature: 'signature_offers_list',
         tokens: 0,
         timestamp: new Date(),
         metadata: {
           workspaceId,
           targetMarket,
           pricePosture,
-          resultCount: offers.length,
-          enhanced: true,
-          version: '2.0',
-          filters: {
-            hasWorkspaceFilter: !!workspaceId,
-            hasMarketFilter: !!targetMarket,
-            hasPricingFilter: !!pricePosture
-          }
+          resultCount: offers.length
         }
       });
-      console.log('✅ Enhanced list usage logged successfully');
     } catch (logError) {
-      console.error('⚠️ Enhanced list usage logging failed (non-critical):', logError);
+      console.error('⚠️ List usage logging failed (non-critical):', logError);
     }
 
-    console.log('🎉 Enhanced signature offers fetch completed successfully');
-    
-    // ✅ Enhanced success response with richer metadata
     return NextResponse.json({
       success: true,
       data: offers,
@@ -684,43 +597,16 @@ export async function GET(req: NextRequest) {
           workspaceId,
           targetMarket,
           pricePosture
-        },
-        statistics: {
-          byPricePosture: offers.reduce((stats, offer) => {
-            const posture = offer.metadata?.pricePosture || 'unknown';
-            stats[posture] = (stats[posture] || 0) + 1;
-            return stats;
-          }, {} as Record<string, number>),
-          byIndustry: offers.reduce((stats, offer) => {
-            const industries = offer.metadata?.industries || [];
-            industries.forEach(industry => {
-              if (typeof industry === 'string') {
-                stats[industry] = (stats[industry] || 0) + 1;
-              }
-            });
-            return stats;
-          }, {} as Record<string, number>),
-          avgConversionScore: offers.reduce((sum, offer) => {
-            return sum + (offer.metadata?.conversionScore || 0);
-          }, 0) / (offers.length || 1)
-        },
-        enhanced: true,
-        version: '2.0'
+        }
       }
     } as ApiResponse<UserOffer[]>);
 
   } catch (error) {
-    console.error('💥 Unexpected Enhanced Signature Offers Fetch Error:', error);
-    console.error('Enhanced error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('💥 Unexpected Signature Offers Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to fetch enhanced signature offers. Please try again.',
-        debug: {
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          enhanced: true
-        }
+        error: 'Failed to fetch signature offers. Please try again.'
       } as ApiResponseOptional<never>,
       { status: 500 }
     );
