@@ -1,276 +1,229 @@
 "use client";
 
-import { AuthPage as AuthPageBase } from "@refinedev/core";
-import type { AuthPageProps } from "@refinedev/core";
+import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
 import { HardDrive, File, Trash2, Edit, Brush, Clock, Mail, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
-type AuthView = "auth" | "email-sent" | "email-verified" | "email-error";
-
-export const AuthPage = (props: AuthPageProps) => {
+export const AuthPage = ({ type }: { type: "login" | "register" }) => {
+  const { mutate: login } = useLogin();
   const [showCreds, setShowCreds] = useState(false);
   const [activeWindow, setActiveWindow] = useState<string>("auth");
-  const [authView, setAuthView] = useState<AuthView>("auth");
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [resendCooldown, setResendCooldown] = useState<number>(0);
-
-  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
-
-  // Check URL params for verification states
-  useEffect(() => {
-    const verified = searchParams?.get("verified");
-    const error = searchParams?.get("error");
-    const email = searchParams?.get("email");
-
-    if (email) {
-      setUserEmail(decodeURIComponent(email));
-    }
-
-    if (verified === "true") {
-      setAuthView("email-verified");
-    } else if (error) {
-      setAuthView("email-error");
-    }
-  }, [searchParams]);
+  });
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const handleResendEmail = async () => {
-    setResendCooldown(30);
-    
-    try {
-      const response = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: userEmail }),
-      });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+    setError("");
+    setLoading(true);
 
-      if (response.ok) {
-        console.log("Verification email resent successfully");
-      } else {
-        console.error("Failed to resend verification email");
+    login(
+      { email },
+      {
+        onSuccess: (data) => {
+          setLoading(false);
+          if (data.success) {
+            setEmailSent(true);
+            setMessage("Check your email for the magic link. It may take a moment to arrive.");
+          }
+        },
+        onError: (error: any) => {
+          setLoading(false);
+          setError(error?.message || "Failed to send magic link. Please try again.");
+        },
       }
-    } catch (error) {
-      console.error("Error resending email:", error);
-    }
+    );
   };
 
   const renderAuthContent = () => {
-    switch (authView) {
-      case "email-sent":
-        return (
-          <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <Mail className="w-8 h-8 text-blue-600" />
-              </div>
+    if (emailSent) {
+      return (
+        <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <Mail className="w-8 h-8 text-blue-600" />
             </div>
-            
-            <h2 className="text-lg font-bold text-gray-800">Check Your Email</h2>
-            
-            <div className="space-y-3 text-sm text-gray-600">
-              <p>We have sent a verification link to:</p>
-              <div className="bg-gray-100 p-2 rounded border font-mono text-xs break-all">
-                {userEmail}
-              </div>
-              <p>Please check your email and click the verification link to complete your registration.</p>
+          </div>
+          
+          <h2 className="text-lg font-bold text-gray-800">Check Your Email</h2>
+          
+          <div className="space-y-3 text-sm text-gray-600">
+            <p>We have sent a magic link to:</p>
+            <div className="bg-gray-100 p-2 rounded border font-mono text-xs break-all">
+              {email}
             </div>
+            <p>Please check your email and click the magic link to sign in.</p>
+          </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-xs text-yellow-800">
+          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-xs text-yellow-800">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="font-semibold">Important Notes:</p>
+                <ul className="list-disc list-inside space-y-1 text-left">
+                  <li>Check your spam/junk folder if you do not see the email</li>
+                  <li>The magic link expires after a few minutes for security</li>
+                  <li>You can request a new link if needed</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-4">
+            <button
+              onClick={() => {
+                setEmailSent(false);
+                setMessage("");
+                setError("");
+                setEmail("");
+              }}
+              className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Login
+            </button>
+          </div>
+
+          {message && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+              {message}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
+        <div className="text-center mb-4">
+          <h2 className="text-lg font-bold text-gray-800">
+            {type === "login" ? "Sign In" : "Sign Up"} to Arbitrage-OS
+          </h2>
+          <p className="text-sm text-gray-600 mt-2">
+            Enter your email to receive a magic link
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              className="w-full px-3 py-2 border-2 border-gray-400 focus:border-blue-500 focus:outline-none"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          {message && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p>{message}</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div className="space-y-1">
-                  <p className="font-semibold">Important Notes:</p>
-                  <ul className="list-disc list-inside space-y-1 text-left">
-                    <li>Check your spam/junk folder if you do not see the email</li>
-                    <li>The verification link expires in 24 hours</li>
-                    <li>You can only log in after verifying your email</li>
-                  </ul>
-                </div>
+                <p>{error}</p>
               </div>
             </div>
+          )}
 
-            <div className="flex flex-col gap-2 pt-4">
-              <button
-                onClick={handleResendEmail}
-                disabled={resendCooldown > 0}
-                className="px-4 py-2 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Email"}
-              </button>
-              
-              <button
-                onClick={() => setAuthView("auth")}
-                className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Login
-              </button>
-            </div>
-
-            <div className="border-t border-gray-300 pt-4">
-              <p className="text-xs text-gray-500">
-                Already verified?{" "}
-                <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                  Try logging in
-                </Link>
-              </p>
-            </div>
-          </div>
-        );
-
-      case "email-verified":
-        return (
-          <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-            
-            <h2 className="text-lg font-bold text-green-800">Email Verified!</h2>
-            
-            <div className="space-y-3 text-sm text-gray-600">
-              <p>Your email has been successfully verified. You can now log in to your account.</p>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-4">
-              <Link
-                href="/login"
-                className="px-4 py-2 bg-green-600 text-white font-bold hover:bg-green-700 text-center block"
-              >
-                Continue to Login
-              </Link>
-            </div>
-          </div>
-        );
-
-      case "email-error":
-        return (
-          <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-red-600" />
-              </div>
-            </div>
-            
-            <h2 className="text-lg font-bold text-red-800">Verification Failed</h2>
-            
-            <div className="space-y-3 text-sm text-gray-600">
-              <p>There was a problem verifying your email. This could be because:</p>
-              <ul className="list-disc list-inside text-left space-y-1">
-                <li>The verification link has expired</li>
-                <li>The link has already been used</li>
-                <li>The link is invalid</li>
-              </ul>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-4">
-              <button
-                onClick={handleResendEmail}
-                disabled={resendCooldown > 0}
-                className="px-4 py-2 bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Send New Link"}
-              </button>
-              
-              <Link
-                href="/register"
-                className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 text-center block"
-              >
-                Try Again
-              </Link>
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-            <div className="space-y-4">
-              <AuthPageBase {...props} />
-              
-              {props.type === "register" && (
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800">
-                  <div className="flex items-start gap-2">
-                    <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold mb-1">After Registration:</p>
-                      <p>Check your email for a verification link. You must verify your email before you can log in.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {props.type === "login" && (
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800">
-                  <div className="flex items-start gap-2">
-                    <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold mb-1">Having trouble logging in?</p>
-                      <p>Make sure you have verified your email address. Check your inbox (including spam folder) for a verification link.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="text-center pt-4 border-t border-gray-300">
-              {props.type === "login" ? (
-                <p className="text-sm">
-                  Do not have an account?{" "}
-                  <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                    Sign up
-                  </Link>
-                </p>
-              ) : (
-                <p className="text-sm">
-                  Already have an account?{" "}
-                  <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                    Sign in
-                  </Link>
-                </p>
-              )}
-            </div>
-
-            {showCreds && (
-              <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded text-xs">
-                <p className="font-bold mb-2">Demo Credentials:</p>
-                <p>Email: demo@example.com</p>
-                <p>Password: demo123</p>
-              </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-2 px-4 bg-blue-600 text-white font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+              loading ? "opacity-75 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Sending...
+              </span>
+            ) : (
+              `Send magic link`
             )}
+          </button>
+        </form>
 
-            <div className="text-center">
-              <button
-                onClick={() => setShowCreds(!showCreds)}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
-              >
-                {showCreds ? "Hide" : "Show"} Demo Credentials
-              </button>
+        <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800">
+          <div className="flex items-start gap-2">
+            <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold mb-1">How it works:</p>
+              <p>We will send you a secure magic link via email. Click the link to instantly sign in - no password required!</p>
             </div>
           </div>
-        );
-    }
+        </div>
+        
+        <div className="text-center pt-4 border-t border-gray-300">
+          {type === "login" ? (
+            <p className="text-sm">
+              New to Arbitrage-OS?{" "}
+              <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                Sign up
+              </Link>
+            </p>
+          ) : (
+            <p className="text-sm">
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
+                Sign in
+              </Link>
+            </p>
+          )}
+        </div>
+
+        {showCreds && (
+          <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded text-xs">
+            <p className="font-bold mb-2">Demo Email:</p>
+            <p>Email: demo@example.com</p>
+          </div>
+        )}
+
+        <div className="text-center">
+          <button
+            onClick={() => setShowCreds(!showCreds)}
+            className="text-xs text-gray-500 hover:text-gray-700 underline"
+          >
+            {showCreds ? "Hide" : "Show"} Demo Email
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -384,10 +337,7 @@ export const AuthPage = (props: AuthPageProps) => {
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
                   </svg>
                   <span className="font-bold">
-                    Arbitrage-OS {authView === "email-sent" ? "Email Verification" : 
-                                   authView === "email-verified" ? "Verified" :
-                                   authView === "email-error" ? "Verification Error" :
-                                   props.type === "login" ? "Login" : "Register"}
+                    Arbitrage-OS {emailSent ? "Magic Link Sent" : (type === "login" ? "Login" : "Register")}
                   </span>
                 </div>
                 <div className="flex space-x-1">
@@ -412,7 +362,10 @@ export const AuthPage = (props: AuthPageProps) => {
                     className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
                     onClick={() => {
                       setActiveWindow("");
-                      setAuthView("auth");
+                      setEmailSent(false);
+                      setMessage("");
+                      setError("");
+                      setEmail("");
                     }}
                   >
                     Cancel
@@ -424,7 +377,7 @@ export const AuthPage = (props: AuthPageProps) => {
           </div>
         )}
 
-        {/* My Computer Window */}
+        {/* Other Windows (My Computer, Documents, Recycle Bin) - keeping your existing code */}
         {activeWindow === "my-computer" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
             <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
@@ -456,7 +409,6 @@ export const AuthPage = (props: AuthPageProps) => {
           </div>
         )}
 
-        {/* My Documents Window */}
         {activeWindow === "documents" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
             <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
@@ -479,7 +431,6 @@ export const AuthPage = (props: AuthPageProps) => {
           </div>
         )}
 
-        {/* Recycle Bin Window */}
         {activeWindow === "recycle-bin" && (
           <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
             <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
@@ -519,7 +470,7 @@ export const AuthPage = (props: AuthPageProps) => {
               <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
               </svg>
-              Arbitrage-OS {authView === "email-sent" ? "Email Sent" : props.type === "login" ? "Login" : "Register"}
+              Arbitrage-OS {emailSent ? "Magic Link" : (type === "login" ? "Login" : "Register")}
             </button>
           )}
         </div>

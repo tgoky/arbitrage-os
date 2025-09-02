@@ -5,132 +5,63 @@ import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient as supabase } from "../../utils/supabase/client";
 
 export const authProviderClient: AuthProvider = {
-  login: async ({ email, password }) => {
+  login: async ({ email }) => {
     try {
-      // Clear any existing session first
-      await supabase.auth.signOut();
-      
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email: email.trim().toLowerCase(), 
-        password 
-      });
-      
-      if (error) {
-        console.error('Login error:', error);
+      // Basic email validation
+      if (!email || !email.includes('@')) {
         return {
           success: false,
           error: {
-            name: "LoginError",
-            message: error.message || "Invalid username or password",
+            name: "InvalidEmail",
+            message: "Please enter a valid email address.",
           },
         };
       }
-      
-      if (data?.user && data?.session) {
-        return { 
-          success: true, 
-          redirectTo: "/" 
+
+      const trimmedEmail = email.trim().toLowerCase();
+
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          // ✅ Redirect to workspace home page after authentication
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        console.error("Login error:", error);
+        return {
+          success: false,
+          error: {
+            name: error.name || "LoginError",
+            message: error.message || "Failed to send magic link",
+          },
         };
       }
-      
-      return { 
-        success: false, 
-        error: {
-          name: "LoginError",
-          message: "Invalid response from authentication service",
+
+      return {
+        success: true,
+        successNotification: {
+          message: "Magic link sent!",
+          description: "Check your email for the magic link. It may take a moment to arrive.",
         },
       };
     } catch (error: any) {
-      console.error('Login catch error:', error);
-      return { 
-        success: false, 
+      console.error("Login error:", error);
+      return {
+        success: false,
         error: {
           name: "LoginError",
-          message: error.message || "Login failed",
+          message: error?.message || "Failed to send magic link",
         },
       };
     }
   },
 
-  register: async ({ email, password, name }) => {
-    try {
-      // Clear any existing session first
-      await supabase.auth.signOut();
-      
-      const trimmedEmail = email.trim().toLowerCase();
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password,
-        options: { 
-          data: { 
-            full_name: name || "",
-          },
-          // Remove emailRedirectTo if it's causing issues
-          // emailRedirectTo: `${window.location.origin}/login`,
-        },
-      });
-      
-      if (error) {
-        console.error('Register error:', error);
-        return { 
-          success: false, 
-          error: {
-            name: "RegisterError",
-            message: error.message || "Registration failed",
-          },
-        };
-      }
-      
-      if (data?.user) {
-        // Check if email confirmation is required
-        if (!data.session && data.user.identities?.length === 0) {
-          return { 
-            success: true, 
-            successNotification: {
-              message: "Success",
-              description: "Please check your email to confirm your account.",
-            },
-            redirectTo: "/login" 
-          };
-        }
-        
-        // If user is immediately signed in (email confirmation disabled)
-        if (data.session) {
-          return { 
-            success: true, 
-            redirectTo: "/" 
-          };
-        }
-        
-        // Default case - email confirmation required
-        return { 
-          success: true,
-          successNotification: {
-            message: "Registration successful",
-            description: "Please check your email to verify your account before signing in.",
-          },
-          redirectTo: "/login" 
-        };
-      }
-      
-      return { 
-        success: false, 
-        error: {
-          name: "RegisterError",
-          message: "Registration failed - no user created",
-        },
-      };
-    } catch (error: any) {
-      console.error('Register catch error:', error);
-      return { 
-        success: false, 
-        error: {
-          name: "RegisterError",
-          message: error.message || "Registration failed",
-        },
-      };
-    }
+  register: async ({ email }) => {
+    // For magic link auth, register is the same as login
+    return await authProviderClient.login({ email });
   },
 
   logout: async () => {
@@ -240,4 +171,97 @@ export const authProviderClient: AuthProvider = {
     
     return { error };
   },
+
+  forgotPassword: async ({ email }) => {
+    try {
+      if (!email || !email.includes('@')) {
+        return {
+          success: false,
+          error: {
+            name: "InvalidEmail",
+            message: "Please enter a valid email address.",
+          },
+        };
+      }
+
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: {
+            name: "ForgotPasswordError",
+            message: error.message || "Failed to send reset email",
+          },
+        };
+      }
+
+      return {
+        success: true,
+        successNotification: {
+          message: "Password reset email sent!",
+          description: "Check your email for the password reset link.",
+        },
+      };
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      return {
+        success: false,
+        error: {
+          name: "ForgotPasswordError",
+          message: error?.message || "Failed to send reset email",
+        },
+      };
+    }
+  },
+
+  updatePassword: async ({ password }) => {
+    try {
+      if (!password || password.length < 6) {
+        return {
+          success: false,
+          error: {
+            name: "InvalidPassword",
+            message: "Password must be at least 6 characters long.",
+          },
+        };
+      }
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: {
+            name: "UpdatePasswordError",
+            message: error.message || "Failed to update password",
+          },
+        };
+      }
+
+      return {
+        success: true,
+        redirectTo: "/",
+        successNotification: {
+          message: "Password updated successfully!",
+          description: "You can now login with your new password.",
+        },
+      };
+    } catch (error: any) {
+      console.error('Update password error:', error);
+      return {
+        success: false,
+        error: {
+          name: "UpdatePasswordError",
+          message: error?.message || "Failed to update password",
+        },
+      };
+    }
+  },
+
+ 
 };

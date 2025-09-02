@@ -1,4 +1,6 @@
-// src/services/workspace.service.ts (Client-side) - Updated
+// src/services/workspace.service.ts
+import { supabaseBrowserClient } from '@/utils/supabase/client';
+
 export interface Workspace {
   id: string;
   user_id: string | null;
@@ -19,13 +21,40 @@ export interface CreateWorkspaceInput {
 }
 
 class WorkspaceService {
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      const { data: { session } } = await supabaseBrowserClient.auth.getSession();
+      return session?.access_token || null;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  }
+
   private async fetchWithAuth(url: string, options: RequestInit = {}) {
+    // Get the current auth token
+    const token = await this.getAuthToken();
+    
+    // Use Record<string, string> for headers to allow indexing
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if we have a token
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Merge with any existing headers from options
+    if (options.headers) {
+      const existingHeaders = options.headers as Record<string, string>;
+      Object.assign(headers, existingHeaders);
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
+      credentials: 'include', // Include cookies
     });
 
     if (!response.ok) {
@@ -125,12 +154,22 @@ class WorkspaceService {
 
   // Helper method for image upload if needed
   async uploadImage(file: File): Promise<string> {
+    const token = await this.getAuthToken();
+    
     const formData = new FormData();
     formData.append('image', file);
+
+    // Use Record<string, string> for headers
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
+      headers,
+      credentials: 'include',
     });
 
     if (!response.ok) {

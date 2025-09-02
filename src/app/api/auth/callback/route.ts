@@ -1,72 +1,65 @@
-
 // app/api/auth/callback/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
-  const error = requestUrl.searchParams.get('error');
-  const error_description = requestUrl.searchParams.get('error_description');
+  console.log('🔗 Auth callback triggered');
+  
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  const next = searchParams.get('next') ?? '/' // Default to workspace home page
+  const error = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
 
+  console.log('Callback params:', { code: !!code, next, error });
+
+  // Handle error cases
   if (error) {
-    // Handle various error cases
-    let redirectPath = '/login';
-    
-    switch (error) {
-      case 'access_denied':
-        redirectPath = '/login?error=access_denied&message=Email verification cancelled';
-        break;
-      case 'invalid_request':
-        redirectPath = '/login?error=invalid_link&message=Invalid verification link';
-        break;
-      default:
-        redirectPath = `/login?error=verification_failed&message=${encodeURIComponent(error_description || 'Email verification failed')}`;
-    }
-
-    return NextResponse.redirect(new URL(redirectPath, requestUrl.origin));
+    console.error('❌ Auth callback error:', { error, errorDescription })
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, origin)
+    )
   }
 
+  // Handle successful authentication
   if (code) {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ 
-      cookies: () => cookieStore 
-    });
-
     try {
-      // Exchange the code for a session
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-      if (error) {
-        console.error('Code exchange error:', error);
+      console.log('🔄 Exchanging code for session...');
+      const supabase = await createSupabaseServerClient()
+      
+      const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (exchangeError) {
+        console.error('❌ Code exchange error:', exchangeError)
         return NextResponse.redirect(
-          new URL(`/login?error=verification_failed&message=${encodeURIComponent(error.message)}`, requestUrl.origin)
-        );
+          new URL(`/login?error=${encodeURIComponent(exchangeError.message)}`, origin)
+        )
       }
 
-      if (data.user) {
-        // Check if this is email verification (user was not previously confirmed)
-        const isEmailVerification = !data.user.email_confirmed_at;
-        
-        if (isEmailVerification || data.user.email_confirmed_at) {
-          // Successful email verification
-          return NextResponse.redirect(
-            new URL('/login?verified=true&message=Email verified successfully. You can now log in.', requestUrl.origin)
-          );
-        } else {
-          // Regular login flow
-          return NextResponse.redirect(new URL('/', requestUrl.origin));
-        }
+      if (!session) {
+        console.error('❌ No session created');
+        return NextResponse.redirect(
+          new URL('/login?error=Failed to create session', origin)
+        )
       }
-    } catch (error) {
-      console.error('Auth callback error:', error);
+
+      console.log('✅ Session created successfully for user:', session.user.id);
+      console.log('🚀 Redirecting to:', next);
+
+      // Successful authentication - redirect to the workspace page or dashboard
+      return NextResponse.redirect(new URL(next, origin))
+      
+    } catch (error: any) {
+      console.error('❌ Auth confirmation error:', error)
       return NextResponse.redirect(
-        new URL('/login?error=verification_failed&message=Authentication failed', requestUrl.origin)
-      );
+        new URL(`/login?error=${encodeURIComponent(error.message || 'Server error')}`, origin)
+      )
     }
   }
 
-  // No code or error - redirect to login
-  return NextResponse.redirect(new URL('/login', requestUrl.origin));
+  // No code parameter - redirect to error
+  console.error('❌ No authentication code provided');
+  return NextResponse.redirect(
+    new URL('/login?error=Missing authentication code', origin)
+  )
 }
