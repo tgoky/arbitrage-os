@@ -560,8 +560,8 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, onComplete, on
 
   return (
     <>
-      <FileManagerWindow />
-      <SettingsWindow />
+      {/* <FileManagerWindow />
+      <SettingsWindow /> */}
       
       <div
         style={{
