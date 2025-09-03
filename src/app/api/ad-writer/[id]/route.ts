@@ -407,26 +407,26 @@ export async function PUT(
     const body = await req.json();
     const { action, ...updateData } = body;
 
+    // Fetch existing generation first (needed for both regenerate and update)
+    const existingGeneration = await prisma.deliverable.findFirst({
+      where: {
+        id: params.id,
+        user_id: user.id,
+        type: 'ad_writer'
+      }
+    });
+
+    if (!existingGeneration) {
+      return NextResponse.json(
+        { success: false, error: 'Original generation not found' },
+        { status: 404 }
+      );
+    }
+
     if (action === 'regenerate') {
       // Regenerate ads with new parameters
       const adWriterService = new AdWriterService();
       
-      // Fetch existing generation to get original input
-      const existingGeneration = await prisma.deliverable.findFirst({
-        where: {
-          id: params.id,
-          user_id: user.id,
-          type: 'ad_writer'
-        }
-      });
-
-      if (!existingGeneration) {
-        return NextResponse.json(
-          { success: false, error: 'Original generation not found' },
-          { status: 404 }
-        );
-      }
-
       const metadata = existingGeneration.metadata as any;
       const originalInput = metadata?.originalInput || updateData;
 
@@ -488,7 +488,7 @@ export async function PUT(
       data: {
         title: updateData.title || undefined,
         metadata: {
-          ...(existingGeneration?.metadata as any),
+          ...(existingGeneration.metadata as any),
           ...updateData
         },
         updated_at: new Date()
