@@ -700,6 +700,10 @@ const handleAction = async (action: string, item: WorkItem) => {
             tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offers</Badge>} 
             key="offer-creator" 
           />
+          <Tabs.TabPane 
+  tab={<Badge count={getTabCount('ad-writer')} offset={[8, 0]}>Ads</Badge>} 
+  key="ad-writer" 
+/>
         </Tabs>
 
         {/* Work Items List */}
