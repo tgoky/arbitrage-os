@@ -1,4 +1,4 @@
-// services/adWriter.service.ts - FIXED with Unique Content Generation & Length Control
+// services/adWriter.service.ts - FIXED with Natural Full Script Generation
 
 import { OpenRouterClient } from '@/lib/openrouter';
 import { AdGenerationInput, GeneratedAd, Platform, AD_LENGTH_CONFIGS } from '@/types/adWriter';
@@ -9,16 +9,15 @@ export class AdWriterService {
   private openRouterClient: OpenRouterClient;
   private redis: Redis;
   
-  // 7 proven frameworks - each will generate DIFFERENT content
-private frameworks = [
-  'Challenge → Remedy',
-  'Then → Now → Path',
-  'AIDA',
-  'PAS (Problem → Agitation → Solution)',
-  'Hero → Journey → Outcome',
-  'Relate → Experienced → Discovered',
-  'Flawed System → Fix'
-];
+  private frameworks = [
+    'Challenge → Remedy',
+    'Then → Now → Path',
+    'AIDA',
+    'PAS (Problem → Agitation → Solution)',
+    'Hero → Journey → Outcome',
+    'Relate → Experienced → Discovered',
+    'Flawed System → Fix'
+  ];
   
   constructor() {
     this.openRouterClient = new OpenRouterClient(process.env.OPENROUTER_API_KEY!);
@@ -54,22 +53,18 @@ private frameworks = [
   }> {
     const startTime = Date.now();
     
-    // Handle optional platforms - default to generic if none selected
     const platforms = input.platforms && input.platforms.length > 0 
       ? input.platforms 
       : ['generic'];
     
-    console.log('🚀 Starting UNIQUE script generation for platforms:', platforms);
+    console.log('🚀 Starting script generation for platforms:', platforms);
     console.log('📏 Ad length:', input.adLength);
     
-    // Generate UNIQUE ads for each platform
     const adsPromises = platforms.map(platform => 
       this.generatePlatformAdsWithUniqueContent(platform as Platform, input)
     );
     
-    console.log('⏳ Calling AI to generate UNIQUE ad content for', platforms.length, 'platforms...');
     const results = await Promise.all(adsPromises);
-    
     const tokensUsed = results.reduce((sum, r) => sum + r.tokensUsed, 0);
     
     const response = {
@@ -78,7 +73,7 @@ private frameworks = [
       generationTime: Date.now() - startTime
     };
 
-    console.log('✅ Generated UNIQUE ad content:', {
+    console.log('✅ Generated ad content:', {
       platforms: response.ads.map(ad => ad.platform),
       tokensUsed,
       generationTime: response.generationTime
@@ -91,21 +86,17 @@ private frameworks = [
     platform: Platform,
     input: AdGenerationInput
   ): Promise<{ ad: GeneratedAd; tokensUsed: number }> {
-    console.log(`🎯 Generating UNIQUE content for ${platform} with ${input.adLength} length...`);
+    console.log(`🎯 Generating content for ${platform} with ${input.adLength} length...`);
     
-    // ✅ CRITICAL FIX: Use ALL frameworks but with DIFFERENT approaches
-    const allFrameworks = [...this.frameworks]; // Use all 7 frameworks
+    const allFrameworks = [...this.frameworks];
     
-    console.log(`📋 Using ALL ${allFrameworks.length} frameworks for ${platform}:`, allFrameworks);
-
-    // ✅ Generate UNIQUE sections - each call gets DIFFERENT instructions
+    // Generate sections
     const uniquePromises = allFrameworks.map((framework, index) => 
       this.generateUniqueScriptSections(framework, platform, input, index)
     );
     
     const uniqueResults = await Promise.all(uniquePromises);
     
-    // ✅ Extract UNIQUE sections (no duplicates)
     const headlines = uniqueResults.map(result => result.headline);
     const hooks = uniqueResults.map(result => result.hook);
     const fixes = uniqueResults.map(result => result.fix);
@@ -113,23 +104,29 @@ private frameworks = [
     const proofs = uniqueResults.map(result => result.proof);
     const ctas = uniqueResults.map(result => result.cta);
     
-    // ✅ Generate UNIQUE full scripts
-    const fullScripts = uniqueResults.map((result, index) => 
-      this.combineIntoFullScript(result, allFrameworks[index], platform, input)
+    // ✅ FIXED: Generate natural full scripts separately
+    const fullScriptPromises = allFrameworks.map((framework, index) => 
+      this.generateNaturalFullScript(framework, platform, input, index)
     );
     
-    // Generate platform-specific visual suggestions
+    const fullScriptResults = await Promise.all(fullScriptPromises);
+    const fullScripts = fullScriptResults.map((result, index) => ({
+      framework: allFrameworks[index],
+      script: result.script
+    }));
+    
     const visualSuggestions = await this.generateVisualSuggestions(platform, input);
     
-    const totalTokens = uniqueResults.reduce((sum, result) => sum + result.tokensUsed, 0);
+    const totalTokens = uniqueResults.reduce((sum, result) => sum + result.tokensUsed, 0) +
+                      fullScriptResults.reduce((sum, result) => sum + result.tokensUsed, 0);
     
-    console.log(`✅ Generated ${platform} UNIQUE content with ${allFrameworks.length} frameworks`);
+    console.log(`✅ Generated ${platform} content with ${allFrameworks.length} frameworks`);
     
     return {
       ad: {
         platform,
         headlines,
-        descriptions: fixes, // These are actually "fix" sections
+        descriptions: fixes,
         ctas,
         hooks,
         visualSuggestions,
@@ -142,12 +139,225 @@ private frameworks = [
     };
   }
 
-  // ✅ CRITICAL FIX: Generate UNIQUE content for each framework
+  // ✅ NEW: Generate natural, flowing full scripts instead of template insertions
+  private async generateNaturalFullScript(
+    framework: string,
+    platform: Platform,
+    input: AdGenerationInput,
+    variationIndex: number
+  ): Promise<{
+    script: string;
+    tokensUsed: number;
+  }> {
+    const prompt = this.buildFullScriptPrompt(framework, platform, input, variationIndex);
+    
+    console.log(`🎬 Generating natural full script #${variationIndex + 1} for ${framework} on ${platform}...`);
+    
+    try {
+      const response = await this.openRouterClient.complete({
+        model: 'openai/gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: this.buildFullScriptSystemPrompt(input.adLength, framework)
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.8 + (variationIndex * 0.03),
+        max_tokens: this.getMaxTokensForLength(input.adLength) + 200, // Extra tokens for full script
+        top_p: 0.9
+      });
+
+      console.log(`📥 Received natural full script #${variationIndex + 1}`);
+      
+      return {
+        script: response.content.trim(),
+        tokensUsed: response.usage.total_tokens
+      };
+    } catch (error) {
+      console.error(`❌ Full script generation failed for ${framework} variation ${variationIndex}:`, error);
+      return {
+        script: this.getFallbackFullScript(input, framework),
+        tokensUsed: 0
+      };
+    }
+  }
+
+  // ✅ NEW: System prompt specifically for natural full scripts
+  private buildFullScriptSystemPrompt(adLength: string, framework: string): string {
+    const lengthConfig = AD_LENGTH_CONFIGS[adLength as keyof typeof AD_LENGTH_CONFIGS];
+    
+    return `You are a world-class direct response copywriter creating a complete ${lengthConfig.label.toLowerCase()} ad script.
+
+CRITICAL REQUIREMENTS:
+- Write naturally flowing, conversational copy - NOT template insertions
+- Don't literally repeat user inputs - transform them into compelling copy
+- Create smooth transitions between ideas
+- Use varied language and avoid repetitive phrases
+- Make it sound like natural human communication
+- Total length: ${lengthConfig.description}
+
+FRAMEWORK: ${framework}
+Follow this framework's structure but make it feel completely natural and conversational.
+
+TONE GUIDELINES:
+- Write as if speaking directly to one person
+- Use contractions and natural speech patterns
+- Vary sentence structure and length
+- Avoid marketing jargon and clichés
+- Make transitions feel organic, not forced
+
+AVOID:
+- Literal insertion of user inputs without context
+- Repetitive phrases or awkward wording
+- Template-like language that sounds robotic
+- Overuse of the same value propositions
+- Unnatural transitions or forced connections
+
+OUTPUT: Return ONLY the complete, natural-flowing ad script with no extra formatting, labels, or sections.`;
+  }
+
+  // ✅ NEW: Build prompt for natural full script generation
+  private buildFullScriptPrompt(
+    framework: string, 
+    platform: Platform, 
+    input: AdGenerationInput, 
+    variationIndex: number
+  ): string {
+    const lengthConfig = AD_LENGTH_CONFIGS[input.adLength as keyof typeof AD_LENGTH_CONFIGS];
+    
+    const businessContext = `
+BUSINESS INFORMATION (transform this into natural copy, don't insert literally):
+- Company: ${input.businessName}
+- What they offer: ${input.offerName} - ${input.offerDescription}  
+- Price point: ${input.pricing}
+- Unique approach: ${input.uniqueMechanism}
+- Who it's for: ${input.idealCustomer}
+- Main problem they solve: ${input.primaryPainPoint}
+- Key outcome: ${input.coreResult}
+- Desired tone: ${input.tone}
+- What you want them to do: ${input.cta}
+- Where to send them: ${input.url}
+${input.urgency ? `- Time sensitivity: ${input.urgency}` : ''}
+${input.caseStudy1 ? `- Social proof: ${input.caseStudy1}` : ''}
+${input.credentials ? `- Credibility: ${input.credentials}` : ''}
+    `;
+
+    const platformGuidance = platform === 'generic' 
+      ? `Create a compelling ${lengthConfig.label.toLowerCase()} ad script that works across platforms`
+      : `Create a compelling ${platform} ${lengthConfig.label.toLowerCase()} ad script optimized for ${platform}'s audience and format`;
+
+    const frameworkInstructions = this.getDetailedFrameworkInstructions(framework);
+    
+    const naturalityInstructions = `
+NATURALNESS REQUIREMENTS:
+- Transform the business information into flowing, conversational copy
+- Don't say things like "Struggling with [pain point]" - make it natural
+- Instead of "I know how you feel about [input]" use authentic empathy
+- Vary your language - don't repeat the same phrases
+- Use storytelling, metaphors, and relatable scenarios
+- Make transitions feel organic and logical
+- Sound like a real person talking to another real person
+
+EXAMPLE OF WHAT NOT TO DO:
+❌ "Struggling with want additional passive income without a ton of additional time investment"
+❌ "I know how you feel about want additional passive income without a ton of additional time investment..."
+
+EXAMPLE OF WHAT TO DO INSTEAD:
+✅ "You're putting in long hours but your bank account isn't reflecting the effort..."
+✅ "I used to think the only way to earn more was to work more hours..."
+`;
+
+    return `
+Create a complete, naturally-flowing ${lengthConfig.label.toLowerCase()} ad script using the ${framework} framework.
+
+${businessContext}
+
+${platformGuidance}
+
+${frameworkInstructions}
+
+${naturalityInstructions}
+
+**Target Length**: ${lengthConfig.description}
+**Tone**: ${input.tone} but natural and conversational
+**Platform**: ${platform}
+
+Write the complete ad script now - make it flow naturally from start to finish:
+`;
+  }
+
+  // ✅ NEW: Detailed framework instructions for natural flow
+  private getDetailedFrameworkInstructions(framework: string): string {
+    const instructions: Record<string, string> = {
+      'Challenge → Remedy': `
+Structure: Start by presenting their challenge in a relatable way, then introduce your remedy as the natural solution.
+Flow: Challenge (empathetic) → Why it's hard (understanding) → The remedy (hopeful) → What changes (specific) → How to get it (clear)`,
+      
+      'Then → Now → Path': `
+Structure: Paint the picture of their current struggle (Then), show the better future (Now), then reveal the path to get there.
+Flow: Then (their struggle) → Now (the possibility) → Path (your solution) → Next steps (action)`,
+      
+      'AIDA': `
+Structure: Grab Attention with a compelling opener, build Interest in the solution, create Desire for the outcome, prompt Action.
+Flow: Attention (hook) → Interest (intrigue) → Desire (benefits/outcomes) → Action (clear next step)`,
+      
+      'PAS (Problem → Agitation → Solution)': `
+Structure: Identify the problem they relate to, agitate by showing the cost of inaction, then present your solution as relief.
+Flow: Problem (relatable) → Agitation (consequences) → Solution (relief and results) → Call to action`,
+      
+      'Hero → Journey → Outcome': `
+Structure: Position them as the hero of their story, describe their journey/struggle, then show the successful outcome your solution enables.
+Flow: Hero (them) → Journey (their path/challenges) → Guide (you/your solution) → Success (outcome)`,
+      
+      'Relate → Experienced → Discovered': `
+Structure: Relate to their situation, share what you/others experienced, then reveal what was discovered that changed everything.
+Flow: Relate (understanding) → Experienced (shared struggle) → Discovered (breakthrough) → Results (transformation)`,
+      
+      'Flawed System → Fix': `
+Structure: Expose why current approaches are flawed, then introduce your fix as the better alternative.
+Flow: Flawed system (what's wrong) → Why it fails (explanation) → The fix (your solution) → Better results (outcome)`
+    };
+    
+    return instructions[framework] || 'Create a compelling narrative that flows naturally from problem to solution to action.';
+  }
+
+  // ✅ NEW: Fallback for natural full scripts
+  private getFallbackFullScript(input: AdGenerationInput, framework: string): string {
+    const lengthConfig = AD_LENGTH_CONFIGS[input.adLength as keyof typeof AD_LENGTH_CONFIGS];
+    
+    if (input.adLength === 'short') {
+      return `${input.idealCustomer} tired of ${input.primaryPainPoint.toLowerCase()}? ${input.businessName}'s ${input.uniqueMechanism.toLowerCase()} delivers ${input.coreResult.toLowerCase()} in ${input.timeline || 'weeks'}. ${input.cta} at ${input.url}`;
+    } else if (input.adLength === 'medium') {
+      return `Every ${input.idealCustomer.toLowerCase()} knows the frustration of ${input.primaryPainPoint.toLowerCase()}. You've tried everything, but nothing seems to stick.
+
+That's exactly why we created ${input.offerName}. Our ${input.uniqueMechanism.toLowerCase()} approach finally delivers the ${input.coreResult.toLowerCase()} you've been looking for.
+
+${input.caseStudy1 || 'Our clients see results fast'} - and you can too.
+
+Ready to get started? ${input.cta} at ${input.url}`;
+    } else {
+      return `Let me guess - you're a ${input.idealCustomer.toLowerCase()} who's fed up with ${input.primaryPainPoint.toLowerCase()}. You've probably tried the usual solutions, maybe even invested time and money, but still haven't gotten the results you want.
+
+I get it. I've worked with hundreds of people in your exact situation, and here's what I've learned: the problem isn't you. The problem is that most approaches miss the crucial element that actually creates lasting change.
+
+That's why we developed ${input.offerName}. Instead of the same old methods, we use ${input.uniqueMechanism.toLowerCase()} to help you achieve ${input.coreResult.toLowerCase()} ${input.timeline ? `in just ${input.timeline.toLowerCase()}` : 'faster than you thought possible'}.
+
+${input.caseStudy1 || 'Our clients consistently see dramatic improvements'}, and the best part? It doesn't require you to completely overhaul your life.
+
+${input.urgency ? `${input.urgency} - ` : ''}${input.cta} and let's get you the results you deserve. Visit ${input.url}`;
+    }
+  }
+
+  // Keep existing section generation method unchanged
   private async generateUniqueScriptSections(
     framework: string,
     platform: Platform,
     input: AdGenerationInput,
-    variationIndex: number // ✅ NEW: Ensure uniqueness with index
+    variationIndex: number
   ): Promise<{
     headline: string;
     hook: string;
@@ -158,8 +368,6 @@ private frameworks = [
     tokensUsed: number;
   }> {
     const prompt = this.buildUniqueScriptPrompt(framework, platform, input, variationIndex);
-    
-    console.log(`🎬 Generating UNIQUE script #${variationIndex + 1} for ${framework} on ${platform}...`);
     
     try {
       const response = await this.openRouterClient.complete({
@@ -174,12 +382,10 @@ private frameworks = [
             content: prompt
           }
         ],
-        temperature: 0.85 + (variationIndex * 0.02), // ✅ VARY temperature for uniqueness
+        temperature: 0.85 + (variationIndex * 0.02),
         max_tokens: this.getMaxTokensForLength(input.adLength),
-        top_p: 0.9 + (variationIndex * 0.01) // ✅ VARY sampling for uniqueness
+        top_p: 0.9 + (variationIndex * 0.01)
       });
-
-      console.log(`📥 Received UNIQUE script #${variationIndex + 1}:`, response.content.substring(0, 100) + '...');
       
       const parsed = this.parseScriptSectionResponse(response.content, input);
       
@@ -193,7 +399,7 @@ private frameworks = [
     }
   }
 
-  // ✅ NEW: Build system prompt that ensures uniqueness
+  // Keep all other existing methods unchanged...
   private buildUniqueSystemPrompt(adLength: string, variationIndex: number): string {
     const lengthConfig = AD_LENGTH_CONFIGS[adLength as keyof typeof AD_LENGTH_CONFIGS];
     
@@ -231,7 +437,6 @@ ${variationSpecificInstructions[variationIndex] || "Create compelling, conversio
 CRITICAL: Return ONLY a valid JSON object with no extra text, markdown, or code fences.`;
   }
 
-  // ✅ NEW: Build prompt that enforces uniqueness
   private buildUniqueScriptPrompt(
     framework: string, 
     platform: Platform, 
@@ -256,48 +461,15 @@ ${input.urgency ? `- Urgency: ${input.urgency}` : ''}
 ${input.caseStudy1 ? `- Proof: ${input.caseStudy1}` : ''}
     `;
 
-  const uniqueExamples = [
-  `"The ad strategy your competitors hope you never discover"`,
-  `"Why your best leads vanish right before checkout"`,
-  `"One overlooked fix that triples your click-through rate"`,
-  `"The hidden friction point killing your conversions"`,
-  `"Turn casual scrollers into loyal buyers with this method"`,
-  `"What separates high-converting ads from money pits"`,
-  `"The single headline formula that outperforms 90% of ads"`,
-  `"Why lowering prices won’t save your funnel (and what will)"`,
-  `"The tiny trust signal that makes people say ‘yes’"`,
-  `"From ignored to irresistible in one simple shift"`,
-  `"How to stop burning budget on the wrong audience"`,
-  `"The unseen bias shaping every buying decision online"`,
-  `"Your ads aren’t failing—you’re just missing this piece"`,
-  `"The conversion ceiling you don’t know you’ve hit"`,
-  `"Why people believe your competitor’s promises over yours"`,
-  `"The social proof playbook Fortune 500 brands won’t share"`,
-  `"How to make prospects feel like you’re reading their mind"`,
-  `"The micro-commitment hack that accelerates sales"`,
-  `"From bland to binge-worthy: rewrite your offer in minutes"`,
-  `"Why targeting more people is shrinking your results"`,
-  `"The messaging blind spot that even pros overlook"`,
-  `"What your CTA secretly tells prospects about your offer"`,
-  `"The buying trigger hidden in your customer’s objections"`,
-  `"The shortcut to turning skepticism into sold-out demand"`,
-   `"The costly mistake 8 out of 10 marketers make without realizing"`,
-  `"Your ads are saying the right words to the wrong people"`,
-  `"What happens when you stop selling features and start selling futures"`,
-  `"The hidden bias in your copy that repels ready-to-buy customers"`,
-  `"This one emotional trigger outperforms discounts every time"`,
-  `"Why complexity is the silent killer of conversions"`,
-  `"The ad formula that works even when your product isn’t ‘sexy’"`,
-  `"Stop guessing: how data reveals what your customers *really* want"`,
-  `"The brain shortcut that makes offers feel ‘too good to pass up’"`,
-  `"From ad fatigue to ad frenzy: reignite stalled campaigns"`,
-  `"Why copying ‘proven templates’ is holding your results back"`,
-  `"The overlooked first 3 seconds that decide your ROAS fate"`,
-  `"What your landing page design whispers about your credibility"`,
-  `"The neuroscience-backed tweak that instantly boosts engagement"`,
-  `"Why the best ads don’t look like ads at all"`
-];
-
+    const uniqueExamples = [
+      `"The ad strategy your competitors hope you never discover"`,
+      `"Why your best leads vanish right before checkout"`,
+      `"One overlooked fix that triples your click-through rate"`,
+      `"The hidden friction point killing your conversions"`,
+      `"Turn casual scrollers into loyal buyers with this method"`,
+      `"What separates high-converting ads from money pits"`,
+      `"The single headline formula that outperforms 90% of ads"`
+    ];
 
     const platformContext = platform === 'generic' 
       ? `Create high-converting ${lengthConfig.label.toLowerCase()} ad script sections for any platform`
@@ -305,7 +477,6 @@ ${input.caseStudy1 ? `- Proof: ${input.caseStudy1}` : ''}
 
     const frameworkGuidance = this.getFrameworkGuidance(framework, input);
     
-    // ✅ Add uniqueness constraints
     const uniquenessConstraints = `
 UNIQUENESS REQUIREMENTS FOR VARIATION #${variationIndex + 1}:
 - NO generic phrases like "proven system," "game-changer," "secret"
@@ -351,7 +522,6 @@ ${uniquenessConstraints}
 `;
   }
 
-  // ✅ NEW: Get appropriate max tokens based on ad length
   private getMaxTokensForLength(adLength: string): number {
     const tokenMap = {
       short: 300,
@@ -361,7 +531,6 @@ ${uniquenessConstraints}
     return tokenMap[adLength as keyof typeof tokenMap] || 500;
   }
 
-  // ✅ NEW: Provide unique fallback content for each variation
   private getFallbackContent(input: AdGenerationInput, framework: string, index: number): {
     headline: string;
     hook: string;
@@ -387,84 +556,23 @@ ${uniquenessConstraints}
     };
   }
 
-  // Keep existing methods but update with uniqueness focus...
-  private combineIntoFullScript(
-    sections: {
-      headline: string;
-      hook: string;
-      fix: string;
-      result: string;
-      proof: string;
-      cta: string;
-    },
-    framework: string,
-    platform: Platform,
-    input: AdGenerationInput
-  ): {
-    framework: string;
-    script: string;
-  } {
-    const lengthConfig = AD_LENGTH_CONFIGS[input.adLength as keyof typeof AD_LENGTH_CONFIGS];
-    
-    // Create length-appropriate script structure
-    let script = '';
-    
-    switch (framework) {
-      case 'AIDA':
-        if (input.adLength === 'short') {
-          script = `${sections.hook}\n${sections.fix}\n${sections.cta}`;
-        } else if (input.adLength === 'medium') {
-          script = `[ATTENTION]\n${sections.hook}\n\n[INTEREST & DESIRE]\n${sections.fix}\n${sections.result}\n\n[ACTION]\n${sections.cta}`;
-        } else {
-          script = `[ATTENTION]\n${sections.hook}\n\n[INTEREST]\n${sections.fix}\n\n[DESIRE]\n${sections.result}\n${sections.proof}\n\n[ACTION]\n${sections.cta}`;
-        }
-        break;
-        
-      case 'PAS (Problem → Agitation → Solution)':
-        if (input.adLength === 'short') {
-          script = `${sections.hook}\n${sections.fix}\n${sections.cta}`;
-        } else if (input.adLength === 'medium') {
-          script = `[PROBLEM]\n${sections.hook}\n\n[SOLUTION]\n${sections.fix}\n${sections.result}\n\n${sections.cta}`;
-        } else {
-          script = `[PROBLEM]\n${sections.hook}\n\n[AGITATION]\nMost ${input.idealCustomer.toLowerCase()} struggle with this because traditional solutions don't address the root cause.\n\n[SOLUTION]\n${sections.fix}\n${sections.result}\n${sections.proof}\n\n${sections.cta}`;
-        }
-        break;
-        
-      // Add other framework cases with length variations...
-      default:
-        if (input.adLength === 'short') {
-          script = `${sections.hook}\n${sections.fix}\n${sections.cta}`;
-        } else if (input.adLength === 'medium') {
-          script = `${sections.headline}\n\n${sections.hook}\n\n${sections.fix}\n${sections.result}\n\n${sections.cta}`;
-        } else {
-          script = `${sections.headline}\n\n${sections.hook}\n\n${sections.fix}\n\n${sections.result}\n\n${sections.proof}\n\n${sections.cta}`;
-        }
-    }
-    
-    return {
-      framework,
-      script
+  private getFrameworkGuidance(framework: string, input: AdGenerationInput): string {
+    const frameworkMap: Record<string, string> = {
+      'Challenge → Remedy': `Position "${input.primaryPainPoint}" as a clear challenge, then spotlight "${input.uniqueMechanism}" as the breakthrough that unlocks "${input.coreResult}".`,
+      
+      'Then → Now → Path': `Show the gap between their old struggle with "${input.primaryPainPoint}" and the new reality of "${input.coreResult}" — with "${input.offerName}" as the bridge.`,
+      
+      'AIDA': `Capture attention by naming "${input.primaryPainPoint}", spark curiosity with "${input.uniqueMechanism}", build desire through "${input.coreResult}", and drive action using "${input.cta}".`,
+      
+      'PAS (Problem → Agitation → Solution)': `Call out "${input.primaryPainPoint}", intensify the pain of staying stuck, then position "${input.offerName}" as the simple fix that unlocks "${input.coreResult}".`,
+      
+      'Hero → Journey → Outcome': `Highlight "${input.idealCustomer}" as the hero, tell their journey toward "${input.coreResult}", and reveal "${input.uniqueMechanism}" as the key driver of success.`,
+      
+      'Relate → Experienced → Discovered': `Empathize with the frustration of "${input.primaryPainPoint}", validate that others felt the same, then reveal "${input.uniqueMechanism}" as the discovery that delivered "${input.coreResult}".`,
+      
+      'Flawed System → Fix': `Uncover why current options fail to solve "${input.primaryPainPoint}", then show how "${input.uniqueMechanism}" delivers a reliable fix that produces "${input.coreResult}".`
     };
-  }
-
-  // Keep existing methods unchanged...
-private getFrameworkGuidance(framework: string, input: AdGenerationInput): string {
-  const frameworkMap: Record<string, string> = {
-    'Challenge → Remedy': `Position "${input.primaryPainPoint}" as a clear challenge, then spotlight "${input.uniqueMechanism}" as the breakthrough that unlocks "${input.coreResult}".`,
-    
-    'Then → Now → Path': `Show the gap between their old struggle with "${input.primaryPainPoint}" and the new reality of "${input.coreResult}" — with "${input.offerName}" as the bridge.`,
-    
-    'AIDA': `Capture attention by naming "${input.primaryPainPoint}", spark curiosity with "${input.uniqueMechanism}", build desire through "${input.coreResult}", and drive action using "${input.cta}".`,
-    
-    'PAS (Problem → Agitation → Solution)': `Call out "${input.primaryPainPoint}", intensify the pain of staying stuck, then position "${input.offerName}" as the simple fix that unlocks "${input.coreResult}".`,
-    
-    'Hero → Journey → Outcome': `Highlight "${input.idealCustomer}" as the hero, tell their journey toward "${input.coreResult}", and reveal "${input.uniqueMechanism}" as the key driver of success.`,
-    
-    'Relate → Experienced → Discovered': `Empathize with the frustration of "${input.primaryPainPoint}", validate that others felt the same, then reveal "${input.uniqueMechanism}" as the discovery that delivered "${input.coreResult}".`,
-    
-    'Flawed System → Fix': `Uncover why current options fail to solve "${input.primaryPainPoint}", then show how "${input.uniqueMechanism}" delivers a reliable fix that produces "${input.coreResult}".`
-  };
-    
+      
     return frameworkMap[framework] || `Structure a compelling transformation story using their specific business details: ${input.businessName}, ${input.uniqueMechanism}, ${input.coreResult}.`;
   }
 
@@ -477,7 +585,6 @@ private getFrameworkGuidance(framework: string, input: AdGenerationInput): strin
     cta: string;
   } {
     try {
-      console.log('Raw AI response:', content);
       const parsed = JSON.parse(content);
       if (!parsed.headline || !parsed.hook || !parsed.fix || !parsed.result || !parsed.proof || !parsed.cta) {
         throw new Error('Incomplete JSON structure');
@@ -524,7 +631,6 @@ private getFrameworkGuidance(framework: string, input: AdGenerationInput): strin
 
     return suggestions[platform] || suggestions.generic;
   }
-
   // Keep all existing database methods unchanged...
   async saveAdGeneration(userId: string, workspaceId: string, adResponse: { ads: GeneratedAd[]; tokensUsed: number; generationTime: number }, input: AdGenerationInput): Promise<string> {
     try {
