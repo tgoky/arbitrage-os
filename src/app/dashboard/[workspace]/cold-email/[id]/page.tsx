@@ -270,36 +270,7 @@ const ColdEmailDetailPage = () => {
       </Card>
 
       {/* Input Data Summary */}
-      <Collapse className="mb-6" defaultActiveKey={['1']}>
-        <Panel header="Input Parameters" key="1">
-          <Descriptions column={1}>
-            <Descriptions.Item label="Target Industry">
-              {emailDetail.inputData.targetIndustry}
-            </Descriptions.Item>
-            <Descriptions.Item label="Target Role">
-              {emailDetail.inputData.targetRole}
-            </Descriptions.Item>
-            <Descriptions.Item label="Your Name">
-              {emailDetail.inputData.firstName} {emailDetail.inputData.lastName}
-            </Descriptions.Item>
-            <Descriptions.Item label="Your Company">
-              {emailDetail.inputData.companyName}
-            </Descriptions.Item>
-            <Descriptions.Item label="Value Proposition">
-              {emailDetail.inputData.valueProposition}
-            </Descriptions.Item>
-            {emailDetail.inputData.targetPainPoints && emailDetail.inputData.targetPainPoints.length > 0 && (
-              <Descriptions.Item label="Target Pain Points">
-                <Space wrap>
-                  {emailDetail.inputData.targetPainPoints.map((point: string, index: number) => (
-                    <Tag key={index}>{point}</Tag>
-                  ))}
-                </Space>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        </Panel>
-      </Collapse>
+    
 
       {/* Email Variations */}
       <Card 
