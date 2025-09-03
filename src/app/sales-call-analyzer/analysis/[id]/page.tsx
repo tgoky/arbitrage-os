@@ -65,6 +65,10 @@ interface AnalysisData {
       callId: string;
       status: string;
       duration: number;
+       
+    detailedReport?: string;  // ADD THIS
+    followUpEmail?: string;   // ADD THIS
+    proposalTemplate?: string; // ADD THIS TOO (from your service)
       participants: Array<{
         name: string;
         role: string;
@@ -566,6 +570,14 @@ export default function AnalysisDetailPage() {
         <TabPane tab="Overview" key="overview">
           <Row gutter={16}>
             <Col xs={24} lg={12}>
+            <Card title="Detailed Report Preview" className="mb-4">
+  <Paragraph ellipsis={{ rows: 3, expandable: true }}>
+    {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
+  </Paragraph>
+  <Button size="small" onClick={() => setActiveTab('detailed-report')}>
+    View Full Report
+  </Button>
+</Card>
               <Card title="Call Summary" className="mb-4">
                 <Paragraph>
                   {executiveSummary}
@@ -685,6 +697,33 @@ export default function AnalysisDetailPage() {
             </div>
           </Card>
         </TabPane>
+        <TabPane tab="Detailed Report" key="detailed-report">
+  <Card>
+    <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '14px' }}>
+      {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
+    </div>
+  </Card>
+</TabPane>
+
+<TabPane tab="Follow-up Email" key="follow-up">
+  <Card title="Generated Follow-up Email Template">
+    {analysis?.analysis?.callResults?.followUpEmail ? (
+      <div style={{ 
+        whiteSpace: 'pre-wrap', 
+        lineHeight: 1.6, 
+        fontFamily: 'monospace', 
+     
+        padding: '16px', 
+        borderRadius: '4px',
+        fontSize: '13px'
+      }}>
+        {analysis.analysis.callResults.followUpEmail}
+      </div>
+    ) : (
+      <Text type="secondary">No follow-up email template available for this call type.</Text>
+    )}
+  </Card>
+</TabPane>
 
         <TabPane tab="Analysis" key="analysis">
           <Row gutter={16}>

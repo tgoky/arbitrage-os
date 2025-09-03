@@ -364,6 +364,7 @@ export default function OfferCreatorDetailPage() {
               placement="topRight"
             >
               <Button 
+               type="primary"
                 danger 
                 icon={<DeleteOutlined />}
                 className="delete-button"
