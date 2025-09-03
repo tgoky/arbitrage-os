@@ -347,18 +347,25 @@ const generateEmails = useCallback(async (input: ColdEmailGenerationInput): Prom
   };
 
   const getEmailGeneration = async (generationId: string): Promise<any> => {
-    try {
-      return await handleApiCall<any>(
-        `/api/cold-email/${generationId}`,
-        { method: 'GET' },
-        'Failed to fetch email generation'
-      );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch email generation';
-      message.error(errorMessage);
-      throw err;
+  try {
+    const params = new URLSearchParams();
+    if (currentWorkspace?.id) {
+      params.set('workspaceId', currentWorkspace.id);
     }
-  };
+
+    const url = `/api/cold-email/${generationId}${params.toString() ? `?${params.toString()}` : ''}`;
+    
+    return await handleApiCall<any>(
+      url,
+      { method: 'GET' },
+      'Failed to fetch email generation'
+    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to fetch email generation';
+    message.error(errorMessage);
+    throw err;
+  }
+};
 
   const deleteEmailGeneration = async (generationId: string): Promise<void> => {
     try {
