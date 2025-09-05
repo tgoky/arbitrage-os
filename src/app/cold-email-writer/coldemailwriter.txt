@@ -193,21 +193,21 @@ const ColdEmailWriter = () => {
                 rules={[{ required: true, message: 'Please input your name!' }]}
                 tooltip="This personalizes your email signature"
               >
-                <Input prefix={<UserOutlined />} placeholder="Jake" />
+                <Input prefix={<UserOutlined />} placeholder="Your First Name" />
               </Form.Item>
               <Form.Item
                 name="lastName"
                 label="Your Last Name"
                 rules={[{ required: true, message: 'Please input your last name!' }]}
               >
-                <Input placeholder="Smith" />
+                <Input placeholder="Your Last Name" />
               </Form.Item>
               <Form.Item
                 name="email"
                 label="Your Email"
                 rules={[{ required: true, message: 'Please input your email!' }]}
               >
-                <Input prefix={<MailOutlined />} placeholder="jake@marinmedia.me" />
+                <Input prefix={<MailOutlined />} placeholder="admin@outlook.com" />
               </Form.Item>
               <Form.Item
                 name="jobTitle"
@@ -221,7 +221,7 @@ const ColdEmailWriter = () => {
                 label="Your Company's Name"
                 rules={[{ required: true, message: 'Please input your company name!' }]}
               >
-                <Input placeholder="Marin Media" />
+                <Input placeholder="Your company" />
               </Form.Item>
               <Form.Item
                 name="workEmail"
