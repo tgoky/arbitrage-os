@@ -11,6 +11,41 @@ import {
   GrowthPlanServiceResponse
 } from '@/types/growthPlan';
 
+interface GrowthChannel {
+  name: string;
+  allocation: number;
+  expectedROI: number;
+  status: 'active' | 'planned' | 'testing';
+}
+
+interface ExpertiseStrategy {
+  name: string;
+  allocation: number;
+  tactics: string[];
+}
+
+interface IndustryMetrics {
+  revenuePerLead: number;
+  conversionRate: number;
+  baseCac: number;
+  baseLtv: number;
+}
+
+interface BudgetBreakdownItem {
+  category: string;
+  amount: number;
+  percentage: number;
+}
+
+interface ImplementationPhase {
+  name: string;
+  duration: string;
+  objectives: string[];
+  deliverables: string[];
+  resources: string[];
+}
+
+
 interface UpdateGrowthPlanOptions {
   regenerateStrategy?: boolean; // Only regenerate if explicitly requested
   preserveManualEdits?: boolean; // Don't overwrite manual edits
@@ -88,128 +123,222 @@ async generateGrowthPlan(input: GrowthPlanInput): Promise<GeneratedGrowthPlan> {
   
   return growthPlan;
 }
-  private buildGrowthPlanPrompt(input: GrowthPlanInput): string {
-    return `
-    GROWTH PLAN GENERATION REQUEST
+  // services/growthPlan.service.ts - FIXED buildGrowthPlanPrompt method
 
-    CLIENT CONTEXT:
-    - Company: ${input.clientCompany}
-    - Industry: ${input.industry}
-    - Contact: ${input.contactName} (${input.contactRole})
-    - Current Revenue: ${input.currentRevenue ? `$${input.currentRevenue.toLocaleString()}` : 'Not specified'}
-    - Target Revenue: ${input.targetRevenue ? `$${input.targetRevenue.toLocaleString()}` : 'Not specified'}
-    - Timeframe: ${input.timeframe === '3m' ? '3 months' : input.timeframe === '6m' ? '6 months' : '12 months'}
+private buildGrowthPlanPrompt(input: GrowthPlanInput): string {
+  // Calculate growth metrics for context
+  const currentRev = input.currentRevenue || 50000;
+  const targetRev = input.targetRevenue || currentRev * 2;
+  const growthMultiple = targetRev / currentRev;
+  const months = input.timeframe === '3m' ? 3 : input.timeframe === '6m' ? 6 : 12;
+  const monthlyGrowthRate = Math.pow(growthMultiple, 1/months) - 1;
+  const totalBudget = input.budget || Math.max(5000, currentRev * 0.15);
 
-    CONSULTANT PROFILE:
-    - Name: ${input.name}
-    - Company: ${input.company}
-    - Core Skills: ${input.expertise.join(', ')}
-    - Experience: ${input.experience}
+  return `
+GROWTH PLAN GENERATION FOR ${input.clientCompany.toUpperCase()}
 
-    ${input.caseStudies && input.caseStudies.length > 0 ? `
-    PROVEN RESULTS:
-    ${input.caseStudies.map(cs => `- ${cs.client}: ${cs.result}`).join('\n')}
-    ` : ''}
+CLIENT PROFILE:
+- Company: ${input.clientCompany}
+- Industry: ${input.industry}
+- Contact: ${input.contactName} (${input.contactRole})
+- Current Monthly Revenue: $${currentRev.toLocaleString()}
+- Target Monthly Revenue: $${targetRev.toLocaleString()}
+- Growth Required: ${(monthlyGrowthRate * 100).toFixed(1)}% monthly growth
+- Total Budget Available: $${totalBudget.toLocaleString()}
+- Timeframe: ${months} months
+- Team Size: ${input.teamSize || 'Not specified'}
+- Business Model: ${input.businessModel || 'Not specified'}
 
-    ${input.transcript ? `
-    DISCOVERY INSIGHTS:
-    ${input.transcript}
-    ` : ''}
+CONSULTANT EXPERTISE:
+- Consultant: ${input.name} from ${input.company}
+- Core Specializations: ${input.expertise.join(', ')}
+- Track Record: ${input.experience}
 
-    ${input.focusAreas && input.focusAreas.length > 0 ? `
-    FOCUS AREAS: ${input.focusAreas.join(', ')}
-    ` : ''}
+${input.caseStudies && input.caseStudies.length > 0 ? `
+PROVEN SUCCESS STORIES:
+${input.caseStudies.map(cs => `- ${cs.client}: ${cs.result}`).join('\n')}
+` : ''}
 
-    ${input.budget ? `BUDGET: $${input.budget.toLocaleString()}` : ''}
+${input.transcript ? `
+KEY DISCOVERY INSIGHTS:
+${input.transcript}
+` : ''}
 
-    DELIVERABLE REQUIREMENTS:
-    Generate a comprehensive growth plan in JSON format with the following structure:
+${input.focusAreas && input.focusAreas.length > 0 ? `
+PRIMARY FOCUS AREAS: ${input.focusAreas.join(', ')}
+` : ''}
 
-    {
-      "executiveSummary": "2-3 paragraph summary of the growth opportunity and approach",
-      "strategy": {
-        "stages": [
-          {
-            "title": "Stage name",
-            "duration": "timeframe",
-            "tasks": ["specific actionable tasks"],
-            "kpis": ["measurable outcomes"],
-            "budget": estimated_cost_number
-          }
-        ],
-        "priorities": [
-          {
-            "area": "growth area",
-            "impact": "high/medium/low",
-            "effort": "high/medium/low", 
-            "timeline": "when to implement"
-          }
-        ],
-        "recommendations": ["specific strategic recommendations"],
-        "risks": [
-          {
-            "risk": "potential risk",
-            "mitigation": "how to address",
-            "probability": "high/medium/low"
-          }
-        ]
-      },
-      "metrics": {
-        "timeline": [
-          {
-            "month": "Month 1",
-            "leads": number,
-            "revenue": number,
-            "customers": number,
-            "cac": number,
-            "ltv": number
-          }
-        ],
-        "kpis": [
-          {
-            "name": "KPI name",
-            "current": current_value,
-            "target": target_value,
-            "improvement": percentage_improvement
-          }
-        ],
-        "channels": [
-          {
-            "name": "channel name",
-            "allocation": percentage,
-            "expectedROI": number,
-            "status": "active/planned/testing"
-          }
-        ]
-      },
-      "implementation": {
-        "phases": [
-          {
-            "name": "phase name",
-            "duration": "timeframe",
-            "objectives": ["phase objectives"],
-            "deliverables": ["what will be delivered"],
-            "resources": ["what's needed"]
-          }
-        ],
-        "timeline": "overall timeline description",
-        "budget": {
-          "total": total_budget_number,
-          "breakdown": [
-            {
-              "category": "category name",
-              "amount": amount_number,
-              "percentage": percentage_number
-            }
-          ]
+${input.painPoints && input.painPoints.length > 0 ? `
+CLIENT PAIN POINTS: ${input.painPoints.join(', ')}
+` : ''}
+
+${input.objectives && input.objectives.length > 0 ? `
+CLIENT OBJECTIVES: ${input.objectives.join(', ')}
+` : ''}
+
+${input.currentChannels && input.currentChannels.length > 0 ? `
+CURRENT MARKETING CHANNELS: ${input.currentChannels.join(', ')}
+` : ''}
+
+CRITICAL REQUIREMENTS:
+1. Base ALL strategies on the consultant's specific expertise: ${input.expertise.join(', ')}
+2. Create industry-specific tactics for ${input.industry}
+3. Ensure budget allocations total exactly $${totalBudget.toLocaleString()}
+4. Make growth targets realistic for ${(monthlyGrowthRate * 100).toFixed(1)}% monthly growth
+5. Focus on the consultant's proven specializations, NOT generic lead generation
+
+DELIVERABLE: Generate a comprehensive JSON growth plan with this EXACT structure:
+
+{
+  "executiveSummary": "2-3 paragraph summary highlighting how [consultant's expertise] will drive [specific growth outcomes] for [client company] in [industry]. Focus on the unique value proposition and expected outcomes.",
+  
+  "strategy": {
+    "stages": [
+      {
+        "title": "Stage name reflecting consultant's expertise",
+        "duration": "specific timeframe",
+        "tasks": ["specific tasks using consultant's skills", "industry-relevant activities", "measurable actions"],
+        "kpis": ["specific measurable outcomes", "industry benchmarks"],
+        "budget": exact_dollar_amount_from_total_budget
+      }
+      // 3-4 stages that add up to full budget
+    ],
+    "priorities": [
+      {
+        "area": "priority area matching consultant expertise",
+        "impact": "high/medium/low",
+        "effort": "high/medium/low",
+        "timeline": "when to implement based on expertise"
+      }
+      // 4-6 priorities focusing on consultant's strengths
+    ],
+    "recommendations": [
+      "specific recommendations using consultant's expertise",
+      "industry-specific growth tactics",
+      "actionable strategies based on proven experience"
+    ],
+    "risks": [
+      {
+        "risk": "realistic risk for this industry/approach",
+        "mitigation": "how consultant's expertise addresses this",
+        "probability": "high/medium/low"
+      }
+    ]
+  },
+  
+  "metrics": {
+    "timeline": [
+      {
+        "month": "Month 1",
+        "leads": realistic_number_based_on_industry,
+        "revenue": current_revenue_plus_growth,
+        "customers": realistic_customer_number,
+        "cac": industry_appropriate_cac,
+        "ltv": industry_appropriate_ltv
+      }
+      // Continue for full timeframe with realistic progression
+    ],
+    "kpis": [
+      {
+        "name": "KPI relevant to consultant expertise",
+        "current": current_value,
+        "target": realistic_target,
+        "improvement": percentage_improvement
+      }
+      // 4-6 KPIs specific to the consultant's specializations
+    ],
+    "channels": [
+      {
+        "name": "channel from consultant's expertise",
+        "allocation": percentage_of_budget,
+        "expectedROI": realistic_roi_for_consultant_specialty,
+        "status": "active/planned/testing"
+      }
+      // Only channels the consultant actually specializes in
+    ]
+  },
+  
+  "implementation": {
+    "phases": [
+      {
+        "name": "Phase name reflecting consultant approach",
+        "duration": "realistic timeframe",
+        "objectives": ["objectives matching consultant expertise"],
+        "deliverables": ["specific deliverables consultant can provide"],
+        "resources": ["resources needed for consultant's approach"]
+      }
+    ],
+    "timeline": "${months}-month implementation leveraging [consultant's expertise]",
+    "budget": {
+      "total": ${totalBudget},
+      "breakdown": [
+        {
+          "category": "category relevant to consultant expertise",
+          "amount": dollar_amount,
+          "percentage": percentage_of_total
         }
-      },
-      "nextSteps": ["immediate actionable next steps"]
+        // Breakdown must total exactly $${totalBudget.toLocaleString()}
+      ]
     }
+  },
+  
+  "nextSteps": [
+    "immediate step 1 using consultant's expertise",
+    "step 2 specific to the industry and approach",
+    "step 3 that leverages proven experience",
+    "step 4 with clear timeline and ownership"
+  ]
+}
 
-    Make sure all data is realistic, industry-appropriate, and achievable. Base projections on industry benchmarks for ${input.industry}. Include specific tactics that align with the consultant's expertise in ${input.expertise.join(', ')}.
-    `;
-  }
+INDUSTRY-SPECIFIC CONTEXT FOR ${input.industry}:
+${this.getIndustryContext(input.industry)}
+
+CONSULTANT SPECIALIZATION CONTEXT:
+${this.getExpertiseContext(input.expertise)}
+
+Remember: This plan must reflect the consultant's actual expertise (${input.expertise.join(', ')}) and create realistic, industry-appropriate strategies for ${input.industry}. Avoid generic "lead generation" advice unless that's specifically the consultant's expertise.
+`;
+}
+
+// Add these new helper methods to the GrowthPlanService class:
+
+private getIndustryContext(industry: string): string {
+  const contexts: Record<string, string> = {
+    'SaaS': 'Focus on MRR growth, churn reduction, product-led growth, freemium conversions, and expansion revenue. Typical metrics: 5-15% monthly churn, $100-500 CAC, 3:1+ LTV:CAC ratio.',
+    'E-commerce': 'Emphasize conversion rate optimization, average order value, customer lifetime value, and seasonal trends. Typical metrics: 2-4% conversion rates, $25-100 CAC, strong repeat purchase rates.',
+    'Healthcare': 'Prioritize compliance, trust-building, referral programs, and education-based marketing. Longer sales cycles and higher trust requirements.',
+    'Finance': 'Focus on trust, compliance, thought leadership, and relationship-based sales. High-value customers with longer sales cycles.',
+    'Education': 'Emphasize content marketing, community building, student success stories, and institutional partnerships.',
+    'Manufacturing': 'B2B focused with trade shows, industry publications, technical content, and relationship-based sales.',
+    'Real Estate': 'Local market focus, referral systems, community presence, and relationship-based marketing.',
+    'Consulting': 'Thought leadership, case studies, networking, speaking engagements, and referral systems.'
+  };
+  
+  return contexts[industry] || `Industry-specific growth strategies for ${industry} with focus on relationship-building and value demonstration.`;
+}
+
+private getExpertiseContext(expertise: string[]): string {
+  const expertiseMap: Record<string, string> = {
+    'SEO': 'Organic search optimization, content strategy, technical SEO, keyword research, and long-term traffic growth.',
+    'PPC': 'Paid advertising optimization, conversion tracking, A/B testing, and ROI-focused campaign management.',
+    'Content Marketing': 'Educational content creation, thought leadership, blog strategy, and audience engagement.',
+    'Social Media': 'Platform-specific strategies, community building, influencer partnerships, and social commerce.',
+    'Email Marketing': 'List building, automation sequences, segmentation, and lifecycle marketing.',
+    'Sales Funnels': 'Conversion optimization, lead nurturing, funnel analysis, and customer journey mapping.',
+    'Cold Email': 'Outbound prospecting, personalization strategies, deliverability optimization, and response rate improvement.',
+    'Web Design': 'User experience optimization, conversion-focused design, mobile optimization, and landing page creation.',
+    'Marketing Automation': 'Workflow setup, lead scoring, behavioral triggers, and customer lifecycle automation.',
+    'Analytics': 'Data tracking, performance measurement, conversion attribution, and ROI analysis.'
+  };
+  
+  return expertise.map(exp => {
+    const key = Object.keys(expertiseMap).find(k => 
+      exp.toLowerCase().includes(k.toLowerCase()) || 
+      k.toLowerCase().includes(exp.toLowerCase())
+    );
+    return expertiseMap[key || ''] || `${exp} specialization strategies`;
+  }).join(' ');
+}
 
  private parseGrowthPlanResponse(content: string, input: GrowthPlanInput) {
   try {
@@ -241,125 +370,478 @@ private validateParsedPlan(plan: any): boolean {
   );
 }
 
-  private generateFallbackPlan(input: GrowthPlanInput): Omit<GeneratedGrowthPlan, 'tokensUsed' | 'generationTime'> {
-    const months = input.timeframe === '3m' ? 3 : input.timeframe === '6m' ? 6 : 12;
-    const currentRevenue = input.currentRevenue || 10000;
-    const growthRate = 0.2; // 20% monthly growth
+  // services/growthPlan.service.ts - FIXED generateFallbackPlan method
 
-    return {
-      executiveSummary: `Strategic growth plan for ${input.clientCompany} focusing on ${input.expertise.join(', ')} to achieve sustainable revenue growth over ${months} months. Based on industry analysis and proven methodologies, we project significant improvements in key metrics through targeted implementation of growth initiatives.`,
-      
-      strategy: {
-        stages: [
-          {
-            title: 'Foundation & Analysis',
-            duration: '2-4 weeks',
-            tasks: ['Audit current systems', 'Analyze competitor landscape', 'Set up tracking infrastructure'],
-            kpis: ['Baseline metrics established', 'System audit completed'],
-            budget: 5000
-          },
-          {
-            title: 'Growth Implementation',
-            duration: `${Math.ceil(months/2)} months`,
-            tasks: ['Launch primary growth channels', 'Optimize conversion funnels', 'Scale successful initiatives'],
-            kpis: ['Lead generation increase', 'Conversion rate improvement'],
-            budget: 15000
-          },
-          {
-            title: 'Optimization & Scale',
-            duration: `${Math.floor(months/2)} months`,
-            tasks: ['Refine top-performing channels', 'Expand to new markets', 'Automate processes'],
-            kpis: ['Revenue targets achieved', 'Sustainable growth rate'],
-            budget: 25000
-          }
-        ],
-        priorities: [
-          { area: 'Customer Acquisition', impact: 'high', effort: 'high', timeline: 'Month 1-2' },
-          { area: 'Conversion Optimization', impact: 'high', effort: 'medium', timeline: 'Month 2-3' },
-          { area: 'Retention Improvement', impact: 'medium', effort: 'medium', timeline: 'Month 3+' }
-        ],
-        recommendations: [
-          'Focus on high-intent traffic sources initially',
-          'Implement robust tracking before scaling',
-          'Test multiple channels simultaneously',
-          'Prioritize customer feedback and iteration'
-        ],
-        risks: [
-          { risk: 'Market saturation', mitigation: 'Diversify channel mix', probability: 'medium' },
-          { risk: 'Budget constraints', mitigation: 'Phase implementation', probability: 'low' }
-        ]
-      },
+private generateFallbackPlan(input: GrowthPlanInput): Omit<GeneratedGrowthPlan, 'tokensUsed' | 'generationTime'> {
+  const months = input.timeframe === '3m' ? 3 : input.timeframe === '6m' ? 6 : 12;
+  const currentRevenue = input.currentRevenue || 50000;
+  const targetRevenue = input.targetRevenue || currentRevenue * 2;
+  const totalBudget = input.budget || Math.max(5000, currentRevenue * 0.15);
+  const growthMultiple = targetRevenue / currentRevenue;
+  const monthlyGrowthRate = Math.pow(growthMultiple, 1/months) - 1;
 
-      metrics: {
-        timeline: Array.from({ length: months }, (_, i) => ({
-          month: `Month ${i + 1}`,
-          leads: Math.round(100 * Math.pow(1 + growthRate, i)),
-          revenue: Math.round(currentRevenue * Math.pow(1 + growthRate, i)),
-          customers: Math.round(10 * Math.pow(1 + growthRate, i)),
-          cac: Math.round(150 * (1 - i * 0.05)), // Decreasing CAC
-          ltv: Math.round(1000 * (1 + i * 0.1)) // Increasing LTV
-        })),
-        kpis: [
-          { name: 'Monthly Revenue', current: currentRevenue, target: Math.round(currentRevenue * Math.pow(1 + growthRate, months)), improvement: Math.round(((Math.pow(1 + growthRate, months) - 1) * 100)) },
-          { name: 'Lead Generation', current: 100, target: Math.round(100 * Math.pow(1 + growthRate, months)), improvement: Math.round(((Math.pow(1 + growthRate, months) - 1) * 100)) },
-          { name: 'Conversion Rate', current: 2.5, target: 5.0, improvement: 100 },
-          { name: 'Customer Retention', current: 60, target: 85, improvement: 42 }
-        ],
-        channels: [
-          { name: 'Organic Search', allocation: 35, expectedROI: 400, status: 'active' },
-          { name: 'Paid Advertising', allocation: 25, expectedROI: 250, status: 'planned' },
-          { name: 'Email Marketing', allocation: 20, expectedROI: 500, status: 'active' },
-          { name: 'Referrals', allocation: 15, expectedROI: 600, status: 'testing' },
-          { name: 'Partnerships', allocation: 5, expectedROI: 300, status: 'planned' }
-        ]
-      },
+  // Generate expertise-specific strategies
+  const expertiseStrategies = this.generateExpertiseStrategies(input.expertise, totalBudget);
+  const industryMetrics = this.getIndustryMetrics(input.industry, currentRevenue);
 
-      implementation: {
-        phases: [
-          {
-            name: 'Phase 1: Foundation',
-            duration: '4 weeks',
-            objectives: ['Establish baseline metrics', 'Set up infrastructure'],
-            deliverables: ['Analytics setup', 'Competitor analysis', 'Strategy documentation'],
-            resources: ['Analytics tools', 'Team training', 'Initial budget allocation']
-          },
-          {
-            name: 'Phase 2: Growth',
-            duration: `${Math.ceil(months/2)} months`,
-            objectives: ['Launch growth initiatives', 'Optimize performance'],
-            deliverables: ['Campaign launches', 'Optimization reports', 'Performance dashboards'],
-            resources: ['Marketing budget', 'Content creation', 'Tool subscriptions']
-          },
-          {
-            name: 'Phase 3: Scale',
-            duration: `${Math.floor(months/2)} months`,
-            objectives: ['Scale successful channels', 'Achieve targets'],
-            deliverables: ['Scaled campaigns', 'Final reports', 'Handover documentation'],
-            resources: ['Increased budget', 'Team expansion', 'Advanced tools']
-          }
-        ],
-        timeline: `${months}-month implementation with monthly reviews and quarterly strategy adjustments`,
-        budget: {
-          total: 45000,
-          breakdown: [
-            { category: 'Advertising Spend', amount: 25000, percentage: 56 },
-            { category: 'Tools & Software', amount: 8000, percentage: 18 },
-            { category: 'Content Creation', amount: 7000, percentage: 16 },
-            { category: 'Consulting Fees', amount: 5000, percentage: 11 }
-          ]
-        }
-      },
+  return {
+    executiveSummary: `Strategic ${months}-month growth plan for ${input.clientCompany} leveraging ${input.name}'s expertise in ${input.expertise.join(', ')}. This plan targets ${((growthMultiple - 1) * 100).toFixed(0)}% revenue growth in the ${input.industry} sector through proven methodologies and industry-specific tactics. Based on ${input.name}'s track record and ${input.clientCompany}'s current position, we project reaching $${targetRevenue.toLocaleString()} monthly revenue through focused execution of ${input.expertise.length} core growth strategies.`,
+    
+    strategy: {
+      stages: this.generateExpertiseStages(input, totalBudget, months),
+      priorities: this.generateExpertisePriorities(input.expertise, input.industry),
+      recommendations: this.generateExpertiseRecommendations(input),
+      risks: this.generateIndustryRisks(input.industry, input.expertise)
+    },
 
-      nextSteps: [
-        'Schedule kick-off meeting with stakeholders',
-        'Set up analytics and tracking infrastructure',
-        'Conduct detailed competitor analysis',
-        'Finalize budget allocation and timeline',
-        'Begin Phase 1 implementation'
-      ]
-    };
+    metrics: {
+      timeline: this.generateRealisticTimeline(currentRevenue, targetRevenue, months, industryMetrics),
+      kpis: this.generateExpertiseKPIs(input.expertise, currentRevenue, targetRevenue),
+      channels: this.generateExpertiseChannels(input.expertise, totalBudget)
+    },
+
+    implementation: {
+      phases: this.generateImplementationPhases(input, totalBudget),
+      timeline: `${months}-month implementation focused on ${input.expertise.join(', ')} with quarterly milestone reviews`,
+      budget: {
+        total: totalBudget,
+        breakdown: this.generateExpertiseBudgetBreakdown(input.expertise, totalBudget)
+      }
+    },
+
+    nextSteps: this.generateExpertiseNextSteps(input)
+  };
+}
+
+// Helper methods for expertise-specific generation
+private generateExpertiseStrategies(expertise: string[], budget: number): ExpertiseStrategy[] {
+  const strategies: ExpertiseStrategy[] = expertise.map(exp => {
+    const allocation = Math.floor(budget / expertise.length);
+    
+    switch (exp.toLowerCase()) {
+      case 'seo':
+        return {
+          name: 'SEO & Organic Growth',
+          allocation,
+          tactics: ['Technical SEO audit', 'Content optimization', 'Link building campaign']
+        };
+      case 'ppc':
+        return {
+          name: 'Paid Advertising Optimization',
+          allocation,
+          tactics: ['Campaign restructuring', 'Ad copy testing', 'Landing page optimization']
+        };
+      case 'email marketing':
+        return {
+          name: 'Email Marketing Automation',
+          allocation,
+          tactics: ['List segmentation', 'Drip campaigns', 'Behavioral triggers']
+        };
+      default:
+        return {
+          name: `${exp} Strategy`,
+          allocation,
+          tactics: [`${exp} audit`, `${exp} optimization`, `${exp} scaling`]
+        };
+    }
+  });
+  
+  return strategies;
+}
+
+
+private generateExpertiseStages(input: GrowthPlanInput, totalBudget: number, months: number): any[] {
+  const stageCount = Math.min(3, months);
+  const budgetPerStage = Math.floor(totalBudget / stageCount);
+  
+  const stages = [];
+  
+  // Foundation stage
+  stages.push({
+    title: `Foundation & ${input.expertise[0]} Setup`,
+    duration: stageCount === 3 ? '4-6 weeks' : '2-3 weeks',
+    tasks: [
+      `Audit current ${input.expertise[0]} performance`,
+      `Implement ${input.expertise.join(' & ')} tracking`,
+      'Establish baseline metrics and KPIs',
+      `Set up ${input.industry}-specific processes`
+    ],
+    kpis: ['Baseline metrics established', 'Tracking infrastructure live', 'Initial optimization opportunities identified'],
+    budget: budgetPerStage
+  });
+  
+  // Growth stage
+  stages.push({
+    title: `${input.expertise.join(' & ')} Acceleration`,
+    duration: stageCount === 3 ? `${Math.floor(months/2)} months` : `${Math.floor(months*0.6)} months`,
+    tasks: [
+      `Launch primary ${input.expertise[0]} initiatives`,
+      `Scale ${input.expertise.slice(1).join(' and ')} efforts`,
+      'Optimize conversion funnels',
+      `Implement ${input.industry}-specific best practices`
+    ],
+    kpis: [
+      `${input.expertise[0]} performance improvement`,
+      'Revenue growth acceleration',
+      'Customer acquisition increase'
+    ],
+    budget: budgetPerStage
+  });
+  
+  // Optimization stage (if 3+ months)
+  if (stageCount === 3) {
+    stages.push({
+      title: 'Optimization & Scale',
+      duration: `${Math.floor(months/3)} months`,
+      tasks: [
+        `Refine top-performing ${input.expertise.join(' and ')} channels`,
+        'Automate successful processes',
+        'Expand to secondary opportunities',
+        'Implement advanced analytics'
+      ],
+      kpis: ['Target revenue achieved', 'Sustainable growth rate', 'Process automation complete'],
+      budget: totalBudget - (budgetPerStage * 2) // Remainder
+    });
   }
+  
+  return stages;
+}
 
+private generateExpertisePriorities(expertise: string[], industry: string): any[] {
+  return expertise.slice(0, 4).map((exp, index) => ({
+    area: `${exp} for ${industry}`,
+    impact: index < 2 ? 'high' : 'medium',
+    effort: index === 0 ? 'high' : 'medium',
+    timeline: `Month ${index + 1}-${index + 2}`
+  }));
+}
+
+private generateExpertiseRecommendations(input: GrowthPlanInput): string[] {
+  const recs = [
+    `Leverage ${input.name}'s proven expertise in ${input.expertise[0]} for immediate impact`,
+    `Focus on ${input.industry}-specific applications of ${input.expertise.join(' and ')}`,
+    `Implement ${input.expertise.length > 1 ? 'multi-channel' : 'focused'} approach based on consultant strengths`
+  ];
+  
+  if (input.caseStudies && input.caseStudies.length > 0) {
+    recs.push(`Apply proven methodologies from ${input.caseStudies.length} documented case studies`);
+  }
+  
+  if (input.focusAreas && input.focusAreas.length > 0) {
+    recs.push(`Prioritize ${input.focusAreas.join(' and ')} as defined focus areas`);
+  }
+  
+  return recs;
+}
+
+private generateIndustryRisks(industry: string, expertise: string[]): any[] {
+  const industryRisks: Record<string, any[]> = {
+    'SaaS': [
+      { risk: 'High customer churn during scaling', mitigation: 'Implement retention-focused onboarding', probability: 'medium' },
+      { risk: 'Competitive market saturation', mitigation: 'Differentiate through specialized targeting', probability: 'medium' }
+    ],
+    'E-commerce': [
+      { risk: 'Seasonal revenue fluctuations', mitigation: 'Diversify product mix and target markets', probability: 'high' },
+      { risk: 'Platform dependency risks', mitigation: 'Build direct customer relationships', probability: 'medium' }
+    ],
+    'Healthcare': [
+      { risk: 'Regulatory compliance challenges', mitigation: 'Partner with compliance specialists', probability: 'medium' },
+      { risk: 'Long sales cycles', mitigation: 'Focus on education and trust-building', probability: 'high' }
+    ]
+  };
+  
+  return industryRisks[industry] || [
+    { risk: 'Market competition increase', mitigation: `Leverage ${expertise[0]} specialization`, probability: 'medium' },
+    { risk: 'Budget allocation inefficiency', mitigation: 'Phased implementation with performance tracking', probability: 'low' }
+  ];
+}
+
+private generateRealisticTimeline(currentRev: number, targetRev: number, months: number, industryMetrics: any): any[] {
+  const timeline = [];
+  const monthlyGrowthRate = Math.pow(targetRev / currentRev, 1/months) - 1;
+  
+  for (let i = 0; i < months; i++) {
+    const revenue = Math.round(currentRev * Math.pow(1 + monthlyGrowthRate, i + 1));
+    const leads = Math.round(revenue / industryMetrics.revenuePerLead);
+    const customers = Math.round(leads * industryMetrics.conversionRate);
+    
+    timeline.push({
+      month: `Month ${i + 1}`,
+      leads,
+      revenue,
+      customers,
+      cac: Math.round(industryMetrics.baseCac * (1 - i * 0.05)), // Improving CAC
+      ltv: Math.round(industryMetrics.baseLtv * (1 + i * 0.03)) // Improving LTV
+    });
+  }
+  
+  return timeline;
+}
+
+private generateExpertiseKPIs(expertise: string[], currentRev: number, targetRev: number): any[] {
+  const kpis = [
+    {
+      name: 'Monthly Revenue',
+      current: currentRev,
+      target: targetRev,
+      improvement: Math.round(((targetRev / currentRev) - 1) * 100)
+    }
+  ];
+  
+  expertise.slice(0, 3).forEach(exp => {
+    switch (exp.toLowerCase()) {
+      case 'seo':
+        kpis.push({
+          name: 'Organic Traffic',
+          current: 5000,
+          target: 25000,
+          improvement: 400
+        });
+        break;
+      case 'ppc':
+        kpis.push({
+          name: 'ROAS (Return on Ad Spend)',
+          current: 3.0,
+          target: 5.0,
+          improvement: 67
+        });
+        break;
+      case 'email marketing':
+        kpis.push({
+          name: 'Email Revenue Attribution',
+          current: 15,
+          target: 30,
+          improvement: 100
+        });
+        break;
+      default:
+        kpis.push({
+          name: `${exp} Performance Score`,
+          current: 65,
+          target: 90,
+          improvement: 38
+        });
+    }
+  });
+  
+  return kpis;
+}
+
+private generateExpertiseChannels(expertise: string[], totalBudget: number): GrowthChannel[] {
+  const channels: GrowthChannel[] = [];
+  const allocation = Math.floor(100 / expertise.length);
+  
+  expertise.forEach((exp, index) => {
+    let channelName: string;
+    let expectedROI: number;
+    let status: 'active' | 'planned' | 'testing';
+    
+    switch (exp.toLowerCase()) {
+      case 'seo':
+        channelName = 'Organic Search';
+        expectedROI = 400;
+        status = 'active';
+        break;
+      case 'ppc':
+        channelName = 'Paid Advertising';
+        expectedROI = 250;
+        status = 'active';
+        break;
+      case 'email marketing':
+        channelName = 'Email Marketing';
+        expectedROI = 500;
+        status = 'active';
+        break;
+      case 'social media':
+        channelName = 'Social Media';
+        expectedROI = 300;
+        status = 'planned';
+        break;
+      default:
+        channelName = exp;
+        expectedROI = 350;
+        status = index === 0 ? 'active' : 'planned';
+    }
+    
+    channels.push({
+      name: channelName,
+      allocation: index === expertise.length - 1 ? 100 - (allocation * (expertise.length - 1)) : allocation,
+      expectedROI,
+      status
+    });
+  });
+  
+  return channels;
+}
+
+private generateImplementationPhases(input: GrowthPlanInput, totalBudget: number): ImplementationPhase[] {
+  const months = input.timeframe === '3m' ? 3 : input.timeframe === '6m' ? 6 : 12;
+  const phaseCount = Math.min(3, Math.ceil(months / 2));
+  
+  return Array.from({ length: phaseCount }, (_, i): ImplementationPhase => ({
+    name: `Phase ${i + 1}: ${this.getPhaseNames(input.expertise)[i] || 'Optimization'}`,
+    duration: `${Math.ceil(months / phaseCount)} months`,
+    objectives: this.getPhaseObjectives(input.expertise, i),
+    deliverables: this.getPhaseDeliverables(input.expertise, i),
+    resources: this.getPhaseResources(input.expertise, i, totalBudget, phaseCount)
+  }));
+}
+
+private generateExpertiseBudgetBreakdown(expertise: string[], totalBudget: number): BudgetBreakdownItem[] {
+  const breakdown: BudgetBreakdownItem[] = [];
+  const mainAllocation = Math.floor(totalBudget * 0.6);
+  const remainingBudget = totalBudget - mainAllocation;
+  
+  // Primary expertise gets largest allocation
+  breakdown.push({
+    category: `${expertise[0]} Implementation`,
+    amount: mainAllocation,
+    percentage: Math.round((mainAllocation / totalBudget) * 100)
+  });
+  
+  // Distribute remaining budget
+  const secondaryCount = expertise.length - 1;
+  if (secondaryCount > 0) {
+    const secondaryAmount = Math.floor(remainingBudget * 0.7 / secondaryCount);
+    expertise.slice(1).forEach(exp => {
+      breakdown.push({
+        category: `${exp} Support`,
+        amount: secondaryAmount,
+        percentage: Math.round((secondaryAmount / totalBudget) * 100)
+      });
+    });
+  }
+  
+  // Tools and overhead
+  const overhead = totalBudget - breakdown.reduce((sum, item) => sum + item.amount, 0);
+  if (overhead > 0) {
+    breakdown.push({
+      category: 'Tools & Analytics',
+      amount: overhead,
+      percentage: Math.round((overhead / totalBudget) * 100)
+    });
+  }
+  
+  return breakdown;
+}
+
+
+
+private generateExpertiseNextSteps(input: GrowthPlanInput): string[] {
+  return [
+    `Schedule ${input.expertise[0]} audit and strategy session with ${input.contactName}`,
+    `Set up tracking infrastructure for ${input.expertise.join(', ')} initiatives`,
+    `Begin ${input.industry}-specific ${input.expertise[0]} implementation`,
+    `Establish weekly performance review schedule`,
+    `Prepare detailed execution plan for Phase 1 activities`
+  ];
+}
+
+// Helper methods for industry-specific data
+private getIndustryMetrics(industry: string, currentRevenue: number): IndustryMetrics {
+  const metrics: Record<string, IndustryMetrics> = {
+    'SaaS': {
+      revenuePerLead: 150,
+      conversionRate: 0.15,
+      baseCac: 200,
+      baseLtv: 2400
+    },
+    'E-commerce': {
+      revenuePerLead: 50,
+      conversionRate: 0.03,
+      baseCac: 50,
+      baseLtv: 300
+    },
+    'Healthcare': {
+      revenuePerLead: 500,
+      conversionRate: 0.08,
+      baseCac: 400,
+      baseLtv: 5000
+    }
+  };
+  
+  return metrics[industry] || {
+    revenuePerLead: 100,
+    conversionRate: 0.1,
+    baseCac: 150,
+    baseLtv: 1500
+  };
+}
+
+
+private getPhaseNames(expertise: string[]): string[] {
+  return [
+    `${expertise[0]} Foundation`,
+    `Multi-Channel Integration`,
+    'Optimization & Scale'
+  ];
+}
+
+private getPhaseObjectives(expertise: string[], phaseIndex: number): string[] {
+  switch (phaseIndex) {
+    case 0:
+      return [
+        `Establish ${expertise[0]} baseline and infrastructure`,
+        'Implement tracking and measurement systems',
+        'Complete initial optimization opportunities'
+      ];
+    case 1:
+      return [
+        `Scale ${expertise.join(' and ')} initiatives`,
+        'Integrate cross-channel strategies',
+        'Optimize customer acquisition funnel'
+      ];
+    case 2:
+      return [
+        'Achieve target performance metrics',
+        'Implement advanced automation',
+        'Establish sustainable growth processes'
+      ];
+    default:
+      return ['Continue optimization', 'Scale successful initiatives'];
+  }
+}
+
+private getPhaseDeliverables(expertise: string[], phaseIndex: number): string[] {
+  switch (phaseIndex) {
+    case 0:
+      return [
+        `${expertise[0]} audit report`,
+        'Performance tracking dashboard',
+        'Implementation roadmap'
+      ];
+    case 1:
+      return [
+        `Active ${expertise.join(' and ')} campaigns`,
+        'Conversion optimization reports',
+        'Performance analysis'
+      ];
+    case 2:
+      return [
+        'Final performance report',
+        'Process documentation',
+        'Handover materials'
+      ];
+    default:
+      return ['Performance reports', 'Optimization recommendations'];
+  }
+}
+
+private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: number, phaseCount: number): string[] {
+  const budgetPerPhase = Math.floor(totalBudget / phaseCount);
+  
+  const baseResources = [
+    `Phase budget: $${budgetPerPhase.toLocaleString()}`,
+    `${expertise[0]} specialist time`,
+    'Analytics and tracking tools'
+  ];
+  
+  if (expertise.length > 1) {
+    baseResources.push(`${expertise.slice(1).join(' and ')} support`);
+  }
+  
+  return baseResources;
+}
   async saveGrowthPlan(userId: string, workspaceId: string, plan: GeneratedGrowthPlan, input: GrowthPlanInput): Promise<string> {
     try {
       const { prisma } = await import('@/lib/prisma');
