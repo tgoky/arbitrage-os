@@ -105,257 +105,364 @@ Your goal is to create offers that make prospects think "I need this" immediatel
 }
 
 
-  private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
-    // Calculate pricing targets
-    const targetACV = this.parseACV(input.business.acv);
-    const starterPrice = Math.round(targetACV * 0.65 / 12);
-    const corePrice = Math.round(targetACV / 12);
-    const premiumPrice = Math.round(targetACV * 1.75 / 12);
+private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
+  // Calculate per-client pricing targets
+  const targetACV = this.parseACV(input.business.acv);
+  const capacity = parseInt(input.business.capacity) || 5;
+  const monthlyHours = parseInt(input.business.monthlyHours) || 160;
+  
+  // PER-CLIENT MONTHLY CALCULATIONS
+  const hoursPerClient = Math.round(monthlyHours / capacity);
+  const acvPerClient = targetACV;
+  const monthlyPerClient = Math.round(acvPerClient / 12);
+  
+  // TIERED PER-CLIENT PRICING
+  const starterPerClient = Math.round(monthlyPerClient * 0.65);
+  const corePerClient = monthlyPerClient;
+  const premiumPerClient = Math.round(monthlyPerClient * 1.75);
 
-    // Generate specific examples based on industry
-    const industryExamples = this.getIndustrySpecificExamples(input.founder.industries[0]);
+  // USER'S ACTUAL CORE STRENGTHS (not defaulting to lead gen)
+  const primaryStrength = input.founder.coreStrengths[0] || 'business consulting';
+  const secondaryStrength = input.founder.coreStrengths[1] || 'process optimization';
+  const primaryProcess = input.founder.processes[0] || 'systematic optimization';
+  const secondaryProcess = input.founder.processes[1] || 'performance improvement';
+  const primaryOutcome = input.market.outcomes[0] || 'improved performance';
+  const primaryPain = input.market.pains[0] || 'operational inefficiency';
 
-    return `
+  // Generate specific examples based on user's actual strengths
+  const strengthSpecificExamples = this.getStrengthSpecificExamples(primaryStrength, primaryProcess, hoursPerClient);
+
+  return `
 # SIGNATURE OFFER CREATION BRIEF
 
-## CLIENT PROFILE
+## CLIENT PROFILE & USER EXPERTISE
 **Target Market:** ${input.market.targetMarket}
 **Buyer Role:** ${input.market.buyerRole}
+**User's PRIMARY Strength:** ${primaryStrength} (MAIN FOCUS - NOT GENERIC LEAD GENERATION)
+**User's Secondary Strength:** ${secondaryStrength}
+**User's Primary Process:** ${primaryProcess}
+**User's Secondary Process:** ${secondaryProcess}
 **Top Customer Pains:** ${input.market.pains.join(' | ')}
 **Desired Outcomes:** ${input.market.outcomes.join(' | ')}
 
-## FOUNDER EXPERTISE
+## FOUNDER EXPERTISE FOUNDATION
 **Signature Results:** ${input.founder.signatureResults.join(' | ')}
 **Core Strengths:** ${input.founder.coreStrengths.join(' | ')}
 **Proven Processes:** ${input.founder.processes.join(' | ')}
 **Industries:** ${input.founder.industries.join(' | ')}
 
+## CAPACITY & PRICING PARAMETERS
+**Capacity:** ${capacity} clients simultaneously
+**Total Monthly Hours:** ${monthlyHours} hours
+**Hours per Client:** ${hoursPerClient} hours/month per client
+**Target ACV per Client:** ${input.business.acv}
+
+**Per-Client Monthly Pricing Targets:**
+- **Starter:** $${starterPerClient.toLocaleString()}/month per client (${Math.round(hoursPerClient * 0.7)} hours allocated)
+- **Core:** $${corePerClient.toLocaleString()}/month per client (${hoursPerClient} hours allocated)  
+- **Premium:** $${premiumPerClient.toLocaleString()}/month per client (${Math.round(hoursPerClient * 1.3)} hours allocated)
+
 ## BUSINESS PARAMETERS
 **Delivery Models:** ${input.business.deliveryModel.join(' | ')}
-**Capacity:** ${input.business.capacity} clients
-**Monthly Hours:** ${input.business.monthlyHours} hours
-**Target ACV:** ${input.business.acv}
 **Price Posture:** ${input.pricing.pricePosture}
+**Contract Style:** ${input.pricing.contractStyle}
+**Guarantee:** ${input.pricing.guarantee}
 **Brand Tone:** ${input.voice.brandTone}
 **Positioning:** ${input.voice.positioning}
 **Differentiators:** ${input.voice.differentiators.join(' | ')}
 
 ---
 
-# TASK: CREATE THREE WORLD-CLASS SIGNATURE OFFERS
+# CRITICAL SUCCESS REQUIREMENTS:
 
-## SUCCESS CRITERIA (MANDATORY):
+## 1. EXPERTISE-BASED DELIVERABLE CREATION (MANDATORY)
+**BASE ALL OFFERS ON USER'S ACTUAL STRENGTHS - NOT GENERIC TEMPLATES**
 
-### 1. OFFER NAMING FORMULA
-- **Starter:** "The [Industry/Target] [Outcome] Kickstart" or "The [Problem Solution] Foundation"
-- **Core:** "The [Industry/Target] [Outcome] Engine/Machine/System" 
-- **Premium:** "The [Timeframe] [Transformation] Build" or "The [Industry] Excellence Program"
+**User's Primary Strength:** "${primaryStrength}"
+**User's Primary Process:** "${primaryProcess}"
 
-**Examples:**
-- ✅ "The AgTech Lead Generation Engine"
-- ✅ "The 90-Day Revenue Infrastructure Build" 
-- ❌ "Starter Package" or "Premium Service"
+${strengthSpecificExamples}
 
-### 2. DELIVERABLE SPECIFICITY REQUIREMENTS
+**FORBIDDEN APPROACHES:**
+- ❌ Generic "lead generation" unless user specifically listed it as a core strength
+- ❌ "Marketing campaigns" unless user's strength is marketing
+- ❌ "Client acquisition" unless user's strength is business development
+- ❌ Vague "strategy development" or "consultation services"
 
-**INSTEAD OF VAGUE TERMS:**
-- ❌ "Strategy development"
-- ❌ "Process optimization" 
-- ❌ "Implementation support"
-- ❌ "Consultation services"
+## 2. PER-CLIENT PRICING SPECIFICITY (MANDATORY)
+Each tier MUST specify:
+- Exact monthly fee per client
+- Hours allocated per client per month
+- Specific deliverable quantities per client
+- Clear value per dollar spent
 
-**USE CONCRETE DELIVERABLES:**
-- ✅ "75 targeted prospect emails + 25 LinkedIn messages sent daily"
-- ✅ "Setup and management of 3 paid advertising channels (Facebook, Google, LinkedIn)"
-- ✅ "Delivery of 5 custom sales scripts with objection handling responses"
-- ✅ "Implementation of CRM with 7 automated follow-up sequences"
-- ✅ "90-day content calendar with 30 ready-to-post pieces"
+**Format Requirements:**
+- "pricing": "$X,XXX/month per client (XX hours allocated)"
+- Scope must include specific hours and deliverable quantities
+- Timeline must reflect per-client implementation schedule
 
-${industryExamples}
+## 3. DELIVERABLE QUANTIFICATION BASED ON HOURS
+Calculate deliverables based on actual time allocation:
 
-### 3. GUARANTEE STRUCTURE (MANDATORY)
-Each tier MUST have a specific, measurable guarantee:
+**Starter Tier (${Math.round(hoursPerClient * 0.7)} hours/month per client):**
+- Focus on core ${primaryStrength} implementation
+- 1-2 primary deliverables per month
+- Basic ${primaryProcess} setup
 
-**Starter Example:** "Deliver 500 qualified prospect contacts and 2 tested outreach templates, or first week free"
-**Core Example:** "Generate 15+ qualified meetings within 60 days, or provide 20 hours of free optimization"  
-**Premium Example:** "Complete system deployment within 90 days with documented SOPs, or 25% refund"
+**Core Tier (${hoursPerClient} hours/month per client):**
+- Complete ${primaryStrength} transformation
+- 2-3 primary deliverables per month  
+- Advanced ${primaryProcess} with ${secondaryProcess}
 
-### 4. OUTCOME QUANTIFICATION
-- Specify WHAT metric improves by HOW MUCH in WHAT timeframe
-- ✅ "Increase qualified lead flow by 40% within 8 weeks"
-- ✅ "Reduce customer acquisition cost by $200 per customer"
-- ❌ "Improve operational efficiency by 20%" (too vague)
+**Premium Tier (${Math.round(hoursPerClient * 1.3)} hours/month per client):**
+- Strategic ${primaryStrength} partnership
+- 3-4 primary deliverables per month
+- Custom ${primaryProcess} infrastructure
 
-### 5. PRICING JUSTIFICATION
-- **Starter:** $${starterPrice.toLocaleString()}/month (Entry-level, specific deliverables)
-- **Core:** $${corePrice.toLocaleString()}/month (Comprehensive system)
-- **Premium:** $${premiumPrice.toLocaleString()}/month (Transformation/build project)
+## 4. OUTCOME-FOCUSED NAMING FORMULA
+- **Starter:** "The [Industry/Target] [Primary Outcome] ${primaryStrength} Kickstart"
+- **Core:** "The [Industry/Target] [Primary Outcome] ${primaryStrength} Engine/System" 
+- **Premium:** "The [Timeframe] [Primary Outcome] ${primaryStrength} Excellence Build"
+
+**Examples Based on User's Expertise:**
+- ✅ "The ${input.market.targetMarket} ${primaryOutcome} ${primaryStrength} Engine"
+- ✅ "The 90-Day ${primaryOutcome} ${primaryStrength} Build"
+- ❌ Generic "Starter Package" or "Premium Service"
+
+## 5. GUARANTEE STRUCTURE BASED ON USER'S APPROACH
+Tie guarantees to user's specific deliverables and processes:
+
+**For ${input.pricing.guarantee} guarantee type:**
+- Starter: "Deliver ${primaryProcess} implementation and initial ${primaryOutcome} improvements, or first month refunded"
+- Core: "Achieve ${primaryOutcome} targets using ${primaryProcess} methodology within 90 days, or provide additional hours free"
+- Premium: "Complete ${primaryStrength} transformation with measurable ${primaryOutcome}, or 25% refund plus extension"
 
 ---
 
-## OUTPUT FORMAT (STRICT JSON):
+# OUTPUT FORMAT (STRICT JSON):
 
 \`\`\`json
 {
   "signatureOffers": {
     "starter": {
-      "name": "[Compelling transformation-focused name]",
-      "for": "[Highly specific ideal client description with role, company stage, and immediate trigger]",
-      "promise": "[Specific promise addressing one key pain and delivering one clear outcome]",
+      "name": "The ${input.market.targetMarket} ${primaryOutcome} ${primaryStrength} Kickstart",
+      "for": "Specific ${input.market.targetMarket} ${input.market.buyerRole}s needing focused ${primaryStrength} to address ${primaryPain}",
+      "promise": "Eliminate ${primaryPain} and deliver measurable ${primaryOutcome} using our proven ${primaryProcess} methodology",
       "scope": [
-        "[Specific deliverable with quantities - e.g., 'Deploy 2 automated email sequences with 5 messages each']",
-        "[Tangible asset creation - e.g., 'Create 20 targeted prospect lists with contact details']", 
-        "[Measurable activity - e.g., 'Conduct 4 weekly optimization sessions with performance reports']"
+        "${Math.round(hoursPerClient * 0.7)} hours monthly dedicated ${primaryStrength} implementation",
+        "Deploy ${primaryProcess} system with [X specific deliverables based on user's expertise]",
+        "Weekly ${primaryStrength} optimization and progress tracking",
+        "[Additional specific deliverable based on ${secondaryStrength}]"
       ],
       "proof": [
-        "[Specific relevant result from founder background]",
-        "[Relevant process or methodology]",
-        "[Industry-specific credential or experience]"
+        "${input.founder.signatureResults[0] || `Documented success in ${primaryStrength}`}",
+        "Proven ${primaryProcess} methodology with measurable results",
+        "${input.founder.industries.length} industry specialization in ${input.founder.industries[0]}"
       ],
-      "timeline": "[Realistic timeframe for core deliverables]",
+      "timeline": "30-45 days for core ${primaryStrength} implementation",
       "milestones": [
-        "[Week/Month X: Specific deliverable completed - e.g., 'Week 1: First 200 prospects identified and outreach launched']",
-        "[Week/Month Y: Measurable outcome - e.g., 'Week 3: First optimization report showing 15% improvement']",
-        "[Week/Month Z: Final deliverable - e.g., 'Week 4: Complete system handover with training materials']"
+        "Week 1: ${primaryProcess} assessment and foundation setup",
+        "Week 2: Core ${primaryStrength} system deployment begins", 
+        "Week 4: Performance validation and ${primaryOutcome} measurement"
       ],
-      "pricing": "$${starterPrice.toLocaleString()}/month",
+      "pricing": "$${starterPerClient.toLocaleString()}/month per client (${Math.round(hoursPerClient * 0.7)} hours allocated)",
       "term": "${input.pricing.contractStyle}",
-      "guarantee": "[Specific guarantee tied to deliverables - e.g., 'Deliver X within Y days or Z consequence']",
-      "clientLift": "[Specific, measurable outcome with metric and timeframe]",
-      "requirements": "[Specific items client must provide for success]"
+      "guarantee": "Deliver ${primaryProcess} implementation and initial ${primaryOutcome} improvements within 45 days, or first month refunded",
+      "clientLift": "Achieve [specific measurable improvement] in ${primaryOutcome} within 45 days",
+      "requirements": "Access to current systems, 2 hours weekly for ${primaryStrength} implementation calls"
     },
     "core": {
-      "name": "[Engine/System/Machine name promising comprehensive solution]",
-      "for": "[Specific client type ready for full transformation]",
-      "promise": "[Comprehensive promise addressing multiple pains with integrated solution]",
+      "name": "The ${input.market.targetMarket} ${primaryOutcome} ${primaryStrength} Engine",
+      "for": "Established ${input.market.targetMarket} organizations ready to systematically transform ${primaryPain} using advanced ${primaryStrength}",
+      "promise": "Build a complete ${primaryOutcome} system using our ${primaryProcess} methodology that delivers consistent, measurable results",
       "scope": [
-        "[Multiple channel/system management with specifics]",
-        "[Regular deliverables with quantities and frequency]",
-        "[Optimization activities with measurable targets]",
-        "[Asset creation with specific outputs]"
+        "${hoursPerClient} hours monthly dedicated ${primaryStrength} management and optimization",
+        "Complete ${primaryProcess} transformation with advanced ${secondaryProcess} integration",
+        "Bi-weekly strategy sessions plus weekly ${primaryStrength} optimization",
+        "Monthly performance analysis with ${primaryOutcome} reporting",
+        "[2-3 additional specific deliverables based on user's processes]"
       ],
-      "proof": "[Enhanced proof elements]",
-      "timeline": "[90-120 day comprehensive timeline]",
-      "milestones": "[Month-by-month deliverable milestones]",
-      "pricing": "$${corePrice.toLocaleString()}/month",
+      "proof": [
+        "${input.founder.signatureResults[0] || `Multiple transformation successes in ${primaryStrength}`}",
+        "${input.founder.signatureResults[1] || `Advanced ${primaryProcess} methodology certification`}",
+        "Proven ${secondaryStrength} integration expertise"
+      ],
+      "timeline": "90 days for complete ${primaryStrength} system deployment",
+      "milestones": [
+        "Month 1: Comprehensive ${primaryProcess} system implementation",
+        "Month 2: Advanced ${secondaryProcess} integration and team training",
+        "Month 3: Performance optimization and ${primaryOutcome} validation"
+      ],
+      "pricing": "$${corePerClient.toLocaleString()}/month per client (${hoursPerClient} hours allocated)",
       "term": "${input.pricing.contractStyle}",
-      "guarantee": "[Stronger guarantee with performance metrics]",
-      "clientLift": "[Significant measurable improvement 30-50%]",
-      "requirements": "[Enhanced client commitment requirements]"
+      "guarantee": "Achieve ${primaryOutcome} targets using ${primaryProcess} methodology within 90 days, or provide ${Math.round(hoursPerClient/4)} additional hours free",
+      "clientLift": "Achieve [specific percentage] improvement in ${primaryOutcome} within 90 days",
+      "requirements": "Dedicated team member, full system access, weekly ${primaryStrength} strategy sessions"
     },
     "premium": {
-      "name": "[Build/Program/Transformation name for strategic engagement]",
-      "for": "[High-growth organizations seeking market leadership]",
-      "promise": "[Transformational promise with industry-leading outcomes]",
+      "name": "The 180-Day ${primaryOutcome} ${primaryStrength} Excellence Build",
+      "for": "High-growth ${input.market.targetMarket} leaders seeking to establish market dominance through superior ${primaryStrength} capabilities",
+      "promise": "Build and deploy a custom ${primaryOutcome} infrastructure using our ${primaryProcess} methodology that positions your organization as the industry leader",
       "scope": [
-        "[White-glove system building with specific components]",
-        "[Strategic advisory with defined frequency and outputs]",
-        "[Team training with specific curriculum and materials]",
-        "[Custom development with measurable deliverables]",
-        "[Ongoing optimization with performance guarantees]"
+        "${Math.round(hoursPerClient * 1.3)} hours monthly strategic ${primaryStrength} partnership",
+        "Custom ${primaryProcess} infrastructure build with proprietary methodologies",
+        "Weekly strategic ${primaryStrength} advisory plus daily optimization support",
+        "Team certification program in ${primaryProcess} and ${secondaryProcess}",
+        "Quarterly business reviews with ${primaryOutcome} forecasting",
+        "[3-4 additional premium deliverables based on user's expertise]"
       ],
-      "proof": "[Elite-level proof and positioning]",
-      "timeline": "[6-12 month strategic timeline]",
-      "milestones": "[Quarter-by-quarter transformation milestones]",
-      "pricing": "$${premiumPrice.toLocaleString()}/month",
-      "term": "${input.pricing.contractStyle === 'project' ? 'Project-based engagement' : input.pricing.contractStyle + ' with quarterly reviews'}",
-      "guarantee": "[Premium guarantee with outcome assurance or extension]",
-      "clientLift": "[Transformational outcome 50-100% improvement or market leadership]",
-      "requirements": "[Executive-level commitment and resources]"
+      "proof": [
+        "${input.founder.signatureResults[0] || `C-level ${primaryStrength} advisory experience`}",
+        "Industry-leading ${primaryProcess} methodology development",
+        "White-glove ${primaryStrength} transformation expertise"
+      ],
+      "timeline": "6 months for complete ${primaryStrength} excellence transformation",
+      "milestones": [
+        "Month 1-2: Custom ${primaryStrength} infrastructure design and foundation",
+        "Month 3-4: Advanced ${primaryProcess} deployment with team certification", 
+        "Month 5-6: Excellence validation and industry leadership establishment"
+      ],
+      "pricing": "$${premiumPerClient.toLocaleString()}/month per client (${Math.round(hoursPerClient * 1.3)} hours allocated)",
+      "term": "${input.pricing.contractStyle === 'project' ? 'Project-based engagement with quarterly milestones' : input.pricing.contractStyle + ' with quarterly strategic reviews'}",
+      "guarantee": "Achieve industry-leading ${primaryOutcome} metrics using ${primaryProcess} methodology, or 25% refund plus 3-month extension",
+      "clientLift": "Achieve [specific transformational outcome] and establish market leadership position in ${primaryOutcome}",
+      "requirements": "Executive sponsorship, dedicated project team, comprehensive system access"
     }
   },
   "comparisonTable": {
     "features": [
-      {"name": "Core Deliverable Type", "starter": "[Specific starter deliverable]", "core": "[Comprehensive core deliverable]", "premium": "[Strategic premium deliverable]"},
-      {"name": "Activity Volume", "starter": "[Specific quantities]", "core": "[Higher volume/frequency]", "premium": "[Maximum volume + custom]"},
-      {"name": "System Complexity", "starter": "Basic Setup", "core": "Multi-Channel Integration", "premium": "Custom Infrastructure"},
-      {"name": "Support Level", "starter": "Guided Implementation", "core": "Hands-on Management", "premium": "White-glove Partnership"},
-      {"name": "Reporting Frequency", "starter": "Weekly", "core": "Daily + Weekly Analysis", "premium": "Real-time + Strategic Reviews"},
-      {"name": "Guarantee Strength", "starter": "[Deliverable guarantee]", "core": "[Performance guarantee]", "premium": "[Outcome or refund guarantee]"},
-      {"name": "Team Training", "starter": "Basic Handover", "core": "Process Training", "premium": "Comprehensive Certification"},
-      {"name": "Strategic Input", "starter": "Templates", "core": "Custom Strategy", "premium": "Executive Advisory"}
+      {
+        "name": "${primaryStrength} Scope",
+        "starter": "Core ${primaryProcess} Implementation", 
+        "core": "Complete ${primaryStrength} Transformation",
+        "premium": "Custom ${primaryStrength} Excellence Infrastructure"
+      },
+      {
+        "name": "Monthly Hours per Client",
+        "starter": "${Math.round(hoursPerClient * 0.7)} hours",
+        "core": "${hoursPerClient} hours", 
+        "premium": "${Math.round(hoursPerClient * 1.3)} hours"
+      },
+      {
+        "name": "${primaryProcess} Complexity",
+        "starter": "Standard Implementation",
+        "core": "Advanced Integration",
+        "premium": "Custom Excellence Build"
+      },
+      {
+        "name": "${primaryStrength} Support Level",
+        "starter": "Weekly Implementation Calls",
+        "core": "Bi-weekly Strategy + Weekly Optimization", 
+        "premium": "Weekly Advisory + Daily Support"
+      },
+      {
+        "name": "Performance Reporting",
+        "starter": "Monthly ${primaryOutcome} Reports",
+        "core": "Weekly Analytics + Monthly Strategy",
+        "premium": "Real-time Dashboards + Quarterly Forecasting"
+      },
+      {
+        "name": "Team Training",
+        "starter": "Basic ${primaryProcess} Handover",
+        "core": "Process Training + Documentation",
+        "premium": "Comprehensive Certification Program"
+      },
+      {
+        "name": "Strategic Input",
+        "starter": "${primaryStrength} Templates & Guides",
+        "core": "Custom ${primaryProcess} Strategy",
+        "premium": "Executive ${primaryStrength} Advisory"
+      },
+      {
+        "name": "Guarantee Level",
+        "starter": "Implementation + Initial Results",
+        "core": "Performance Targets Achievement", 
+        "premium": "Excellence Metrics + Leadership Position"
+      }
     ]
   },
   "pricing": {
-    "starter": "$${starterPrice.toLocaleString()}/month",
-    "core": "$${corePrice.toLocaleString()}/month", 
-    "premium": "$${premiumPrice.toLocaleString()}/month"
+    "starter": "$${starterPerClient.toLocaleString()}/month per client",
+    "core": "$${corePerClient.toLocaleString()}/month per client", 
+    "premium": "$${premiumPerClient.toLocaleString()}/month per client"
   }
 }
 \`\`\`
 
 ## FINAL VALIDATION CHECKLIST:
-- ✅ Names are outcome-focused, not tier-focused
-- ✅ Scope items are specific, measurable deliverables
-- ✅ Guarantees are tied to concrete outputs or metrics
-- ✅ Client lift specifies exact metrics and timeframes
-- ✅ Each offer solves different scales of the same core problem
-- ✅ Pricing aligns with deliverable complexity and value
-- ✅ Milestones are outcome-based, not process-based
+- ✅ ALL deliverables match user's actual strength: "${primaryStrength}"
+- ✅ ALL processes reference user's methodology: "${primaryProcess}" and "${secondaryProcess}"
+- ✅ Pricing shows per-client monthly fee with specific hour allocation
+- ✅ Deliverable quantities scale appropriately based on hours allocated
+- ✅ NO generic lead generation unless user specifically listed it as expertise
+- ✅ Names use outcome-focused language: "${primaryOutcome}"
+- ✅ Guarantees tie to user's specific deliverables and processes
+- ✅ Scope items are concrete and measurable, not vague consulting speak
+- ✅ Each tier provides clear value escalation matching price increase
 
-Generate offers that make prospects immediately understand the value and want to buy.`;
-  }
+Create offers that authentically represent the user's expertise in "${primaryStrength}" using their proven "${primaryProcess}" methodology, not generic business templates.`;
+}
 
-  private getIndustrySpecificExamples(industry: string): string {
-    const examples: Record<string, string> = {
-      'healthcare': `
-### HEALTHCARE-SPECIFIC DELIVERABLE EXAMPLES:
-- "Setup patient appointment booking system processing 200+ appointments/month"
-- "Create 5 patient education video series with follow-up email sequences"  
-- "Implement patient retention system with 3 automated touchpoint campaigns"
-- "Deploy telehealth platform with scheduling and payment integration"
-- "Generate 15 qualified patient leads per week through targeted local advertising"`,
 
-      'agtech': `
-### AGTECH-SPECIFIC DELIVERABLE EXAMPLES:
-- "Identify and contact 500 qualified farm decision-makers per month"
-- "Create agribusiness-specific sales presentations for 3 crop seasons"
-- "Deploy farmer education content series with 12 seasonal topics"
-- "Setup GPS territory mapping system for 200-mile sales radius"
-- "Generate 25 qualified agribusiness meetings per month"`,
+private getStrengthSpecificExamples(primaryStrength: string, primaryProcess: string, hoursPerClient: number): string {
+  const strengthExamples: Record<string, string> = {
+    'sales': `
+### SALES-SPECIFIC DELIVERABLE EXAMPLES (USER'S ACTUAL EXPERTISE):
+- "Implement ${primaryProcess} increasing sales conversion by X% within 60 days"
+- "Deploy sales team training using ${primaryProcess} methodology with performance tracking"
+- "Create sales funnel optimization system delivering X additional deals monthly"
+- "Build sales process automation reducing cycle time by X days"
+- "Establish sales performance dashboard with weekly optimization calls (${hoursPerClient} hours monthly)"`,
 
-      'marketing': `
-### MARKETING AGENCY DELIVERABLE EXAMPLES:
-- "Launch and manage 4 client acquisition channels generating 30 leads/month"
-- "Create 50-piece content library with templates and automation"
-- "Deploy client retention system reducing churn by 40%"
-- "Setup project management system handling 20+ concurrent campaigns"
-- "Generate $100k in new monthly recurring revenue within 90 days"`,
+    'operations': `
+### OPERATIONS-SPECIFIC DELIVERABLE EXAMPLES (USER'S ACTUAL EXPERTISE):
+- "Deploy ${primaryProcess} system reducing operational costs by X% monthly"
+- "Implement workflow automation eliminating X hours of manual work weekly"
+- "Create operational efficiency program using ${primaryProcess} methodology"
+- "Build performance monitoring system with real-time optimization"
+- "Establish operational excellence framework (${hoursPerClient} hours monthly management)"`,
 
-      'saas': `
-### SAAS-SPECIFIC DELIVERABLE EXAMPLES:
-- "Deploy lead scoring system processing 1,000+ prospects monthly"
-- "Create 8-sequence product demo and trial conversion system"
-- "Launch integration marketplace connecting to 15 popular tools"
-- "Implement customer success program reducing churn by 30%"
-- "Generate 200 qualified demo requests per month"`,
+    'marketing': `
+### MARKETING-SPECIFIC DELIVERABLE EXAMPLES (USER'S ACTUAL EXPERTISE):
+- "Execute ${primaryProcess} strategy increasing qualified prospects by X% monthly"
+- "Deploy marketing automation system with performance optimization"
+- "Create content marketing engine using ${primaryProcess} methodology"
+- "Build conversion optimization system improving ROI by X%"
+- "Establish marketing performance tracking with weekly strategy calls (${hoursPerClient} hours monthly)"`,
 
-      'ecommerce': `
-### ECOMMERCE-SPECIFIC DELIVERABLE EXAMPLES:
-- "Launch 3-channel advertising system generating 4x ROAS minimum"
-- "Deploy abandoned cart recovery system capturing 25% of lost sales"
-- "Create customer lifecycle email system with 12 automated sequences"
-- "Setup inventory management system with demand forecasting"
-- "Generate 40% increase in average order value within 60 days"`,
+    'coaching': `
+### COACHING-SPECIFIC DELIVERABLE EXAMPLES (USER'S ACTUAL EXPERTISE):
+- "Deliver ${primaryProcess} coaching program with certified methodology and measurable outcomes"
+- "Implement team development system using ${primaryProcess} framework"
+- "Create leadership training program with performance validation"
+- "Build mentorship system with progress tracking and accountability"
+- "Establish ongoing coaching relationship with weekly sessions (${hoursPerClient} hours monthly)"`,
 
-      'finance': `
-### FINANCE-SPECIFIC DELIVERABLE EXAMPLES:
-- "Deploy compliance automation system processing 500+ applications monthly"
-- "Create risk assessment framework with 15 evaluation criteria"
-- "Launch referral partner network generating 50 qualified leads/month"
-- "Setup client onboarding system reducing processing time by 60%"
-- "Generate 30% increase in qualified loan applications"`
-    };
+    'consulting': `
+### CONSULTING-SPECIFIC DELIVERABLE EXAMPLES (USER'S ACTUAL EXPERTISE):
+- "Provide ${primaryProcess} consulting with specific deliverable outcomes and ROI measurement"
+- "Implement strategic optimization using ${primaryProcess} methodology"
+- "Create business improvement system with performance validation"
+- "Build advisory relationship delivering measurable transformation"
+- "Establish ongoing strategic partnership with regular reviews (${hoursPerClient} hours monthly)"`,
 
-    return examples[industry.toLowerCase()] || `
-### INDUSTRY-SPECIFIC DELIVERABLE EXAMPLES:
-- "Deploy automated lead generation system producing 100+ qualified prospects monthly"
-- "Create sales process automation handling 50+ opportunities simultaneously"
-- "Launch customer retention program reducing churn by 25%"
-- "Setup performance tracking dashboard with 10 key business metrics"
-- "Generate 35% increase in monthly recurring revenue within 90 days"`;
-  }
+    'automation': `
+### AUTOMATION-SPECIFIC DELIVERABLE EXAMPLES (USER'S ACTUAL EXPERTISE):
+- "Deploy ${primaryProcess} automation reducing manual work by X hours weekly"
+- "Implement workflow optimization system using ${primaryProcess} methodology"
+- "Create process automation delivering X% efficiency improvement"
+- "Build automated systems with performance monitoring and optimization"
+- "Establish automation management with ongoing optimization (${hoursPerClient} hours monthly)"`
+  };
 
+  return strengthExamples[primaryStrength.toLowerCase()] || `
+### EXPERTISE-SPECIFIC DELIVERABLE EXAMPLES:
+- "Implement ${primaryProcess} system delivering measurable outcomes in your area of expertise"
+- "Deploy specialized methodology using ${primaryProcess} framework with performance tracking"
+- "Create transformation program based on your proven expertise with validation metrics"
+- "Build strategic system using your methodology with ongoing optimization"
+- "Establish partnership delivering measurable results (${hoursPerClient} hours monthly allocation)"`;
+}
   private parseOfferResponse(content: string, input: OfferCreatorInput): GeneratedOffer {
     try {
       // Extract JSON from the response
@@ -508,107 +615,115 @@ private generateEnhancedFallbackOffer(input: OfferCreatorInput): GeneratedOffer 
   };
 }
 
-  private generateIndustryDeliverables(industry: string, input: OfferCreatorInput) {
-    const capacity = parseInt(input.business.capacity) || 10;
-    const monthlyHours = parseInt(input.business.monthlyHours) || 160;
-    
-    // Base deliverable calculations
-    const baseVolume = Math.min(100, capacity * 10);
-    const coreVolume = baseVolume * 2;
-    const premiumVolume = baseVolume * 3;
+ // FIXED: Dynamic deliverable generation based on actual user strengths
+// FIXED: Dynamic deliverable generation based on actual user strengths
+private generateIndustryDeliverables(industry: string, input: OfferCreatorInput) {
+  const capacity = parseInt(input.business.capacity) || 10;
+  const monthlyHours = parseInt(input.business.monthlyHours) || 160;
+  
+  // GET USER'S ACTUAL STRENGTHS AND PROCESSES
+  const primaryStrength = input.founder.coreStrengths[0] || 'consulting';
+  const primaryProcess = input.founder.processes[0] || 'workflow optimization';
+  const secondaryProcess = input.founder.processes[1] || 'performance improvement';
+  const primaryPain = input.market.pains[0] || 'operational inefficiency';
+  const primaryOutcome = input.market.outcomes[0] || 'improved performance';
+  
+  // Base volume calculations
+  const baseVolume = Math.min(100, capacity * 10);
+  const coreVolume = baseVolume * 2;
+  const premiumVolume = baseVolume * 3;
 
-    const templates: Record<string, any> = {
-      healthcare: {
-        starter: {
-          primary: `Setup patient acquisition system generating ${baseVolume} qualified leads monthly`,
-          secondary: 'Deploy automated appointment booking with 3 reminder sequences',
-          support: 'Create 5 patient education templates with follow-up workflows',
-          milestone1: 'Patient tracking system live with first 50 contacts',
-          milestone2: 'Booking automation active and processing appointments',
-          milestone3: 'Complete system handover with performance report',
-          outcome: '30% increase in new patient bookings',
-          guarantee: `${baseVolume} qualified patient leads monthly`
-        },
-        core: {
-          primary: `Manage complete patient acquisition system generating ${coreVolume} leads monthly`,
-          secondary: 'Deploy retention system with automated patient lifecycle management',
-          optimization: 'Weekly performance optimization with conversion rate improvements',
-          support: 'Monthly strategy sessions with growth planning',
-          milestone1: 'Multi-channel patient acquisition system deployment',
-          milestone2: 'Retention automation and lifecycle management active',
-          milestone3: 'Performance optimization delivering target metrics',
-          outcome: '50% increase in patient lifetime value',
-          guarantee: `${coreVolume} leads monthly or 20 hours free optimization`
-        },
-        premium: {
-          strategic: `Build custom patient ecosystem generating ${premiumVolume} monthly leads`,
-          implementation: 'Deploy integrated practice management with predictive analytics',
-          optimization: 'Real-time performance monitoring with daily optimizations',
-          training: 'Comprehensive staff training with certification program',
-          ongoing: '24/7 system monitoring with quarterly strategic reviews',
-          milestone1: 'Custom infrastructure design and foundation build',
-          milestone2: 'Full ecosystem deployment with staff certification',
-          milestone3: 'Performance validation and market leadership establishment',
-          outcome: '100% increase in practice revenue',
-          guarantee: 'Achieve industry-leading metrics or 6-month extension'
-        },
-        comparison: {
-          volume: {
-            starter: `${baseVolume} leads/month`,
-            core: `${coreVolume} leads/month`,
-            premium: `${premiumVolume} leads/month + custom`
-          }
-        }
-      },
-      // Add similar detailed templates for other industries
-      agtech: {
-        starter: {
-          primary: `Deploy targeted outreach system contacting ${baseVolume} qualified agribusiness decision-makers monthly`,
-          secondary: 'Create 5 season-specific sales presentations with farmer ROI calculators',
-          support: 'Setup CRM with agricultural contact scoring and follow-up automation',
-          milestone1: 'Farm database compiled and first 200 contacts made',
-          milestone2: 'Sales materials deployed and first meetings scheduled',
-          milestone3: 'Complete system handover with territory mapping',
-          outcome: '40% increase in qualified farm meetings',
-          guarantee: `${baseVolume} qualified farmer contacts monthly`
-        },
-        core: {
-          primary: `Manage complete agribusiness development system reaching ${coreVolume} decision-makers monthly`,
-          secondary: 'Deploy seasonal marketing automation aligned with crop cycles',
-          optimization: 'Weekly territory optimization with conversion tracking',
-          support: 'Monthly agricultural market analysis with strategy updates',
-          milestone1: 'Multi-channel agribusiness acquisition system live',
-          milestone2: 'Seasonal automation and territory optimization active',
-          milestone3: 'Performance targets achieved with expansion planning',
-          outcome: '60% increase in agribusiness contract value',
-          guarantee: `${coreVolume} contacts monthly or extended territory support`
-        },
-        premium: {
-          strategic: `Build comprehensive agricultural market presence reaching ${premiumVolume} monthly prospects`,
-          implementation: 'Deploy precision agriculture partnership network with integrated sales',
-          optimization: 'Real-time market monitoring with predictive crop cycle planning',
-          training: 'Agricultural sales team certification with territory management',
-          ongoing: 'Quarterly market expansion with partnership development',
-          milestone1: 'Agricultural network infrastructure and partnerships established',
-          milestone2: 'Precision agriculture integration with sales automation',
-          milestone3: 'Market leadership position with sustainable growth systems',
-          outcome: 'Establish market dominance in target agricultural regions',
-          guarantee: 'Achieve regional market leadership or investment protection'
-        },
-        comparison: {
-          volume: {
-            starter: `${baseVolume} contacts/month`,
-            core: `${coreVolume} contacts/month`,
-            premium: `${premiumVolume} contacts/month + partnerships`
-          }
-        }
+  // DYNAMIC DELIVERABLE MAPPING based on core strengths - FIXED TYPE DEFINITION
+  type DeliverableTemplate = {
+    primary: string;
+    secondary: string;
+    support: string;
+  };
+
+  type StrengthKey = 'sales' | 'marketing' | 'operations' | 'consulting' | 'coaching';
+
+  const strengthToDeliverable: Record<StrengthKey, DeliverableTemplate> = {
+    'sales': {
+      primary: `Deploy ${primaryProcess} system increasing sales by ${baseVolume}% monthly`,
+      secondary: `Implement sales conversion optimization using proven ${secondaryProcess} methodology`,
+      support: `Create sales team training program with performance tracking`,
+    },
+    'marketing': {
+      primary: `Execute ${primaryProcess} strategy generating ${baseVolume} qualified prospects monthly`,
+      secondary: `Deploy marketing automation system with ${secondaryProcess} optimization`,
+      support: `Create content marketing system with performance analytics`,
+    },
+    'operations': {
+      primary: `Implement ${primaryProcess} system reducing ${primaryPain} by ${baseVolume}%`,
+      secondary: `Deploy operational efficiency improvements using ${secondaryProcess}`,
+      support: `Create workflow automation with productivity monitoring`,
+    },
+    'consulting': {
+      primary: `Deliver ${primaryProcess} consulting generating ${primaryOutcome}`,
+      secondary: `Implement strategic ${secondaryProcess} with measurable ROI`,
+      support: `Provide ongoing advisory with quarterly performance reviews`,
+    },
+    'coaching': {
+      primary: `Execute ${primaryProcess} coaching program with certified methodology`,
+      secondary: `Deploy team development system using ${secondaryProcess}`,
+      support: `Create ongoing mentorship with progress tracking`,
+    }
+  };
+
+  // FIXED: Safe key matching with fallback
+  const normalizedStrength = primaryStrength.toLowerCase() as StrengthKey;
+  const isValidStrength = (key: string): key is StrengthKey => {
+    return ['sales', 'marketing', 'operations', 'consulting', 'coaching'].includes(key);
+  };
+
+  // MATCH TO USER'S ACTUAL STRENGTHS with type safety
+  const matchedDeliverables = isValidStrength(normalizedStrength) 
+    ? strengthToDeliverable[normalizedStrength]
+    : strengthToDeliverable['consulting']; // fallback
+
+  return {
+    starter: {
+      primary: matchedDeliverables.primary,
+      secondary: matchedDeliverables.secondary,
+      support: matchedDeliverables.support,
+      milestone1: `Week 1: ${primaryProcess} assessment and initial setup`,
+      milestone2: `Week 2: Core ${primaryStrength} implementation begins`,
+      milestone3: `Week 4: Performance validation and system handover`,
+      outcome: `${baseVolume}% improvement in ${primaryOutcome}`,
+      guarantee: `Deliver ${primaryProcess} system and initial ${primaryOutcome} improvements`
+    },
+    core: {
+      primary: `Complete ${primaryStrength} transformation using ${primaryProcess} methodology`,
+      secondary: `Advanced ${secondaryProcess} implementation with team integration`,
+      optimization: `Weekly performance optimization targeting ${primaryOutcome}`,
+      support: `Monthly strategic reviews with ${primaryStrength} expertise`,
+      milestone1: `Month 1: Comprehensive ${primaryProcess} system deployment`,
+      milestone2: `Month 2: Advanced ${secondaryProcess} optimization`,
+      milestone3: `Month 3: Full performance validation and scaling preparation`,
+      outcome: `${coreVolume}% improvement in ${primaryOutcome}`,
+      guarantee: `Achieve ${primaryOutcome} targets or provide ${Math.round(monthlyHours/4)} hours free optimization`
+    },
+    premium: {
+      strategic: `Build custom ${primaryStrength} infrastructure with ${primaryProcess} excellence`,
+      implementation: `Deploy enterprise-grade ${secondaryProcess} with predictive analytics`,
+      optimization: `Real-time performance monitoring with daily ${primaryStrength} optimization`,
+      training: `Comprehensive team certification in ${primaryProcess} methodology`,
+      ongoing: `Quarterly strategic planning with ${primaryStrength} advisory`,
+      milestone1: `Month 1-2: Custom ${primaryStrength} infrastructure design and build`,
+      milestone2: `Month 3-4: Advanced ${primaryProcess} integration with team training`,
+      milestone3: `Month 5-6: Performance excellence validation and market positioning`,
+      outcome: `${premiumVolume}% improvement establishing market leadership in ${primaryOutcome}`,
+      guarantee: `Achieve industry-leading ${primaryOutcome} metrics or 6-month extension`
+    },
+    comparison: {
+      volume: {
+        starter: `${baseVolume}% improvement`,
+        core: `${coreVolume}% improvement`,
+        premium: `${premiumVolume}% improvement + market leadership`
       }
-      // Continue with other industries...
-    };
-
-    // Return industry-specific template or generic business template
-    return templates[industry.toLowerCase()] || templates.healthcare; // Fallback to healthcare template
-  }
+    }
+  };
+}
 
 private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fallbackText: string): string {
   const guarantees: Record<GuaranteeType, Record<string, string>> = {
