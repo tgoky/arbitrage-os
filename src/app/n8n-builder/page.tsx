@@ -618,7 +618,7 @@ try {
                   </div>
                 </TabPane>
                 <TabPane tab="JSON Configuration" key="2">
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className=" p-4 rounded-lg">
                     <pre className="whitespace-pre-wrap font-mono text-sm overflow-x-auto">
                       {JSON.stringify(currentWorkflow.workflowConfig, null, 2)}
                     </pre>
@@ -734,15 +734,33 @@ try {
   // Main Create Workflow Component
 const CreateWorkflow = () => (
   <div>
-    <div style={{padding: 9}}>
-     <Button 
-  icon={<ArrowLeftOutlined />} 
-  onClick={handleBack}
-// negative margin top
->
-  Back
-</Button>
-</div>
+    <div className="flex justify-between items-center mb-6" style={{padding: 9}}>
+      <Button 
+        icon={<ArrowLeftOutlined />} 
+        onClick={handleBack}
+      >
+        Back
+      </Button>
+      
+      <Button 
+        type="default"
+        icon={<EyeOutlined />}
+        onClick={() => setMode('list')}
+      >
+        View All Workflows
+      </Button>
+    </div>
+    
+    <div className="text-center mb-8">
+      <Title level={2} className="flex items-center justify-center">
+        <ThunderboltOutlined className="mr-2" />
+        <span style={{ color: '#5CC49D' }}>a</span>rb
+        <span style={{ color: '#5CC49D' }}>i</span>trageOS  n8n Workflow Creator
+      </Title>
+      <Text type="secondary" className="text-lg">
+        Design powerful automation workflows with AI assistance for your business processes
+      </Text>
+    </div>
     <div className="text-center mb-8">
            
       <Title level={2} className="flex items-center justify-center">

@@ -538,7 +538,7 @@ export const SavedAdsHistory = () => {
                         dataSource={ad.proofs}
                         renderItem={(item: string, idx: number) => (
                           <List.Item
-                              style={{ color: "black" }}
+                              style={{}}
                             actions={[
                               <Button
                                 key={`copy-proof-${idx}`}

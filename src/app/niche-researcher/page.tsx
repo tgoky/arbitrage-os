@@ -1346,7 +1346,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
           {/* Niche Selection Tabs */}
           <Card className="mb-4">
             <div className="mb-4">
-              <Title level={4}>Select a Niche to View Details:</Title>
+              <Title level={4}>Explore your Niche Reports</Title>
               <Space wrap>
                 {multiNicheReport.niches.map((niche, index) => (
                   <Button
