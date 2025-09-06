@@ -748,8 +748,8 @@ const NicheResearchDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading workspace...</p>
+        <Spin size="large"  tip="Loading workspace..."/>
+        <p className="mt-4"></p>
       </div>
     );
   }
@@ -757,8 +757,8 @@ const NicheResearchDetailPage = () => {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading niche research details...</p>
+        <Spin size="large" tip="Loading niche research details..." />
+        <p className="mt-4"></p>
       </div>
     );
   }

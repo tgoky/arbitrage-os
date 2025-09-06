@@ -222,8 +222,8 @@ const validationResults = useMemo(() => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading workspace...</p>
+        <Spin size="large"  tip="Loading workspace.."/>
+        {/* <p className="mt-4">.</p> */}
       </div>
     );
   }
@@ -1522,8 +1522,8 @@ const handleClearAll = () => {
   >
     {offersLoading ? (
       <div className="text-center py-8">
-        <Spin size="large" />
-        <div className="mt-4">Loading your offers...</div>
+        <Spin size="large"  tip="Loading your offers..."/>
+        {/* <div className="mt-4"></div> */}
       </div>
     ) : (offers.length > 0 || generatedOffer) ? (
       <div className="space-y-4">

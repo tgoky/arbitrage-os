@@ -543,8 +543,8 @@ const handleAction = async (action: string, item: WorkItem) => {
   if (!isWorkspaceReady) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
-        <Spin size="large" />
-        <p style={{ marginTop: 16 }}>Loading workspace...</p>
+        <Spin size="large" tip="Loading workspace..."/>
+        {/* <p style={{ marginTop: 16 }}></p> */}
       </div>
     );
   }
@@ -552,8 +552,8 @@ const handleAction = async (action: string, item: WorkItem) => {
   if (loading && workItems.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
-        <Spin size="large" />
-        <p style={{ marginTop: 16 }}>Loading your work...</p>
+        <Spin size="large" tip="Loading your work..."/>
+        {/* <p style={{ marginTop: 16 }}></p> */}
       </div>
     );
   }
@@ -731,8 +731,8 @@ const handleAction = async (action: string, item: WorkItem) => {
         <div style={{ marginTop: 24 }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <Spin size="large" />
-              <p style={{ marginTop: 16 }}>Refreshing your work...</p>
+              <Spin size="large" tip="Refreshing your work..." />
+              {/* <p style={{ marginTop: 16 }}></p> */}
             </div>
           ) : filteredItems.length === 0 ? (
             <Empty 

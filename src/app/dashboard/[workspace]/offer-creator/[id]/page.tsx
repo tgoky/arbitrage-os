@@ -265,8 +265,8 @@ export default function OfferCreatorDetailPage() {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center py-12">
-          <Spin size="large" />
-          <p className="mt-4">Loading offer details...</p>
+          <Spin size="large"  tip="Loading offer details.."/>
+          <p className="mt-4">.</p>
         </div>
       </div>
     );

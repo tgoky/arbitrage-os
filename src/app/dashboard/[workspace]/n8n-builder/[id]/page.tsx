@@ -230,8 +230,8 @@ ${workflow.setupInstructions.troubleshooting.map((trouble: string) => `• ${tro
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" />
-        <p style={{ marginTop: 16 }}>Loading workflow details...</p>
+        <Spin size="large" tip="Loading workflow details..." />
+        <p style={{ marginTop: 16 }}></p>
       </div>
     );
   }

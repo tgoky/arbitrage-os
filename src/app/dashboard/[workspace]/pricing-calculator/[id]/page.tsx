@@ -148,8 +148,8 @@ const PricingCalculationDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" />
-        <p>Loading workspace...</p>
+        <Spin size="large" tip="Loading workspace..." />
+        {/* <p></p> */}
       </div>
     );
   }

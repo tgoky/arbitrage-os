@@ -352,8 +352,8 @@ const AdWriterDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading workspace...</p>
+        <Spin size="large" tip="Loading workspace..." />
+        {/* <p className="mt-4"></p> */}
       </div>
     );
   }
@@ -361,8 +361,8 @@ const AdWriterDetailPage = () => {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading ad details...</p>
+        <Spin size="large" tip="Loading ad details...<" />
+        {/* <p className="mt-4">/p> */}
       </div>
     );
   }

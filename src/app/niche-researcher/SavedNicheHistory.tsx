@@ -808,8 +808,8 @@ export const SavedNicheHistory = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading workspace...</p>
+        <Spin size="large" tip="Loading workspace..." />
+        {/* <p className="mt-4"></p> */}
       </div>
     );
   }
@@ -869,8 +869,8 @@ export const SavedNicheHistory = () => {
       >
         {loading ? (
           <div className="text-center py-8">
-            <Spin size="large" />
-            <div className="mt-4">Loading your niche reports...</div>
+            <Spin size="large" tip="Loading your niche reports..." />
+            {/* <div className="mt-4"></div> */}
           </div>
         ) : niches.length === 0 ? (
           <div className="text-center py-12">
@@ -989,8 +989,8 @@ export const SavedNicheHistory = () => {
       >
         {modalLoading ? (
           <div className="text-center py-4">
-            <Spin size="large" />
-            <p>Loading niche report details...</p>
+            <Spin size="large"  tip="Loading niche report details..."/>
+            {/* <p></p> */}
           </div>
         ) : modalError ? (
           <Alert

@@ -150,8 +150,8 @@ const {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading workspace...</p>
+        <Spin size="large" tip="Loading workspace..."/>
+        {/* <p className="mt-4"></p> */}
       </div>
     );
   }

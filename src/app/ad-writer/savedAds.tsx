@@ -118,8 +118,8 @@ export const SavedAdsHistory = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" />
-        <p className="mt-4">Loading workspace...</p>
+        <Spin size="large" tip="Loading workspace..." />
+        {/* <p className="mt-4"></p> */}
       </div>
     );
   }
@@ -182,8 +182,8 @@ export const SavedAdsHistory = () => {
       >
         {loading ? (
           <div className="text-center py-8">
-            <Spin size="large" />
-            <div className="mt-4">Loading your ads...</div>
+            <Spin size="large" tip="Loading your ads..." />
+            {/* <div className="mt-4"></div> */}
           </div>
         ) : ads.length === 0 ? (
           <div className="text-center py-12">
