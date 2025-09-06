@@ -1081,12 +1081,12 @@ const renderPlanView = () => {
                 >
                   Save as Template
                 </Button>
-                <Button 
+                {/* <Button 
                   icon={<EditOutlined />}
                   onClick={() => setEditMode(true)}
                 >
                   Edit Plan
-                </Button>
+                </Button> */}
                 <Button 
                   danger
                   icon={<DeleteOutlined />}
