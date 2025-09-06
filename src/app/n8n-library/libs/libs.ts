@@ -7,7 +7,26 @@ import salesCallAnalyzer from '../jsons/ai-sales-call-analyzer.json';
 import socialMediaGen from '../jsons/ai-social-media-gen.json';
 import autoLinkedinDm from '../jsons/automated-linkedin-dm.json';
 
-
+import autopostAi from '../jsons/Generate-Auto-post AI Videos-Social-Media-with-Veo3-Blotato.json';
+import aiagentDev from '../jsons/AI-Agent-Development Agent.json';
+import aiblogPost from '../jsons/AI-Blog-Post-R&D-Agent.json';
+import analyzeLanding from '../jsons/Analyze-Landing-Page-with-OpenAI-and-Get-Optimization Tips.json';
+import autoRespond from '../jsons/Auto-Respond to Gmail Inquiries using OpenAI, Google Sheet & AI Agent.json';
+import auoRespondDocs from '../jsons/Auto-Respond to Slack Messages as Yourself using GPT and Google Docs RAG.json';
+import automatedLink from '../jsons/Automated-LinkedIn-Content Creation-with-GPT-4-and-DALL-E-for-Scheduled Posts.json';
+import generateAuto from '../jsons/Generate-Auto-post AI Videos-Social-Media-with-Veo3-Blotato.json';
+import gmailEmail from '../jsons/Gmail_and_Email_Automation_Extract-spending-history from-gmail-google sheet.json';
+import googleMaps from '../jsons/Google-Maps-Lead-Generation.json';
+import imageCaps from '../jsons/Image-Captioning-with-Gemini.json';
+import linkLead from '../jsons/Linkedin-Lead-Gen.json';
+import longForm from '../jsons/Long-Form-Faceless-Content-Generator.json';
+import n8node from '../jsons/N8N-Node-Library.json';
+import n8nwork from '../jsons/N8N-Node-Library.json';
+import openais from '../jsons/OpenAI_and_LLMs_AI-Youtube-Trend-Finde- Based On Niche.json';
+import resumeParser from '../jsons/Resume-Parser.json';
+import trackAi from '../jsons/Track-AI-Agent-token-usage-estimate-costs-Google-Sheets.json';
+import turnt from '../jsons/Turn-YouTube-Transcripts into-Newsletter-Drafts-using Dumpling-AI-GPT-4o.json';
+import voiceb from '../jsons/Voice-Based Appointment Booking System with ElevenLabs AI and Cal.com.json';
 
 
 interface WorkflowDetailData {
@@ -681,8 +700,1144 @@ export const workflowDetails: WorkflowDetailData[] = [
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
   videoTutorial: "https://drive.google.com/file/d/1OghLgEEmfxeG5ulbvTo7bHQxhSsRASkZ/view?usp=sharing"
-}
+},
 
 
   // Add similar detailed data for other workflows...
+
+
+
+
+
+  {
+  id: 9,
+  title: "Auto-Post AI Videos for Social Media",
+  description: "Automatically generate and schedule AI-powered videos for social media platforms using Veo3 and Blotato.",
+  tags: ["Video Generation", "Social Media", "AI Content"],
+  downloads: 92,
+  demoUrl: "#",
+  integrations: ["Veo3 API", "Blotato", "Social Media APIs"],
+  jsonTemplate: autopostAi,
+  featured: false,
+  overview: "This workflow automates the creation and scheduling of AI-generated videos for social media platforms. It uses Veo3 for video generation and Blotato for social media management to create engaging content without manual intervention.\n\n1. A scheduled trigger initiates the workflow daily.\n2. AI analyzes trending topics and generates video concepts.\n3. Veo3 creates short-form videos based on the concepts.\n4. Videos are automatically posted to selected social media platforms via Blotato.\n5. Performance metrics are tracked and logged for optimization.\n\nMaintain a consistent social media presence with AI-generated video content.",
+  useCase: "Save time on video content creation, maintain consistent posting schedules, and leverage AI to create engaging social media videos.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Veo3 API credentials",
+      description: "Create an account at Veo3 and obtain your API key for video generation."
+    },
+    {
+      step: 2,
+      title: "Configure Blotato integration",
+      description: "Connect your social media accounts to Blotato and obtain API access tokens."
+    },
+    {
+      step: 3,
+      title: "Import workflow template",
+      description: "Import the JSON template into your n8n instance and configure the trigger settings."
+    },
+    {
+      step: 4,
+      title: "Test video generation",
+      description: "Run a test to ensure videos are being created and posted correctly."
+    }
+  ],
+  keyBenefits: [
+    "Automate video content creation",
+    "Maintain consistent social media presence",
+    "Leverage AI for trending content ideas",
+    "Save time on manual video production"
+  ],
+  requirements: [
+    "Veo3 API Key",
+    "Blotato Account",
+    "Social Media Platform Access"
+  ],
+  workflowNodes: [
+    "Schedule Trigger",
+    "HTTP Request (Veo3 API)",
+    "HTTP Request (Blotato API)",
+    "Error Handling"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+    videoTutorial: "https://drive.google.com/file/d/10ytuZtnjnVpfJvuk49an16YGcHg9eNqh/view?usp=sharing"
+},
+{
+  id: 10,
+  title: "AI Agent Development Platform",
+  description: "Build and deploy custom AI agents with no-code development tools and pre-built templates.",
+  tags: ["AI Development", "No-Code", "Automation"],
+  downloads: 156,
+  demoUrl: "#",
+  integrations: ["OpenAI", "Custom APIs", "Webhook"],
+  jsonTemplate: aiagentDev,
+  featured: true,
+  overview: "This workflow provides a framework for developing and deploying custom AI agents without coding. It includes tools for designing agent behaviors, integrating with various APIs, and testing agent performance.\n\n1. Users define agent objectives and parameters through a form interface.\n2. The system generates agent code based on the specifications.\n3. Agents are deployed to a testing environment for validation.\n4. Successful agents are promoted to production environments.\n5. Performance metrics are collected and analyzed for continuous improvement.\n\nDemocratize AI agent development with a no-code approach.",
+  useCase: "Enable non-technical users to create custom AI agents, streamline agent development processes, and accelerate deployment of AI solutions.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Configure OpenAI integration",
+      description: "Set up your OpenAI API credentials in the workflow settings."
+    },
+    {
+      step: 2,
+      title: "Define agent templates",
+      description: "Create or modify agent templates based on your use cases."
+    },
+    {
+      step: 3,
+      title: "Set up deployment environments",
+      description: "Configure testing and production environments for agent deployment."
+    },
+    {
+      step: 4,
+      title: "Test agent creation",
+      description: "Create a test agent to verify the workflow functions correctly."
+    }
+  ],
+  keyBenefits: [
+    "No-code AI agent development",
+    "Rapid prototyping and deployment",
+    "Customizable agent behaviors",
+    "Scalable agent management"
+  ],
+  requirements: [
+    "OpenAI API Key",
+    "Webhook endpoints",
+    "Testing environment"
+  ],
+  workflowNodes: [
+    "Form Trigger",
+    "OpenAI",
+    "Code Generator",
+    "HTTP Request",
+    "Webhook"
+  ],
+  setupTime: "45-60 minutes",
+  difficulty: "Advanced",
+  videoTutorial: "https://drive.google.com/file/d/1ZVkHpZmVYANEv33TXNWhFcqEf1Fg0iIE/view?usp=sharing"
+},
+{
+  id: 11,
+  title: "AI Blog Post Research & Development",
+  description: "Automatically research topics and generate SEO-optimized blog posts with AI-powered content creation.",
+  tags: ["Content Creation", "SEO", "Blogging"],
+  downloads: 134,
+  demoUrl: "#",
+  integrations: ["OpenAI", "SEO Tools", "CMS APIs"],
+  jsonTemplate: aiblogPost,
+  featured: false,
+  overview: "This workflow automates the research and creation of SEO-optimized blog content. It identifies trending topics, conducts research, generates outlines, creates full articles, and optimizes them for search engines.\n\n1. Topic discovery based on search trends and keywords.\n2. Comprehensive research using various data sources.\n3. Outline generation with SEO considerations.\n4. Full article creation with AI writing assistance.\n5. Optimization for target keywords and readability.\n6. Export to CMS platforms for publishing.\n\nStreamline content creation with AI-powered research and writing.",
+  useCase: "Accelerate content production, improve SEO performance, and maintain consistent blogging schedules with automated research and writing.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Configure SEO tools",
+      description: "Connect your preferred SEO analysis tools to the workflow."
+    },
+    {
+      step: 2,
+      title: "Set up content sources",
+      description: "Configure data sources for topic research and trend analysis."
+    },
+    {
+      step: 3,
+      title: "Integrate with CMS",
+      description: "Connect your content management system for automatic publishing."
+    },
+    {
+      step: 4,
+      title: "Test content generation",
+      description: "Run a test to generate a sample blog post and verify quality."
+    }
+  ],
+  keyBenefits: [
+    "Automated topic research",
+    "SEO-optimized content",
+    "Consistent publishing schedule",
+    "Reduced content creation time"
+  ],
+  requirements: [
+    "OpenAI API Key",
+    "SEO Tool Access",
+    "CMS API Access"
+  ],
+  workflowNodes: [
+    "Schedule Trigger",
+    "HTTP Request (Research)",
+    "OpenAI",
+    "SEO Analysis",
+    "CMS Integration"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1ZVkHpZmVYANEv33TXNWhFcqEf1Fg0iIE/view?usp=sharing"
+},
+{
+  id: 12,
+  title: "Landing Page Analysis with OpenAI",
+  description: "Analyze landing pages and receive AI-powered optimization tips to improve conversion rates.",
+  tags: ["Conversion Optimization", "Web Analytics", "AI Analysis"],
+  downloads: 87,
+  demoUrl: "#",
+  integrations: ["OpenAI", "Google Analytics", "PageSpeed Insights"],
+  jsonTemplate: analyzeLanding,
+  featured: false,
+  overview: "This workflow provides automated analysis of landing pages with AI-powered recommendations for improvement. It evaluates design, content, performance, and conversion elements to suggest optimizations.\n\n1. URL input for landing page analysis.\n2. Comprehensive page scanning and data collection.\n3. AI analysis of design, content, and performance factors.\n4. Generation of specific optimization recommendations.\n5. Priority scoring for suggested changes.\n6. Export of detailed reports with actionable insights.\n\nImprove conversion rates with data-driven landing page optimizations.",
+  useCase: "Quickly identify landing page issues, receive specific improvement recommendations, and prioritize changes based on potential impact.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Configure page analysis tools",
+      description: "Set up integrations with page analysis services like PageSpeed Insights."
+    },
+    {
+      step: 2,
+      title: "Set up OpenAI credentials",
+      description: "Add your OpenAI API key for the analysis and recommendation engine."
+    },
+    {
+      step: 3,
+      title: "Define success metrics",
+      description: "Configure what metrics matter most for your landing page optimization."
+    },
+    {
+      step: 4,
+      title: "Test with sample URLs",
+      description: "Run the workflow with test landing pages to verify analysis quality."
+    }
+  ],
+  keyBenefits: [
+    "Data-driven optimization recommendations",
+    "Comprehensive landing page analysis",
+    "Priority-based improvement suggestions",
+    "Easy integration with existing tools"
+  ],
+  requirements: [
+    "OpenAI API Key",
+    "Web Page Access",
+    "Analysis Tool APIs"
+  ],
+  workflowNodes: [
+    "Webhook Trigger",
+    "HTTP Request (Page Analysis)",
+    "OpenAI",
+    "Data Processing",
+    "Report Generation"
+  ],
+  setupTime: "20-30 minutes",
+  difficulty: "Intermediate",
+    videoTutorial: "https://drive.google.com/file/d/1NzNCCcuc7NAk1sxVWo_knkgVq8zCx-kK/view?usp=sharing"
+},
+{
+  id: 13,
+  title: "Auto-Respond to Gmail Inquiries",
+  description: "Automatically respond to Gmail inquiries using OpenAI, with responses logged in Google Sheets.",
+  tags: ["Email Automation", "Customer Service", "AI Responses"],
+  downloads: 121,
+  demoUrl: "#",
+  integrations: ["Gmail API", "OpenAI", "Google Sheets"],
+  jsonTemplate: autoRespond,
+  featured: false,
+  overview: "This workflow automates responses to common customer inquiries received via Gmail. It uses AI to understand email content, generate appropriate responses, send replies, and log interactions for tracking.\n\n1. Monitoring of incoming Gmail messages matching specific criteria.\n2. AI analysis of email content and intent classification.\n3. Generation of context-appropriate responses.\n4. Sending of automated replies with human-like quality.\n5. Logging of all interactions to Google Sheets for review.\n6. Escalation of complex issues to human agents.\n\nImprove response times and customer satisfaction with AI-powered email automation.",
+  useCase: "Handle high volumes of customer inquiries, maintain consistent response quality, and free up human agents for more complex issues.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Gmail API access",
+      description: "Configure OAuth credentials for Gmail API access and message monitoring."
+    },
+    {
+      step: 2,
+      title: "Configure OpenAI integration",
+      description: "Add your OpenAI API key for email analysis and response generation."
+    },
+    {
+      step: 3,
+      title: "Set up Google Sheets logging",
+      description: "Connect to Google Sheets for interaction logging and reporting."
+    },
+    {
+      step: 4,
+      title: "Define response templates",
+      description: "https://drive.google.com/file/d/1OXMjSd-k84st97SAguec9C4_WtVqlqhY/view?usp=sharing."
+    }
+  ],
+  keyBenefits: [
+    "Faster response times",
+    "Consistent communication quality",
+    "Reduced manual email handling",
+    "Comprehensive interaction tracking"
+  ],
+  requirements: [
+    "Gmail API Access",
+    "OpenAI API Key",
+    "Google Sheets Access"
+  ],
+  workflowNodes: [
+    "Gmail Trigger",
+    "OpenAI",
+    "Gmail Response",
+    "Google Sheets",
+    "Conditional Logic"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate"
+},
+{
+  id: 14,
+  title: "Auto-Respond to Slack Messages",
+  description: "Automatically respond to Slack messages using GPT and Google Docs RAG to maintain your voice.",
+  tags: ["Slack Automation", "AI Responses", "RAG"],
+  downloads: 98,
+  demoUrl: "#",
+  integrations: ["Slack API", "OpenAI", "Google Docs"],
+  jsonTemplate: auoRespondDocs,
+  featured: false,
+  overview: "This workflow provides automated responses to Slack messages using a Retrieval-Augmented Generation (RAG) approach with Google Docs. It maintains your personal communication style while handling common queries.\n\n1. Monitoring of Slack channels or direct messages for specific triggers.\n2. Retrieval of relevant information from Google Docs knowledge base.\n3. Generation of context-aware responses using your communication style.\n4. Posting of responses in appropriate Slack channels or threads.\n5. Learning from feedback to improve future responses.\n\nMaintain consistent communication in Slack while reducing manual response effort.",
+  useCase: "Handle common Slack queries automatically, maintain consistent communication style, and ensure timely responses during absences.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Slack API access",
+      description: "Configure Slack app permissions and obtain API credentials for message monitoring."
+    },
+    {
+      step: 2,
+      title: "Configure Google Docs integration",
+      description: "Connect to Google Docs for knowledge retrieval and response style learning."
+    },
+    {
+      step: 3,
+      title: "Set up OpenAI for response generation",
+      description: "Add your OpenAI API key for intelligent response creation."
+    },
+    {
+      step: 4,
+      title: "Train response style",
+      description: "Provide sample communications to train the AI on your response style."
+    }
+  ],
+  keyBenefits: [
+    "Maintain personal communication style",
+    "Reduce manual Slack response effort",
+    "Ensure timely responses",
+    "Continuous learning from interactions"
+  ],
+  requirements: [
+    "Slack API Access",
+    "OpenAI API Key",
+    "Google Docs Access"
+  ],
+  workflowNodes: [
+    "Slack Trigger",
+    "Google Docs",
+    "OpenAI",
+    "Slack Response",
+    "Feedback Loop"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Advanced",
+  videoTutorial: "https://drive.google.com/file/d/1LAaAlf-xrxdaBcBV97vEcwnxF0ntuxW2/view?usp=sharing"
+},
+{
+  id: 15,
+  title: "Automated LinkedIn Content Creation",
+  description: "Generate and schedule LinkedIn content with GPT-4 and DALL-E for consistent social media presence.",
+  tags: ["LinkedIn", "Content Creation", "Scheduling"],
+  downloads: 145,
+  demoUrl: "#",
+  integrations: ["LinkedIn API", "OpenAI", "DALL-E"],
+  jsonTemplate: automatedLink,
+  featured: true,
+  overview: "This workflow automates the creation and scheduling of LinkedIn content using AI. It generates engaging posts, creates complementary images with DALL-E, and schedules them for optimal visibility.\n\n1. Content idea generation based on trending topics and your industry.\n2. Creation of engaging post copy with GPT-4.\n3. Generation of complementary images with DALL-E.\n4. Optimization of posting schedule for maximum engagement.\n5. Automatic posting to LinkedIn via API.\n6. Performance tracking and content optimization.\n\nMaintain an active LinkedIn presence with minimal effort using AI content creation.",
+  useCase: "Consistently post high-quality content on LinkedIn, save time on content creation, and increase engagement with optimized posting schedules.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up LinkedIn API access",
+      description: "Configure LinkedIn API credentials for content posting and scheduling."
+    },
+    {
+      step: 2,
+      title: "Configure OpenAI and DALL-E",
+      description: "Add your OpenAI API keys for text and image generation."
+    },
+    {
+      step: 3,
+      title: "Define content preferences",
+      description: "Set your industry, tone preferences, and posting frequency."
+    },
+    {
+      step: 4,
+      title: "Test content generation",
+      description: "Run a test to generate sample content and verify quality before posting."
+    }
+  ],
+  keyBenefits: [
+    "Consistent LinkedIn content",
+    "Time-saving automation",
+    "Engaging multimedia posts",
+    "Optimized posting schedule"
+  ],
+  requirements: [
+    "LinkedIn API Access",
+    "OpenAI API Key",
+    "DALL-E Access"
+  ],
+  workflowNodes: [
+    "Schedule Trigger",
+    "OpenAI",
+    "DALL-E",
+    "LinkedIn API",
+    "Performance Analytics"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+
+},
+{
+  id: 16,
+  title: "Gmail Spending History Extractor",
+  description: "Extract spending history from Gmail receipts and organize it automatically in Google Sheets.",
+  tags: ["Finance", "Email Parsing", "Data Organization"],
+  downloads: 113,
+  demoUrl: "#",
+  integrations: ["Gmail API", "Google Sheets", "Regex Parsing"],
+  jsonTemplate: gmailEmail,
+  featured: false,
+  overview: "This workflow automates the extraction of spending information from email receipts in Gmail. It identifies purchase receipts, extracts relevant data, and organizes it into a structured format in Google Sheets.\n\n1. Monitoring of Gmail for incoming receipts from various vendors.\n2. Extraction of purchase details including date, amount, vendor, and items.\n3. Categorization of expenses based on predefined rules.\n4. Organization of data into structured format in Google Sheets.\n5. Generation of spending reports and visualizations.\n6. Alerting for unusual spending patterns or budget overages.\n\nAutomate expense tracking by extracting data from email receipts.",
+  useCase: "Simplify personal or business expense tracking, create organized spending records, and generate financial reports automatically.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Gmail API access",
+      description: "Configure OAuth credentials for Gmail API access and message scanning."
+    },
+    {
+      step: 2,
+      title: "Configure Google Sheets integration",
+      description: "Connect to Google Sheets for data organization and reporting."
+    },
+    {
+      step: 3,
+      title: "Define receipt patterns",
+      description: "Configure patterns for identifying receipts from different vendors."
+    },
+    {
+      step: 4,
+      title: "Set up expense categories",
+      description: "Define spending categories for automatic classification."
+    }
+  ],
+  keyBenefits: [
+    "Automated expense tracking",
+    "Structured financial data",
+    "Time-saving receipt processing",
+    "Comprehensive spending reports"
+  ],
+  requirements: [
+    "Gmail API Access",
+    "Google Sheets Access",
+    "Pattern Recognition"
+  ],
+  workflowNodes: [
+    "Gmail Trigger",
+    "Email Parsing",
+    "Data Extraction",
+    "Google Sheets",
+    "Report Generation"
+  ],
+  setupTime: "20-30 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1AM3rq0ZK6nvxNbrOa7zIYZn93NLJtpTP/view?usp=sharing"
+
+},
+
+
+{
+  id: 17,
+  title: "Google Maps Lead Generation",
+  description: "Automatically extract business leads from Google Maps based on location and industry filters.",
+  tags: ["Lead Generation", "Data Scraping", "Sales"],
+  downloads: 179,
+  demoUrl: "#",
+  integrations: ["Google Maps API", "CRM Integration", "Google Sheets"],
+  jsonTemplate: googleMaps,
+  featured: true,
+  overview: "This workflow automates lead generation from Google Maps by extracting business information based on location, industry, and other filters. It gathers contact details, reviews, and other valuable data for sales prospecting.\n\n1. Define target criteria including location, industry, and business size.\n2. Automated scraping of business information from Google Maps.\n3. Data enrichment with additional details from various sources.\n4. Organization and filtering of leads based on quality scores.\n5. Export to CRM systems or Google Sheets for follow-up.\n6. Regular updates to keep lead information current.\n\nStreamline your sales prospecting with automated lead generation from Google Maps.",
+  useCase: "Identify potential customers in specific locations and industries, build targeted prospect lists, and accelerate sales outreach with qualified leads.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Google Maps API",
+      description: "Obtain and configure Google Maps API credentials for data extraction."
+    },
+    {
+      step: 2,
+      title: "Define target criteria",
+      description: "Configure location, industry, and other filters for lead generation."
+    },
+    {
+      step: 3,
+      title: "Set up data storage",
+      description: "Connect to Google Sheets or your CRM for storing extracted lead data."
+    },
+    {
+      step: 4,
+      title: "Test extraction process",
+      description: "Run a test extraction to verify data quality and formatting."
+    }
+  ],
+  keyBenefits: [
+    "Automated lead discovery",
+    "Targeted prospect lists",
+    "Time-saving data collection",
+    "Easy integration with CRM systems"
+  ],
+  requirements: [
+    "Google Maps API Key",
+    "Data Storage (Google Sheets or CRM)",
+    "Location and Industry Criteria"
+  ],
+  workflowNodes: [
+    "Schedule Trigger",
+    "Google Maps API",
+    "Data Processing",
+    "Quality Filtering",
+    "Data Export"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate"
+
+},
+{
+  id: 18,
+  title: "AI Image Captioning with Gemini",
+  description: "Automatically generate accurate captions for images using Google's Gemini AI model.",
+  tags: ["Image Processing", "AI Vision", "Accessibility"],
+  downloads: 76,
+  demoUrl: "#",
+  integrations: ["Gemini API", "Image Storage", "CMS Integration"],
+  jsonTemplate: imageCaps,
+  featured: false,
+  overview: "This workflow provides automated image captioning using Google's Gemini AI model. It analyzes images, generates descriptive and contextually appropriate captions, and integrates with various platforms for accessibility improvements.\n\n1. Image input from various sources (uploads, URLs, or connected platforms).\n2. Analysis of image content using Gemini AI vision capabilities.\n3. Generation of descriptive, accurate captions based on image content.\n4. Optional customization of caption style and length.\n5. Integration with content management systems for automatic captioning.\n6. Accessibility compliance reporting and improvements.\n\nEnhance accessibility and user experience with AI-powered image captioning.",
+  useCase: "Improve website accessibility, automate social media image descriptions, and enhance content discoverability through accurate image captions.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Gemini API",
+      description: "Obtain and configure Google Gemini API credentials for image analysis."
+    },
+    {
+      step: 2,
+      title: "Configure image sources",
+      description: "Connect to image storage platforms or set up upload mechanisms."
+    },
+    {
+      step: 3,
+      title: "Define caption preferences",
+      description: "Set style, length, and formatting preferences for generated captions."
+    },
+    {
+      step: 4,
+      title: "Test caption generation",
+      description: "Upload test images to verify caption accuracy and quality."
+    }
+  ],
+  keyBenefits: [
+    "Improved accessibility compliance",
+    "Automated image description",
+    "Enhanced content discoverability",
+    "Consistent caption quality"
+  ],
+  requirements: [
+    "Gemini API Access",
+    "Image Sources",
+    "Content Management System"
+  ],
+  workflowNodes: [
+    "Image Input",
+    "Gemini API",
+    "Caption Generation",
+    "Quality Check",
+    "CMS Integration"
+  ],
+  setupTime: "20-30 minutes",
+  difficulty: "Intermediate ",
+  videoTutorial: "https://drive.google.com/file/d/1OXMjSd-k84st97SAguec9C4_WtVqlqhY/view?usp=sharing"
+
+  
+  
+},
+{
+  id: 19,
+  title: "LinkedIn Lead Generation System",
+  description: "Automate LinkedIn lead generation with targeted search and connection requests.",
+  tags: ["LinkedIn", "Lead Generation", "Sales"],
+  downloads: 167,
+  demoUrl: "#",
+  integrations: ["LinkedIn API", "CRM Integration", "Google Sheets"],
+  jsonTemplate: linkLead,
+  featured: true,
+  overview: "This workflow automates lead generation on LinkedIn by identifying potential prospects based on criteria like industry, location, and job title. It facilitates connection requests and tracks engagement for sales follow-up.\n\n1. Definition of target prospect criteria and search parameters.\n2. Automated searching and filtering of LinkedIn profiles.\n3. Personalized connection request messaging based on profile information.\n4. Tracking of connection acceptance and response rates.\n5. Export of engaged prospects to CRM systems for follow-up.\n6. Performance analytics and optimization of outreach strategies.\n\nScale your LinkedIn networking with automated, targeted lead generation.",
+  useCase: "Expand professional network, generate qualified B2B leads, and automate initial outreach on LinkedIn with personalized connection requests.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up LinkedIn API",
+      description: "Configure LinkedIn API access for profile searching and messaging."
+    },
+    {
+      step: 2,
+      title: "Define target criteria",
+      description: "Set industry, location, job title, and other prospect filters."
+    },
+    {
+      step: 3,
+      title: "Create message templates",
+      description: "Develop personalized connection request templates for different segments."
+    },
+    {
+      step: 4,
+      title: "Configure CRM integration",
+      description: "Connect to your CRM system for lead tracking and follow-up."
+    }
+  ],
+  keyBenefits: [
+    "Automated prospect identification",
+    "Personalized outreach at scale",
+    "CRM integration for tracking",
+    "Performance analytics"
+  ],
+  requirements: [
+    "LinkedIn API Access",
+    "CRM System",
+    "Target Prospect Criteria"
+  ],
+  workflowNodes: [
+    "Schedule Trigger",
+    "LinkedIn API",
+    "Profile Filtering",
+    "Message Generation",
+    "CRM Integration"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Advanced",
+  videoTutorial: "https://drive.google.com/file/d/1OXMjSd-k84st97SAguec9C4_WtVqlqhY/view?usp=sharing"
+},
+{
+  id: 20,
+  title: "Long-Form Faceless Content Generator",
+  description: "Create long-form faceless video content automatically with AI narration and visuals.",
+  tags: ["Video Content", "AI Narration", "Content Creation"],
+  downloads: 102,
+  demoUrl: "#",
+  integrations: ["Video APIs", "OpenAI", "Text-to-Speech"],
+  jsonTemplate: longForm,
+  featured: false,
+  overview: "This workflow automates the creation of long-form faceless video content using AI narration and automatically generated visuals. It transforms text content into engaging videos without requiring on-camera presence.\n\n1. Input of text content or automatic generation of script based on topics.\n2. Conversion of text to natural-sounding AI narration.\n3. Automatic selection and sequencing of relevant visuals.\n4. Video composition with transitions, effects, and branding elements.\n5. Export to various platforms and formats.\n6. Performance tracking and content optimization.\n\nCreate engaging video content without appearing on camera using AI automation.",
+  useCase: "Produce educational content, explainer videos, and social media content without filming yourself, maintaining consistent content output with minimal effort.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up text-to-speech service",
+      description: "Configure AI narration services for voice generation."
+    },
+    {
+      step: 2,
+      title: "Connect visual assets",
+      description: "Set up access to stock libraries or upload custom visuals."
+    },
+    {
+      step: 3,
+      title: "Define content style",
+      description: "Configure video length, style, and branding preferences."
+    },
+    {
+      step: 4,
+      title: "Test video generation",
+      description: "Create sample videos to verify quality and formatting."
+    }
+  ],
+  keyBenefits: [
+    "No on-camera presence required",
+    "Consistent content production",
+    "Multilingual content capability",
+    "Time-efficient video creation"
+  ],
+  requirements: [
+    "Text-to-Speech API",
+    "Visual Assets",
+    "Video Editing API"
+  ],
+  workflowNodes: [
+    "Content Input",
+    "Text-to-Speech",
+    "Visual Selection",
+    "Video Composition",
+    "Export Module"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1OXMjSd-k84st97SAguec9C4_WtVqlqhY/view?usp=sharing"
+},
+{
+  id: 21,
+  title: "N8N Node Library",
+  description: "Comprehensive library of custom nodes for extending n8n workflow automation capabilities.",
+  tags: ["Development", "Workflow Automation", "Extensions"],
+  downloads: 254,
+  demoUrl: "#",
+  integrations: ["n8n", "Custom APIs", "Webhooks"],
+  jsonTemplate: n8node,
+  featured: false,
+  overview: "This workflow provides a library of custom nodes and extensions for enhancing n8n's built-in capabilities. It includes pre-built connectors, utilities, and specialized functions for complex automation scenarios.\n\n1. Collection of specialized nodes for various services and APIs.\n2. Utility functions for data manipulation and transformation.\n3. Custom triggers and actions for unique automation needs.\n4. Templates and examples for common use cases.\n5. Regular updates and community contributions.\n6. Documentation and support resources.\n\nExtend n8n's capabilities with a comprehensive library of custom nodes and utilities.",
+  useCase: "Connect to specialized services, implement complex data transformations, and create custom automation logic beyond n8n's built-in capabilities.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Install node library",
+      description: "Add the custom node library to your n8n instance through the marketplace or manual installation."
+    },
+    {
+      step: 2,
+      title: "Configure node credentials",
+      description: "Set up API keys and authentication for the custom nodes you plan to use."
+    },
+    {
+      step: 3,
+      title: "Explore node capabilities",
+      description: "Review documentation and examples for each node's functionality."
+    },
+    {
+      step: 4,
+      title: "Implement in workflows",
+      description: "Start incorporating custom nodes into your automation workflows."
+    }
+    //youtube sales
+  ],
+  keyBenefits: [
+    "Extended integration capabilities",
+    "Specialized automation functions",
+    "Community-supported development",
+    "Regular updates and improvements"
+  ],
+  requirements: [
+    "n8n Instance",
+    "API Credentials for Services",
+    "Technical Understanding"
+  ],
+  workflowNodes: [
+    "Custom Triggers",
+    "Specialized Actions",
+    "Data Transformations", 
+    "API Connectors",
+    "Utility Functions"
+  ],
+  setupTime: "20-30 minutes",
+  difficulty: "Advanced",
+videoTutorial: "https://drive.google.com/file/d/1wAXTCbCbHUho4MXORLWCT04o8dyOA2cY/view?usp=sharing"
+},
+{
+  id: 22,
+  title: "AI YouTube Trend Finder",
+  description: "Discover trending YouTube topics in your niche using AI analysis of current trends.",
+  tags: ["YouTube", "Trend Analysis", "Content Research"],
+  downloads: 118,
+  demoUrl: "#",
+  integrations: ["YouTube API", "OpenAI", "Google Trends"],
+  jsonTemplate: openais,
+  featured: false,
+  overview: "This workflow uses AI to analyze YouTube trends and identify emerging topics within specific niches. It combines data from multiple sources to predict content opportunities and suggest video ideas with high potential.\n\n1. Monitoring of YouTube trends across specified categories and regions.\n2. Analysis of view patterns, engagement metrics, and growth signals.\n3. Cross-referencing with social media and search trends.\n4. AI-powered prediction of emerging topics and content opportunities.\n5. Generation of video ideas and content strategies.\n6. Performance tracking of predictions versus actual trends.\n\nStay ahead of YouTube trends with AI-powered content opportunity identification.",
+  useCase: "Content creators and marketers can identify trending topics early, plan content strategies around emerging trends, and maximize video visibility and engagement.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up YouTube API",
+      description: "Configure YouTube Data API access for trend monitoring."
+    },
+    {
+      step: 2,
+      title: "Configure trend sources",
+      description: "Connect additional trend data sources like Google Trends and social media APIs."
+    },
+    {
+      step: 3,
+      title: "Define niche parameters",
+      description: "Set your content niche, target audience, and competitive landscape."
+    },
+    {
+      step: 4,
+      title: "Test trend analysis",
+      description: "Run analysis on historical data to verify prediction accuracy."
+    }
+  ],
+  keyBenefits: [
+    "Early trend identification",
+    "Data-driven content planning",
+    "Competitive advantage",
+    "Maximized engagement potential"
+  ],
+  requirements: [
+    "YouTube API Access",
+    "Trend Analysis APIs",
+    "Niche Definition"
+  ],
+  workflowNodes: [
+    "Data Collection",
+    "Trend Analysis",
+    "AI Prediction",
+    "Content Suggestions",
+    "Performance Tracking"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1FWchw9vJo7YoRMgUpjt3PfnlFLyLXmEc/view?usp=sharing"
+},
+{
+  id: 23,
+  title: "AI Resume Parser",
+  description: "Automatically parse and extract key information from resumes for recruitment purposes.",
+  tags: ["HR", "Recruitment", "Document Processing"],
+  downloads: 189,
+  demoUrl: "#",
+  integrations: ["OpenAI", "ATS Integration", "Google Sheets"],
+  jsonTemplate: resumeParser,
+  featured: true,
+  overview: "This workflow automates the extraction and analysis of information from resumes using AI. It parses various resume formats, extracts structured data, and integrates with applicant tracking systems for efficient recruitment.\n\n1. Upload or receive resumes in various formats (PDF, Word, etc.).\n2. AI-powered parsing of resume content and structure.\n3. Extraction of key information: contact details, education, experience, skills.\n4. Standardization and normalization of extracted data.\n5. Integration with ATS systems for candidate management.\n6. Reporting and analytics on candidate pipelines.\n\nStreamline recruitment with automated resume parsing and candidate data extraction.",
+  useCase: "HR teams and recruiters can process high volumes of applications efficiently, reduce manual data entry, and improve candidate matching through structured data extraction.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up document processing",
+      description: "Configure resume upload mechanisms and format handling."
+    },
+    {
+      step: 2,
+      title: "Configure AI parsing",
+      description: "Set up OpenAI or other AI services for resume analysis."
+    },
+    {
+      step: 3,
+      title: "Connect to ATS",
+      description: "Integrate with your applicant tracking system for data transfer."
+    },
+    {
+      step: 4,
+      title: "Test with sample resumes",
+      description: "Upload various resume formats to verify parsing accuracy."
+    }
+  ],
+  keyBenefits: [
+    "Reduced manual data entry",
+    "Faster candidate processing",
+    "Improved data accuracy",
+    "ATS integration"
+  ],
+  requirements: [
+    "Document Processing Capability",
+    "AI Service Access",
+    "ATS Integration"
+  ],
+  workflowNodes: [
+    "Document Input",
+    "AI Parsing",
+    "Data Extraction",
+    "Normalization",
+    "ATS Integration"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1T8wYdeKQQCHD_EcUwWXEdodLiABO6-bb/view?usp=sharing"
+},
+{
+  id: 24,
+  title: "AI Agent Token Usage Tracker",
+  description: "Track AI agent token usage and estimate costs with automated Google Sheets reporting.",
+  tags: ["Cost Management", "Analytics", "AI Monitoring"],
+  downloads: 95,
+  demoUrl: "#",
+  integrations: ["OpenAI", "Google Sheets", "Custom APIs"],
+  jsonTemplate: trackAi,
+  featured: false,
+  overview: "This workflow monitors and tracks token usage across AI agents and services, providing cost estimation and usage analytics. It helps organizations manage and optimize their AI spending effectively.\n\n1. Monitoring of API calls to various AI services.\n2. Tracking of token usage and associated costs.\n3. Budget alerts and usage threshold notifications.\n4. Detailed reporting and analytics in Google Sheets.\n5. Cost optimization recommendations.\n6. Historical trend analysis and forecasting.\n\nManage AI costs effectively with comprehensive token usage tracking and reporting.",
+  useCase: "Organizations using multiple AI services can track spending, set usage budgets, receive cost alerts, and optimize their AI resource allocation.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Connect AI services",
+      description: "Configure API connections to the AI services you want to monitor."
+    },
+    {
+      step: 2,
+      title: "Set up Google Sheets",
+      description: "Create and connect the reporting spreadsheet for data storage."
+    },
+    {
+      step: 3,
+      title: "Configure budget alerts",
+      description: "Set usage thresholds and notification preferences."
+    },
+    {
+      step: 4,
+      title: "Test monitoring",
+      description: "Generate test API calls to verify tracking accuracy."
+    }
+  ],
+  keyBenefits: [
+    "Cost visibility and control",
+    "Usage optimization",
+    "Budget management",
+    "Detailed reporting"
+  ],
+  requirements: [
+    "AI Service API Access",
+    "Google Sheets Access",
+    "Usage Monitoring"
+  ],
+  workflowNodes: [
+    "API Monitoring",
+    "Token Counting",
+    "Cost Calculation",
+    "Google Sheets",
+    "Alert System"
+  ],
+  setupTime: "20-30 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1qw4RsT7lZB6Q_RHLmFX1jsEz7zyGVT2Y/view?usp=sharing"
+},
+{
+  id: 25,
+  title: "YouTube to Newsletter Converter",
+  description: "Turn YouTube transcripts into newsletter drafts automatically using Dumpling AI and GPT-4o.",
+  tags: ["Content Repurposing", "Newsletters", "AI Writing"],
+  downloads: 83,
+  demoUrl: "#",
+  integrations: ["YouTube API", "OpenAI", "Email Platforms"],
+  jsonTemplate: turnt,
+  featured: false,
+  overview: "This workflow automates the conversion of YouTube video content into newsletter format. It extracts transcripts, summarizes content, adapts it for written format, and prepares newsletter drafts for various platforms.\n\n1. Extraction of transcripts from YouTube videos.\n2. AI-powered summarization and adaptation for written format.\n3. Addition of contextual elements and calls-to-action.\n4. Formatting for email newsletter standards.\n5. Integration with email marketing platforms.\n6. Performance tracking of converted content.\n\nRepurpose video content into engaging newsletter material with AI conversion.",
+  useCase: "Content creators and marketers can extend the reach of their video content by repurposing it into newsletter format, saving time on content creation while maintaining audience engagement.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up YouTube API",
+      description: "Configure access to YouTube Data API for transcript extraction."
+    },
+    {
+      step: 2,
+      title: "Configure AI services",
+      description: "Set up Dumpling AI and GPT-4 for content adaptation."
+    },
+    {
+      step: 3,
+      title: "Connect email platform",
+      description: "Integrate with your email marketing service for newsletter delivery."
+    },
+    {
+      step: 4,
+      title: "Test conversion process",
+      description: "Convert sample videos to verify output quality and formatting."
+    }
+  ],
+  keyBenefits: [
+    "Content repurposing efficiency",
+    "Cross-platform content distribution",
+    "Time-saving automation",
+    "Consistent messaging"
+  ],
+  requirements: [
+    "YouTube API Access",
+    "AI Service Access",
+    "Email Platform Integration"
+  ],
+  workflowNodes: [
+    "YouTube API",
+    "Transcript Extraction",
+    "Content Adaptation",
+    "Formatting",
+    "Email Integration"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate"
+},
+{
+  id: 26,
+  title: "Voice-Based Appointment Booking System",
+  description: "Voice AI appointment booking system using ElevenLabs AI and Cal.com integration.",
+  tags: ["Voice AI", "Appointment Scheduling", "Customer Service"],
+  downloads: 127,
+  demoUrl: "#",
+  integrations: ["ElevenLabs API", "Cal.com", "Calendar APIs"],
+  jsonTemplate: voiceb,
+  featured: true,
+  overview: "This workflow enables voice-based appointment booking using AI voice technology from ElevenLabs integrated with Cal.com scheduling. It provides a natural, conversational interface for customers to book appointments hands-free.\n\n1. Voice input processing through ElevenLabs speech recognition.\n2. Natural language understanding of appointment requests.\n3. Integration with Cal.com for availability checking and booking.\n4. Voice confirmation using AI-generated speech.\n5. Calendar synchronization and conflict detection.\n6. Follow-up notifications and reminders.\n\nTransform appointment booking with natural voice interactions and AI-powered scheduling.",
+  useCase: "Businesses can offer convenient voice-based booking options, reduce phone staff requirements, and provide 24/7 appointment scheduling through AI voice assistants.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up ElevenLabs API",
+      description: "Configure ElevenLabs voice AI services for speech recognition and generation."
+    },
+    {
+      step: 2,
+      title: "Integrate with Cal.com",
+      description: "Connect to Cal.com scheduling system for availability and booking management."
+    },
+    {
+      step: 3,
+      title: "Configure calendar integration",
+      description: "Set up synchronization with calendar systems for conflict detection."
+    },
+    {
+      step: 4,
+      title: "Test voice booking",
+      description: "Conduct test bookings to verify speech recognition and scheduling accuracy."
+    }
+  ],
+  keyBenefits: [
+    "Hands-free appointment booking",
+    "24/7 availability",
+    "Natural user experience",
+    "Reduced staffing needs"
+  ],
+  requirements: [
+    "ElevenLabs API Access",
+    "Cal.com Integration",
+    "Calendar System Access"
+  ],
+  workflowNodes: [
+    "Voice Input",
+    "Speech Recognition",
+    "Scheduling Logic",
+    "Calendar Integration",
+    "Voice Response"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Advanced",
+  videoTutorial: "https://drive.google.com/file/d/10ytuZtnjnVpfJvuk49an16YGcHg9eNqh/view?usp=sharing"
+},
+{
+  id: 27,
+  title: "Generate Auto-Post AI Videos",
+  description: "Automatically create and schedule AI-generated videos for social media using Veo3 and Blotato.",
+  tags: ["Video Generation", "Social Media", "AI Content"],
+  downloads: 105,
+  demoUrl: "#",
+  integrations: ["Veo3 API", "Blotato", "Social Media APIs"],
+  jsonTemplate: generateAuto,
+  featured: false,
+  overview: "This workflow automates the entire process of creating and posting AI-generated videos to social media platforms. It combines Veo3's video generation capabilities with Blotato's social media management for seamless content distribution.\n\n1. Content idea generation based on trends and audience preferences.\n2. Automated video creation using Veo3's AI capabilities.\n3. Optimization for different social media platforms and formats.\n4. Scheduling and posting through Blotato's social media management.\n5. Performance tracking and content optimization based on engagement metrics.\n6. Cross-platform distribution and synchronization.\n\nMaintain an active social media presence with automatically generated and posted video content.",
+  useCase: "Social media managers and content creators can maintain consistent video posting schedules, experiment with content formats, and optimize engagement through automated video creation and distribution.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Set up Veo3 API",
+      description: "Configure Veo3 video generation services with your API credentials."
+    },
+    {
+      step: 2,
+      title: "Connect Blotato",
+      description: "Integrate Blotato social media management with your social accounts."
+    },
+    {
+      step: 3,
+      title: "Define content strategy",
+      description: "Set posting schedule, content themes, and platform preferences."
+    },
+    {
+      step: 4,
+      title: "Test automated posting",
+      description: "Run a test cycle to verify video generation and posting functionality."
+    }
+  ],
+  keyBenefits: [
+    "Consistent video content production",
+    "Multi-platform distribution",
+    "Time-efficient content creation",
+    "Performance-based optimization"
+  ],
+  requirements: [
+    "Veo3 API Access",
+    "Blotato Account",
+    "Social Media Accounts"
+  ],
+  workflowNodes: [
+    "Content Ideation",
+    "Video Generation",
+    "Platform Optimization",
+    "Scheduling",
+    "Performance Analytics"
+  ],
+  setupTime: "30-45 minutes",
+  difficulty: "Intermediate",
+  videoTutorial: "https://drive.google.com/file/d/1T8wYdeKQQCHD_EcUwWXEdodLiABO6-bb/view?usp=sharing"
+},
+{
+  id: 28,
+  title: "N8N Workflow Node Library",
+  description: "Comprehensive collection of pre-built nodes and templates to accelerate n8n workflow development and automation.",
+  tags: ["Development", "Workflow Templates", "Automation"],
+  downloads: 287,
+  demoUrl: "#",
+  integrations: ["n8n", "Custom APIs", "Webhooks", "Various Services"],
+  jsonTemplate: n8nwork,
+  featured: true,
+  overview: "This workflow provides an extensive library of pre-configured nodes and workflow templates designed to accelerate n8n automation development. It includes specialized connectors, utility functions, and complete workflow templates for common business processes.\n\n1. Collection of specialized nodes for various services beyond standard n8n offerings.\n2. Pre-built workflow templates for common automation scenarios across different industries.\n3. Utility nodes for complex data manipulation, transformation, and validation.\n4. Custom triggers and actions for unique business requirements.\n5. Regular updates with new integrations and functionality.\n6. Community-contributed nodes and templates with peer review system.\n\nAccelerate your n8n automation development with a comprehensive library of pre-built nodes and templates.",
+  useCase: "Developers and automation specialists can quickly implement complex workflows, connect to specialized services, and leverage community-vetted solutions without building from scratch.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Install node library package",
+      description: "Add the N8N Node Library to your n8n instance through the integrated marketplace or manual installation process."
+    },
+    {
+      step: 2,
+      title: "Configure authentication",
+      description: "Set up API credentials and authentication methods for the various services you plan to use from the library."
+    },
+    {
+      step: 3,
+      title: "Explore available nodes",
+      description: "Browse the library documentation to understand available nodes, their parameters, and use cases."
+    },
+    {
+      step: 4,
+      title: "Import workflow templates",
+      description: "Start with pre-built templates for common scenarios and customize them for your specific needs."
+    },
+    {
+      step: 5,
+      title: "Test functionality",
+      description: "Thoroughly test each node and workflow in a development environment before deploying to production."
+    }
+  ],
+  keyBenefits: [
+    "Dramatically reduced development time",
+    "Access to specialized integrations",
+    "Community-vetted solutions",
+    "Regular updates and new features",
+    "Comprehensive documentation and examples"
+  ],
+  requirements: [
+    "n8n instance (cloud or self-hosted)",
+    "API credentials for target services",
+    "Basic understanding of n8n workflow structure"
+  ],
+  workflowNodes: [
+    "Custom API Connectors",
+    "Data Transformation Utilities",
+    "Specialized Triggers",
+    "Template Workflows",
+    "Error Handling Modules",
+    "Logging and Monitoring"
+  ],
+  setupTime: "15-30 minutes",
+  difficulty: "Beginner to Advanced",
+  videoTutorial: "https://drive.google.com/file/d/1qw4RsT7lZB6Q_RHLmFX1jsEz7zyGVT2Y/view?usp=sharing"
+}
 ];

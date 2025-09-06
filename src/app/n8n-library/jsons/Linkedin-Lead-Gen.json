@@ -1,0 +1,5018 @@
+{
+  "name": "Linkedin Lead Gen",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "id": "c97bf18f-2b3a-4820-b2a5-4a6fca1b9063",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        -2448,
+        1280
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "5TL40KY3QpSYJLsO",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"salesNavigatorParams\": {\n      \"current_titles\": \"title1\",\n      \"current_companies\": \"company1\",\n      \"location\": \"location1\",\n      \"industry\": \"industry1\",\n      \"company_sizes\": [\n        \"Self-employed\",\n        \"1-10\",\n        \"11-50\",\n        \"51-200\",\n        \"201-500\",\n        \"501-1,000\",\n        \"1,001-5,000\",\n        \"5,001-10,000\",\n        \"10,001+\"\n      ]\n    },\n    \"count\": 10\n  },\n  {\n    \"salesNavigatorParams\": {\n      \"current_titles\": \"title2\",\n      \"current_companies\": \"company2\",\n      \"location\": \"location2\",\n      \"industry\": \"industry2\",\n      \"company_sizes\": [\n        \"Self-employed\",\n        \"1-10\",\n        \"11-50\",\n        \"51-200\",\n        \"201-500\",\n        \"501-1,000\",\n        \"1,001-5,000\",\n        \"5,001-10,000\",\n        \"10,001+\"\n      ]\n    },\n    \"count\": 10\n  }\n]"
+      },
+      "id": "584e8ac2-170d-4715-a62d-d3764be58a58",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        -2256,
+        1280
+      ],
+      "notesInFlow": true,
+      "typeVersion": 1.2,
+      "notes": "For changing limits use \"count\""
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Read companies').item.json.URN }}",
+            "Website": "={{ $json.website }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company post summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company post summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Lead Score",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contact Request",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Contact Request",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connected",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Connected",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message Sent",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Message Sent",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "451582ad-368a-4807-9dcd-4a4e200819f5",
+      "name": "Google Sheets2",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -528,
+        2096
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "15fa83f4-9b41-4146-ad9b-01ccfd36ca7d",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        -1024,
+        1696
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "content": "Find leads in LinkedIn",
+        "width": 1320,
+        "color": 4
+      },
+      "id": "4b7913ba-e7de-4c17-adae-874942a80924",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2528,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Get company website ",
+        "width": 980,
+        "color": 4
+      },
+      "id": "f31f9587-f53c-4de7-be33-bf6f5f826fa3",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1152,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Research company website",
+        "width": 1520,
+        "color": 4
+      },
+      "id": "90d1e854-49a3-49e7-bc35-f9dab9fef8fb",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        16
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Score data",
+        "width": 980,
+        "color": 4
+      },
+      "id": "77aebe7d-ac8c-4eac-8534-68b3d5033350",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1440,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Communicate with leads",
+        "width": 1860,
+        "color": 4
+      },
+      "id": "761a2796-589a-4f36-b902-466e21349dfa",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2464,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Research lead LN post",
+        "width": 1520,
+        "color": 4
+      },
+      "id": "76bbf11d-aab7-4807-9be6-a8777ca29b6a",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        208
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Research company LN post",
+        "width": 1520,
+        "color": 4
+      },
+      "id": "0b21bd49-67e8-467f-92f2-04bf185ec147",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Research company News",
+        "width": 1520,
+        "color": 4
+      },
+      "id": "72e70c08-04e1-4626-a08a-535e7f9feb42",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        384
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "248d27b0-bf87-42ea-9fe9-d075d49ac36d",
+      "name": "HDW LinkedIn SN",
+      "type": "n8n-nodes-hdw.hdwLinkedin",
+      "position": [
+        -1936,
+        1088
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "alwaysOutputData": false,
+      "credentials": {},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "856a83a5-5805-41d7-b512-ae7fb72cae82",
+      "name": "HDW Get Company Website",
+      "type": "n8n-nodes-hdw.hdwLinkedin",
+      "position": [
+        -672,
+        1968
+      ],
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "waitBetweenTries": 5000,
+      "credentials": {},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "82065feb-7ca8-4b14-860d-e40fe86690ae",
+      "name": "Google Sheets3",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -112,
+        896
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ba35e280-c08d-4c7f-99c4-a96f1a935142",
+      "name": "Loop Over Items1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        416,
+        880
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "b2f625ae-5701-4801-993d-395c8b4db279",
+      "name": "Google Sheets4",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -96,
+        1440
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {},
+      "id": "755f9d25-613d-4f3e-a195-3b6fe7cb6eda",
+      "name": "HDW Get User Posts",
+      "type": "n8n-nodes-hdw.hdwLinkedin",
+      "position": [
+        560,
+        1488
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "text"
+            },
+            {
+              "fieldToAggregate": "repost.text",
+              "renameField": true,
+              "outputFieldName": "repost"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b0163105-25e3-48dc-a004-2505eca94e17",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        736,
+        1488
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "2073714c-4113-4d52-bce6-17cab604f76c",
+      "name": "Loop Over Items2",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        400,
+        1328
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Post summary is empty').item.json.URN }}",
+            "Posts summary": "={{ $json.message.content }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4fe8ac53-bcfc-4786-bc45-bbacd9a04c47",
+      "name": "Google Sheets5",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1232,
+        1488
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "1e991343-78e4-46e8-b1a3-f4ceabb4c468",
+      "name": "Google Sheets6",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -96,
+        1904
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "description"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "177c48a5-bd5d-4fff-baf1-0518ec8e6029",
+      "name": "Aggregate1",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        736,
+        1904
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "71e6af13-75f6-44f0-a903-fa0e6f349f4b",
+      "name": "Loop Over Items3",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        400,
+        1744
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Company news is empty').item.json.URN }}",
+            "Company News": "={{ $json.message.content }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "766717e0-d961-4fc9-b5b5-20731865c2a7",
+      "name": "Google Sheets7",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1264,
+        1904
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "9ed9326b-a37c-4626-b9d6-fd5e47ddca08",
+      "name": "Google Sheets8",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -96,
+        2400
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0e33447-8659-4574-8bd5-3f895564c84b",
+      "name": "Aggregate2",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        736,
+        2400
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "64333154-1830-4440-bd71-dbb449a1dce7",
+      "name": "Loop Over Items4",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        400,
+        2256
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Company post is empty').item.json.URN }}",
+            "Company post summary": "={{ $('Summarise company posts').item.json.message.content }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company post summary",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Company post summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "66f1eae0-6957-46e1-8157-db67084701d7",
+      "name": "Google Sheets9",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1264,
+        2400
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "3e2a3954-af5b-47c0-bff1-95f2d8cbc01f",
+      "name": "HDW Get Company News",
+      "type": "n8n-nodes-hdw.hdwLinkedin",
+      "position": [
+        560,
+        1904
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {},
+      "id": "95c500d0-b98a-47cf-a954-441685421d9c",
+      "name": "HDW Get Company Posts",
+      "type": "n8n-nodes-hdw.hdwLinkedin",
+      "position": [
+        560,
+        2400
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "credentials": {},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "id": "8c3c8956-3b2a-4be6-9dda-2e5cbb109afb",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        -2112,
+        1088
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "id": "cc02fa90-0a57-4f48-8fb8-f7ffd4660e50",
+      "name": "OpenAI Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        624,
+        1136
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Website is not empty').item.json.URN }}",
+            "Product Summary": "={{ $json.output }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2b0b1645-b77c-4e1a-9435-ef9706a044fc",
+      "name": "Google Sheets10",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1216,
+        880
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "8a0feb99-e8f3-4294-9b03-fda8fbb66eef",
+      "name": "HDW Site-map",
+      "type": "n8n-nodes-hdw.hdwWebParserTool",
+      "position": [
+        944,
+        1136
+      ],
+      "typeVersion": 1,
+      "credentials": {}
+    },
+    {
+      "parameters": {},
+      "id": "8db7743f-4b86-4907-8aab-50202616c062",
+      "name": "HDW Parser",
+      "type": "n8n-nodes-hdw.hdwWebParserTool",
+      "position": [
+        1104,
+        1136
+      ],
+      "typeVersion": 1,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Make summary of this text:\n {{ $json.text }}\n{{ $json.repost }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "00abcde8-db2c-420c-8837-1cc10c04714a",
+      "name": "Summarise user posts",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        896,
+        1488
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Make summary of this news:\n{{ $json.description }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f40c6a6e-48e1-4825-b362-389c3e703056",
+      "name": "Summarise company news",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        912,
+        1904
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Make summary of this company posts:\n{{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "14b818a1-21eb-47d8-a836-e656ee202920",
+      "name": "Summarise company posts",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        912,
+        2400
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Research company website {{ $json.Website }} and get summary about business and products\n1. Get site-map with the tool\n2. Define what links may contain data about company business and products\n3. Scrape data for every links\n4. Summarize info from website ",
+        "options": {}
+      },
+      "id": "eea1721f-20d1-4046-90b0-e52640a18265",
+      "name": "Summarise company website",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        704,
+        880
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "fba565b8-78a1-49e6-84b1-93c41c66a020",
+      "name": "Google Sheets11",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1616,
+        1760
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "4f374882-9e47-4d10-aff5-f5f6d0d58796",
+      "name": "Loop Over Items6",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1952,
+        1648
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Google Sheets11').item.json.URN }}",
+            "Lead Score": "={{ $json.message.content }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company post summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company post summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Lead Score",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "23ff7ce6-d5da-4b83-9338-5a105b7c99db",
+      "name": "Google Sheets12",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        2464,
+        1760
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "885fc953-6ac6-41bd-9674-f8426d8f09ae",
+      "name": "Google Sheets13",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        2960,
+        1136
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "Lead Score",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ff09cc5-812f-46bb-8518-3cc6c299393d",
+      "name": "Sort",
+      "type": "n8n-nodes-base.sort",
+      "position": [
+        3184,
+        1136
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "or",
+          "conditions": [
+            {
+              "id": "140d284f-34c0-4bf4-bb88-b0a9bdbc80f7",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Contact Request\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "1bf27a7f-fe16-4be7-8a99-cc0f37071427",
+      "name": "If2",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        3376,
+        1136
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "maxItems": 50
+      },
+      "id": "2c16f9d0-d618-457a-a47b-dc56677e1f44",
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "position": [
+        3600,
+        1040
+      ],
+      "notesInFlow": true,
+      "typeVersion": 1,
+      "notes": "max 200 per week"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e03ac427-5785-479f-8b1c-967676c9688b",
+      "name": "Loop Over Items7",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        3744,
+        1264
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Google Sheets13').item.json.URN }}",
+            "Contact Request": "TRUE"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company post summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company post summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Lead Score",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contact Request",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Contact Request",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connected",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Connected",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e2d14314-47c0-488c-a2c7-5f35318de782",
+      "name": "Google Sheets14",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        4272,
+        1280
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $json.urn.type }}:{{ $json.urn.value }}",
+            "Connected": "TRUE"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company post summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company post summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Lead Score",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contact Request",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Contact Request",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connected",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Connected",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message Sent",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Message Sent",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c997e593-a153-491e-b4f4-d2132dd8fa84",
+      "name": "Google Sheets15",
+      "type": "n8n-nodes-base.googleSheets",
+      "maxTries": 5,
+      "position": [
+        3440,
+        1568
+      ],
+      "notesInFlow": false,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "alwaysOutputData": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URN": "={{ $('Google Sheets16').item.json.URN }}",
+            "Message Sent": "TRUE",
+            "Messages History": "={{ $json.text }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posts summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Posts summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Product Summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company News",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company News",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company post summary",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Company post summary",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Lead Score",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contact Request",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Contact Request",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connected",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "Connected",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message Sent",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Message Sent",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Messages History",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Messages History",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b97ec146-3bf4-4de3-90d8-56751015140b",
+      "name": "Google Sheets17",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        4592,
+        2256
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bc92a912-e856-4995-adea-9fa9fed5a096",
+      "name": "Loop Over Items8",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        3776,
+        2000
+      ],
+      "retryOnFail": true,
+      "typeVersion": 3
+    },
+    {
+      "parameters": {},
+      "id": "a7a4a19b-676d-4da8-afcd-cd264ecaaa23",
+      "name": "HDW LinkedIn Send Message",
+      "type": "n8n-nodes-hdw.hdwLinkedinManagement",
+      "position": [
+        4336,
+        2144
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "1b4a8aaa-f25e-4741-858e-5965eded9012",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        2512,
+        1136
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "1350cfb3-f438-40ee-9571-aabbeb1fe098",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        2800,
+        1584
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "content": "# LinkedIn Lead Automation Flow\n\nThis flow is designed to automate working with leads on LinkedIn from the process of finding leads according to ICP (Ideal Customer Profile) to sending messages in chat.\n\n## Stages:\n1. Building search filters based on your ICP\n2. Searching LinkedIn using these filters\n3. Saving the list of leads in Google Spreadsheet\n4. Data enrichment\n  • Company website\n  • Intent search in lead's posts\n  • Intent search in company posts\n  • Analysis of company news\n  • Analysis of company website\n5. Scoring information about the lead to prioritize interaction\n6. Adding the lead to LinkedIn connections\n7. Checking for reciprocal connection\n8. Writing messages\n\n## Requirements:\n1. Access to LLM (the example uses OpenAI API)\n2. Access to Google Drive\n3. API key for horizondatawave.ai\n4. LinkedIn account",
+        "height": 640,
+        "width": 620,
+        "color": 7
+      },
+      "id": "2e839f6c-9776-42f2-aae1-c206ccfda7c4",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3408,
+        816
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "This node - an AI agent transforms your ICP description into filters for querying data in LinkedIn",
+        "height": 80,
+        "width": 300,
+        "color": 7
+      },
+      "id": "d2d6ffe6-292a-46ef-ba81-9c5083beec07",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2208,
+        944
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Data is requested through the HDW API for each filter and saved in Google Sheets.",
+        "height": 80,
+        "width": 320,
+        "color": 7
+      },
+      "id": "f963c5fb-8cb5-4622-9779-f3c295b2582c",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1488,
+        1360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "At this stage, the presence of the company name in the lead's profile is verified, and a website search is performed for each company",
+        "height": 120,
+        "width": 320,
+        "color": 7
+      },
+      "id": "1f9bcc96-d2fd-4762-9cf5-8a5f32136906",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        880
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "You can modify the prompt here so that at this stage the search corresponds to your product. \nFor example, you can explicitly mark mentions of certain topics, locations, or other entities.",
+        "height": 100,
+        "width": 360,
+        "color": 5
+      },
+      "id": "e028ff64-95ae-4f17-8630-6347a89daa39",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        656,
+        768
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "You can modify the prompt here so that at this stage the search corresponds to your product. \nFor example, you can explicitly mark mentions of certain topics, locations, or other entities.",
+        "height": 100,
+        "width": 360,
+        "color": 5
+      },
+      "id": "d36f974b-c906-4679-8b59-fb8bc8bf13d5",
+      "name": "Sticky Note13",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        624,
+        1344
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "You can modify the prompt here so that at this stage the search corresponds to your product. \nFor example, you can explicitly mark mentions of certain topics, locations, or other entities.",
+        "height": 100,
+        "width": 360,
+        "color": 5
+      },
+      "id": "c26bdb62-6d85-4511-83ec-63bb03d3cdc4",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        640,
+        1776
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "You can modify the prompt here so that at this stage the search corresponds to your product. \nFor example, you can explicitly mark mentions of certain topics, locations, or other entities.",
+        "height": 100,
+        "width": 360,
+        "color": 5
+      },
+      "id": "3c25684c-1d50-4a59-82b2-d91215099558",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        640,
+        2256
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "You can also change the scoring criteria to assess the probability of need based on your product or business by adjusting the prompt in this node",
+        "height": 100,
+        "width": 360,
+        "color": 5
+      },
+      "id": "a5997aa9-26df-424a-8082-da9f1b647b1f",
+      "name": "Sticky Note16",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2080,
+        1648
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Here you can change the number of connection requests. It is not recommended to add more than 200 connections per week.",
+        "height": 100,
+        "width": 360,
+        "color": 5
+      },
+      "id": "981c5658-42b9-4163-989e-d5784c3cab23",
+      "name": "Sticky Note17",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3472,
+        928
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "In this node, you need to modify the message that will be automatically sent to the user after the connection is confirmed.",
+        "height": 100,
+        "width": 360,
+        "color": 3
+      },
+      "id": "675b22ca-ba21-4b6c-89e7-bd6ad1e53d0e",
+      "name": "Sticky Note18",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4240,
+        2000
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Change the schedule for when connection requests will be sent.",
+        "height": 80,
+        "width": 180,
+        "color": 3
+      },
+      "id": "5b7e0397-2230-42d0-9885-f2f583c2270f",
+      "name": "Sticky Note19",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2496,
+        1056
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "Change the schedule for when connection request responses will be checked and messages will be sent.",
+        "height": 100,
+        "width": 200,
+        "color": 3
+      },
+      "id": "06394ae7-a537-4651-b667-327e68c512ac",
+      "name": "Sticky Note20",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2912,
+        1856
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "67a26492-62e1-4f8e-a82f-42f5043d0916",
+      "name": "HDW Get LinkedIn Profile Connections",
+      "type": "n8n-nodes-hdw.hdwLinkedinManagement",
+      "maxTries": 5,
+      "position": [
+        3136,
+        1568
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "waitBetweenTries": 5000,
+      "credentials": {}
+    },
+    {
+      "parameters": {},
+      "id": "2749ac62-99e9-43e3-a1d1-a5f83701d709",
+      "name": "HDW Send LinkedIn Connection",
+      "type": "n8n-nodes-hdw.hdwLinkedinManagement",
+      "maxTries": 5,
+      "position": [
+        4016,
+        1216
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1,
+      "waitBetweenTries": 5000,
+      "credentials": {},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=ICP  description - {{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Your task is to analyze an ICP (Ideal Customer Profile) description and convert it into LinkedIn Sales Navigator search parameters that are compatible with the HDW LinkedIn node in n8n.\n\n⸻\n\nHard rules (do not break them)\n\t1.\tNo guesswork.\n\t•\tNever invent new values for location, industry, current_companies, or any other field. Use only what is explicitly present in the ICP.\n\t2.\tReal companies only.\n\t•\tThe current_companies field may contain only company names that are directly mentioned in the ICP.\n\t3.\tNo fabricated locations.\n\t•\tIn location, specify only countries or cities that appear in the ICP.\n\t4.\t“Smart” filter combinations.\n\t•\tIf the ICP includes several locations and/or industries, generate multiple objects (filters)—one for each unique combination of actual values (do not create combinations that do not exist in the ICP).\n\t•\tReturn a maximum of 10 filters in one response.\n\t5.\tOmit undefined data.\n\t•\tIf a field is missing in the ICP, omit that key entirely (do not output null, empty strings, or empty arrays).\n\n\t7.\tIndustry list only.\n\t•\tFor industry, you may use only the names from the approved list (see below). Try with different industries in different filters\n\t8.\tJSON validation.\n\t•\tThe final answer must be a valid JSON array in the exact structure shown under “Response Format.”\n\t9.\tUp to 10 filters.\n\t•\tYou may return no more than ten filter objects per ICP request.\n\t10.\tUnclear roles → multiple title variants.\n\t•\tIf job roles/titles are not specified precisely in the ICP (e.g., only a function or department is mentioned), create several filters that cover plausible title variants.\n\t•\tEach variant goes into its own filter object (or grouped logically if other parameters are identical), still respecting the overall limit of 10 filters.\n\t•\tUse common, realistic synonyms or seniority variations relevant to the ICP \n\t•\tDo not invent wholly unrelated titles; stay within the role scope implied by the ICP.\n\nResponse Format\n\nReturn only a JSON array with no comments, explanations, or extra text. Each object represents one filter.\n\n[\n  {\n    \"salesNavigatorParams\": {\n      \"current_titles\": \"title1\",\n      \"current_companies\": \"company1\",\n      \"location\": \"location1\",\n      \"industry\": \"industry1\",\n      \"company_sizes\": [\n        \"Self-employed\",\n        \"1-10\",\n        \"11-50\",\n        \"51-200\",\n        \"201-500\",\n        \"501-1,000\",\n        \"1,001-5,000\",\n        \"5,001-10,000\",\n        \"10,001+\"\n      ]\n    },\n    \"count\": 10\n  },\n  {\n    \"salesNavigatorParams\": {\n      \"current_titles\": \"title2\",\n      \"current_companies\": \"company2\",\n      \"location\": \"location2\",\n      \"industry\": \"industry2\",\n      \"company_sizes\": [\n        \"Self-employed\",\n        \"1-10\",\n        \"11-50\",\n        \"51-200\",\n        \"201-500\",\n        \"501-1,000\",\n        \"1,001-5,000\",\n        \"5,001-10,000\",\n        \"10,001+\"\n      ]\n    },\n    \"count\": 10\n  }\nother filters\n]\n\nImportant: If a field does not apply, omit it entirely. For example, if company size is not specified, remove the whole company_sizes block.\n\n\n• (Allowed values for industry) If you need industry name use one from this list closer to the user request:\nChiropractors \nDefense and Space Manufacturing\nOptometrists\nComputer Hardware Manufacturing\nSoftware Development\nComputer Networking Products\nTransportation Equipment Manufacturing\nTechnology, Information and Internet\nPhysical, Occupational and Speech Therapists\nSemiconductor Manufacturing\nTelecommunications\nLaw Practice\nHousing Programs\nLegal Services\nBusiness Consulting and Services\nBiotechnology Research\nFamily Planning Centers\nMedical Practices\nTransportation Programs\nHospitals and Health Care\nUtilities Administration\nPharmaceutical Manufacturing\nOutpatient Care Centers\nVeterinary Services\nMedical Equipment Manufacturing\nSpace Research and Technology\nMotor Vehicle Parts Manufacturing\nPersonal Care Product Manufacturing\nRetail Apparel and Fashion\nSporting Goods Manufacturing\nTobacco Manufacturing\nMedical and Diagnostic Laboratories\nRetail Groceries\nFood and Beverage Manufacturing\nOil Extraction\nComputers and Electronics Manufacturing\nNatural Gas Extraction\nManufacturing\nFurniture and Home Furnishings Manufacturing\nHome Health Care Services\nRetail\nEmbedded Software Products\nEntertainment Providers\nMobile Computing Software Products\nGambling Facilities and Casinos\nAmbulance Services\nDesktop Computing Software Products\nIT System Custom Software Development\nTravel Arrangements\nIT System Operations and Maintenance\nHospitality\nIT System Installation and Disposal\nRestaurants\nIT System Training and Support\nHospitals\nSpectator Sports\nIT System Data Services\nFood and Beverage Services\nIT System Testing and Evaluation\nMovies, Videos, and Sound\nBroadcast Media Production and Distribution\nMuseums, Historical Sites, and Zoos\nArtists and Writers\nPerforming Arts\nRecreational Facilities\nBanking\nInsurance\nNursing Homes and Residential Care Facilities\nFinancial Services\nReal Estate\nInvestment Banking\nInvestment Management\nAccounting\nConstruction\nWholesale Building Materials\nArchitecture and Planning\nCivil Engineering\nInternet News\nAviation and Aerospace Component Manufacturing\nBlogs\nMotor Vehicle Manufacturing\nInterior Design\nChemical Manufacturing\nSocial Networking Platforms\nMachinery Manufacturing\nHousehold and Institutional Furniture Manufacturing\nBusiness Intelligence Platforms\nMining\nBusiness Content\nOil and Gas\nData Security Software Products\nShipbuilding\nUtilities\nMobile Gaming Apps\nTextile Manufacturing\nInternet Publishing\nPaper and Forest Product Manufacturing\nMedia and Telecommunications\nRailroad Equipment Manufacturing\nBlockchain Services\nFarming\nServices for the Elderly and Disabled\nRanching\nDairy Product Manufacturing\nOffice Furniture and Fixtures Manufacturing\nFisheries\nCommunity Services\nPrimary and Secondary Education\nHigher Education\nEducation Administration Programs\nResearch Services\nMattress and Blinds Manufacturing\nArmed Forces\nLegislative Offices\nAdministration of Justice\nInternational Affairs\nEmergency and Relief Services\nGovernment Administration\nExecutive Offices\nLaw Enforcement\nVocational Rehabilitation Services\nPublic Safety\nPublic Policy Offices\nAdvertising Services\nChild Day Care Services\nNewspaper Publishing\nPerforming Arts and Spectator Sports\nBook and Periodical Publishing\nPrinting Services\nInformation Services\nLibraries\nTheater Companies\nEnvironmental Services\nFreight and Package Transportation\nDance Companies\nIndividual and Family Services\nReligious Institutions\nCivic and Social Organizations\nConsumer Services\nCircuses and Magic Shows\nTruck Transportation\nWarehousing and Storage\nSports Teams and Clubs\nAirlines and Aviation\nMaritime Transportation\nRacetracks\nIT Services and IT Consulting\nMarket Research\nPublic Relations and Communications Services\nDesign Services\nNon-profit Organizations\nFundraising\nStrategic Management Services\nWriting and Editing\nStaffing and Recruiting\nWholesale Motor Vehicles and Parts\nProfessional Training and Coaching\nVenture Capital and Private Equity Principals\nPolitical Organizations\nTranslation and Localization\nComputer Games\nEvents Services\nRetail Art Supplies\nMuseums\nAppliances, Electrical, and Electronics Manufacturing\nOnline Audio and Video Media\nWholesale Furniture and Home Furnishings\nHistorical Sites\nNanotechnology Research\nRetail Art Dealers\nMusicians\nZoos and Botanical Gardens\nTransportation, Logistics, Supply Chain and Storage\nPlastics Manufacturing\nComputer and Network Security\nWireless Services\nAmusement Parks and Arcades\nAlternative Dispute Resolution\nSecurity and Investigations\nFacilities Services\nOutsourcing and Offshoring Consulting\nWellness and Fitness Services\nAlternative Medicine\nMedia Production\nAnimation and Post-production\nLeasing Non-residential Real Estate\nCapital Markets\nWholesale Photography Equipment and Supplies\nThink Tanks\nPhilanthropic Fundraising Services\nGolf Courses and Country Clubs\nE-Learning Providers\nWholesale\nWholesale Computer Equipment\nSkiing Facilities\nWholesale Import and Export\nIndustrial Machinery Manufacturing\nPhotography\nHuman Resources Services\nRetail Office Equipment\nMental Health Care\nGraphic Design\nInternational Trade and Development\nBeverage Manufacturing\nAccommodation and Food Services\nWholesale Metals and Minerals\nRetail Luxury Goods and Jewelry\nGlass, Ceramics and Concrete Manufacturing\nPackaging and Containers Manufacturing\nHotels and Motels\nAutomation Machinery Manufacturing\nWholesale Appliances, Electrical, and Electronics\nGovernment Relations Services\nBed-and-Breakfasts, Hostels, Homestays\nHorticulture\nWholesale Hardware, Plumbing, Heating Equipment\nWholesale Machinery\nCaterers\nMobile Food Services\nRenewable Energy Power Generation\nBars, Taverns, and Nightclubs\nRenewable Energy Equipment Manufacturing\nEngineering Services\nServices for Renewable Energy\nDigital Accessibility Services\nAccessible Hardware Manufacturing\nAccessible Architecture and Design\nRobot Manufacturing\nRobotics Engineering\nRepair and Maintenance\nSurveying and Mapping Services\nVehicle Repair and Maintenance\nRetail Pharmacies\nClimate Technology Product Manufacturing\nClimate Data and Analytics\nAlternative Fuel Vehicle Manufacturing\nWholesale Recyclable Materials\nSmart Meter Manufacturing\nFuel Cell Manufacturing\nWholesale Luxury Goods and Jewelry\nRegenerative Design\nFuneral Services\nDeath Care Services\nEnergy Technology\nWholesale Paper Products\nElectronic and Precision Equipment Maintenance\nWholesale Drugs and Sundries\nWholesale Apparel and Sewing Supplies\nCommercial and Industrial Machinery Maintenance\nFarming, Ranching, Forestry\nReupholstery and Furniture Repair\nWholesale Footwear\nWholesale Food and Beverage\nFootwear and Leather Goods Repair\nPersonal and Laundry Services\nPersonal Care Services\nLaundry and Drycleaning Services\nWholesale Raw Farm Products\nWholesale Chemical and Allied Products\nPet Services\nWholesale Petroleum and Petroleum Products\nWholesale Alcoholic Beverages\nRanching and Fisheries\nInternet Marketplace Platforms\nRetail Motor Vehicles\nHousehold Services\nRetail Furniture and Home Furnishings\nRetail Appliances, Electrical, and Electronic Equipment\nForestry and Logging\nRetail Building Materials and Garden Equipment\nHealth and Human Services\nPublic Health\nPublic Assistance Programs\nFood and Beverage Retail\nAir, Water, and Waste Program Management\nConservation Programs\nHousing and Community Development\nCommunity Development and Urban Planning\nEconomic Programs\nOil, Gas, and Mining\nRetail Health and Personal Care Products\nCoal Mining\nMilitary and International Affairs\nMetal Ore Mining\nRetail Gasoline\nOperations Consulting\nNonmetallic Mineral Mining\nElectric Power Transmission, Control, and Distribution\nRetail Musical Instruments\nElectric Power Generation\nHydroelectric Power Generation\nRetail Books and Printed News\nFossil Fuel Electric Power Generation\nNuclear Electric Power Generation\nSolar Electric Power Generation\nEnvironmental Quality Programs\nGeothermal Electric Power Generation\nBiomass Electric Power Generation\nNatural Gas Distribution\nWater, Waste, Steam, and Air Conditioning Services\nRetail Florists\nRetail Office Supplies and Gifts\nWater Supply and Irrigation Systems\nSteam and Air-Conditioning Supply\nBuilding Construction\nRetail Recyclable Materials & Used Merchandise\nResidential Building Construction\nData Infrastructure and Analytics\nNonresidential Building Construction\nUtility System Construction\nElectrical Equipment Manufacturing\nOnline and Mail Order Retail\nSubdivision of Land\nHighway, Street, and Bridge Construction\nSpecialty Trade Contractors\nBuilding Structure and Exterior Contractors\nWind Electric Power Generation\nWineries\nBuilding Equipment Contractors\nRail Transportation\nBuilding Finishing Contractors\nGround Passenger Transportation\nUrban Transit Services\nInterurban and Rural Bus Services\nTaxi and Limousine Services\nAnimal Feed Manufacturing\nSchool and Employee Bus Services\nShuttles and Special Needs Transportation Services\nSugar and Confectionery Product Manufacturing\nPipeline Transportation\nFruit and Vegetable Preserves Manufacturing\nSightseeing Transportation\nMeat Products Manufacturing\nSeafood Product Manufacturing\nBaked Goods Manufacturing\nPostal Services\nBreweries\nDistilleries\nTechnology, Information and Media\nPeriodical Publishing\nBook Publishing\nMovies and Sound Recording\nApparel Manufacturing\nSound Recording\nSheet Music Publishing\nRadio and Television Broadcasting\nFashion Accessories Manufacturing\nLeather Product Manufacturing\nCable and Satellite Programming\nTelecommunications Carriers\nFootwear Manufacturing\nSatellite Telecommunications\nWomen's Handbag Manufacturing\nCredit Intermediation\nSavings Institutions\nLoan Brokers\nOil and Coal Product Manufacturing\nSecurities and Commodity Exchanges\nChemical Raw Materials Manufacturing\nInvestment Advice\nInsurance Carriers\nArtificial Rubber and Synthetic Fiber Manufacturing\nAgricultural Chemical Manufacturing\nInsurance Agencies and Brokerages\nClaims Adjusting, Actuarial Services\nFunds and Trusts\nInsurance and Employee Benefit Funds\nPension Funds\nPaint, Coating, and Adhesive Manufacturing\nTrusts and Estates\nSoap and Cleaning Product Manufacturing\nReal Estate and Equipment Rental Services\nLeasing Residential Real Estate\nPlastics and Rubber Product Manufacturing\nReal Estate Agents and Brokers\nEquipment Rental Services\nConsumer Goods Rental\nRubber Products Manufacturing\nClay and Refractory Products Manufacturing\nCommercial and Industrial Equipment Rental\nGlass Product Manufacturing\nWood Product Manufacturing\nProfessional Services\nLime and Gypsum Products Manufacturing\nAbrasives and Nonmetallic Minerals Manufacturing\nPrimary Metal Manufacturing\nIT System Design Services\nMarketing Services\nFabricated Metal Products\nCutlery and Handtool Manufacturing\nArchitectural and Structural Metal Manufacturing\nBoilers, Tanks, and Shipping Container Manufacturing\nConstruction Hardware Manufacturing\nSpring and Wire Product Manufacturing\nTurned Products and Fastener Manufacturing\nHolding Companies\nMetal Treatments\nIndustry Associations\nLandscaping Services\nProfessional Organizations\nMetal Valve, Ball, and Roller Manufacturing\nAdministrative and Support Services\nOffice Administration\nExecutive Search Services\nTemporary Help Services\nAgriculture, Construction, Mining Machinery Manufacturing\nTelephone Call Centers\nCollection Agencies\nCommercial and Service Industry Machinery Manufacturing\nHVAC and Refrigeration Equipment Manufacturing\nMetalworking Machinery Manufacturing\nSecurity Guards and Patrol Services\nSecurity Systems Services\nEngines and Power Transmission Equipment Manufacturing\nJanitorial Services\nWaste Collection\nWaste Treatment and Disposal\nCommunications Equipment Manufacturing\nAudio and Video Equipment Manufacturing\nEducation\nMeasuring and Control Instrument Manufacturing\nSecretarial Schools\nTechnical and Vocational Training\nMagnetic and Optical Media Manufacturing\nCosmetology and Barber Schools\nFlight Training\nElectric Lighting Equipment Manufacturing\nFine Arts Schools\nSports and Recreation Instruction\nHousehold Appliance Manufacturing\nLanguage Schools\nPhysicians\nCourts of Law\nCorrectional Institutions\nDentists\nFire Protection\n\nSelf-check checklist\n\t•\tAre all locations actually present in the ICP?\n\t•\tAre company names copied verbatim, without changes?\n\t•\tAre industries taken only from the allowed list above?\n\t•\tIs the number of objects ≤ 10?\n\t•\tAre there no extra or empty fields?\n\t•\tIs the JSON valid and in the required structure?\n\nFollow these instructions for each ICP request to generate accurate LinkedIn Sales Navigator filters."
+        }
+      },
+      "id": "3481b346-41c5-4e86-9823-1cab2fbd9e23",
+      "name": "AI Agent: ICP -> LinkedIn search filters",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -2448,
+        1088
+      ],
+      "executeOnce": false,
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "typeVersion": 1.8,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "1e7e7c6d-401d-4b6e-ba9c-1e9caacb3f89",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json['Current company'] }}",
+              "rightValue": ""
+            },
+            {
+              "id": "5fa79c84-9e9a-4cf9-a3ed-3a84a286b734",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.Website }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1342e910-9156-4e03-a655-815be487290a",
+      "name": "Company name is not empty",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -1376,
+        1088
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "3f21375a-b09c-464d-a82a-b37f7b6de87b",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.Website }}",
+              "rightValue": ""
+            },
+            {
+              "id": "96105806-c0b8-461d-8cc1-975d8936814c",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Product Summary\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5dbdb3c-23d4-447a-9b66-a017fb40bfc8",
+      "name": "Website is not empty",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        112,
+        896
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "3f21375a-b09c-464d-a82a-b37f7b6de87b",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.URN }}",
+              "rightValue": ""
+            },
+            {
+              "id": "96105806-c0b8-461d-8cc1-975d8936814c",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Posts summary\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "062dcbea-71c8-4d61-bcca-4825dc0aa251",
+      "name": "Post summary is empty",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        144,
+        1584
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "3f21375a-b09c-464d-a82a-b37f7b6de87b",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.URN }}",
+              "rightValue": ""
+            },
+            {
+              "id": "96105806-c0b8-461d-8cc1-975d8936814c",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Company News\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5c13abd5-b936-45b8-9ad2-7ed4d860c798",
+      "name": "Company news is empty",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        144,
+        1904
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "3f21375a-b09c-464d-a82a-b37f7b6de87b",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json[\"Company URN\"] }}",
+              "rightValue": ":"
+            },
+            {
+              "id": "96105806-c0b8-461d-8cc1-975d8936814c",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Company post summary\"] }}",
+              "rightValue": ""
+            },
+            {
+              "id": "44880d26-6f7d-4ee6-a71c-1cee7733368a",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Company URN\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5d1641d3-ede8-4469-849a-9a142112c281",
+      "name": "Company post is empty",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        144,
+        2400
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "or",
+          "conditions": [
+            {
+              "id": "140d284f-34c0-4bf4-bb88-b0a9bdbc80f7",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Lead Score\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "48a71cf5-3415-4280-bb91-fa9413c32cf8",
+      "name": "Lead Score is empty",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1776,
+        1760
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an expert in evaluating lead potential for our product.\nAnalyze the company’s and lead’s profile content, assessing their likelihood of interest in our product on a scale from 1 to 10 (where 1 indicates minimal potential, and 10 indicates maximum potential).\n\nKey evaluation criteria:\n\t•\tMentions of Hotels suppliers \n\t•\tMentions of Hotel Services\n\nEvaluation scale:\n\t•\t8–10 points: Clear mentions of both criteria, active engagement, and explicit interest.\n\t•\t5–7 points: Mention of one criterion or indirect indicators of interest in both criteria.\n\t•\t1–4 points: No clear mentions, or only weak indirect indicators of interest.\n\nYour answer must ONLY be a single number from 1 to 10, without any additional text.",
+              "role": "system"
+            },
+            {
+              "content": "=Lead posts summary:\n {{ $json[\"Posts summary\"] }}\nLead company website analysis:\n{{ $('Google Sheets11').item.json['Product Summary'] }}\n\nCompany news summary:\n{{ $('Google Sheets11').item.json['Company News'] }}\nCompany posts summary\n{{ $('Google Sheets11').item.json['Company post summary'] }}\nCompany descriptin\n{{ $json.Description }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "55522e33-003e-4568-aac6-ab10e4a100e7",
+      "name": "Company Score Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        2144,
+        1760
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.8,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "251c7027-d46a-4ba2-bdaf-ead305af39b4",
+      "name": "5s",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        4064,
+        2144
+      ],
+      "webhookId": "58b70ce8-992f-4437-9f13-669649afcaa3",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "content": "Send the first message",
+        "height": 680,
+        "width": 2260
+      },
+      "id": "f8d0f5b6-67fa-42fe-9671-8fbd2f22e0dc",
+      "name": "Sticky Note27",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2896,
+        1920
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "7e68e23a-0d1c-4114-b662-8a4a53a509c7",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        -2848,
+        2448
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cd898792-a224-459f-9027-97bc007c31df",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "\"icpData\":"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "325ddec9-bbf1-4145-af91-85f550b69da4",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -2528,
+        2160
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=repeat this sentence:  {{ $('ICP Agent').item.json.output }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are repeater"
+            }
+          ]
+        }
+      },
+      "id": "cfd00fb9-6547-4284-a118-222d2cfda76d",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        -2336,
+        2176
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "id": "0726e67b-4897-4188-84be-1d9717803cc4",
+      "name": "OpenAI Chat Model2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        -2544,
+        2448
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "5TL40KY3QpSYJLsO",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Conversation agent",
+        "height": 820,
+        "width": 1840
+      },
+      "id": "154da2f9-5d30-488b-8a47-ee37b43fd508",
+      "name": "Sticky Note24",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3392,
+        1936
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "f31a8969-d52c-4c64-bbb6-858f768ef6b2",
+      "name": "Schedule Trigger3",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        2976,
+        2000
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "ce9cde37-0347-4cfe-9361-aa1ed8ac52ae",
+      "name": "Google Sheets21",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        3200,
+        2000
+      ],
+      "typeVersion": 4.5,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "5be9c0af-558c-4b8f-9de2-a21a0f6bb60c",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.Connected }}",
+              "rightValue": "true"
+            },
+            {
+              "id": "bf0095c5-f74e-4022-a6ec-66066d43cb6c",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json[\"Message Sent\"] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "3a6ad28a-02b9-42b2-8b97-928bdf0fb7b6",
+      "name": "If3",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        3424,
+        2000
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "content": "## Check the connections",
+        "height": 340,
+        "width": 1220
+      },
+      "id": "da1cb417-0528-4c05-bb81-701f2e4d1b5d",
+      "name": "Sticky Note25",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2672,
+        1456
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Add new connections",
+        "height": 440,
+        "width": 1800
+      },
+      "id": "4324fd13-fb95-4a8e-8f88-2bb9269c6906",
+      "name": "Sticky Note29",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2480,
+        1008
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "4d0c7d09-934f-4327-9eed-e1c04b773166",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.Website }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b01cdbd2-0667-44ce-8caf-458d19c6507c",
+      "name": "If4",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -864,
+        1840
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "7b913394-9018-453b-96ce-fe3bb12d8c9b",
+      "name": "Read companies",
+      "type": "n8n-nodes-base.googleSheets",
+      "maxTries": 5,
+      "position": [
+        -1552,
+        1088
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit?usp=drivesdk",
+          "cachedResultName": "HDW_OutReach"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19n84gbJPp-VmAUz6fElLSQcMajh5btPvI7Lhf20u7hs/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "URL": "={{ $json.url }}",
+            "URN": "={{ $json.urn.type }}:{{ $json.urn.value }}",
+            "img": "={{ $json.image }}",
+            "Date": "={{ $json.current_companies[0].joined }}",
+            "Name": "={{ $json.name }}",
+            "Headline": "={{ $json.headline }}",
+            "Industry": "={{ $json.current_companies[0].company.industry }}",
+            "Position": "={{ $json.current_companies[0].position }}",
+            "location": "={{ $json.location }}",
+            "is premium": "={{ $json.is_premium }}",
+            "Company URN": "={{ $json.current_companies[0].company.urn.type }}:{{ $json.current_companies[0].company.urn.value }}",
+            "Description": "={{ $json.current_companies[0].description }}",
+            "Current company": "={{ $json.current_companies[0].company.name }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "img",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "img",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Headline",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Headline",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is premium",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "is premium",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current company",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Current company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company URN",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Company URN",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Industry",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Position",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Description",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "Website",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "URN"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "867dbb40-56d7-4c19-818a-535b92c566d9",
+      "name": "Save new companies",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -1728,
+        1088
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "dd46a441-2dd2-4d4a-aa73-b357bb3f8c1f",
+      "name": "Discourse your ICP with Agent",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "position": [
+        -3152,
+        2160
+      ],
+      "webhookId": "80d69e6f-5dfc-4626-b6a6-2b3c0c58081e",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Your task is to interactively collect an Ideal Customer Profile (ICP) from the user. \n\nIMPORTANT: DO NOT SHOW ANY JSON TO THE USER DURING THE DATA COLLECTION PROCESS. Only communicate in natural language until all data has been collected.\n\nWhen the conversation starts, immediately:\n1. Introduce yourself and explain that you'll be collecting information to build an Ideal Customer Profile\n2. Briefly explain what information you'll be asking for\n3. Ask the FIRST question about current_titles without waiting for further input\n\nData Collection Process:\n1. Initialize an empty object called `icpData` in your memory (do not share this with the user).\n2. Ask the user each of the following questions ONE AT A TIME in natural conversational language, and after each answer, store the response in your internal `icpData` object:\n   - **current_titles**: \"What current titles do your target customers hold? (List comma-separated.)\"\n   - **current_companies**: \"What current companies do they work at? (List comma-separated.)\"\n   - **location**: \"Which geographic regions should we search in? (List cities, regions, or countries.)\"\n   - **industry**: \"Which industries are of interest? (Use LinkedIn's official industry names or describe them as closely as possible.)\"\n   - **company_sizes**: \"Which company sizes do you prefer? (e.g. Self-employed, 1–10, 11–50, 51–200, etc.)\"\n   - **keywords**: \"Are there any additional keywords to refine the search? (e.g. technologies, specialties, skills.)\"\n\nCommunication Guidelines:\n- Begin immediately with your introduction and the first question about current_titles\n- Speak naturally during the conversation, DO NOT show any JSON during the data collection phase\n- Ask only one question at a time\n- After receiving an answer, acknowledge it and ask the next question\n- If a user provides unclear information, ask for clarification\n- If the user explicitly states they want to skip any questions or finish early, respect their request\n- If the user types \"finish\", \"done\", \"complete\", or similar commands at any point, immediately prepare to generate the JSON\n\nFinal Output Requirements:\n- ALWAYS output the complete icpData object in valid JSON format when EITHER:\n  1. All seven fields have been collected, OR\n  2. The user explicitly requests to finish early or skip remaining questions\n- Include all fields in the output, using null for any fields that weren't collected\n- The \"dataComplete\" field must always be set to true in the final JSON output\n- Do not add any additional fields or modify the JSON structure\n- The final JSON MUST follow this exact format and have only JSON:\n{\n  \"icpData\": {\n    \"current_titles\": \"[collected value or null]\",\n    \"current_companies\": \"[collected value or null]\",\n    \"location\": \"[collected value or null]\",\n    \"industry\": \"[collected value or null]\",\n    \"company_sizes\": \"[collected value or null]\",\n    \"keywords\": \"[collected value or null]\",\n    \"count\": \"[collected value or null]\"\n  },\n  \"dataComplete\": true\n}\n\nCRITICAL: Your final response must consist of ONLY the single line \"Thank you for providing the information. Here is your ICP data:\" followed IMMEDIATELY by the JSON object. Do not add ANY other text, explanations, or formatting. The JSON object must be the absolute final thing in your response with nothing after it."
+        }
+      },
+      "id": "9f13b6b4-b01f-48c2-bc4a-ff356042058b",
+      "name": "ICP Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -2896,
+        2160
+      ],
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "id": "65aab709-a92e-4bbe-b470-2ca240294447",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        1440,
+        1744
+      ],
+      "typeVersion": 3.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: ICP -> LinkedIn search filters",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Summarise user posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ICP Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Summarise company news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Summarise company posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "ICP Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets3": {
+      "main": [
+        [
+          {
+            "node": "Website is not empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets4": {
+      "main": [
+        [
+          {
+            "node": "Post summary is empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets5": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets6": {
+      "main": [
+        [
+          {
+            "node": "Company news is empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets7": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets8": {
+      "main": [
+        [
+          {
+            "node": "Company post is empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets9": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read companies": {
+      "main": [
+        [
+          {
+            "node": "Company name is not empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets10": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets11": {
+      "main": [
+        [
+          {
+            "node": "Lead Score is empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets12": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets13": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets14": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets17": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets21": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets6",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets8",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Summarise company website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Loop Over Items6": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets13",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Company Score Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items8": {
+      "main": [
+        [],
+        [
+          {
+            "node": "5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: ICP -> LinkedIn search filters",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger3": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets21",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarise company website",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ICP Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save new companies": {
+      "main": [
+        [
+          {
+            "node": "Read companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Score is empty": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise user posts": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website is not empty": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company news is empty": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company post is empty": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post summary is empty": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Score Analysis": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise company news": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise company posts": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent: ICP -> LinkedIn search filters",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company name is not empty": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise company website": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discourse your ICP with Agent": {
+      "main": [
+        [
+          {
+            "node": "ICP Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: ICP -> LinkedIn search filters": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cf5a7ee9-9669-4116-947c-7e88ea69f596",
+  "meta": {
+    "instanceId": "edc6b29440a8527b40ab7b686d557a3f22ba638eac75ae01f4cebc40fffb5604"
+  },
+  "id": "FJ5lYLFphCsmXqr2",
+  "tags": []
+}

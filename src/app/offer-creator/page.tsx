@@ -817,7 +817,7 @@ const handleClearAll = () => {
                   header={
                     <div className="flex items-center">
                       <DollarOutlined className="mr-2" />
-                      <span className="font-medium">Pricing & Terms</span>
+                      <span className="font-medium">Pricing</span>
                     </div>
                   }
                   key="4"

@@ -587,19 +587,19 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
         <Card className="mb-4">
           <div className="text-center">
             <Space>
-              <Button 
+              {/* <Button 
                 icon={<DownloadOutlined />}
                 onClick={() => currentReportId && handleExportReport(currentReportId, 'html')}
                 type="primary"
               >
                 Download HTML Report
-              </Button>
-              <Button 
+              </Button> */}
+              {/* <Button 
                 icon={<DownloadOutlined />}
                 onClick={() => currentReportId && handleExportReport(currentReportId, 'json')}
               >
                 Download JSON Data
-              </Button>
+              </Button> */}
             </Space>
           </div>
         </Card>
@@ -1189,9 +1189,9 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
                 label="Team Size / Capabilities (Optional)"
               >
                 <Select placeholder="Select team size">
-                  <Option value="solo">Solo Founder</Option>
-                  <Option value="small-team">Small Team (2-5 people)</Option>
-                  <Option value="established-team">Established Team (5+ people)</Option>
+                  <Option value="solo">Solo Founder (1)</Option>
+                  <Option value="small-team">Small Team (2-10)</Option>
+                  <Option value="established-team">Established Team (10+ )</Option>
                 </Select>
               </Form.Item>
               

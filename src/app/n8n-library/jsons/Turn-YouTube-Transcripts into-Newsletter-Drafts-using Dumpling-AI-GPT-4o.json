@@ -1,0 +1,330 @@
+{
+  "name": "Turn YouTube Transcripts into Newsletter Drafts using Dumpling AI + GPT-4o",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1088af3c-161d-40ff-b69e-32cf609f214f",
+      "name": " Manual Trigger: Start Workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        848,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1C1Yj_Z73ItpTezM1cTomFXOKX5EbMq0QnbFJ_rRsl-c",
+          "mode": "list",
+          "cachedResultName": "YT-Newsletter",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1C1Yj_Z73ItpTezM1cTomFXOKX5EbMq0QnbFJ_rRsl-c/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1C1Yj_Z73ItpTezM1cTomFXOKX5EbMq0QnbFJ_rRsl-c/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Youtube Link"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5a8863d7-d13b-471e-900f-acdfa320fa42",
+      "name": "Read YouTube Links from Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1072,
+        560
+      ],
+      "typeVersion": 4.6,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KKmuR26rXxXryt2c",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "81804ea4-ad1c-4c57-ad40-28645967da32",
+      "name": "Loop: Process Each YouTube Link",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1296,
+        560
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.dumplingai.com/api/v1/get-youtube-transcript",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "videoUrl",
+              "value": "={{ $json.link }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5ec6ef71-4ca0-4ebc-b878-084337cafc3f",
+      "name": " Dumpling AI: Get YouTube Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1520,
+        560
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "168AE3T2lIrmsHfg",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "chatgpt-4o-latest",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "\"Here is a transcript from a YouTube video. Please write a clear and engaging newsletter based on this transcript. Summarize the key ideas, insights, and tips shared in the video. Start with a short and catchy introduction that grabs attention. Structure the body of the newsletter with short, readable paragraphs that highlight the most valuable points. End with a simple call to action related to the video topic. Keep the tone friendly and professional, and make sure the content flows naturally for email readers. Do not include time stamps or speaker labels from the transcript. Focus on clarity and value.\"\n\nLet me know if you'd like the prompt tailored to a specific audience or niche.",
+              "role": "system"
+            },
+            {
+              "content": "=Transcript: {{ $json.transcript }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "facdab3c-bbca-4acb-862a-5179708d90e8",
+      "name": "GPT-4o: Write Newsletter Draft from Transcript",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1728,
+        560
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "5TL40KY3QpSYJLsO",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1C1Yj_Z73ItpTezM1cTomFXOKX5EbMq0QnbFJ_rRsl-c",
+          "mode": "list",
+          "cachedResultName": "YT-Newsletter",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1C1Yj_Z73ItpTezM1cTomFXOKX5EbMq0QnbFJ_rRsl-c/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1C1Yj_Z73ItpTezM1cTomFXOKX5EbMq0QnbFJ_rRsl-c/edit#gid=0"
+        },
+        "columns": {
+          "value": {
+            "link": "={{ $('Read YouTube Links from Google Sheets').item.json.link }}",
+            "blog post": "={{ $json.message.content }}"
+          },
+          "schema": [
+            {
+              "id": "link",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "link",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "blog post",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "blog post",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "link"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "07b75a54-ceef-4ff7-8187-5fa49ecc84e4",
+      "name": "Log Newsletter Draft to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        2112,
+        640
+      ],
+      "typeVersion": 4.6,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KKmuR26rXxXryt2c",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "example@gmail.com",
+        "subject": "Newsletter Draft Created from YouTube Transcript",
+        "emailType": "text",
+        "message": "=Hello,  \nThe newsletter based on the latest YouTube transcript has just been created successfully. You can now review, edit, or schedule it for distribution.  Please check the draft and let me know if anything needs to be adjusted before it goes live.",
+        "options": {}
+      },
+      "id": "b7062444-db63-4e20-ae47-adea20a49289",
+      "name": " Send Email Notification When Draft is Ready",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        1520,
+        368
+      ],
+      "webhookId": "e1f729ca-f0ef-4b1e-9399-7cd7993baff3",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZUTwas5ZZ2GSM29T",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### 📨 YouTube → Newsletter Automation\n\nThis workflow turns YouTube videos into newsletter drafts using Dumpling AI and GPT-4o.\n\n**Here’s what it does:**\n1. Reads new YouTube video links from Google Sheets\n2. Fetches the transcript of each video via Dumpling AI\n3. Uses GPT-4o to generate a well-structured, email-friendly newsletter draft\n4. Saves the draft back to Google Sheets next to the original video link\n5. Sends an email notification when the newsletter is ready\n\n🛠️ Tools Used:\n- Dumpling AI (transcript)\n- GPT-4o (newsletter copy)\n- Google Sheets (input + output)\n- Gmail (notification)\n\n✅ Make sure your credentials are securely configured for:\n- Google Sheets\n- Dumpling AI (via header auth)\n- OpenAI GPT\n- Gmail OAuth2\n\n🗒️ Sheet columns required:\n- `link` (YouTube video URL)\n- `blog post` (Newsletter output field)\n",
+        "height": 580,
+        "width": 560
+      },
+      "id": "2e8320d4-655b-4dc1-afb7-47ff88c3cb19",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        240
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    " Manual Trigger: Start Workflow": {
+      "main": [
+        [
+          {
+            "node": "Read YouTube Links from Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: Process Each YouTube Link": {
+      "main": [
+        [
+          {
+            "node": " Send Email Notification When Draft is Ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": " Dumpling AI: Get YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Dumpling AI: Get YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "GPT-4o: Write Newsletter Draft from Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Newsletter Draft to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop: Process Each YouTube Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read YouTube Links from Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop: Process Each YouTube Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o: Write Newsletter Draft from Transcript": {
+      "main": [
+        [
+          {
+            "node": "Log Newsletter Draft to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1d7fb65c-037a-4ae3-ba20-4f1b3d338d86",
+  "meta": {
+    "templateId": "5798",
+    "instanceId": "edc6b29440a8527b40ab7b686d557a3f22ba638eac75ae01f4cebc40fffb5604"
+  },
+  "id": "epHELsoEgaeTUmEm",
+  "tags": []
+}

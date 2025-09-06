@@ -43,6 +43,28 @@ import salesCallAnalyzer from './jsons/ai-sales-call-analyzer.json';
 import socialMediaGen from './jsons/ai-social-media-gen.json';
 import autoLinkedinDm from './jsons/automated-linkedin-dm.json';
 
+import autopostAi from './jsons/Generate-Auto-post AI Videos-Social-Media-with-Veo3-Blotato.json';
+import aiagentDev from './jsons/AI-Agent-Development Agent.json';
+import aiblogPost from './jsons/AI-Blog-Post-R&D-Agent.json';
+import analyzeLanding from './jsons/Analyze-Landing-Page-with-OpenAI-and-Get-Optimization Tips.json';
+import autoRespond from './jsons/Auto-Respond to Gmail Inquiries using OpenAI, Google Sheet & AI Agent.json';
+import auoRespondDocs from './jsons/Auto-Respond to Slack Messages as Yourself using GPT and Google Docs RAG.json';
+import automatedLink from './jsons/Automated-LinkedIn-Content Creation-with-GPT-4-and-DALL-E-for-Scheduled Posts.json';
+import generateAuto from './jsons/Generate-Auto-post AI Videos-Social-Media-with-Veo3-Blotato.json';
+import gmailEmail from './jsons/Gmail_and_Email_Automation_Extract-spending-history from-gmail-google sheet.json';
+import googleMaps from './jsons/Google-Maps-Lead-Generation.json';
+import imageCaps from './jsons/Image-Captioning-with-Gemini.json';
+import linkLead from './jsons/Linkedin-Lead-Gen.json';
+import longForm from './jsons/Long-Form-Faceless-Content-Generator.json';
+import n8node from './jsons/N8N-Node-Library.json';
+import n8nwork from './jsons/N8N-Node-Library.json';
+import openais from './jsons/OpenAI_and_LLMs_AI-Youtube-Trend-Finde- Based On Niche.json';
+import resumeParser from './jsons/Resume-Parser.json';
+import trackAi from './jsons/Track-AI-Agent-token-usage-estimate-costs-Google-Sheets.json';
+import turnt from './jsons/Turn-YouTube-Transcripts into-Newsletter-Drafts-using Dumpling-AI-GPT-4o.json';
+import voiceb from './jsons/Voice-Based Appointment Booking System with ElevenLabs AI and Cal.com.json';
+
+
 interface WorkflowTemplate {
   id: number;
   title: string;
@@ -134,7 +156,187 @@ const workflowTemplates = [
     demoUrl: "#",
     integrations: ["Google Analytics", "Meta API", "Google Sheets"],
     jsonTemplate: weeklyReports
-  }
+  },
+  {
+  id: 9,
+  title: "Auto-Post AI Videos for Social Media",
+  description: "Automatically generate and schedule AI-powered videos for social media platforms using Veo3 and Blotato.",
+  tags: ["Video Generation", "Social Media", "AI Content"],
+  downloads: 92,
+  demoUrl: "#",
+  integrations: ["Veo3 API", "Blotato", "Social Media APIs"],
+  jsonTemplate: autopostAi
+},
+{
+  id: 10,
+  title: "AI Agent Development Platform",
+  description: "Build and deploy custom AI agents with no-code development tools and pre-built templates.",
+  tags: ["AI Development", "No-Code", "Automation"],
+  downloads: 156,
+  demoUrl: "#",
+  integrations: ["OpenAI", "Custom APIs", "Webhook"],
+  jsonTemplate: aiagentDev
+},
+{
+  id: 11,
+  title: "AI Blog Post Research & Development",
+  description: "Automatically research topics and generate SEO-optimized blog posts with AI-powered content creation.",
+  tags: ["Content Creation", "SEO", "Blogging"],
+  downloads: 134,
+  demoUrl: "#",
+  integrations: ["OpenAI", "SEO Tools", "CMS APIs"],
+  jsonTemplate: aiblogPost
+},
+{
+  id: 12,
+  title: "Landing Page Analysis with OpenAI",
+  description: "Analyze landing pages and receive AI-powered optimization tips to improve conversion rates.",
+  tags: ["Conversion Optimization", "Web Analytics", "AI Analysis"],
+  downloads: 87,
+  demoUrl: "#",
+  integrations: ["OpenAI", "Google Analytics", "PageSpeed Insights"],
+  jsonTemplate: analyzeLanding
+},
+{
+  id: 13,
+  title: "Auto-Respond to Gmail Inquiries",
+  description: "Automatically respond to Gmail inquiries using OpenAI, with responses logged in Google Sheets.",
+  tags: ["Email Automation", "Customer Service", "AI Responses"],
+  downloads: 121,
+  demoUrl: "#",
+  integrations: ["Gmail API", "OpenAI", "Google Sheets"],
+  jsonTemplate: autoRespond
+},
+{
+  id: 14,
+  title: "Auto-Respond to Slack Messages",
+  description: "Automatically respond to Slack messages using GPT and Google Docs RAG to maintain your voice.",
+  tags: ["Slack Automation", "AI Responses", "RAG"],
+  downloads: 98,
+  demoUrl: "#",
+  integrations: ["Slack API", "OpenAI", "Google Docs"],
+  jsonTemplate: auoRespondDocs
+},
+{
+  id: 15,
+  title: "Automated LinkedIn Content Creation",
+  description: "Generate and schedule LinkedIn content with GPT-4 and DALL-E for consistent social media presence.",
+  tags: ["LinkedIn", "Content Creation", "Scheduling"],
+  downloads: 145,
+  demoUrl: "#",
+  integrations: ["LinkedIn API", "OpenAI", "DALL-E"],
+  jsonTemplate: automatedLink
+},
+{
+  id: 16,
+  title: "Gmail Spending History Extractor",
+  description: "Extract spending history from Gmail receipts and organize it automatically in Google Sheets.",
+  tags: ["Finance", "Email Parsing", "Data Organization"],
+  downloads: 113,
+  demoUrl: "#",
+  integrations: ["Gmail API", "Google Sheets", "Regex Parsing"],
+  jsonTemplate: gmailEmail
+},
+{
+  id: 17,
+  title: "Google Maps Lead Generation",
+  description: "Automatically extract business leads from Google Maps based on location and industry filters.",
+  tags: ["Lead Generation", "Data Scraping", "Sales"],
+  downloads: 179,
+  demoUrl: "#",
+  integrations: ["Google Maps API", "CRM Integration", "Google Sheets"],
+  jsonTemplate: googleMaps
+},
+{
+  id: 18,
+  title: "AI Image Captioning with Gemini",
+  description: "Automatically generate accurate captions for images using Google's Gemini AI model.",
+  tags: ["Image Processing", "AI Vision", "Accessibility"],
+  downloads: 76,
+  demoUrl: "#",
+  integrations: ["Gemini API", "Image Storage", "CMS Integration"],
+  jsonTemplate: imageCaps
+},
+{
+  id: 19,
+  title: "LinkedIn Lead Generation System",
+  description: "Automate LinkedIn lead generation with targeted search and connection requests.",
+  tags: ["LinkedIn", "Lead Generation", "Sales"],
+  downloads: 167,
+  demoUrl: "#",
+  integrations: ["LinkedIn API", "CRM Integration", "Google Sheets"],
+  jsonTemplate: linkLead
+},
+{
+  id: 20,
+  title: "Long-Form Faceless Content Generator",
+  description: "Create long-form faceless video content automatically with AI narration and visuals.",
+  tags: ["Video Content", "AI Narration", "Content Creation"],
+  downloads: 102,
+  demoUrl: "#",
+  integrations: ["Video APIs", "OpenAI", "Text-to-Speech"],
+  jsonTemplate: longForm
+},
+{
+  id: 21,
+  title: "N8N Node Library",
+  description: "Comprehensive library of custom nodes for extending n8n workflow automation capabilities.",
+  tags: ["Development", "Workflow Automation", "Extensions"],
+  downloads: 254,
+  demoUrl: "#",
+  integrations: ["n8n", "Custom APIs", "Webhooks"],
+  jsonTemplate: n8node
+},
+{
+  id: 22,
+  title: "AI YouTube Trend Finder",
+  description: "Discover trending YouTube topics in your niche using AI analysis of current trends.",
+  tags: ["YouTube", "Trend Analysis", "Content Research"],
+  downloads: 118,
+  demoUrl: "#",
+  integrations: ["YouTube API", "OpenAI", "Google Trends"],
+  jsonTemplate: openais
+},
+{
+  id: 23,
+  title: "AI Resume Parser",
+  description: "Automatically parse and extract key information from resumes for recruitment purposes.",
+  tags: ["HR", "Recruitment", "Document Processing"],
+  downloads: 189,
+  demoUrl: "#",
+  integrations: ["OpenAI", "ATS Integration", "Google Sheets"],
+  jsonTemplate: resumeParser
+},
+{
+  id: 24,
+  title: "AI Agent Token Usage Tracker",
+  description: "Track AI agent token usage and estimate costs with automated Google Sheets reporting.",
+  tags: ["Cost Management", "Analytics", "AI Monitoring"],
+  downloads: 95,
+  demoUrl: "#",
+  integrations: ["OpenAI", "Google Sheets", "Custom APIs"],
+  jsonTemplate: trackAi
+},
+{
+  id: 25,
+  title: "YouTube to Newsletter Converter",
+  description: "Turn YouTube transcripts into newsletter drafts automatically using Dumpling AI and GPT-4o.",
+  tags: ["Content Repurposing", "Newsletters", "AI Writing"],
+  downloads: 83,
+  demoUrl: "#",
+  integrations: ["YouTube API", "OpenAI", "Email Platforms"],
+  jsonTemplate: turnt
+},
+{
+  id: 26,
+  title: "Voice-Based Appointment Booking",
+  description: "Voice AI appointment booking system using ElevenLabs AI and Cal.com integration.",
+  tags: ["Voice AI", "Appointment Scheduling", "Customer Service"],
+  downloads: 127,
+  demoUrl: "#",
+  integrations: ["ElevenLabs API", "Cal.com", "Calendar APIs"],
+  jsonTemplate: voiceb
+},
 ];
 
 const popularTags = [

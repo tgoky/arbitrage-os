@@ -489,8 +489,9 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, onComplete, on
   if (isMinimized) {
     return (
       <>
-        <FileManagerWindow />
-        <SettingsWindow />
+        {/* <FileManagerWindow />
+        <SettingsWindow /> */}
+        
         <div
           style={{
             position: 'fixed',

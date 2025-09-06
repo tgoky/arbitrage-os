@@ -1,0 +1,403 @@
+{
+  "name": "Image Captioning with Gemini",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d386ea70-444d-4af2-b3b2-fcc34a3a86b4",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        512,
+        224
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "id": "f836d31b-3969-4c87-aacf-fcab1c71f6f9",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        1312,
+        640
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"caption_title\": \"\",\n\t\"caption_text\": \"\"\n}"
+      },
+      "id": "92b419d5-c439-4c97-bed5-ab8bc5f7d4d0",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        1504,
+        640
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "information"
+      },
+      "id": "d44b7a8a-d25f-43ba-ade6-6dd44c38f30d",
+      "name": "Get Info",
+      "type": "n8n-nodes-base.editImage",
+      "position": [
+        1136,
+        320
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "width": 512,
+        "height": 512,
+        "options": {}
+      },
+      "id": "857bd231-513d-45ee-a1e2-ebc7f5b356de",
+      "name": "Resize For AI",
+      "type": "n8n-nodes-base.editImage",
+      "position": [
+        1136,
+        480
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const { size, output } = $input.item.json;\n\nconst lineHeight = 35;\nconst fontSize = Math.round(size.height / lineHeight);\nconst maxLineLength = Math.round(size.width/fontSize) * 2;\nconst text = `\"${output.caption_title}\". ${output.caption_text}`;\nconst numLinesOccupied = Math.round(text.length / maxLineLength);\n\nconst verticalPadding = size.height * 0.02;\nconst horizontalPadding = size.width * 0.02;\nconst rectPosX = 0;\nconst rectPosY = size.height - (verticalPadding * 2.5) - (numLinesOccupied * fontSize);\nconst textPosX = horizontalPadding;\nconst textPosY = size.height - (numLinesOccupied * fontSize) - (verticalPadding/2);\n\nreturn {\n  caption: {\n    fontSize,\n    maxLineLength,\n    numLinesOccupied,\n    rectPosX,\n    rectPosY,\n    textPosX,\n    textPosY,\n    verticalPadding,\n    horizontalPadding,\n  }\n}\n"
+      },
+      "id": "1f1be36c-e4ee-4439-adc1-76e3ed5ee04a",
+      "name": "Calculate Positioning",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2048,
+        640
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "multiStep",
+        "operations": {
+          "operations": [
+            {
+              "operation": "draw",
+              "color": "=#0000008c",
+              "startPositionX": "={{ $json.caption.rectPosX }}",
+              "startPositionY": "={{ $json.caption.rectPosY }}",
+              "endPositionX": "={{ $json.size.width }}",
+              "endPositionY": "={{ $json.size.height }}"
+            },
+            {
+              "operation": "text",
+              "text": "=\"{{ $json.output.caption_title }}\". {{ $json.output.caption_text }}",
+              "fontSize": "={{ $json.caption.fontSize }}",
+              "fontColor": "#FFFFFF",
+              "positionX": "={{ $json.caption.textPosX }}",
+              "positionY": "={{ $json.caption.textPosY }}",
+              "lineLength": "={{ $json.caption.maxLineLength }}",
+              "font": "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1ff0672f-481f-4193-834f-16bf9e528d31",
+      "name": "Apply Caption to Image",
+      "type": "n8n-nodes-base.editImage",
+      "position": [
+        2416,
+        480
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Try it out!\n\n### This workflow takes an image and generates a caption for it using AI. The OpenAI node has been able to do this for a while but this workflow demonstrates how to achieve the same with other multimodal vision models such as Google's Gemini.\n\nAdditional, we'll use the Edit Image node to overlay the generated caption onto the image. This can be useful for publications or can be repurposed for copyrights and/or watermarks.\n\n### Need Help?\nJoin the [Discord](https://discord.com/invite/XPKeKXeB7d) or ask in the [Forum](https://community.n8n.io/)!\n",
+        "height": 431.76353488372104,
+        "width": 423.75
+      },
+      "id": "b158f182-8b0b-410d-9055-0287e69da7e7",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "f1edcad8-7a28-45c1-a22a-09c16ab99e61",
+      "name": "Merge Image & Caption",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        1648,
+        320
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "3bba968c-3163-47b2-9260-950aa1d218f4",
+      "name": "Merge Caption & Positions",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        2224,
+        480
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "url": "https://images.pexels.com/photos/1267338/pexels-photo-1267338.jpeg?auto=compress&cs=tinysrgb&w=600",
+        "options": {}
+      },
+      "id": "fa01fed5-b435-4ea8-8850-09769bee42ed",
+      "name": "Get Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        704,
+        224
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "content": "## 1. Import an Image \n[Read more about the HTTP request node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest)\n\nFor this demonstration, we'll grab an image off Pexels.com - a popular free stock photography site - by using the HTTP request node to download.\n\nIn your own workflows, this can be replaces by other triggers such as webhooks.",
+        "height": 486.25,
+        "width": 586.25,
+        "color": 7
+      },
+      "id": "97247fa4-5738-4fe1-a61f-80963a67fdd7",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 2. Using Vision Model to Generate Caption\n[Learn more about the Basic LLM Chain](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm)\n\nn8n's basic LLM node supports multimodal input by allowing you to specify either a binary or an image url to send to a compatible LLM. This makes it easy to start utilising this powerful feature for visual classification or OCR tasks which have previously depended on more dedicated OCR models.\n\nHere, we've simply passed our image binary as a \"user message\" option, asking the LLM to help us generate a caption title and text which is appropriate for the given subject. Once generated, we'll pass this text along with the image to combine them both.",
+        "height": 783.75,
+        "width": 888.75,
+        "color": 7
+      },
+      "id": "4d880c50-8358-4b23-a419-ced5066fcfb2",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        992,
+        64
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 3. Overlay Caption on Image \n[Read more about the Edit Image node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.editimage)\n\nFinally, we’ll perform some basic calculations to place the generated caption onto the image. With n8n's user-friendly image editing features, this can be done entirely within the workflow!\n\nThe Code node tool is ideal for these types of calculations and is used here to position the caption at the bottom of the image. To create the overlay, the Edit Image node enables us to insert text onto the image, which we’ll use to add the generated caption.",
+        "height": 635,
+        "width": 753.75,
+        "color": 7
+      },
+      "id": "16547a3f-ce68-4477-a0c4-e6edcda2f2c0",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1904,
+        208
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "**FIG 1.** Example input image with AI generated caption\n![Example Output](https://res.cloudinary.com/daglih2g8/image/upload/f_auto,q_auto/v1/n8n-workflows/l5xbb4ze4wyxwwefqmnc#full-width)",
+        "height": 411.25,
+        "width": 563.75
+      },
+      "id": "7b402a80-b39d-40b0-a948-3e9aa07aa129",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2688,
+        208
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a caption for this image.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You role is to provide an appropriate image caption for user provided images.\n\nThe individual components of a caption are as follows: who, when, where, context and miscellaneous. For a really good caption, follow this template: who + when + where + context + miscellaneous\n\nGive the caption a punny title."
+            },
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            }
+          ]
+        }
+      },
+      "id": "c9c1b05c-7902-4694-a897-5306a2dc91c3",
+      "name": "Image Captioning Agent",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        1312,
+        480
+      ],
+      "typeVersion": 1.4
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Info": {
+      "main": [
+        [
+          {
+            "node": "Merge Image & Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image": {
+      "main": [
+        [
+          {
+            "node": "Resize For AI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resize For AI": {
+      "main": [
+        [
+          {
+            "node": "Image Captioning Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Positioning": {
+      "main": [
+        [
+          {
+            "node": "Merge Caption & Positions",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Image & Caption": {
+      "main": [
+        [
+          {
+            "node": "Calculate Positioning",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Caption & Positions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Captioning Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge Image & Caption",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Image Captioning Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Image Captioning Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Caption & Positions": {
+      "main": [
+        [
+          {
+            "node": "Apply Caption to Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "56531094-cdef-4bff-a239-2fc12eccd368",
+  "meta": {
+    "instanceId": "edc6b29440a8527b40ab7b686d557a3f22ba638eac75ae01f4cebc40fffb5604"
+  },
+  "id": "iHzGNyEw3K4QLhlX",
+  "tags": []
+}

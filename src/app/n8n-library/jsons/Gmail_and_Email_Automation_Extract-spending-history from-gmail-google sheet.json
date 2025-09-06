@@ -1,0 +1,1087 @@
+{
+  "name": "Gmail_and_Email_Automation/Extract spending history from gmail to google sheet",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_7885838942566773656"
+          ]
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "id": "d14f9647-8a20-4ab1-9190-d9894e2711ed",
+      "name": "Get invoice",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [
+        -816,
+        400
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_371722915607774622"
+          ]
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "id": "d71d9e67-1d32-4967-905b-1adc4e702fff",
+      "name": "Get payment",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [
+        -816,
+        608
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {
+          "password": "E223706995"
+        }
+      },
+      "id": "9ad86dd6-5eff-44d2-8d17-4d737eb7e750",
+      "name": "Extract invoice",
+      "type": "n8n-nodes-base.extractFromFile",
+      "position": [
+        -592,
+        400
+      ],
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "notes": "No attachements"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {
+          "password": "E223706995"
+        }
+      },
+      "id": "d48c1602-50cf-4d93-91cf-8b222941142f",
+      "name": "Extract payment",
+      "type": "n8n-nodes-base.extractFromFile",
+      "position": [
+        -592,
+        608
+      ],
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "notes": "No attachements"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "dataPropertyName": "=html",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "spend",
+              "cssSelector": ".spend-table",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3cc240d6-817f-4086-b3c4-271786497367",
+      "name": "HTML",
+      "type": "n8n-nodes-base.html",
+      "position": [
+        32,
+        224
+      ],
+      "typeVersion": 1.2,
+      "notes": "\".spend-table\" here is an example when the email use \"spend\" html tags to display each spends.\ne.g.\n<div class=spend-table>Spend 1</div>\n<div class=spend-table>Spend 2</div>"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "spend",
+        "options": {}
+      },
+      "id": "22d1df83-0639-4f74-94dd-552bb1ab42c3",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        256,
+        224
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n \"title\": \"Expense Record Schema\",\n \"description\": \"Schema used to parse expense record emails, including date, service name, transaction details, amount, category, currency, and card.\",\n \"type\": \"object\",\n \"properties\": {\n \"date\": {\n \"type\": \"string\",\n \"description\": \"Transaction date, can refer to the email date or the consumption date within the content. If there are multiple dates, use the earliest one. The format is 'YYYY-MM-DD hh:mm', e.g., '2024-09-02 10:12'.\",\n \"examples\": [\"2024-09-02 10:12\"]\n },\n \"service\": {\n \"type\": [\"string\", \"null\"],\n \"description\": \"Name of the service or store, such as 'GOOGLE', 'Uber', etc.\",\n \"examples\": [\"GOOGLE\", \"Uber Eats\", \"Uber\", \"CLAUDE.AI\"]\n },\n \"details\": {\n \"type\": [\"string\", \"null\"],\n \"description\": \"Detailed transaction information, such as overseas card usage, online transactions, restaurant names, or consumption details. If none, can be left blank or null.\",\n \"examples\": [\"Uber: from Fuxing North Road to Minquan East Road\", \"Restaurant name\", null]\n },\n \"amount\": {\n \"type\": \"number\",\n \"description\": \"Transaction amount. If in USD, keep two decimal places (e.g., 50.12); if in TWD, use integers (e.g., 550).\",\n \"examples\": [50.12, 550]\n },\n \"category\": {\n \"type\": \"string\",\n \"description\": \"Transaction category\",\n \"enum\": [\"Food & Beverage\", \"Transportation\", \"Daily Necessities\", \"Housing\", \"Electronics\", \"Beauty & Hair\", \"Apparel & Accessories\", \"Medical & Healthcare\", \"Pets\", \"Education\", \"Entertainment\", \"Cloud Services\", \"Automobile\", \"Gifts\", \"Family Care\", \"Counseling\", \"Insurance\", \"Taxes\", \"Transfer Fees\", \"Music\", \"Fitness\", \"Travel\", \"Lending\", \"Donations\", \"Advertising\", \"Finance\"],\n \"examples\": [\"Food & Beverage\", \"Transportation\"]\n },\n \"currency\": {\n \"type\": \"string\",\n \"description\": \"Currency code used in the transaction. If the amount starts with NT$, then currency is TWD.\",\n \"enum\": [\"TWD\", \"USD\", \"JPY\", \"EUR\", \"SGD\"],\n \"examples\": [\"USD\", \"TWD\"]\n },\n \"card\": {\n \"type\": [\"string\", \"null\"],\n \"description\": \"Credit card used for the transaction.\",\n \"enum\": [\"HSBC 3088\", \"HSBC 3854\", \"Fubon Card\", \"Crypto.com Card\", \"Cathay Card\", null],\n \"examples\": [\"HSBC 3088\", \"HSBC 3854\"]\n }\n },\n \"required\": [\"date\", \"amount\", \"category\", \"currency\"]\n}\n"
+      },
+      "id": "22bd4894-324e-49e1-868d-7f5752b8a602",
+      "name": "Structured Output Parser1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        1104,
+        672
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "id": "812db143-b73f-40b2-812d-49263e665392",
+      "name": "Google Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        912,
+        672
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1ccwhQeUSUkINccAucC6_clRyNF5Mw4IjIxAtcH4ftIs/edit?gid=370005862#gid=370005862"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 2071031170,
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ccwhQeUSUkINccAucC6_clRyNF5Mw4IjIxAtcH4ftIs/edit#gid=2071031170",
+          "cachedResultName": "raw data 2"
+        },
+        "columns": {
+          "value": {
+            "date": "={{ $json.output.date }}",
+            "amount": "={{ $json.output.amount }}",
+            "source": "n8n",
+            "details": "={{ $json.output.details }}",
+            "payment": "={{ $json.output.card }}",
+            "service": "={{ $json.output.service }}",
+            "category": "={{ $json.output.category }}",
+            "currency": "={{ $json.output.currency }}"
+          },
+          "schema": [
+            {
+              "id": "date",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "service",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "details",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "amount",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "category",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "currency",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "payment",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "source",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "7d2f7ca0-f269-43c5-b6e4-dd9877e67f4b",
+      "name": "Send",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1344,
+        512
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "75b16672-71cf-4157-bcb6-683099ff1620",
+              "name": "email_date",
+              "type": "string",
+              "value": "={{ $('Switch').item.json.date }}"
+            },
+            {
+              "id": "3298f680-5d17-42fd-8b41-a6ca621af37d",
+              "name": "email_subject",
+              "type": "string",
+              "value": "={{ $('Switch').item.json.subject }}"
+            },
+            {
+              "id": "cf7181b7-fef9-437a-8bbe-cd4a4eda85b8",
+              "name": "email_content",
+              "type": "string",
+              "value": "={{ $ifEmpty($json.spend, $ifEmpty( $json.text, $json.html)) }}"
+            },
+            {
+              "id": "1a524cb4-6975-4d45-ac0e-f1ac1f9b0417",
+              "name": "email_type",
+              "type": "number",
+              "value": "=0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "43372b0a-c5e1-4644-8f42-ca0e9fdcc5b0",
+      "name": "Set data 0",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        464,
+        224
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "75b16672-71cf-4157-bcb6-683099ff1620",
+              "name": "email_date",
+              "type": "string",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "id": "3298f680-5d17-42fd-8b41-a6ca621af37d",
+              "name": "email_subject",
+              "type": "string",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "id": "cf7181b7-fef9-437a-8bbe-cd4a4eda85b8",
+              "name": "email_content",
+              "type": "string",
+              "value": "={{ $ifEmpty( $json.text, $json.html) }}"
+            },
+            {
+              "id": "1a524cb4-6975-4d45-ac0e-f1ac1f9b0417",
+              "name": "email_type",
+              "type": "number",
+              "value": "=1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "890babef-4ded-497b-a178-5d2ef2073bf9",
+      "name": "Set data 1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        256,
+        464
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "75b16672-71cf-4157-bcb6-683099ff1620",
+              "name": "email_date",
+              "type": "string",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "id": "3298f680-5d17-42fd-8b41-a6ca621af37d",
+              "name": "email_subject",
+              "type": "string",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "id": "cf7181b7-fef9-437a-8bbe-cd4a4eda85b8",
+              "name": "email_content",
+              "type": "string",
+              "value": "={{ $ifEmpty( $json.text, $json.html) }}"
+            },
+            {
+              "id": "1a524cb4-6975-4d45-ac0e-f1ac1f9b0417",
+              "name": "email_type",
+              "type": "number",
+              "value": "=2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8296d056-df58-47fe-83a0-e448849ae737",
+      "name": "Set data 2",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        240,
+        768
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ac7c18ba-1944-4019-aa85-03d7751a7e1c",
+              "name": "html",
+              "type": "string",
+              "value": "={{ $('Get invoice').item.json.html }}"
+            },
+            {
+              "id": "5eb54501-9c55-437d-9918-e5eff92e2229",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $('Get invoice').item.json.subject }}"
+            },
+            {
+              "id": "87eebc48-0b95-46ae-b41b-b6540b1afaa9",
+              "name": "date",
+              "type": "string",
+              "value": "={{ $('Get invoice').item.json.date }}"
+            },
+            {
+              "id": "c6b75367-239e-4e88-9e17-90ee75a064e2",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $('Get invoice').item.json.text }} \\n {{ $json.text }}"
+            },
+            {
+              "id": "7d5b4b42-6b90-4ffe-ab8f-4288771d1302",
+              "name": "label",
+              "type": "string",
+              "value": "={{ $('Get invoice').item.json.labelIds }}"
+            },
+            {
+              "id": "551ea1c3-01ca-4615-9d52-a880e24252ed",
+              "name": "from",
+              "type": "string",
+              "value": "={{ $('Get invoice').item.json.from.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "734efbfd-4ff4-49c7-bd3b-74df3c455423",
+      "name": "Invoice data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -368,
+        400
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ac7c18ba-1944-4019-aa85-03d7751a7e1c",
+              "name": "html",
+              "type": "string",
+              "value": "={{ $('Get payment').item.json.html }}"
+            },
+            {
+              "id": "5eb54501-9c55-437d-9918-e5eff92e2229",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $('Get payment').item.json.subject }}"
+            },
+            {
+              "id": "87eebc48-0b95-46ae-b41b-b6540b1afaa9",
+              "name": "date",
+              "type": "string",
+              "value": "={{ $('Get payment').item.json.date }}"
+            },
+            {
+              "id": "c6b75367-239e-4e88-9e17-90ee75a064e2",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $('Get payment').item.json.text }} \\n {{ $json.text }}"
+            },
+            {
+              "id": "7d5b4b42-6b90-4ffe-ab8f-4288771d1302",
+              "name": "label",
+              "type": "string",
+              "value": "={{ $('Get payment').item.json.labelIds }}"
+            },
+            {
+              "id": "2c976be1-48b8-42fa-b1c9-2fd315da89ae",
+              "name": "from",
+              "type": "string",
+              "value": "={{ $('Get payment').item.json.from.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3058aa2-2273-438a-b513-03dee2d1d0a0",
+      "name": "Payment data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -368,
+        608
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 1,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "leftValue": "={{ $json.from }}",
+                    "rightValue": "service@pxbillrc01.cathaybk.com.tw"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Multiple payment info in one mail"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 1,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "47e3b84f-903c-4594-9297-785cfbea0316",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    },
+                    "leftValue": "={{ $json.from }}",
+                    "rightValue": "\\b(?:noreply@messaging\\.hsbc\\.com\\.tw|hello@crypto\\.com|taipeifubon\\.com\\.tw)\\b"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "One payment info in one mail"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 1,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "db9d40f1-8fa4-4908-9010-985072b3f319",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notRegex"
+                    },
+                    "leftValue": "={{ $json.from }}",
+                    "rightValue": "\\b(?:noreply@messaging\\.hsbc\\.com\\.tw|hello@crypto\\.com|taipeifubon\\.com\\.tw)\\b"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Invoices"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9746dfed-6700-459e-a984-37f628fd59d7",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -112,
+        512
+      ],
+      "executeOnce": false,
+      "typeVersion": 3.1,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "model": "llama-3.2-11b-text-preview",
+        "options": {}
+      },
+      "id": "a378edbf-68ba-4f73-9b43-25330a819bab",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "position": [
+        912,
+        1152
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n \"title\": \"Transaction Record Schema\",\n \"description\": \"Schema for parsing transaction record emails, including date, service name, transaction details, amount, category, currency, and card.\",\n \"type\": \"object\",\n \"properties\": {\n \"date\": {\n \"type\": \"string\",\n \"description\": \"Transaction date, can refer to email date or transaction date in content. If multiple dates exist, use the earliest date. Format is 'YYYY-MM-DD hh:mm', e.g., '2024-09-02 10:12'.\",\n \"examples\": [\"2024-09-02 10:12\"]\n },\n \"service\": {\n \"type\": [\"string\", \"null\"],\n \"description\": \"Name of service or store, e.g., 'GOOGLE', 'Uber', etc.\",\n \"examples\": [\"GOOGLE\", \"Uber Eats\", \"Uber\", \"CLAUDE.AI\"]\n },\n \"details\": {\n \"type\": [\"string\", \"null\"],\n \"description\": \"Detailed transaction information, such as overseas purchase, online purchase, restaurant name, or consumption details. Can be empty or null if not available.\",\n \"examples\": [\"Uber: From Fuxing North Road to Minquan East Road\", \"Restaurant name\", null]\n },\n \"amount\": {\n \"type\": \"number\",\n \"description\": \"Transaction amount. For USD, keep two decimal places (e.g., 50.12); for TWD, use integers (e.g., 550).\",\n \"examples\": [50.12, 550]\n },\n \"category\": {\n \"type\": \"string\",\n \"description\": \"Transaction category\",\n \"enum\": [\"Food & Beverage\", \"Transportation\", \"Daily Necessities\", \"Housing\", \"Electronics\", \"Beauty & Hair\", \"Clothing & Accessories\", \"Healthcare\", \"Pets\", \"Education\", \"Entertainment\", \"Cloud Services\", \"Automotive\", \"Gifts\", \"Family Support\", \"Counseling\", \"Insurance\", \"Taxes\", \"Transfer Fee\", \"Music\", \"Fitness\", \"Travel\", \"Lending\", \"Donations\", \"Advertising\", \"Finance\"],\n \"examples\": [\"Food & Beverage\", \"Transportation\"]\n },\n \"currency\": {\n \"type\": \"string\",\n \"description\": \"Currency code used for the transaction, if amount starts with NT$, currency is TWD.\",\n \"enum\": [\"TWD\", \"USD\", \"JPY\", \"EUR\", \"SGD\"],\n \"examples\": [\"USD\", \"TWD\"]\n }\n },\n \"required\": [\"date\", \"amount\", \"category\", \"currency\"]\n}"
+      },
+      "id": "a9f1b632-94e1-4407-821c-e6e641473992",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        1120,
+        1152
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1ccwhQeUSUkINccAucC6_clRyNF5Mw4IjIxAtcH4ftIs/edit?gid=370005862#gid=370005862"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 2071031170,
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ccwhQeUSUkINccAucC6_clRyNF5Mw4IjIxAtcH4ftIs/edit#gid=2071031170",
+          "cachedResultName": "raw data 2"
+        },
+        "columns": {
+          "value": {
+            "date": "={{ $json.output.date }}",
+            "amount": "={{ $json.output.amount }}",
+            "source": "n8n",
+            "details": "={{ $json.output.details }}",
+            "payment": "=",
+            "service": "={{ $json.output.service }}",
+            "category": "={{ $json.output.category }}",
+            "currency": "={{ $json.output.currency }}"
+          },
+          "schema": [
+            {
+              "id": "date",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "service",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "details",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "amount",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "category",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "currency",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "payment",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "source",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "d8bf16ed-4a54-4e5f-96fa-af0ae6261a71",
+      "name": "Send1",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1344,
+        928
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.5
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Email Date: {{ $json.email_date }}\nEmail Subject: {{ $json.email_subject }}\nEmail Content:\n{{ $json.email_content }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Please analyze the following email to extract transaction details for bookkeeping purposes.\n\nPlease extract relevant transaction details such as transaction date, amount, merchant name, and any other pertinent information, and provide them in a structured format suitable for accounting records."
+            }
+          ]
+        }
+      },
+      "id": "8b5cf0fe-1b24-4554-aa4b-40ca64eb51e0",
+      "name": "Extract details1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        912,
+        928
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.4
+    },
+    {
+      "parameters": {},
+      "id": "dddaeac1-d0bf-446a-a207-632d3eac38c5",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        656,
+        464
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Email Date: {{ $json.email_date }}\nEmail Subject: {{ $json.email_subject }}\nEmail Content:\n{{ $json.email_content }}\nEmail Source: {{ $json.email_type }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Please analyze the following email to extract transaction details for bookkeeping purposes. The \"Email Source\" field indicates the origin of the email, where 0 represents Cathay Bank card statements and 1 represents other credit card statements.\n\nPlease extract relevant transaction details such as transaction date, amount, merchant name, and any other pertinent information, and provide them in a structured format suitable for accounting records."
+            }
+          ]
+        }
+      },
+      "id": "db0f61b6-b345-4fa8-8d9c-b0bbd5bd4bc9",
+      "name": "Extract details",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        912,
+        512
+      ],
+      "retryOnFail": true,
+      "typeVersion": 1.4
+    },
+    {
+      "parameters": {
+        "content": "# A. Get data\n- Set up labels in Gmail\n- Suggested using Gmail filters to move emails to labels automatically",
+        "height": 560,
+        "width": 720
+      },
+      "id": "d81af0af-68ee-4884-8bfc-f5dd08ab9a54",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -912,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# B. Deal with the data\n1. Multiple payment info in one mail: input the \"sender\" of the emails that contain more than one payment info. e.g. credit card daily spend notification\n2. One payment info in one mail: input the \"sender\" of the emails that contain only one payment info. e.g. instant credit card spend notification\n3. Invoices: input the mails that contain one invoice in one mail",
+        "height": 960,
+        "width": 920
+      },
+      "id": "900b6a00-4de0-4f76-894b-71d3d5af75f5",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# C. Get spend details and send to google sheet\n- Edit the output schema to fit your google sheet format\n- Edit the prompt to fit your needs",
+        "height": 980,
+        "width": 840
+      },
+      "id": "b2f1d1f2-a2a3-489f-adf2-27460ad3637c",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        832,
+        352
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Extract details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set data 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set data 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Set data 0",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set data 0": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set data 1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Set data 2": {
+      "main": [
+        [
+          {
+            "node": "Extract details1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get invoice": {
+      "main": [
+        [
+          {
+            "node": "Extract invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get payment": {
+      "main": [
+        [
+          {
+            "node": "Extract payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice data": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment data": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract details": {
+      "main": [
+        [
+          {
+            "node": "Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract payment": {
+      "main": [
+        [
+          {
+            "node": "Payment data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract details1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract details1": {
+      "main": [
+        [
+          {
+            "node": "Send1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Extract details1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract details",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Extract details",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "38f14bee-08bb-4271-a021-093fe7f1f264",
+  "meta": {
+    "instanceId": "edc6b29440a8527b40ab7b686d557a3f22ba638eac75ae01f4cebc40fffb5604"
+  },
+  "id": "NfZhzNaR8E8LGIwF",
+  "tags": []
+}

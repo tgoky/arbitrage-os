@@ -1327,7 +1327,7 @@ const handleOptimizeEmail = async (
               >
                 Optimize Personalization
               </Button>
-              <Button
+              {/* <Button
                 onClick={() => {
                   console.log(`Optimizing main email ${index} for value`);
                   handleOptimizeEmail(
@@ -1340,7 +1340,7 @@ const handleOptimizeEmail = async (
                 disabled={loading}
               >
                 Optimize Value
-              </Button>
+              </Button> */}
               <Button
                 icon={<DownloadOutlined />}
                 onClick={() => {
@@ -1457,7 +1457,7 @@ const handleOptimizeEmail = async (
                             >
                               Optimize Personalization
                             </Button>
-                            <Button
+                            {/* <Button
                               onClick={() => {
                                 console.log(`Optimizing follow-up ${followUpKey} for value`);
                                 handleOptimizeEmail(
@@ -1470,7 +1470,7 @@ const handleOptimizeEmail = async (
                               disabled={loading}
                             >
                               Optimize Value
-                            </Button>
+                            </Button> */}
                             <Button
                               icon={<DownloadOutlined />}
                               onClick={() => {

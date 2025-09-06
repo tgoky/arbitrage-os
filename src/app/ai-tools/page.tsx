@@ -554,7 +554,7 @@ cover={
             onClick={(e) => selectedTool && handleTryTool(e, selectedTool)}
             icon={selectedTool?.affiliateStatus?.includes('Active') ? <LinkOutlined /> : <RocketOutlined />}
           >
-            {selectedTool?.affiliateStatus?.includes('Active') ? 'Get Affiliate Link' : 'Visit Website'}
+            {selectedTool?.affiliateStatus?.includes('Active') ? 'Get Link' : 'Visit Website'}
           </Button>
         ]}
         width={700}
