@@ -17,6 +17,7 @@ import {
   ReloadOutlined,
     LeftOutlined,
   RightOutlined,
+  ArrowLeftOutlined
 
 } from '@ant-design/icons';
 import { 
@@ -48,8 +49,11 @@ import LoadingOverlay from './LoadingOverlay';
 import { AD_LENGTH_CONFIGS } from '@/types/adWriter';
 import {SavedAdsHistory} from './savedAds'
 
+import {  useRouter } from 'next/navigation';
 
 import { motion, AnimatePresence } from "framer-motion";
+
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 interface FormData {
   businessName?: string;
@@ -172,6 +176,8 @@ const AdWriter = () => {
   const [originalFormData, setOriginalFormData] = useState<AdWriterInput | null>(null);
   const [regeneratingPlatforms, setRegeneratingPlatforms] = useState<Set<string>>(new Set());
   const [generatingAds, setGeneratingAds] = useState(false);
+       const router = useRouter();
+          const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
 
   
   // ✅ NEW: Store all form data across steps
@@ -408,6 +414,11 @@ const handleOptimizeAd = async (adCopy: string, optimizationType: string) => {
     return null;
   }
 };
+
+ const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
 
   // Regenerate specific platform ads
  const handleRegeneratePlatform = async (platform: string) => {
@@ -1230,6 +1241,13 @@ const downloadAds = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
         <LoadingOverlay visible={loading} />
+                    <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+
+>
+  Back
+</Button>
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
         

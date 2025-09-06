@@ -12,6 +12,7 @@ import {
   SyncOutlined,
   UserOutlined,
   PhoneOutlined,
+  ArrowLeftOutlined,
   FileSearchOutlined,
   EyeOutlined,
   DownloadOutlined,
@@ -49,7 +50,7 @@ import { NewCallModal } from '../callmodel';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 import type { ColumnsType } from 'antd/es/table';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
-
+import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -78,6 +79,8 @@ export default function SalesCallAnalyzerPage() {
   const [searchText, setSearchText] = useState('');
   const [analyses, setAnalyses] = useState<CallRecord[]>([]);
     const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+        const router = useRouter();
+    
   const go = useGo();
 
  const {
@@ -227,6 +230,11 @@ export default function SalesCallAnalyzerPage() {
       default: return 'blue';
     }
   };
+
+     const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
 
   // Calculate statistics for the dashboard
   const getStats = () => {
@@ -411,6 +419,15 @@ export default function SalesCallAnalyzerPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
        <Spin spinning={loading} tip="Loading analysis data...">
+
+               <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
+        
       <div className="flex justify-between items-center mb-6">
         <div>
           <Title level={3} className="mb-1"> <span style={{ color: '#5CC49D' }}>a</span>rb

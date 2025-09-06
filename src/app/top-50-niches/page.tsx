@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { SearchOutlined } from '@ant-design/icons';
-import { Input, Table, Typography } from 'antd';
+import { SearchOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Input, Table, Typography, Button } from 'antd';
+import { useRouter } from 'next/navigation';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text } = Typography;
+
 
 interface Niche {
   key: number;
@@ -32,6 +35,8 @@ const TAG_COLORS = [
 
 const NichesPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
+      const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+        const router = useRouter();
   
   const niches: Niche[] = [
     {
@@ -605,6 +610,11 @@ const NichesPage: React.FC = () => {
     );
   };
 
+     const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
+
  const renderCompanies = (companies: string[]) => {
   return (
     <div className="flex flex-col gap-1 min-w-[120px]">
@@ -683,7 +693,15 @@ const NichesPage: React.FC = () => {
 return (
   <div className="max-w-7xl mx-auto px-4 py-8">
     {/* Centered Header Section */}
+             <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
     <div className="mb-8 text-center">
+   
       <Title level={2} className="mb-2">Top 50 Profitable Niches</Title>
       <Text type="secondary" className="text-lg block mb-4">
         Discover high-potential industries with detailed metrics on revenue potential, market size, and growth rates.

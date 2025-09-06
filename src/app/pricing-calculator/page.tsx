@@ -16,7 +16,7 @@ import {
   BookOutlined,
   FileTextOutlined,
   EyeOutlined, 
-
+ArrowLeftOutlined,
   DeleteOutlined, 
     BarChartOutlined,
   ContainerOutlined,
@@ -69,6 +69,7 @@ import {
 
 import LoadingOverlay from './LoadingOverlay'; 
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+import { useRouter } from 'next/navigation';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -84,6 +85,8 @@ const PricingCalculator = () => {
   const [currentPackage, setCurrentPackage] = useState<GeneratedPricingPackage | null>(null);
   const [savedCalculationId, setSavedCalculationId] = useState<string | null>(null);
    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+     const router = useRouter();
+
   
   // Hooks
   const { generatePricing, quickCalculate, generating } = usePricingCalculator();
@@ -172,6 +175,9 @@ const {
   }
 
 
+   const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
 
 
 
@@ -441,6 +447,13 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
     <div className="max-w-7xl mx-auto px-4 py-8">
       
            <LoadingOverlay visible={isGenerating} />
+                   <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <CalculatorOutlined className="mr-2 text-blue-600" />

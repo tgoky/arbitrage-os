@@ -30,6 +30,7 @@ import {
   BulbOutlined,
   SearchOutlined,
   UserOutlined,
+  ArrowLeftOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
   BugOutlined,
@@ -39,6 +40,11 @@ import {
   StarOutlined,
   FireOutlined
 } from '@ant-design/icons';
+
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+
+import { useRouter } from 'next/navigation';
+
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -65,7 +71,9 @@ export default function FeedbackPage() {
   const [messengerReady, setMessengerReady] = useState(false);
   const { theme: appTheme } = useTheme();
   const { data: identity, isLoading } = useGetIdentity<UserIdentity>();
-  
+      const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+       const router = useRouter();
+
   const { token } = theme.useToken();
 
   // Initialize widgets when component mounts - KEEPING ORIGINAL LOGIC INTACT
@@ -231,6 +239,12 @@ export default function FeedbackPage() {
     }
   ];
 
+
+     const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
+
   const filterOptions = [
     { 
       value: 'all', 
@@ -259,7 +273,17 @@ export default function FeedbackPage() {
   ];
 
   return (
+    <div>
+        <Button style={{ left: 15}} 
+        icon={<ArrowLeftOutlined />} 
+        onClick={handleBack}
+      // negative margin top
+      >
+        Back
+      </Button>
+      
     <Layout style={{ minHeight: '100vh', background: appTheme === 'dark' ? '#000000' : '#f5f5f5' }}>
+        
       <Head>
         <title>Feedback & Feature Requests | Your App</title>
         <meta name="description" content="Share your feedback and feature requests to help us improve our product." />
@@ -607,5 +631,6 @@ export default function FeedbackPage() {
         </div>
       </Content>
     </Layout>
+    </div>
   );
 }

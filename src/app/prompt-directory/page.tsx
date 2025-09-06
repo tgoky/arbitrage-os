@@ -10,10 +10,12 @@ import {
   TagsOutlined,
   FireOutlined,
   HeartOutlined,
+  ArrowLeftOutlined,
   HeartFilled
 } from '@ant-design/icons'
 import { Input, Card, Button, Typography, Tag, Divider, Space, Row, Col, Select, Tabs } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useRouter } from 'next/navigation';
 
 // Import Markdown files as strings (updated path to './prompt-libraries/json/')
 import md1 from './jsons/1-brand-storytelling-about-page.md';
@@ -66,6 +68,8 @@ import md46 from './jsons/46-sales-script-gen.md';
 
 
 import { useFavorites } from '../hooks/useFavorites';
+
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 
 const { Title, Text } = Typography;
@@ -772,6 +776,8 @@ const PromptCard = ({
     });
   };
 
+       const router = useRouter();
+
   const handleDownload = () => {
     if (prompt.markdown) {
       const blob = new Blob([prompt.markdown], { type: 'text/markdown' });
@@ -947,6 +953,8 @@ const PromptCard = ({
   );
 };
 
+
+
 const PromptDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -956,7 +964,9 @@ const PromptDirectory = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
     const { favorites, toggleFavorite, isFavorite, loading, user } = useFavorites();
-  
+   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+    
+       const router = useRouter();
 
   const popularTags = useMemo(() => calculateTagCounts(promptTemplates), []);
 
@@ -997,10 +1007,23 @@ const sortedPrompts = [...filteredPrompts].sort((a, b) => {
 });
 
 
+   const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
 
 return (
   <div className="max-w-7xl mx-auto px-4 py-8">
+                 <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
     <div className="text-center mb-8">
+      
+  
+
       <Title level={2} className="flex items-center justify-center">
         <FireOutlined className="mr-2" />
          <span style={{ color: '#5CC49D' }}>a</span>rb

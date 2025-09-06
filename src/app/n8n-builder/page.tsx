@@ -15,6 +15,7 @@ import {
   DownloadOutlined,
   EyeOutlined,
   EditOutlined,
+  ArrowLeftOutlined,
   DeleteOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
@@ -49,7 +50,8 @@ import {
 // import { useRouter } from "next/navigation";
 import { useParsed } from "@refinedev/core";
 import { useSearchParams } from "next/navigation";
-
+import { useRouter } from 'next/navigation';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
 
@@ -67,6 +69,9 @@ const N8nWorkflowCreator = () => {
   const [form] = Form.useForm();
   const [activeStep, setActiveStep] = useState(0);
   const { params, id } = useParsed();
+    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+
+      const router = useRouter();
 
   const searchParams = useSearchParams();
   // const [workflowName, setWorkflowName] = useState('');
@@ -320,6 +325,10 @@ try {
 };
 
 
+
+    const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
 
 
   const handleViewWorkflow = async (workflowId: string) => {
@@ -725,8 +734,19 @@ try {
   // Main Create Workflow Component
 const CreateWorkflow = () => (
   <div>
+    <div style={{padding: 9}}>
+     <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
+</div>
     <div className="text-center mb-8">
+           
       <Title level={2} className="flex items-center justify-center">
+   
         <ThunderboltOutlined className="mr-2" />
         <span style={{ color: '#5CC49D' }}>a</span>rb
   <span style={{ color: '#5CC49D' }}>i</span>trageOS  n8n Workflow Creator

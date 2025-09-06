@@ -15,6 +15,7 @@ import {
   BarChartOutlined,
   CalendarOutlined,
   TagOutlined,
+  ArrowLeftOutlined,
   EyeOutlined,
   DownloadOutlined,
   DeleteOutlined,
@@ -48,6 +49,8 @@ import {
 } from 'antd';
 import { useParsed } from "@refinedev/core";
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext'; // Add workspace context
+import { useRouter } from 'next/navigation';
+
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -91,6 +94,7 @@ const IntegratedWorkDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [error, setError] = useState<string | null>(null);
+      const router = useRouter();
 
   // Unified data fetching function with workspace context
   const fetchAllWorkItems = async () => {
@@ -464,6 +468,11 @@ const handleAction = async (action: string, item: WorkItem) => {
   }
 };
 
+   const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
+
   // Create action menu
   const createActionMenu = (item: WorkItem) => (
     <Menu onClick={({ key }) => handleAction(key, item)}>
@@ -472,31 +481,31 @@ const handleAction = async (action: string, item: WorkItem) => {
           View Details
         </Menu.Item>
       )} 
-      {item.actions.includes('edit') && (
+      {/* {item.actions.includes('edit') && (
         <Menu.Item key="edit" icon={<EditOutlined />}>
           Edit
         </Menu.Item>
-      )}
+      )} */}
       {item.actions.includes('export') && (
         <Menu.Item key="export" icon={<DownloadOutlined />}>
           Export
         </Menu.Item>
       )}
-      {item.actions.includes('copy') && (
+      {/* {item.actions.includes('copy') && (
         <Menu.Item key="copy" icon={<ShareAltOutlined />}>
           Copy to Clipboard
         </Menu.Item>
-      )}
-      {item.actions.includes('duplicate') && (
+      )} */}
+      {/* {item.actions.includes('duplicate') && (
         <Menu.Item key="duplicate" icon={<ShareAltOutlined />}>
           Duplicate
         </Menu.Item>
-      )}
-      {item.actions.includes('optimize') && (
+      )} */}
+      {/* {item.actions.includes('optimize') && (
         <Menu.Item key="optimize" icon={<BarChartOutlined />}>
           Optimize
         </Menu.Item>
-      )}
+      )} */}
       <Menu.Divider />
       <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
         Delete
@@ -568,6 +577,14 @@ const handleAction = async (action: string, item: WorkItem) => {
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh' }}>
+
+               <Button style={{top: -4}}
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
       {/* Header with workspace context */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>

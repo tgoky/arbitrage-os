@@ -19,6 +19,7 @@ import {
   SettingOutlined,
   GlobalOutlined,
   DeleteOutlined,
+  ArrowLeftOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import {
@@ -62,6 +63,7 @@ import {
 } from "../hooks/useOfferCreator";
 
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+import { useRouter } from 'next/navigation';
 
 import {
   FounderInputs,
@@ -95,7 +97,7 @@ export default function OfferCreatorPage() {
  const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
 
  
-
+  const router = useRouter();
 
   // Hook implementations
  const { generateOffer, generating, error: generateError, getBusinessInsights,  } = useOfferCreator();
@@ -301,6 +303,11 @@ const hasValidOfferStructure = (offer: GeneratedOfferPackage | null): boolean =>
   );
 };
 
+   const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
+
  const handleInputChange = (
   section: "founder" | "market" | "business" | "pricing" | "voice",
   field: string,
@@ -490,6 +497,13 @@ const handleClearAll = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
         <LoadingOverlay visible={isLoading}    onComplete={() => setShowOverlay(false)}  />
+               <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <ThunderboltOutlined className="mr-2" />

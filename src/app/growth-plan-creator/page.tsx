@@ -27,6 +27,7 @@ import {
   FundOutlined,
   PieChartOutlined,
   BarChartOutlined,
+  ArrowLeftOutlined,
   AreaChartOutlined,
   FileTextOutlined,
   CrownOutlined,
@@ -78,6 +79,7 @@ import { GrowthPlanInput, SavedGrowthPlan, GrowthPlanSummary } from '@/types/gro
 import { debounce } from 'lodash';
 import LoadingOverlay from './LoadingOverlay';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -95,6 +97,8 @@ export default function GrowthPlanCreatorPage() {
   const [showSimulation, setShowSimulation] = useState(false);
 
     const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+
+        const router = useRouter();
 
     
   const [searchQuery, setSearchQuery] = useState('');
@@ -510,6 +514,12 @@ const onFinish = async (values: any) => {
       }
     }
   };
+
+
+    const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
 
   const handlePlanDelete = async (planId: string) => {
     Modal.confirm({
@@ -1286,6 +1296,13 @@ const renderPlanView = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
 
           <LoadingOverlay visible={isLoading} />
+                <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
 
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">

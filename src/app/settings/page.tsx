@@ -146,6 +146,10 @@ const WorkspaceSettings = () => {
     message.info('Image selected. Click "Save Changes" to upload and save.');
   };
 
+
+    const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
   // Remove logo
   const handleRemoveLogo = () => {
     setLogoFile(null);
@@ -191,7 +195,7 @@ const WorkspaceSettings = () => {
         <div className="flex items-center mb-6">
           <Button 
             icon={<ArrowLeftOutlined />} 
-            onClick={() => router.push(`/dashboard/${workspaceSlug}`)}
+            onClick={handleBack}
             type="text"
             className={`mr-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
           >

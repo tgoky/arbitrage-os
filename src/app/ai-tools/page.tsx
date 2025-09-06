@@ -17,7 +17,8 @@ import {
   PlusOutlined,
   CheckOutlined,
   ClockCircleOutlined,
-  LinkOutlined
+  LinkOutlined,
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import {
   Card,
@@ -40,6 +41,8 @@ import {
 } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
 import { AITool, aiTools } from './aitoolbank/aitoolbanks';
+import {  useRouter } from 'next/navigation';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -56,6 +59,9 @@ const AIToolsDashboard = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedTool, setSelectedTool] = useState<AITool | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+        const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+
+      const router = useRouter();
 
   // Extract unique categories and subcategories
   const categories = aiTools
@@ -112,6 +118,11 @@ const getAffiliateStatusColor = (status: string) => {
   return 'green';
 };
 
+ const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
+
   const toggleFavorite = (toolId: string) => {
     const newFavorites = new Set(favorites);
     if (newFavorites.has(toolId)) {
@@ -143,6 +154,13 @@ const getAffiliateStatusColor = (status: string) => {
       padding: 24,
       minHeight: '100vh'
     }}>
+                     <Button  style={{top: -7}}
+        icon={<ArrowLeftOutlined />} 
+        onClick={handleBack}
+      
+      >
+        Back
+      </Button>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <Space align="center" size="middle">

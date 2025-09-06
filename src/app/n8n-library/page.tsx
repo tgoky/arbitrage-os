@@ -8,6 +8,7 @@ import {
   ThunderboltOutlined,
   FilterOutlined,
   TagsOutlined,
+  ArrowLeftOutlined,
   FireOutlined
 } from '@ant-design/icons';
 import { 
@@ -27,6 +28,7 @@ import {
 } from 'antd';
 import { useNavigation } from '@refinedev/core';
 import { useRouter } from 'next/navigation';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -75,6 +77,10 @@ interface WorkflowTemplate {
   integrations: string[];
   jsonTemplate: object;
 }
+
+
+      
+
 
 const workflowTemplates = [
   {
@@ -350,23 +356,36 @@ const popularTags = [
   { name: "Data Processing", count: 11 }
 ];
 
+
+   
+
 const N8nWorkflowLibrary = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('popular');
   const { show } = useNavigation();
-  const router = useRouter();
+    const router = useRouter();
+
+      const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
 
   const filteredWorkflows = workflowTemplates.filter(workflow => {
     const matchesSearch = 
       workflow.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
       workflow.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+
+
     
     const matchesTags = selectedTags.length === 0 || 
       selectedTags.every(tag => workflow.tags.includes(tag));
     
     return matchesSearch && matchesTags;
   });
+
+   const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
 
   const sortedWorkflows = [...filteredWorkflows].sort((a, b) => {
     if (sortBy === 'popular') return b.downloads - a.downloads;
@@ -390,8 +409,16 @@ const N8nWorkflowLibrary = () => {
   
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+       <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={handleBack}
+          // negative margin top
+          >
+            Back
+          </Button>
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
+           
           <ThunderboltOutlined className="mr-2" />
        <span style={{ color: '#5CC49D' }}>a</span>rb
   <span style={{ color: '#5CC49D' }}>i</span>trageOS n8n Workflow Library

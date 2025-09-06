@@ -42,6 +42,7 @@ RiseOutlined,
   DeleteOutlined,
   ReloadOutlined,
   RocketOutlined,
+  ArrowLeftOutlined,
   TagOutlined,
   BarChartOutlined,
   CustomerServiceOutlined,
@@ -56,6 +57,7 @@ import LoadingOverlay from './LoadingOverlay';
 const { TabPane } = Tabs;
 
 import {SavedNicheHistory} from '../niche-researcher/SavedNicheHistory'
+import { useRouter } from 'next/navigation';
 
 interface FormValues {
   // Business & Strategic Goals
@@ -123,7 +125,8 @@ const NicheResearcher = () => {
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({});
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
-
+  
+  const router = useRouter();
 
   const [multiNicheReport, setMultiNicheReport] = useState<MultiNicheReport | null>(null);
 const [selectedNicheTab, setSelectedNicheTab] = useState(0);
@@ -175,6 +178,12 @@ const [selectedNicheTab, setSelectedNicheTab] = useState(0);
     'Trends Data', 'Search Volumes', 'Competitor Mapping', 'Funding Data',
     'Market Reports', 'Customer Surveys', 'Industry Analysis'
   ];
+
+      const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
+
 
   // Save form data function
   const saveCurrentStepData = () => {
@@ -1456,6 +1465,13 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
         <LoadingOverlay visible={isLoading} />
+            <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
           <UserOutlined className="mr-2" />
