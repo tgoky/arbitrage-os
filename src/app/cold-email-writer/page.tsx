@@ -15,7 +15,8 @@ import {
   TeamOutlined,
   WarningOutlined,
   EyeOutlined,
-  SelectOutlined
+  SelectOutlined,
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -47,6 +48,8 @@ import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput, ColdEmailOptim
 import LoadingOverlay from './LoadingOverlay';
 import { createClient } from '../../utils/supabase/client'; 
 
+import { useParams, useRouter } from 'next/navigation';
+
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text } = Typography;
@@ -61,6 +64,8 @@ const ColdEmailWriter = () => {
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+    //  const params = useParams();
+     const router = useRouter();
   
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
  const [optimizedEmails, setOptimizedEmails] = useState<{[key: string]: GeneratedEmail}>({});
@@ -574,6 +579,10 @@ const handleOptimizeEmail = async (
     }
   };
 
+   const handleBack = () => {
+    router.push(`/dashboard/${currentWorkspace?.slug}`);
+  };
+
   const handleApplyTemplate = (template: EmailTemplate) => {
     setEmailMethod(template.method);
     form.setFieldsValue({
@@ -673,7 +682,15 @@ const handleOptimizeEmail = async (
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
            <LoadingOverlay visible={loading} />
+            <Button 
+  icon={<ArrowLeftOutlined />} 
+  onClick={handleBack}
+// negative margin top
+>
+  Back
+</Button>
       <div className="text-center mb-8">
+         
         <Title level={2} className="flex items-center justify-center">
           <MailOutlined className="mr-2" />
           <span style={{ color: '#5CC49D' }}>a</span>rb
@@ -739,21 +756,21 @@ const handleOptimizeEmail = async (
                 rules={[{ required: true, message: 'Please input your name!' }]}
                 tooltip="This personalizes your email signature"
               >
-                <Input prefix={<UserOutlined />} placeholder="Jake" />
+                <Input prefix={<UserOutlined />} placeholder="Your First Name" />
               </Form.Item>
               <Form.Item
                 name="lastName"
                 label="Your Last Name"
                 rules={[{ required: true, message: 'Please input your last name!' }]}
               >
-                <Input placeholder="Smith" />
+                <Input placeholder="Your Last Name" />
               </Form.Item>
               <Form.Item
                 name="email"
                 label="Your Email"
                 rules={[{ required: true, message: 'Please input your email!' }]}
               >
-                <Input prefix={<MailOutlined />} placeholder="jake@marinmedia.me" />
+                <Input prefix={<MailOutlined />} placeholder="your email here" />
               </Form.Item>
               <Form.Item
                 name="jobTitle"
@@ -767,7 +784,7 @@ const handleOptimizeEmail = async (
                 label="Your Company's Name"
                 rules={[{ required: true, message: 'Please input your company name!' }]}
               >
-                <Input placeholder="Marin Media" />
+                <Input placeholder="Your company" />
               </Form.Item>
               <Form.Item
                 name="workEmail"

@@ -220,6 +220,11 @@ export default function OfferCreatorDetailPage() {
     message.success(`Exported as ${format.toUpperCase()}`);
   };
 
+   const handleBack = () => {
+    router.push(`/submissions`);
+  };
+
+
   const generateHTMLExport = (data: OfferData): string => {
     return `
       <!DOCTYPE html>
@@ -277,7 +282,7 @@ export default function OfferCreatorDetailPage() {
           showIcon
           action={
             <Space>
-             <Button onClick={() => router.replace("/submissions")}>
+             <Button  onClick={handleBack}>
   Back to Dashboard
 </Button>
               <Button type="primary" onClick={fetchOfferDetails}>
@@ -299,7 +304,7 @@ export default function OfferCreatorDetailPage() {
       <div className="mb-8">
           <Button 
               icon={<ArrowLeftOutlined />}
-              onClick={() => router.push(`/dashboard/${workspace}`)}
+             onClick={handleBack}
               className="back-button"
               size="large"
             >
@@ -320,15 +325,15 @@ export default function OfferCreatorDetailPage() {
           </div>
           
           <Space size="middle" className="flex-wrap">
-            <Button 
+            {/* <Button 
               icon={<EyeOutlined />} 
               onClick={() => setPreviewVisible(true)}
               className="preview-button"
               size="middle"
             >
               Preview
-            </Button>
-            <Button 
+            </Button> */}
+            {/* <Button 
               icon={<EditOutlined />} 
               onClick={handleEdit}
               type="primary"
@@ -336,7 +341,7 @@ export default function OfferCreatorDetailPage() {
               size="middle"
             >
               Edit Offer
-            </Button>
+            </Button> */}
             <Tooltip title="Copy JSON to clipboard">
               <Button 
                 icon={<CopyOutlined />} 

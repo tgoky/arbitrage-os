@@ -450,6 +450,11 @@ const GrowthPlanDetailPage = () => {
     }
   };
 
+    const handleBack = () => {
+    router.push(`/submissions`);
+  };
+
+
   const renderSafeBarChart = (data: any[]) => {
     try {
       const sanitizedData = sanitizeChartData(data);
@@ -529,26 +534,26 @@ const GrowthPlanDetailPage = () => {
       <div className="flex items-center justify-between mb-6">
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => router.push(`/dashboard/${currentWorkspace?.slug}/work`)}
+         onClick={handleBack}
         >
           Back to Work
         </Button>
 
         <Space>
-          <Button
+          {/* <Button
             icon={<EditOutlined />}
             onClick={navigateToEditor}
           >
             Edit & Regenerate
-          </Button>
-          <Button
+          </Button> */}
+          {/* <Button
             type="primary"
             icon={<DownloadOutlined />}
             loading={exportLoading}
             onClick={() => downloadPlan('markdown')}
           >
             Export
-          </Button>
+          </Button> */}
         </Space>
       </div>
 
@@ -866,7 +871,7 @@ const GrowthPlanDetailPage = () => {
         >
           Export Plan
         </Button>
-        <Button
+        {/* <Button
           icon={<ShareAltOutlined />}
           onClick={() => {
             copyToClipboard(`${window.location.origin}/dashboard/${currentWorkspace?.slug}/growth-plans/${planId}`);
@@ -875,15 +880,15 @@ const GrowthPlanDetailPage = () => {
           size="large"
         >
           Share Link
-        </Button>
-        <Button
+        </Button> */}
+        {/* <Button
           icon={<ReloadOutlined />}
           loading={regenerating}
           onClick={handleRegenerate}
           size="large"
         >
           Regenerate
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

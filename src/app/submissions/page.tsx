@@ -55,7 +55,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 // Define proper types
-type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
+type WorkItemType =  'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
 type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
 
 // Unified work item interface
@@ -700,9 +700,13 @@ const handleAction = async (action: string, item: WorkItem) => {
             tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offers</Badge>} 
             key="offer-creator" 
           />
-          <Tabs.TabPane 
-  tab={<Badge count={getTabCount('ad-writer')} offset={[8, 0]}>Ads</Badge>} 
+           <Tabs.TabPane 
+  tab={<Badge count={getTabCount('ad-writer')} offset={[8, 0]}>Ad Writer</Badge>} 
   key="ad-writer" 
+/>
+<Tabs.TabPane 
+  tab={<Badge count={getTabCount('n8n-workflow')} offset={[8, 0]}>Workflows</Badge>} 
+  key="n8n-workflow" 
 />
         </Tabs>
 

@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 
 interface WorkItem {
   id: string;
-  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator';
+ type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
   title: string;
   subtitle: string;
   status: 'completed' | 'processing' | 'failed' | 'draft';
@@ -260,19 +260,24 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
         actions = ['view', 'copy', 'optimize', 'delete'];
         break;
 
-      case 'signature_offers':
-      case 'ad_writer':
-      case 'n8n_workflow':
-        workItemType = 'offer-creator';
-        if (deliverable.type === 'ad_writer') {
-          subtitle = `${metadata.platform || 'Multi-platform'} • ${metadata.adCount || 0} ads`;
-        } else if (deliverable.type === 'n8n_workflow') {
-          subtitle = `${metadata.triggerType || 'Webhook'} • ${metadata.integrationCount || 0} nodes`;
-        } else {
-          subtitle = `${metadata.targetMarket || 'Market'} • ${metadata.conversionScore || 0}% score`;
-        }
-        actions = ['view', 'export', 'optimize', 'delete'];
-        break;
+    case 'signature_offers':
+  workItemType = 'offer-creator';
+  subtitle = `${metadata.targetMarket || 'Market'} • ${metadata.conversionScore || 0}% score`;
+  actions = ['view', 'export', 'optimize', 'delete'];
+  break;
+
+// ✅ FIXED: Separate cases for ad_writer and n8n_workflow
+case 'ad_writer':
+  workItemType = 'ad-writer';
+  subtitle = `${metadata.platform || 'Multi-platform'} • ${metadata.adCount || 0} ads`;
+  actions = ['view', 'export', 'optimize', 'delete'];
+  break;
+
+case 'n8n_workflow':
+  workItemType = 'n8n-workflow';
+  subtitle = `${metadata.triggerType || 'Webhook'} • ${metadata.integrationCount || 0} nodes`;
+  actions = ['view', 'export', 'optimize', 'delete'];
+  break;
 
       default:
         console.warn('Unknown deliverable type:', deliverable.type);

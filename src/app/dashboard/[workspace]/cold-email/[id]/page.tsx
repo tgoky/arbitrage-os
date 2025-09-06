@@ -153,6 +153,11 @@ const ColdEmailDetailPage = () => {
     return methodMap[method] || method;
   };
 
+   const handleBack = () => {
+    router.push(`/submissions`);
+  };
+
+
   const navigateToEditor = () => {
     if (emailDetail) {
       router.push(`/dashboard/${currentWorkspace?.slug}/cold-email-writer?load=${generationId}`);
@@ -211,25 +216,25 @@ const ColdEmailDetailPage = () => {
       <div className="flex items-center justify-between mb-6">
         <Button 
           icon={<ArrowLeftOutlined />} 
-          onClick={() => router.push(`/dashboard/${currentWorkspace?.slug}/work`)}
+    onClick={handleBack}
         >
           Back to Work
         </Button>
         
         <Space>
-          <Button 
+          {/* <Button 
             icon={<EditOutlined />} 
             onClick={navigateToEditor}
           >
             Edit & Regenerate
-          </Button>
-          <Button 
+          </Button> */}
+          {/* <Button 
             type="primary" 
             icon={<ShareAltOutlined />}
             onClick={() => setPreviewModalVisible(true)}
           >
             Preview & Share
-          </Button>
+          </Button> */}
         </Space>
       </div>
 

@@ -332,6 +332,11 @@ const AdWriterDetailPage = () => {
     }
   };
 
+    const handleBack = () => {
+    router.push(`/submissions`);
+  };
+
+
   const getPlatformDisplayName = (platform: string) => {
     const platformMap: Record<string, string> = {
       'facebook': 'Facebook/Instagram',
@@ -396,18 +401,18 @@ const AdWriterDetailPage = () => {
       <div className="flex items-center justify-between mb-6">
         <Button 
           icon={<ArrowLeftOutlined />} 
-          onClick={() => router.push(`/dashboard/${currentWorkspace?.slug}/work`)}
+             onClick={handleBack}
         >
           Back to Work
         </Button>
         
         <Space>
-          <Button 
+          {/* <Button 
             icon={<EditOutlined />} 
             onClick={navigateToEditor}
           >
             Edit & Regenerate
-          </Button>
+          </Button> */}
           <Button 
             type="primary" 
             icon={<DownloadOutlined />}

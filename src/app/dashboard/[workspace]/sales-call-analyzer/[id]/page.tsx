@@ -170,8 +170,12 @@ const SalesCallAnalysisDetailPage = () => {
     }
   };
 
-  const handleBack = () => {
-    router.push(`/dashboard/${currentWorkspace?.slug}/sales-call-analyzer`);
+  // const handleBack = () => {
+  //   router.push(`/dashboard/${currentWorkspace?.slug}/sales-call-analyzer`);
+  // };
+
+    const handleBack = () => {
+    router.push(`/submissions`);
   };
 
   const handleEdit = () => {
@@ -268,6 +272,7 @@ const SalesCallAnalysisDetailPage = () => {
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Breadcrumb */}
+      
       <Breadcrumb style={{ marginBottom: '24px' }}>
         <Breadcrumb.Item>
           <a onClick={handleBack} style={{ cursor: 'pointer' }}>
@@ -276,6 +281,8 @@ const SalesCallAnalysisDetailPage = () => {
         </Breadcrumb.Item>
         <Breadcrumb.Item>Analysis Details</Breadcrumb.Item>
       </Breadcrumb>
+
+      
 
       {/* Header */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -287,29 +294,30 @@ const SalesCallAnalysisDetailPage = () => {
           <Text type="secondary">
             Analyzed on {new Date(createdAt || Date.now()).toLocaleDateString()} • {currentWorkspace?.name}
           </Text>
+          
         </div>
-        
-        <Space>
-          <Button 
+         <Button 
             icon={<ArrowLeftOutlined />} 
             onClick={handleBack}
           >
-            Back
+            Back to Submissions
           </Button>
-          <Button 
+        <Space>
+         
+          {/* <Button 
             icon={<EditOutlined />}
             onClick={handleEdit}
           >
             Edit
-          </Button>
-          <Button 
+          </Button> */}
+          {/* <Button 
             type="primary" 
             icon={<DownloadOutlined />}
             onClick={() => handleExport('detailed')}
             loading={exporting}
           >
             Export
-          </Button>
+          </Button> */}
         </Space>
       </div>
 

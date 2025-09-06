@@ -117,6 +117,13 @@ const NicheResearchDetailPage = () => {
     }
   };
 
+
+    const handleBack = () => {
+    router.push(`/submissions`);
+  };
+
+
+
   const copyToClipboard = async (text: string, context: string) => {
     setCopying(context);
     try {
@@ -785,17 +792,17 @@ const NicheResearchDetailPage = () => {
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(`/dashboard/${currentWorkspace?.slug}/work`)}>
+        <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
           Back to Work
         </Button>
 
         <Space>
-          <Button icon={<EditOutlined />} onClick={navigateToEditor}>
+          {/* <Button icon={<EditOutlined />} onClick={navigateToEditor}>
             Edit & Regenerate
-          </Button>
-          <Button type="primary" icon={<DownloadOutlined />} loading={exportLoading} onClick={() => downloadResearch('html')}>
+          </Button> */}
+          {/* <Button type="primary" icon={<DownloadOutlined />} loading={exportLoading} onClick={() => downloadResearch('html')}>
             Export
-          </Button>
+          </Button> */}
         </Space>
       </div>
 
