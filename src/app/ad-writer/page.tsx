@@ -1230,6 +1230,9 @@ const downloadAds = () => {
 >
   <LoadingAnimation />
 </Modal>
+  <Text type="secondary" className="block text-center mt-4">
+        * This content is AI-generated. Please always check for compliance with relevant advertising guidelines and regulations.
+      </Text>
           </div>
         );
         
