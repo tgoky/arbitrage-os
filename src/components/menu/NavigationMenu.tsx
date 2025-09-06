@@ -47,8 +47,8 @@ const menuGroups: MenuGroupConfig[] = [
         id: "compliance",
         label: "Client",
         icon: <ShieldCheckIcon className="h-4 w-4" />,
-        items: [ "Submissions", "Hiring_Portal"],
-        //commented out client profile
+        items: [ "Submissions", ],
+        //commented out client profile , hiring portal
       },
       {
         id: "tools",
