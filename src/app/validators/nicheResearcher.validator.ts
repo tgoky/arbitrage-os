@@ -13,10 +13,9 @@ const nicheResearchSchema = z.object({
   geographicFocus: z.enum(['local', 'regional', 'us-only', 'global']).optional(),
     targetArea: z.string().max(100, 'Target area is too long').optional(),
   
-  // Constraints & Resources - REQUIRED budget, others optional
-  budget: z.enum(['<10k', '10k-50k', '50k-250k', '250k+']),
+ budget: z.enum(['<10k', '10k-50k', '50k-250k', '250k+']),
+  skills: z.array(z.string()).min(1, 'Please select at least one skill').max(15, 'Please select no more than 15 skills'), // Made required
   teamSize: z.enum(['solo', 'small-team', 'established-team']).optional(),
-  skills: z.array(z.string()).max(15, 'Please select no more than 15 skills').optional(),
   timeCommitment: z.enum(['5-10', '10-20', '20-30', '30+']).optional(),
   
   // Market Directional Inputs - ALL OPTIONAL

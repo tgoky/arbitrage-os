@@ -505,13 +505,12 @@ const getRequiredFieldsForStep = (step: number): string[] => {
   switch (step) {
     case 0: return ['primaryObjective', 'riskAppetite'];
     case 1: return ['marketType', 'customerSize'];
-    case 2: return ['budget'];
+    case 2: return ['budget', 'skills']; // Added 'skills' here
     case 3: return [];
     case 4: return [];
     default: return [];
   }
 };
-
 
 
   const prevStep = () => {
@@ -1215,16 +1214,24 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
                 </Select>
               </Form.Item>
               
-              <Form.Item
-                name="skills"
-                label="What Your Team Can Do (Select all that apply)"
-              >
-                <Select
-                  mode="multiple"
-                  placeholder="Select skills available"
-                  options={skillOptions.map(skill => ({ value: skill, label: skill }))}
-                />
-              </Form.Item>
+         <Form.Item
+  name="skills"
+  label="What Your Team Can Do (Select all that apply)"
+  rules={[
+    { 
+      required: true, 
+      message: 'Please select at least one skill',
+      type: 'array',
+      min: 1
+    }
+  ]}
+>
+  <Select
+    mode="multiple"
+    placeholder="Select skills available"
+    options={skillOptions.map(skill => ({ value: skill, label: skill }))}
+  />
+</Form.Item>
               
               <Form.Item
                 name="timeCommitment"
