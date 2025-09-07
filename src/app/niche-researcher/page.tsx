@@ -650,19 +650,30 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
               <Text className="metric-value">{reportData.marketDemand?.marketSize}</Text>
             </div>
           </Col>
-          <Col span={8}>
-            <div className="metric-card">
-              <div className="metric-icon">
-                <RiseOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-              </div>
-              <Title level={5}>Trend Signal</Title>
-              <Tag color={reportData.marketDemand?.trend === 'growing' ? 'green' : 
-                        reportData.marketDemand?.trend === 'plateauing' ? 'orange' : 'red'}
-                   className="trend-tag">
-                {reportData.marketDemand?.trend?.toUpperCase()}
-              </Tag>
-            </div>
-          </Col>
+   <Col span={8}>
+  <div className="metric-card">
+    <div className="metric-icon">
+      <RiseOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+    </div>
+    <Title level={5}>Trend Signal</Title>
+    <Text className="metric-value">
+      <Tooltip 
+        title={reportData.marketDemand?.trend} 
+        placement="top"
+        overlayStyle={{ maxWidth: '300px', textAlign: 'center' }}
+      >
+        <Tag
+          color={reportData.marketDemand?.trend === 'growing' ? 'green' : 
+                 reportData.marketDemand?.trend === 'plateauing' ? 'orange' : 'red'}
+          className="trend-tag"
+        >
+          {reportData.marketDemand?.trend?.toUpperCase()}
+        </Tag>
+      </Tooltip>
+    </Text>
+  </div>
+</Col>
+
           <Col span={8}>
             <div className="metric-card">
               <div className="metric-icon">

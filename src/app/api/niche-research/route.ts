@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ RATE LIMITING - 3 reports per day
     console.log('🔍 Checking rate limits for user:', user.id);
-    const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 3, 86400); 
+    const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 20, 86400); 
     if (!rateLimitResult.success) {
       console.log('❌ Rate limit exceeded for user:', user.id);
       return NextResponse.json(

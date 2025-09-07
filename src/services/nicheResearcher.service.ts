@@ -64,7 +64,7 @@ export class NicheResearcherService {
   
   // Generate report using AI
   const response = await this.openRouterClient.complete({
-    model: 'openai/gpt-5-mini',
+    model: 'openai/gpt-4o',
     messages: [
       {
         role: 'system',
@@ -413,14 +413,56 @@ async exportNicheReport(reportId: string, format: 'html' | 'json' = 'html'): Pro
   }
 
 private buildNicheAnalysisPrompt(input: NicheResearchInput): string {
+    const skills = input.skills || ['Business Development', 'Marketing', 'Operations'];
+    const industries = input.industries || ['Technology', 'Healthcare', 'Professional Services'];
+    
     return `
-**GENERATE 3 DISTINCT SPECIFIC NICHE OPPORTUNITIES**
+**GENERATE 3 COMPLETELY DISTINCT NICHE OPPORTUNITIES WITH INDUSTRY-SPECIFIC DETAILS**
 
-Generate exactly 3 different, specific niche opportunities based on the following inputs. Each niche should be:
-1. Highly specific (not broad categories)
-2. Distinct from the other two
-3. Tailored to the client's exact profile
-4. Immediately actionable with clear next steps
+CRITICAL ENFORCEMENT: Each section of each niche MUST be customized for its specific skill-industry combination. Generic responses will be rejected.
+
+**FORCED DIVERSIFICATION WITH DETAILED CUSTOMIZATION:**
+
+NICHE 1 - ${skills[0]} + ${industries[0]} SERVICE:
+- Industry-Specific Pain Points: Problems unique to ${industries[0]} companies when dealing with ${skills[0]}
+- ${industries[0]}-Specific Competitors: Actual companies serving ${industries[0]} with ${skills[0]} solutions
+- ${industries[0]} Market Size: Real market data for ${skills[0]} services in ${industries[0]}
+- ${industries[0]} Customer Willingness to Pay: Pricing specific to ${industries[0]} ${input.customerSize} budgets
+- ${industries[0]} + ${skills[0]} Arbitrage: Unique opportunity combining these specifically
+
+NICHE 2 - ${skills[1]} + ${industries[1]} PRODUCT:
+- Industry-Specific Pain Points: Problems unique to ${industries[1]} organizations with ${skills[1]} challenges
+- ${industries[1]}-Specific Competitors: Actual products/platforms serving ${industries[1]} ${skills[1]} market
+- ${industries[1]} Market Size: Real market data for ${skills[1]} products in ${industries[1]}
+- ${industries[1]} Customer Willingness to Pay: SaaS/product pricing for ${industries[1]} ${input.customerSize}
+- ${industries[1]} + ${skills[1]} Arbitrage: Unique product opportunity in this specific intersection
+
+NICHE 3 - ${skills[2]}+${skills[0]} + ${industries[2]} CONSULTING:
+- Industry-Specific Pain Points: Problems unique to ${industries[2]} needing combined ${skills[2]}+${skills[0]} expertise
+- ${industries[2]}-Specific Competitors: Actual consultants serving ${industries[2]} with these skill combinations
+- ${industries[2]} Market Size: Real consulting market data for this skill combo in ${industries[2]}
+- ${industries[2]} Willingness to Pay: Consulting rates specific to ${industries[2]} ${input.customerSize}
+- Multi-skill Arbitrage: Unique opportunity from combining ${skills[2]} + ${skills[0]} for ${industries[2]}
+
+**MANDATORY INDUSTRY-SPECIFIC CUSTOMIZATION EXAMPLES:**
+
+For Healthcare + Marketing:
+- Pain Points: "HIPAA-compliant patient acquisition campaigns", "Referral network engagement"
+- Competitors: "PatientPop", "Solutionreach", "Kareo Marketing"
+- Market Size: "$4.6B healthcare marketing automation market"
+- Pricing: "Healthcare practices pay $300-2000/month for compliant marketing tools"
+
+For Technology + Sales:
+- Pain Points: "Complex B2B sales cycles", "Technical product demos", "Developer-focused lead gen"
+- Competitors: "Salesloft", "Outreach.io", "Gong for tech sales"
+- Market Size: "$8.1B sales enablement for technology companies"
+- Pricing: "Tech companies pay $100-500/user/month for sales tools"
+
+For Entertainment + SEO:
+- Pain Points: "Event discovery optimization", "Venue visibility", "Seasonal search patterns"
+- Competitors: "Eventbrite marketing", "Bandsintown promotion", "Songkick venue tools"
+- Market Size: "$2.3B entertainment digital marketing market"
+- Pricing: "Entertainment venues pay $500-5000/month for digital marketing"
 
 **CLIENT PROFILE:**
 Primary Objective: ${input.primaryObjective}
@@ -430,15 +472,12 @@ Target Customer Size: ${input.customerSize}
 Budget Available: ${input.budget}
 ${input.timeCommitment ? `Time Commitment: ${input.timeCommitment} hours/week` : ''}
 ${input.teamSize ? `Team Size: ${input.teamSize}` : ''}
-// Update this line:
 ${input.geographicFocus ? `Geographic Focus: ${input.geographicFocus}` : ''}
 ${input.targetArea ? `Target Area: ${input.targetArea}` : ''}
 
-**SKILLS & CAPABILITIES:**
-${input.skills && input.skills.length > 0 ? `Available Skills: ${input.skills.join(', ')}` : 'No specific skills provided'}
-
-**MARKET PREFERENCES:**
-${input.industries && input.industries.length > 0 ? `Industries of Interest: ${input.industries.join(', ')}` : ''}
+**AVAILABLE RESOURCES:**
+Skills Available: ${skills.join(', ')}
+Industries of Interest: ${industries.join(', ')}
 ${input.excludedIndustries && input.excludedIndustries.length > 0 ? `Excluded Industries: ${input.excludedIndustries.join(', ')}` : ''}
 ${input.problems ? `Observed Problems: ${input.problems}` : ''}
 ${input.monetizationPreference ? `Monetization Preference: ${input.monetizationPreference}` : ''}
@@ -449,328 +488,385 @@ ${input.validationData && input.validationData.length > 0 ? `Validation Data Pre
 ${input.competitionPreference ? `Competition Preference: ${input.competitionPreference}` : ''}
 ${input.scalabilityPreference ? `Scalability Preference: ${input.scalabilityPreference}` : ''}
 
-**REQUIRED JSON STRUCTURE:**
+**MANDATORY CUSTOMIZATION REQUIREMENTS:**
+
+MARKET DEMAND - MUST BE INDUSTRY-SPECIFIC:
+- Use real market size data for [SKILL] in [INDUSTRY] sector
+- Mention industry-specific growth drivers and trends
+- Reference actual industry reports or data sources when possible
+- Customize willingness to pay based on industry + customer size combination
+
+PAIN POINTS - MUST BE INDUSTRY + SKILL SPECIFIC:
+- NO generic business problems
+- Focus on problems specific to [INDUSTRY] companies struggling with [SKILL]
+- Include industry jargon and specific use cases
+- Reference actual challenges these industries face with this skill area
+
+COMPETITIVE LANDSCAPE - MUST INCLUDE REAL COMPANIES:
+- Name actual competitors serving [INDUSTRY] with [SKILL] solutions
+- Include industry-specific market leaders and disruptions
+- Analyze barriers specific to this industry-skill combination
+- Mention industry-specific regulations, standards, or requirements
+
+ARBITRAGE OPPORTUNITY - MUST BE CONTEXT-SPECIFIC:
+- Explain the unique intersection of [SKILL] + [INDUSTRY] + [BUSINESS MODEL]
+- Reference specific industry trends creating this opportunity
+- Mention why this combination is underserved in this specific context
+
+GTM STRATEGY - MUST BE INDUSTRY-TAILORED:
+- Use acquisition channels specific to reaching [INDUSTRY] decision-makers
+- Reference industry events, publications, or communities
+- Consider industry-specific sales cycles and decision processes
+
+RISK FACTORS - MUST BE INDUSTRY + SKILL SPECIFIC:
+- Include risks specific to this industry-skill combination
+- Mention industry-specific regulations, seasonality, or market dynamics
+- Consider technology disruptions specific to this niche
+
+**MANDATORY JSON STRUCTURE:**
 {
   "niches": [
     {
       "nicheOverview": {
-        "name": "Specific niche name #1",
-        "summary": "2-3 sentence overview of the niche opportunity",
-        "whyItFits": "Explanation of why this specific niche matches the client's profile"
+        "name": "MUST contain '${skills[0]}' and '${industries[0]}' - specific service name",
+        "summary": "Detailed summary explaining how ${skills[0]} specifically helps ${industries[0]} companies with their unique challenges",
+        "whyItFits": "Your ${skills[0]} background aligns with ${industries[0]} industry needs because..."
       },
       "marketDemand": {
-        "marketSize": "Market size estimate with currency",
-        "trend": "growing|plateauing|declining",
-        "willingnessToPay": "Price sensitivity and willingness to pay"
+        "marketSize": "Specific market size for ${skills[0]} services in ${industries[0]} industry with real data",
+        "trend": "growing|plateauing|declining based on actual ${industries[0]} industry trends",
+        "willingnessToPay": "${industries[0]} ${input.customerSize} companies typically budget $X-Y for ${skills[0]} services"
       },
       "painPoints": [
         {
-          "problem": "Specific customer problem",
+          "problem": "Specific ${skills[0]} challenge that ONLY ${industries[0]} companies face",
+          "intensity": "High|Medium|Low"
+        },
+        {
+          "problem": "Another ${industries[0]}-specific ${skills[0]} problem with industry jargon",
+          "intensity": "High|Medium|Low"
+        },
+        {
+          "problem": "Third ${industries[0]} + ${skills[0]} specific challenge",
           "intensity": "High|Medium|Low"
         }
       ],
       "competitiveLandscape": {
         "competitors": [
           {
-            "name": "Competitor name",
-            "description": "What they do and their positioning"
+            "name": "Actual company name serving ${industries[0]} with ${skills[0]}",
+            "description": "What they specifically do for ${industries[0]} market"
+          },
+          {
+            "name": "Second real competitor in ${industries[0]} + ${skills[0]} space",
+            "description": "Their specific approach to ${industries[0]} ${skills[0]} challenges"
           }
         ],
-        "gapAnalysis": "Market gaps and opportunities",
-        "barrierToEntry": "Low|Medium|High"
+        "gapAnalysis": "Specific gaps in ${skills[0]} solutions for ${industries[0]} market",
+        "barrierToEntry": "Barriers specific to entering ${industries[0]} with ${skills[0]} services"
       },
       "arbitrageOpportunity": {
-        "explanation": "The specific arbitrage or unfair advantage",
-        "concreteAngle": "Specific positioning or approach to exploit"
+        "explanation": "Why the intersection of ${skills[0]} + ${industries[0]} + service model creates unique value",
+        "concreteAngle": "Specific positioning for ${skills[0]} in ${industries[0]} context"
       },
       "entryOffers": [
         {
-          "positioning": "How to position the offer",
-          "businessModel": "Revenue model",
-          "pricePoint": "Suggested pricing"
+          "positioning": "How to position ${skills[0]} services specifically for ${industries[0]} market",
+          "businessModel": "Service-based model tailored to ${industries[0]} buying patterns",
+          "pricePoint": "Pricing that reflects ${industries[0]} ${input.customerSize} typical budgets"
         }
       ],
       "gtmStrategy": {
-        "primaryChannel": "Best go-to-market channel for this client",
-        "justification": "Why this channel fits their constraints and skills"
+        "primaryChannel": "Acquisition channel specific to reaching ${industries[0]} decision-makers",
+        "justification": "Why this channel works best for ${industries[0]} + fits your constraints"
       },
       "scalabilityExit": {
-        "scalabilityScore": "High|Medium|Low",
-        "exitPotential": "Exit opportunities and timeline"
+        "scalabilityScore": "High|Medium|Low based on ${industries[0]} market dynamics",
+        "exitPotential": "Exit opportunities specific to ${skills[0]} + ${industries[0]} combination"
       },
       "riskFactors": [
         {
-          "risk": "Potential risk",
+          "risk": "Risk specific to ${skills[0]} + ${industries[0]} combination",
+          "impact": "High|Medium|Low"
+        },
+        {
+          "risk": "Another ${industries[0]}-specific risk for ${skills[0]} providers",
           "impact": "High|Medium|Low"
         }
       ],
       "scorecard": {
-        "marketDemand": "High|Medium|Low",
-        "competition": "High|Medium|Low",
-        "easeOfEntry": "High|Medium|Low",
-        "profitability": "High|Medium|Low"
+        "marketDemand": "High|Medium|Low based on ${industries[0]} demand for ${skills[0]}",
+        "competition": "High|Medium|Low based on ${industries[0]} competitive landscape",
+        "easeOfEntry": "High|Medium|Low considering ${industries[0]} barriers",
+        "profitability": "High|Medium|Low based on ${industries[0]} pricing norms"
       }
     },
     {
       "nicheOverview": {
-        "name": "Specific niche name #2",
-        "summary": "2-3 sentence overview of the second distinct niche opportunity",
-        "whyItFits": "Explanation of why this specific niche matches the client's profile"
+        "name": "MUST contain '${skills[1]}' and '${industries[1]}' - specific product name",
+        "summary": "Product/Platform opportunity using ${skills[1]} for ${industries[1]} sector",
+        "whyItFits": "Explanation focusing on ${skills[1]} expertise in ${industries[1]}"
       },
       "marketDemand": {
-        "marketSize": "Market size estimate with currency",
+        "marketSize": "Real market data for ${skills[1]} products in ${industries[1]}",
         "trend": "growing|plateauing|declining",
-        "willingnessToPay": "Price sensitivity and willingness to pay"
+        "willingnessToPay": "${industries[1]} ${input.customerSize} SaaS/product pricing norms"
       },
       "painPoints": [
         {
-          "problem": "Specific customer problem",
+          "problem": "${industries[1]}-specific ${skills[1]} challenge requiring product solution",
+          "intensity": "High|Medium|Low"
+        },
+        {
+          "problem": "Another ${industries[1]} organization ${skills[1]} pain point",
+          "intensity": "High|Medium|Low"
+        },
+        {
+          "problem": "Third ${industries[1]} + ${skills[1]} product-solvable problem",
           "intensity": "High|Medium|Low"
         }
       ],
       "competitiveLandscape": {
         "competitors": [
           {
-            "name": "Competitor name",
-            "description": "What they do and their positioning"
+            "name": "Real product/platform serving ${industries[1]} ${skills[1]} market",
+            "description": "Their specific ${industries[1]} solution"
+          },
+          {
+            "name": "Another actual ${industries[1]} + ${skills[1]} product competitor",
+            "description": "Their approach to ${industries[1]} market"
           }
         ],
-        "gapAnalysis": "Market gaps and opportunities",
-        "barrierToEntry": "Low|Medium|High"
+        "gapAnalysis": "Product gaps in ${skills[1]} solutions for ${industries[1]}",
+        "barrierToEntry": "${industries[1]} product market entry barriers"
       },
       "arbitrageOpportunity": {
-        "explanation": "The specific arbitrage or unfair advantage",
-        "concreteAngle": "Specific positioning or approach to exploit"
+        "explanation": "Product opportunity at ${skills[1]} + ${industries[1]} intersection",
+        "concreteAngle": "Specific product positioning for ${industries[1]} market"
       },
       "entryOffers": [
         {
-          "positioning": "How to position the offer",
-          "businessModel": "Revenue model",
-          "pricePoint": "Suggested pricing"
+          "positioning": "Product positioning for ${industries[1]} ${skills[1]} market",
+          "businessModel": "Product/Platform/SaaS model for ${industries[1]}",
+          "pricePoint": "${industries[1]} SaaS pricing benchmarks"
         }
       ],
       "gtmStrategy": {
-        "primaryChannel": "Best go-to-market channel for this client",
-        "justification": "Why this channel fits their constraints and skills"
+        "primaryChannel": "${industries[1]} product distribution strategy",
+        "justification": "Why this works for ${industries[1]} product adoption"
       },
       "scalabilityExit": {
-        "scalabilityScore": "High|Medium|Low",
-        "exitPotential": "Exit opportunities and timeline"
+        "scalabilityScore": "High|Medium|Low for ${industries[1]} products",
+        "exitPotential": "${industries[1]} + ${skills[1]} product exit opportunities"
       },
       "riskFactors": [
         {
-          "risk": "Potential risk",
+          "risk": "${industries[1]} product development risks",
+          "impact": "High|Medium|Low"
+        },
+        {
+          "risk": "${industries[1]} market adoption challenges",
           "impact": "High|Medium|Low"
         }
       ],
       "scorecard": {
-        "marketDemand": "High|Medium|Low",
-        "competition": "High|Medium|Low",
-        "easeOfEntry": "High|Medium|Low",
-        "profitability": "High|Medium|Low"
+        "marketDemand": "High|Medium|Low for ${industries[1]} ${skills[1]} products",
+        "competition": "High|Medium|Low in ${industries[1]} product space",
+        "easeOfEntry": "High|Medium|Low for ${industries[1]} product development",
+        "profitability": "High|Medium|Low for ${industries[1]} SaaS models"
       }
     },
     {
       "nicheOverview": {
-        "name": "Specific niche name #3",
-        "summary": "2-3 sentence overview of the third distinct niche opportunity",
-        "whyItFits": "Explanation of why this specific niche matches the client's profile"
+        "name": "MUST contain '${skills[2]}' + '${skills[0]}' and '${industries[2]}' - consulting name",
+        "summary": "Hybrid/Consulting opportunity combining ${skills[2]} + ${skills[0]} for ${industries[2]}",
+        "whyItFits": "Skill combination advantage in ${industries[2]} context"
       },
       "marketDemand": {
-        "marketSize": "Market size estimate with currency",
+        "marketSize": "Consulting market data for ${skills[2]} + ${skills[0]} in ${industries[2]}",
         "trend": "growing|plateauing|declining",
-        "willingnessToPay": "Price sensitivity and willingness to pay"
+        "willingnessToPay": "${industries[2]} ${input.customerSize} consulting rate expectations"
       },
       "painPoints": [
         {
-          "problem": "Specific customer problem",
+          "problem": "${industries[2]} challenge requiring both ${skills[2]} AND ${skills[0]}",
+          "intensity": "High|Medium|Low"
+        },
+        {
+          "problem": "Multi-skill gap in ${industries[2]} that few consultants fill",
+          "intensity": "High|Medium|Low"
+        },
+        {
+          "problem": "${industries[2]} strategic challenge needing combined expertise",
           "intensity": "High|Medium|Low"
         }
       ],
       "competitiveLandscape": {
         "competitors": [
           {
-            "name": "Competitor name",
-            "description": "What they do and their positioning"
+            "name": "Consulting firm serving ${industries[2]} with similar skills",
+            "description": "Their approach to ${industries[2]} consulting"
+          },
+          {
+            "name": "Independent consultant in ${industries[2]} + these skills",
+            "description": "Their positioning in ${industries[2]} market"
           }
         ],
-        "gapAnalysis": "Market gaps and opportunities",
-        "barrierToEntry": "Low|Medium|High"
+        "gapAnalysis": "Consulting gaps for ${skills[2]} + ${skills[0]} in ${industries[2]}",
+        "barrierToEntry": "${industries[2]} consulting market entry requirements"
       },
       "arbitrageOpportunity": {
-        "explanation": "The specific arbitrage or unfair advantage",
-        "concreteAngle": "Specific positioning or approach to exploit"
+        "explanation": "Unique value from combining ${skills[2]} + ${skills[0]} for ${industries[2]}",
+        "concreteAngle": "Multi-skill consultant positioning in ${industries[2]}"
       },
       "entryOffers": [
         {
-          "positioning": "How to position the offer",
-          "businessModel": "Revenue model",
-          "pricePoint": "Suggested pricing"
+          "positioning": "Combined ${skills[2]} + ${skills[0]} consultant for ${industries[2]}",
+          "businessModel": "Consulting/Hybrid model for ${industries[2]} market",
+          "pricePoint": "${industries[2]} consulting rates for specialized expertise"
         }
       ],
       "gtmStrategy": {
-        "primaryChannel": "Best go-to-market channel for this client",
-        "justification": "Why this channel fits their constraints and skills"
+        "primaryChannel": "${industries[2]} consulting acquisition strategy",
+        "justification": "Best approach for ${industries[2]} consulting sales"
       },
       "scalabilityExit": {
-        "scalabilityScore": "High|Medium|Low",
-        "exitPotential": "Exit opportunities and timeline"
+        "scalabilityScore": "High|Medium|Low for ${industries[2]} consulting",
+        "exitPotential": "Exit opportunities for ${industries[2]} consulting practice"
       },
       "riskFactors": [
         {
-          "risk": "Potential risk",
+          "risk": "${industries[2]} consulting market risks",
+          "impact": "High|Medium|Low"
+        },
+        {
+          "risk": "Multi-skill positioning challenges in ${industries[2]}",
           "impact": "High|Medium|Low"
         }
       ],
       "scorecard": {
-        "marketDemand": "High|Medium|Low",
-        "competition": "High|Medium|Low",
-        "easeOfEntry": "High|Medium|Low",
-        "profitability": "High|Medium|Low"
+        "marketDemand": "High|Medium|Low for specialized ${industries[2]} consulting",
+        "competition": "High|Medium|Low in ${industries[2]} consulting space",
+        "easeOfEntry": "High|Medium|Low for ${industries[2]} consulting",
+        "profitability": "High|Medium|Low for ${industries[2]} specialized rates"
       }
     }
   ],
   "recommendedNiche": 0,
-  "recommendationReason": "Clear explanation of why niche #1 (or #2 or #3) is the best choice for this specific client based on their profile, constraints, and goals",
+  "recommendationReason": "Clear explanation of why recommended niche is best for this specific client profile",
   "comparisonMatrix": {
     "criteria": ["Market Demand", "Competition Level", "Skill Fit", "Budget Alignment", "Time to Revenue"],
     "scores": [
-      {
-        "nicheIndex": 0,
-        "scores": { 
-          "marketDemand": 85, 
-          "competitionLevel": 40, 
-          "skillFit": 95, 
-          "budgetAlignment": 80, 
-          "timeToRevenue": 70 
-        },
-        "totalScore": 74
-      },
-      {
-        "nicheIndex": 1,
-        "scores": { 
-          "marketDemand": 75, 
-          "competitionLevel": 60, 
-          "skillFit": 80, 
-          "budgetAlignment": 90, 
-          "timeToRevenue": 85 
-        },
-        "totalScore": 78
-      },
-      {
-        "nicheIndex": 2,
-        "scores": { 
-          "marketDemand": 95, 
-          "competitionLevel": 80, 
-          "skillFit": 70, 
-          "budgetAlignment": 60, 
-          "timeToRevenue": 50 
-        },
-        "totalScore": 71
-      }
+      { "nicheIndex": 0, "scores": { "marketDemand": 85, "competitionLevel": 40, "skillFit": 95, "budgetAlignment": 80, "timeToRevenue": 70 }, "totalScore": 74 },
+      { "nicheIndex": 1, "scores": { "marketDemand": 75, "competitionLevel": 60, "skillFit": 80, "budgetAlignment": 90, "timeToRevenue": 85 }, "totalScore": 78 },
+      { "nicheIndex": 2, "scores": { "marketDemand": 95, "competitionLevel": 80, "skillFit": 70, "budgetAlignment": 60, "timeToRevenue": 50 }, "totalScore": 71 }
     ]
   }
 }
 
-**NICHE SPECIFICITY REQUIREMENTS:**
-- Instead of "Marketing for SMBs" → "LinkedIn Lead Generation for SaaS Startups"
-- Instead of "Consulting" → "Salesforce Implementation for Manufacturing Companies"
-- Instead of "E-commerce" → "Subscription Boxes for Pet Supplements"
-- Instead of "Web Development" → "Custom WordPress Solutions for Local Dental Practices"
-- Instead of "Content Creation" → "Technical Documentation for Fintech APIs"
+**VALIDATION CHECKLIST:**
+Before generating response, verify each niche has:
+1. Industry-specific market size and trends with real data
+2. Pain points that could ONLY apply to this industry-skill combination
+3. Named competitors actually serving this specific market
+4. Arbitrage explanation specific to this context
+5. GTM strategy tailored to this industry's buying patterns
+6. Risk factors specific to this industry-skill combination
+7. Pricing that reflects this industry's typical budgets
+8. All sections customized for the specific skill-industry-business model combination
 
-Each niche should:
-1. Target a SPECIFIC customer segment (not "small businesses" but "veterinary clinics with 2-5 doctors")
-2. Solve a SPECIFIC problem (not "marketing" but "automated appointment booking integration")
-3. Have a SPECIFIC solution approach (not "consulting" but "done-for-you implementation with 30-day setup")
-4. Include SPECIFIC pricing and business model
-
-**DIVERSIFICATION STRATEGY:**
-Make the 3 niches diverse across:
-- Risk levels (one lower risk, one medium, one higher risk/reward)
-- Time to market (one quick win, one medium-term, one longer-term build)
-- Business models (service vs product vs hybrid approaches)
-- Market maturity (emerging opportunity vs established market vs blue ocean)
-
-**ANALYSIS REQUIREMENTS:**
-1. Each niche must align with the client's objective (${input.primaryObjective})
-2. Respect budget constraints (${input.budget}) in all recommendations
-3. Consider risk appetite (${input.riskAppetite}) when suggesting the recommended niche
-4. Match market type preference (${input.marketType}) and customer size (${input.customerSize})
-5. Leverage available skills: ${input.skills?.join(', ') || 'General business skills'}
-6. Consider geographic constraints: ${input.geographicFocus || 'No geographic restrictions'}
-7. Address time commitment limitations: ${input.timeCommitment || 'Flexible time commitment'} hours/week
-8. Factor in team size: ${input.teamSize || 'Solo or small team'}
-9. Avoid excluded industries: ${input.excludedIndustries?.join(', ') || 'No industry restrictions'}
-10. Align with monetization preferences: ${input.monetizationPreference || 'Flexible revenue models'}
-
-**RECOMMENDATION LOGIC:**
-The recommendedNiche should be the index (0, 1, or 2) of the niche that:
-- Best balances opportunity size with execution feasibility
-- Aligns most closely with the client's risk appetite and primary objective  
-- Leverages their strongest skills and available resources
-- Offers the clearest path to their desired outcome (${input.primaryObjective})
-- Fits within their constraints (budget: ${input.budget}, time: ${input.timeCommitment || 'flexible'})
-
-**CRITICAL INSTRUCTIONS:**
-- Provide realistic market size estimates based on actual data
-- Include 2-4 specific competitors per niche for credibility
-- Ensure all recommendations are actionable within the specified budget
-- Address both opportunities AND realistic challenges for each niche
-- Make each niche immediately actionable with concrete first steps
-- Focus on niches with genuine market demand and growth potential
-- Consider the client's skill set when suggesting market entry strategies
-- Provide concrete next steps that can be executed immediately for each niche
-- Score each niche fairly across all criteria (0-100 scale)
-- Calculate totalScore as the average of all criterion scores
+**FINAL VALIDATION BEFORE RESPONSE:**
+1. Check that Niche 1 uses "${skills[0]}" + "${industries[0]}" throughout ALL sections
+2. Check that Niche 2 uses "${skills[1]}" + "${industries[1]}" throughout ALL sections
+3. Check that Niche 3 uses "${skills[2]}+${skills[0]}" + "${industries[2]}" throughout ALL sections
+4. Verify all three have different business models (Service vs Product vs Consulting)
+5. Ensure no two niches have similar market data, competitors, or pain points
+6. Confirm each section is contextually relevant to its specific industry-skill combination
 
 Return ONLY the JSON object with no additional text, markdown formatting, or code blocks.
 `;
   }
 
-
 private generateFallbackMultiNicheReport(input: NicheResearchInput): Omit<MultiNicheReport, 'tokensUsed' | 'generationTime'> {
-  console.log('🔄 Generating fallback multi-niche report');
+  console.log('🔄 Generating fallback multi-niche report with diversification');
   
-  const primarySkill = input.skills?.[0] || 'Business Development';
-  const baseNicheName = `${primarySkill} for ${input.customerSize === 'smb' ? 'Small Businesses' : 'Enterprises'}`;
+  // Get available skills and industries for diversification
+  const skills = input.skills || ['Business Development', 'Marketing', 'Customer Service'];
+  const industries = input.industries || ['Technology', 'Healthcare', 'Professional Services'];
   
-  // Generate the base fallback report once
-  const baseFallback = this.generateFallbackReport(input);
-  
-  // Create full GeneratedNicheReport objects by adding the missing properties
+  // Create 3 distinct niches using different skill-industry combinations
   const fallbackNiche1: GeneratedNicheReport = {
-    ...baseFallback,
-    tokensUsed: 0,
-    generationTime: 0
-  };
-  
-  const fallbackNiche2: GeneratedNicheReport = {
-    ...baseFallback,
+    ...this.generateFallbackReport(input),
     tokensUsed: 0,
     generationTime: 0,
     nicheOverview: {
-      ...baseFallback.nicheOverview,
-      name: `${baseNicheName} - Automation Focus`,
-      summary: `An automation-focused ${input.marketType.replace('-', ' ')} opportunity targeting ${input.customerSize} businesses with process optimization.`,
+      name: `${skills[0] || 'Business Development'} Services for ${industries[0] || 'Technology'} ${input.customerSize === 'smb' ? 'SMBs' : 'Companies'}`,
+      summary: `A service-based ${input.marketType.replace('-', ' ')} opportunity focused on helping ${industries[0] || 'technology'} ${input.customerSize} businesses with ${(skills[0] || 'business development').toLowerCase()}. This high-touch approach leverages your primary expertise for immediate revenue.`,
+      whyItFits: `Your ${skills[0] || 'business development'} background combined with ${industries[0] || 'technology'} market knowledge positions you well. The service-delivery model fits your ${input.budget} budget and ${input.riskAppetite} risk tolerance.`
+    }
+  };
+  
+  const fallbackNiche2: GeneratedNicheReport = {
+    ...this.generateFallbackReport(input),
+    tokensUsed: 0,
+    generationTime: 0,
+    nicheOverview: {
+      name: `${skills[1] || 'Marketing'} Automation Platform for ${industries[1] || 'Healthcare'} Providers`,
+      summary: `A product-focused ${input.marketType.replace('-', ' ')} solution that automates ${(skills[1] || 'marketing').toLowerCase()} processes for ${industries[1] || 'healthcare'} organizations. This scalable SaaS approach targets recurring revenue.`,
+      whyItFits: `Your ${skills[1] || 'marketing'} skills enable you to understand and solve automation challenges in ${industries[1] || 'healthcare'}. The product approach aligns with ${input.primaryObjective} objectives and scales beyond personal time.`
+    },
+    gtmStrategy: {
+      primaryChannel: 'Content Marketing + Direct Outreach',
+      justification: `Product-based offering benefits from educational content marketing to demonstrate value, with direct outreach to ${industries[1] || 'healthcare'} decision makers for faster initial traction.`
+    },
+    entryOffers: [
+      {
+        positioning: `The specialized ${skills[1] || 'marketing'} automation platform built specifically for ${industries[1] || 'healthcare'}`,
+        businessModel: 'SaaS Subscription with onboarding fees',
+        pricePoint: input.customerSize === 'enterprise' ? '$500-2000/month + setup' : '$99-500/month + setup'
+      }
+    ],
+    arbitrageOpportunity: {
+      explanation: `Generic automation tools don't understand ${industries[1] || 'healthcare'} workflows. Your ${skills[1] || 'marketing'} expertise combined with industry-specific knowledge creates a compelling niche solution.`,
+      concreteAngle: `"The only ${skills[1]?.toLowerCase() || 'marketing'} automation built by ${industries[1] || 'healthcare'} experts for ${industries[1] || 'healthcare'} teams" - position as the industry specialist.`
     }
   };
   
   const fallbackNiche3: GeneratedNicheReport = {
-    ...baseFallback,
+    ...this.generateFallbackReport(input),
     tokensUsed: 0,
     generationTime: 0,
     nicheOverview: {
-      ...baseFallback.nicheOverview,
-      name: `${baseNicheName} - Analytics Focus`,
-      summary: `A data-driven ${input.marketType.replace('-', ' ')} opportunity helping ${input.customerSize} businesses with insights and reporting.`,
+      name: `Cross-Industry ${skills[0] || 'Business Development'} + ${skills[2] || 'Data Analysis'} Consulting Hub`,
+      summary: `A hybrid consulting platform that combines ${(skills[0] || 'business development').toLowerCase()} with ${(skills[2] || 'data analysis').toLowerCase()} to help companies across multiple industries make data-driven growth decisions. This consulting marketplace approach maximizes market reach.`,
+      whyItFits: `Your unique combination of ${skills[0] || 'business development'} and ${skills[2] || 'data analysis'} creates a differentiated consulting offering. The cross-industry approach maximizes your addressable market while leveraging skill synergies.`
+    },
+    gtmStrategy: {
+      primaryChannel: 'Strategic Partnerships + Referral Network',
+      justification: `Cross-industry consulting benefits from partnerships with complementary service providers and strong referral networks to access diverse client bases efficiently.`
+    },
+    entryOffers: [
+      {
+        positioning: 'Strategic growth consulting that bridges business insight with data-driven recommendations',
+        businessModel: 'Retainer + Success fees',
+        pricePoint: input.customerSize === 'enterprise' ? '$5k-15k/month retainer' : '$2k-8k/month retainer'
+      }
+    ],
+    arbitrageOpportunity: {
+      explanation: `Most consultants focus on either business strategy OR data analysis. Your combination creates a unique value proposition that bridges the gap between strategic vision and analytical execution.`,
+      concreteAngle: `"The only consultant who shows you what to do AND proves it with data" - position as the analytical strategist for ${input.customerSize} companies serious about growth.`
+    },
+    marketDemand: {
+      marketSize: input.budget === '<10k' ? '$2-5B cross-industry consulting market' : '$10-25B strategic consulting market',
+      trend: 'growing',
+      willingnessToPay: 'High - companies value data-driven strategic guidance'
     }
   };
 
   return {
     niches: [fallbackNiche1, fallbackNiche2, fallbackNiche3],
     recommendedNiche: 0,
-    recommendationReason: `Based on your ${input.primaryObjective} objective and ${input.riskAppetite} risk appetite, the first option offers the best balance of market opportunity and execution feasibility within your ${input.budget} budget.`,
+    recommendationReason: `Based on your ${input.primaryObjective} objective and ${input.riskAppetite} risk appetite, the service-based approach leverages your core expertise with lowest execution risk while maintaining strong revenue potential within your ${input.budget} budget.`,
     comparisonMatrix: {
       criteria: ["Market Demand", "Competition Level", "Skill Fit", "Budget Alignment", "Time to Revenue"],
       scores: [
@@ -780,38 +876,37 @@ private generateFallbackMultiNicheReport(input: NicheResearchInput): Omit<MultiN
             marketDemand: 85, 
             competitionLevel: 40, 
             skillFit: 95, 
-            budgetAlignment: 80, 
-            timeToRevenue: 70 
+            budgetAlignment: 90, 
+            timeToRevenue: 80 
           },
-          totalScore: 74
+          totalScore: 78
         },
         {
           nicheIndex: 1,
+          scores: { 
+            marketDemand: 90, 
+            competitionLevel: 60, 
+            skillFit: 80, 
+            budgetAlignment: 70, 
+            timeToRevenue: 60 
+          },
+          totalScore: 72
+        },
+        {
+          nicheIndex: 2,
           scores: { 
             marketDemand: 75, 
             competitionLevel: 50, 
             skillFit: 85, 
             budgetAlignment: 85, 
-            timeToRevenue: 60 
+            timeToRevenue: 70 
           },
-          totalScore: 71
-        },
-        {
-          nicheIndex: 2,
-          scores: { 
-            marketDemand: 80, 
-            competitionLevel: 55, 
-            skillFit: 80, 
-            budgetAlignment: 75, 
-            timeToRevenue: 65 
-          },
-          totalScore: 71
+          totalScore: 73
         }
       ]
     }
   };
 }
-
 
 
   private generateFallbackReport(input: NicheResearchInput): Omit<GeneratedNicheReport, 'tokensUsed' | 'generationTime'> {
