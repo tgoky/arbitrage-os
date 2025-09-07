@@ -52,6 +52,7 @@ import { useParsed } from "@refinedev/core";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+import LoadingOverlay from './loadingOverlay';
 
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
 
@@ -735,6 +736,7 @@ try {
 const CreateWorkflow = () => (
   <div>
     <div className="flex justify-between items-center mb-6" style={{padding: 9}}>
+      
       <Button 
         icon={<ArrowLeftOutlined />} 
         onClick={handleBack}
@@ -751,7 +753,7 @@ const CreateWorkflow = () => (
       </Button>
     </div>
     
-    <div className="text-center mb-8">
+    {/* <div className="text-center mb-8">
       <Title level={2} className="flex items-center justify-center">
         <ThunderboltOutlined className="mr-2" />
         <span style={{ color: '#5CC49D' }}>a</span>rb
@@ -760,9 +762,9 @@ const CreateWorkflow = () => (
       <Text type="secondary" className="text-lg">
         Design powerful automation workflows with AI assistance for your business processes
       </Text>
-    </div>
+    </div> */}
     <div className="text-center mb-8">
-           
+           <LoadingOverlay visible={isGenerating} />
       <Title level={2} className="flex items-center justify-center">
    
         <ThunderboltOutlined className="mr-2" />
@@ -1045,6 +1047,7 @@ const CreateWorkflow = () => (
       {activeStep === 3 && currentWorkflow && (
         <Card>
           <div className="flex justify-between items-center mb-4">
+        
             <div>
               <Title level={4}>🎉 Your n8n Workflow is Ready!</Title>
               <Text type="secondary">

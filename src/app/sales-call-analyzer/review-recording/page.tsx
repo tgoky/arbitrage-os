@@ -34,6 +34,8 @@ import type { UploadFile } from 'antd/es/upload/interface';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 
+import LoadingOverlay from '../loadingOverlay';
+
 import { useState } from 'react';
 import dayjs from 'dayjs';
 
@@ -52,7 +54,7 @@ export default function ReviewRecordingPage() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const { analyzeCall, validateInput } = useSalesCallAnalyzer();
+  const { analyzeCall, validateInput , loading} = useSalesCallAnalyzer();
     const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
 
       // ADD WORKSPACE VALIDATION (same as other components)
@@ -160,6 +162,7 @@ const steps = [
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+           <LoadingOverlay visible={loading} />
       <div className="flex justify-between items-center mb-8">
         <Title level={3}>Native Call Analysis</Title>
         <Button 
