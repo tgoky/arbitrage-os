@@ -279,18 +279,18 @@ const promptTemplates: Prompt[] = [
     integrations: ["ChatGPT", "Claude", "Gemini"],
     markdown: md16
   },
-  // {
-  //   id: 17,
-  //   title: "Landing Page Copywriter",
-  //   description: "You are a Direct Response Landing Page Copywriter & Conversion Strategist.Your job is to take [OfferDetails], [TargetAudience], [PrimaryGoal], [TonePreference], and [KeyBenefits] to create a complete, high-converting landing page",
-  //     shortDescription: markdownContentById[17],
-  //   tags: ["CRO", "Conversion Optimization", "Analytics"],
-  //   category: ["Marketing", "Research"],
-  //   downloads: 84,
-  //   copyCount: 34,
-  //   integrations: ["ChatGPT", "Claude", "Gemini"],
-  //   markdown: md17
-  // },
+  {
+    id: 17,
+    title: "Landing Page Copywriter",
+    description: "You are a Direct Response Landing Page Copywriter & Conversion Strategist.Your job is to take [OfferDetails], [TargetAudience], [PrimaryGoal], [TonePreference], and [KeyBenefits] to create a complete, high-converting landing page",
+      shortDescription: markdownContentById[17],
+    tags: ["CRO", "Conversion Optimization", "Analytics"],
+    category: ["Marketing", "Research"],
+    downloads: 84,
+    copyCount: 34,
+    integrations: ["ChatGPT", "Claude", "Gemini"],
+    markdown: md17
+  },
 
   //continue // linting
   {
@@ -305,18 +305,18 @@ const promptTemplates: Prompt[] = [
     integrations: ["ChatGPT", "Claude", "Gemini"],
     markdown: md18
   },
-  {
-    id: 19,
-    title: "SEO Content Strategist",
-    description: "Keyword-optimized content planning and creation for organic search dominance",
-      shortDescription: markdownContentById[19],
-    tags: ["SEO", "Content Strategy", "Organic Marketing"],
-    category: ["Content Creation", "Marketing"],
-    downloads: 131,
-    copyCount: 98,
-    integrations: ["ChatGPT", "Claude", "Gemini"],
-    markdown: md19
-  },
+  // {
+  //   id: 19,
+  //   title: "SEO Content Strategist",
+  //   description: "Keyword-optimized content planning and creation for organic search dominance",
+  //     shortDescription: markdownContentById[19],
+  //   tags: ["SEO", "Content Strategy", "Organic Marketing"],
+  //   category: ["Content Creation", "Marketing"],
+  //   downloads: 131,
+  //   copyCount: 98,
+  //   integrations: ["ChatGPT", "Claude", "Gemini"],
+  //   markdown: md19
+  // },
   {
     id: 20,
     title: "PAS Script Writer",
@@ -671,18 +671,18 @@ const promptTemplates: Prompt[] = [
      markdown: md46
   },
 
-//     {
-//     id: 47,
-//     title: "Landing Page Optimizer",
-//     description: "You are a Conversion Rate Optimization (CRO) Specialist & Copywriter. Your task is to audit and fully rewrite a landing page for [PrimaryGoal] and [TargetAudience].",
-//      shortDescription: markdownContentById[4],
-//     tags: ["Sales Training", "Conversation Flow", "Conversion Optimization"],
-//     category: ["Sales"],
-//     downloads: 25,
-//     copyCount: 59,
-//     integrations: ["ChatGPT", "Claude", "Gemini"],
-//      markdown: md46
-//   },
+    {
+    id: 2,
+    title: "Landing Page Optimizer",
+    description: "You are a Conversion Rate Optimization (CRO) Specialist & Copywriter. Your task is to audit and fully rewrite a landing page for [PrimaryGoal] and [TargetAudience].",
+     shortDescription: markdownContentById[2],
+    tags: ["Sales Training", "Conversation Flow", "Conversion Optimization"],
+    category: ["Sales"],
+    downloads: 25,
+    copyCount: 59,
+    integrations: ["ChatGPT", "Claude", "Gemini"],
+     markdown: md46
+  },
 //  {
 //     id: 48,
 //     title: "SEO Keyword Trend Analysis",
@@ -696,18 +696,18 @@ const promptTemplates: Prompt[] = [
 //      markdown: md46
 //   },
 
-//   {
-//     id: 49,
-//     title: "Cross-Sell / Upsell Opportunity Finder Generator ",
-//     description: "You are a Revenue Growth Strategist.",
-//     shortDescription: "Analyze an existing customer account and produce a targeted cross-sell / upsell opportunity report that Summarizes the account and current usage/purchases.Identifies 1–3 clear cross-sell or upsell opportunities.Explains why each opportunity is relevant now. Provides positioning guidance and proof points. Suggests ideal timing and outreach approach",
-//     tags: ["SEO", "Cross Sell", "Upsell"],
-//     category: ["Sales"],
-//     downloads: 29,
-//     copyCount: 59,
-//     integrations: ["ChatGPT", "Claude", "Gemini"],
-//      markdown: md46
-//   },
+  {
+    id: 19,
+    title: "Cross-Sell / Upsell Opportunity Finder Generator ",
+    description: "You are a Revenue Growth Strategist.",
+      shortDescription: markdownContentById[19],
+    tags: ["SEO", "Cross Sell", "Upsell"],
+    category: ["Sales"],
+    downloads: 29,
+    copyCount: 59,
+    integrations: ["ChatGPT", "Claude", "Gemini"],
+     markdown: md46
+  },
 //   {
 //     id: 2,
 //     title: "Product-Market Fit Analysis Strategist",
