@@ -52,10 +52,10 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, onComplete, on
   const loadingSteps = [
     { id: 'validation', name: 'Validating inputs', duration: 800 },
     { id: 'headline', name: 'Crafting headline', duration: 1200 },
-    { id: 'pricing', name: 'Calculating pricing', duration: 1600 },
+    { id: 'pricing', name: 'Understandig roadmaps', duration: 1600 },
     { id: 'assets', name: 'Generating assets', duration: 2000 },
     { id: 'export', name: 'Preparing export', duration: 2400 },
-    { id: 'final', name: 'Finalizing offer', duration: 2800 },
+    { id: 'final', name: 'Finalizing plan', duration: 2800 },
   ];
 
   const fileManagerFiles = [

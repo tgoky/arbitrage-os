@@ -1,135 +1,432 @@
 // app/lead-generation/page.tsx
 "use client";
-import React, { useState } from 'react';
-import {
-  SearchOutlined,
-  StarOutlined,
-  DollarOutlined,
-  FilterOutlined,
-  UserOutlined,
-  TeamOutlined,
-  BuildOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  LinkedinOutlined,
-  GlobalOutlined,
-  PlusOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  StopOutlined,
-  DownloadOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  CreditCardOutlined,
-  BarChartOutlined,
-  ThunderboltOutlined
-} from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
-  Input,
-  Select,
   Button,
+  Tabs,
+  message,
   Typography,
   Space,
   Tag,
-  Divider,
-  Empty,
+  Table,
+  Input,
+  Select,
+  Avatar,
+  Statistic,
   Row,
   Col,
-  Table,
-  Avatar,
-  Badge,
-  Tabs,
-  Modal,
-  Form,
-  Checkbox,
   Progress,
-  Image
+  Empty,
+  Spin
 } from 'antd';
+import {
+  PlusOutlined,
+  ThunderboltOutlined,
+  TeamOutlined,
+  HistoryOutlined,
+  SearchOutlined,
+  DownloadOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  LinkedinOutlined,
+  StarOutlined
+} from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
-import { Lead, LeadCampaign, initialCampaigns, initialLeads } from './leads/leads';
-import { getItems } from './leads/components'; // Updated import
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+import type { ColumnsType } from 'antd/es/table';
 
-const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
+const { Title, Text } = Typography;
 const { Search } = Input;
+const { Option } = Select;
 
-const LeadGenerationDashboard = () => {
+interface Lead {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  title: string;
+  company: string;
+  industry: string;
+  location: string;
+  score: number;
+  linkedinUrl?: string;
+  website?: string;
+  apolloId?: string;
+}
+
+interface LeadGeneration {
+  id: string;
+  title: string;
+  leadCount: number;
+  totalFound: number;
+  averageScore: number;
+  criteria: any;
+  generatedAt: string;
+  createdAt: string;
+  workspace: {
+    id: string;
+    name: string;
+  };
+}
+
+const LeadGenerationPage = () => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'leads' | 'credits'>('campaigns');
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isCreditsModalVisible, setIsCreditsModalVisible] = useState(false);
+  const router = useRouter();
+  const { currentWorkspace, getWorkspaceScopedEndpoint } = useWorkspaceContext();
+  
+  // State
+  const [activeTab, setActiveTab] = useState('leads');
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [generations, setGenerations] = useState<LeadGeneration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [selectedIndustry, setSelectedIndustry] = useState<string>('All');
-  const [selectedCompanySize, setSelectedCompanySize] = useState<string>('All');
-  const [credits, setCredits] = useState(1000);
-  const [campaigns, setCampaigns] = useState<LeadCampaign[]>(initialCampaigns);
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [selectedIndustry, setSelectedIndustry] = useState('All');
+  const [selectedScore, setSelectedScore] = useState('All');
+  
+  // Load data on component mount
+  useEffect(() => {
+    if (currentWorkspace?.id) {
+      loadData();
+    }
+  }, [currentWorkspace?.id]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return 'success';
-      case 'paused': return 'warning';
-      case 'completed': return 'processing';
-      case 'draft': return 'default';
-      case 'new': return 'default';
-      case 'contacted': return 'processing';
-      case 'qualified': return 'success';
-      case 'converted': return 'purple';
-      default: return 'default';
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load lead generations
+      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+      const response = await fetch(endpoint);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setGenerations(data.data);
+          
+          // Extract all leads from generations
+          const allLeads: Lead[] = [];
+          for (const gen of data.data) {
+            try {
+              // Load full generation details to get leads
+              const detailResponse = await fetch(`/api/lead-generation/${gen.id}`);
+              if (detailResponse.ok) {
+                const detailData = await detailResponse.json();
+                if (detailData.success && detailData.data.leads) {
+                  allLeads.push(...detailData.data.leads);
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to load details for generation:', gen.id);
+            }
+          }
+          setLeads(allLeads);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      message.error('Failed to load lead data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleStartCampaign = (campaignId: string) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId ? { ...c, status: 'running' } : c
-    ));
-  };
-
-  const handlePauseCampaign = (campaignId: string) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId ? { ...c, status: 'paused' } : c
-    ));
-  };
-
-  const handleStopCampaign = (campaignId: string) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId ? { ...c, status: 'completed' } : c
-    ));
-  };
-
+  // Filter leads based on search and filters
   const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = !searchTerm || 
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.industry.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'All' || lead.status === selectedStatus;
+      lead.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesIndustry = selectedIndustry === 'All' || lead.industry === selectedIndustry;
-    const matchesCompanySize = selectedCompanySize === 'All' || lead.companySize === selectedCompanySize;
-    return matchesSearch && matchesStatus && matchesIndustry && matchesCompanySize;
+    
+    const matchesScore = selectedScore === 'All' || 
+      (selectedScore === 'High' && lead.score >= 80) ||
+      (selectedScore === 'Medium' && lead.score >= 60 && lead.score < 80) ||
+      (selectedScore === 'Low' && lead.score < 60);
+    
+    return matchesSearch && matchesIndustry && matchesScore;
   });
 
-  const items = getItems({
-    campaigns,
-    leads,
-    handleStartCampaign,
-    handlePauseCampaign,
-    handleStopCampaign,
-    getStatusColor,
-    credits,
-    setIsModalVisible,
-    setIsCreditsModalVisible,
-    searchTerm,
-    setSearchTerm,
-    selectedStatus,
-    setSelectedStatus,
-    selectedIndustry,
-    setSelectedIndustry,
-    selectedCompanySize,
-    setSelectedCompanySize,
-    filteredLeads,
-  });
+  // Get unique industries for filter
+  const industries = ['All', ...Array.from(new Set(leads.map(lead => lead.industry)))];
+
+  // Get score color
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return '#52c41a';
+    if (score >= 60) return '#faad14';
+    return '#ff4d4f';
+  };
+
+  // Lead table columns
+  const leadColumns: ColumnsType<Lead> = [
+    {
+      title: 'Contact',
+      key: 'contact',
+      render: (_, record) => (
+        <div className="flex items-center space-x-3">
+          <Avatar 
+            src={`https://i.pravatar.cc/40?u=${record.id}`}
+            size={40}
+          />
+          <div>
+            <div className="font-medium">{record.name}</div>
+            <div className="text-sm text-gray-500">{record.title}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Company',
+      key: 'company',
+      render: (_, record) => (
+        <div>
+          <div className="font-medium">{record.company}</div>
+          <div className="text-sm text-gray-500">{record.industry}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Location',
+      dataIndex: 'location',
+      key: 'location',
+    },
+    {
+      title: 'Contact Info',
+      key: 'contactInfo',
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          {record.email && (
+            <div className="flex items-center text-sm">
+              <MailOutlined className="mr-1" />
+              <span>{record.email}</span>
+            </div>
+          )}
+          {record.phone && (
+            <div className="flex items-center text-sm">
+              <PhoneOutlined className="mr-1" />
+              <span>{record.phone}</span>
+            </div>
+          )}
+          {record.linkedinUrl && (
+            <div className="flex items-center text-sm">
+              <LinkedinOutlined className="mr-1" />
+              <span>LinkedIn</span>
+            </div>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Score',
+      key: 'score',
+      render: (_, record) => (
+        <div className="flex items-center">
+          <StarOutlined style={{ color: getScoreColor(record.score) }} className="mr-1" />
+          <span style={{ color: getScoreColor(record.score), fontWeight: 'bold' }}>
+            {record.score}
+          </span>
+        </div>
+      ),
+      sorter: (a, b) => a.score - b.score,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Button size="small">View</Button>
+          <Button size="small" type="primary">Contact</Button>
+        </Space>
+      ),
+    },
+  ];
+
+  // Generation history columns
+  const generationColumns: ColumnsType<LeadGeneration> = [
+    {
+      title: 'Campaign',
+      dataIndex: 'title',
+      key: 'title',
+    },
+    {
+      title: 'Leads Found',
+      dataIndex: 'leadCount',
+      key: 'leadCount',
+      render: (count, record) => (
+        <div>
+          <div className="font-medium">{count} leads</div>
+          <div className="text-sm text-gray-500">
+            {record.totalFound} total found
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Avg Score',
+      dataIndex: 'averageScore',
+      key: 'averageScore',
+      render: (score) => (
+        <div className="flex items-center">
+          <StarOutlined style={{ color: getScoreColor(score) }} className="mr-1" />
+          <span style={{ color: getScoreColor(score), fontWeight: 'bold' }}>
+            {Math.round(score)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Button size="small">View Details</Button>
+          <Button size="small" icon={<DownloadOutlined />}>Export</Button>
+        </Space>
+      ),
+    },
+  ];
+
+  // Tab items
+  const tabItems = [
+    {
+      key: 'leads',
+      label: (
+        <span>
+          <TeamOutlined />
+          All Leads ({filteredLeads.length})
+        </span>
+      ),
+      children: (
+        <div>
+          {/* Filters */}
+          <Card className="mb-6">
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <Search
+                  placeholder="Search leads..."
+                  prefix={<SearchOutlined />}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  allowClear
+                />
+              </Col>
+              <Col span={4}>
+                <Select
+                  value={selectedIndustry}
+                  onChange={setSelectedIndustry}
+                  style={{ width: '100%' }}
+                >
+                  {industries.map(industry => (
+                    <Option key={industry} value={industry}>{industry}</Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col span={4}>
+                <Select
+                  value={selectedScore}
+                  onChange={setSelectedScore}
+                  style={{ width: '100%' }}
+                >
+                  <Option value="All">All Scores</Option>
+                  <Option value="High">High (80+)</Option>
+                  <Option value="Medium">Medium (60-79)</Option>
+                  <Option value="Low">Low (&lt;60)</Option>
+                </Select>
+              </Col>
+              <Col span={8} className="text-right">
+                <Space>
+                  <Button icon={<DownloadOutlined />}>Export</Button>
+                  <Button icon={<MailOutlined />}>Bulk Email</Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Leads Table */}
+          {loading ? (
+            <div className="text-center py-12">
+              <Spin size="large" />
+            </div>
+          ) : filteredLeads.length > 0 ? (
+            <Table
+              columns={leadColumns}
+              dataSource={filteredLeads}
+              rowKey="id"
+              pagination={{
+                total: filteredLeads.length,
+                pageSize: 20,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => 
+                  `${range[0]}-${range[1]} of ${total} leads`,
+              }}
+            />
+          ) : (
+            <Empty 
+              description="No leads found"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'history',
+      label: (
+        <span>
+          <HistoryOutlined />
+          Generation History ({generations.length})
+        </span>
+      ),
+      children: (
+        <div>
+          {loading ? (
+            <div className="text-center py-12">
+              <Spin size="large" />
+            </div>
+          ) : generations.length > 0 ? (
+            <Table
+              columns={generationColumns}
+              dataSource={generations}
+              rowKey="id"
+              pagination={{
+                total: generations.length,
+                pageSize: 10,
+                showSizeChanger: true,
+              }}
+            />
+          ) : (
+            <Empty 
+              description="No lead generations yet"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />}
+                onClick={() => router.push('/lead-generation/create')}
+              >
+                Generate Your First Leads
+              </Button>
+            </Empty>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  // Calculate stats
+  const totalLeads = leads.length;
+  const highScoreLeads = leads.filter(lead => lead.score >= 80).length;
+  const leadsWithEmail = leads.filter(lead => lead.email).length;
+  const leadsWithPhone = leads.filter(lead => lead.phone).length;
 
   return (
     <div style={{
@@ -138,183 +435,105 @@ const LeadGenerationDashboard = () => {
       minHeight: '100vh'
     }}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-       <div>
-  <Space align="center">
-    <ThunderboltOutlined className="text-xl text-purple-500" />
-    <Title level={2} className="mb-0">
-      Lead Generation
-    </Title>
-  </Space>
-
-  <div>
-    <Text type="secondary">
-      Find and qualify leads for your business
-    </Text>
-  </div>
-</div>
-
-        <Space>
-          <Badge
-            count={credits.toLocaleString()}
-            showZero
-            color="#52c41a"
-            overflowCount={999999}
-            style={{ backgroundColor: '#52c41a' }}
-          >
-            <Button
-              icon={<CreditCardOutlined />}
-              onClick={() => setIsCreditsModalVisible(true)}
-            >
-              Credits
-            </Button>
-          </Badge>
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <Space align="center">
+            <ThunderboltOutlined className="text-xl text-blue-500" />
+            <Title level={2} className="mb-0">
+              Lead Generation
+            </Title>
+          </Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => setIsModalVisible(true)}
+            onClick={() => router.push('/lead-generation/create')}
+            size="large"
           >
-            New Campaign
+            Generate New Leads
           </Button>
-        </Space>
+        </div>
+        
+        <Text type="secondary">
+          Manage and view your generated leads from Apollo  database
+        </Text>
       </div>
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key as any)}
-        items={items}
-      />
+      {/* Stats Cards */}
+      <Row gutter={24} className="mb-6">
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="Total Leads"
+              value={totalLeads}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="High Quality"
+              value={highScoreLeads}
+              suffix={`/ ${totalLeads}`}
+              prefix={<StarOutlined />}
+              valueStyle={{ color: '#cf1322' }}
+            />
+            <Progress 
+              percent={totalLeads > 0 ? Math.round((highScoreLeads / totalLeads) * 100) : 0} 
+              size="small" 
+              showInfo={false}
+              strokeColor="#52c41a"
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="With Email"
+              value={leadsWithEmail}
+              suffix={`/ ${totalLeads}`}
+              prefix={<MailOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+            <Progress 
+              percent={totalLeads > 0 ? Math.round((leadsWithEmail / totalLeads) * 100) : 0} 
+              size="small" 
+              showInfo={false}
+              strokeColor="#1890ff"
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="With Phone"
+              value={leadsWithPhone}
+              suffix={`/ ${totalLeads}`}
+              prefix={<PhoneOutlined />}
+              valueStyle={{ color: '#722ed1' }}
+            />
+            <Progress 
+              percent={totalLeads > 0 ? Math.round((leadsWithPhone / totalLeads) * 100) : 0} 
+              size="small" 
+              showInfo={false}
+              strokeColor="#722ed1"
+            />
+          </Card>
+        </Col>
+      </Row>
 
-      {/* New Campaign Modal */}
-      <Modal
-        title="Create New Campaign"
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
-        width={800}
-      >
-        <Form layout="vertical">
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="Campaign Name" required>
-                <Input placeholder="e.g., SaaS Sales Campaign" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Business Profile" required>
-                <Select placeholder="Select a business">
-                  <Option value="1">TechFlow Solutions</Option>
-                  <Option value="2">Digital Growth Co</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="Target Industry" required>
-                <Input placeholder="e.g., Technology" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Target Role" required>
-                <Input placeholder="e.g., VP of Sales" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="Company Size" required>
-                <Select placeholder="Select size">
-                  <Option value="1-10">1-10 employees</Option>
-                  <Option value="10-50">10-50 employees</Option>
-                  <Option value="50-200">50-200 employees</Option>
-                  <Option value="200-500">200-500 employees</Option>
-                  <Option value="500+">500+ employees</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Target Location" required>
-                <Input placeholder="e.g., United States" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item label="Keywords (comma-separated)">
-            <Input placeholder="e.g., SaaS, sales automation, CRM" />
-          </Form.Item>
-          <Form.Item label="Filters">
-            <Checkbox defaultChecked>Must have email</Checkbox>
-            <Checkbox style={{ marginLeft: 16 }}>Must have phone</Checkbox>
-            <Checkbox defaultChecked style={{ marginLeft: 16 }}>
-              Must have LinkedIn
-            </Checkbox>
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-              <Button type="primary">Create Campaign</Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Buy Credits Modal */}
-      <Modal
-        title="Buy Credits"
-        open={isCreditsModalVisible}
-        onCancel={() => setIsCreditsModalVisible(false)}
-        footer={null}
-      >
-        <div className="space-y-6">
-          <Row gutter={[16, 16]}>
-            <Col span={8}>
-              <Card hoverable className="text-center">
-                <Title level={4}>1,000</Title>
-                <Text type="secondary">Credits</Text>
-                <Divider />
-                <Title level={3}>$99</Title>
-                <Text type="secondary">$0.099 per credit</Text>
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card hoverable className="text-center border-2 border-blue-500">
-                <Tag color="blue" className="mb-2">
-                  MOST POPULAR
-                </Tag>
-                <Title level={4}>5,000</Title>
-                <Text type="secondary">Credits</Text>
-                <Divider />
-                <Title level={3}>$299</Title>
-                <Text type="secondary">$0.059 per credit</Text>
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card hoverable className="text-center">
-                <Title level={4}>15,000</Title>
-                <Text type="secondary">Credits</Text>
-                <Divider />
-                <Title level={3}>$799</Title>
-                <Text type="secondary">$0.053 per credit</Text>
-              </Card>
-            </Col>
-          </Row>
-          <Form.Item label="Custom Amount">
-            <Input placeholder="Enter custom credit amount" />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button onClick={() => setIsCreditsModalVisible(false)}>
-                Cancel
-              </Button>
-              <Button type="primary" icon={<CreditCardOutlined />}>
-                Purchase Credits
-              </Button>
-            </Space>
-          </Form.Item>
-        </div>
-      </Modal>
+      {/* Main Content */}
+      <Card>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          size="large"
+        />
+      </Card>
     </div>
   );
 };
 
-export default LeadGenerationDashboard;
+export default LeadGenerationPage;
