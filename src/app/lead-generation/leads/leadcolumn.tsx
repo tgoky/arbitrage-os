@@ -20,6 +20,7 @@ export const leadColumns = (getStatusColor: (status: string) => string): Columns
       </div>
     ),
   },
+  //linting
   {
     title: 'Company',
     dataIndex: 'company',
