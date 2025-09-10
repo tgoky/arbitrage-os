@@ -331,7 +331,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                           fontSize: '12px', 
                           color: theme === 'dark' ? '#9ca3af' : '#6b7280'
                         }}>
-                          {lead.title}
+                          {lead.position}
                         </div>
                       </div>
                     </div>
@@ -391,7 +391,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <StarOutlined style={{ color: '#faad14', marginRight: '4px' }} />
-                      <span>{lead.score}</span>
+                      {/* <span>{lead.score}</span> */}
                     </div>
                   </td>
                   {/* Status Column */}
