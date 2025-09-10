@@ -15,7 +15,7 @@ export const leadColumns = (getStatusColor: (status: string) => string): Columns
         <Avatar src={`https://i.pravatar.cc/150?u=${record.id}`} />
         <div className="ml-4">
           <div className="font-medium">{text}</div>
-          <div className="text-gray-500">{record.title}</div>
+          <div className="text-gray-500">{record.position}</div>
         </div>
       </div>
     ),
