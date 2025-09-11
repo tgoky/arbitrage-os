@@ -135,263 +135,416 @@ const CampaignCreatePage = () => {
     }
   ];
 
-  const handleNext = () => {
-    if (currentStep === 1) {
-      // Validate credits before proceeding to generation
-      if (estimatedCost > userCredits && !(usingFreeLeads && hasFreeLeads)) {
-        message.error('Not enough credits for this lead generation');
+const handleNext = async () => {
+  if (currentStep === 0) {
+    try {
+      // Get current form values and save them
+      const currentValues = form.getFieldsValue();
+      setFormData(prev => ({ ...prev, ...currentValues }));
+      
+      // Validate the current step's fields
+      await form.validateFields(['targetIndustry', 'targetRole']);
+      
+      // Check if we actually have values
+      if (!currentValues.targetIndustry || currentValues.targetIndustry.length === 0) {
+        message.error('Please select at least one industry');
         return;
       }
+      
+      if (!currentValues.targetRole || currentValues.targetRole.length === 0) {
+        message.error('Please select at least one job title');
+        return;
+      }
+      
+    } catch (errorInfo) {
+      console.log('Validation failed:', errorInfo);
+      message.error('Please complete all required fields before proceeding');
+      return;
     }
-    setCurrentStep(currentStep + 1);
-  };
+  }
+  
+  if (currentStep === 1) {
+    // Save step 2 data
+    const currentValues = form.getFieldsValue();
+    setFormData(prev => ({ ...prev, ...currentValues }));
+    
+    // Validate credits
+    if (estimatedCost > userCredits && !(usingFreeLeads && hasFreeLeads)) {
+      message.error('Not enough credits for this lead generation');
+      return;
+    }
+  }
+  
+  setCurrentStep(currentStep + 1);
+};
+ 
+// Update handlePrev to restore form data
+const handlePrev = () => {
+  // Save current step data before going back
+  const currentValues = form.getFieldsValue();
+  setFormData(prev => ({ ...prev, ...currentValues }));
+  
+  setCurrentStep(currentStep - 1);
+  
+  // Restore previous step data
+  setTimeout(() => {
+    form.setFieldsValue(formData);
+  }, 0);
+};
 
-  const handlePrev = () => {
-    setCurrentStep(currentStep - 1);
-  };
 
   const handleLeadCountChange = (value: number | null) => {
     if (value !== null) {
       setLeadCount(Math.min(Math.max(value, 1), 1000));
     }
   };
+const [formData, setFormData] = useState({
+  targetIndustry: [],
+  targetRole: [],
+  companySize: [],
+  location: [],
+  keywords: [],
+  technologies: [],
+  revenueMin: undefined,
+  revenueMax: undefined,
+  requirements: ['email'],
+  useFreeLeads: hasFreeLeads,
+  campaignName: ''
+});
 
-  const generateLeads = async (values: any) => {
-    if (!currentWorkspace?.id) {
-      message.error('No workspace selected');
-      return;
+const generateLeads = async (values: any) => {
+  if (!currentWorkspace?.id) {
+    message.error('No workspace selected');
+    return;
+  }
+
+  console.log('🔍 Raw form values received:', values);
+
+  // Validate that we have the required arrays from the form
+  if (!values.targetIndustry || !Array.isArray(values.targetIndustry) || values.targetIndustry.length === 0) {
+    message.error('Please select at least one target industry');
+    setCurrentStep(0);
+    return;
+  }
+
+  if (!values.targetRole || !Array.isArray(values.targetRole) || values.targetRole.length === 0) {
+    message.error('Please select at least one target role');
+    setCurrentStep(0);
+    return;
+  }
+
+  setIsGenerating(true);
+  setGenerationProgress(10);
+
+  try {
+    // Since Select with mode="multiple" already returns arrays, we don't need conversion
+    const criteria: LeadGenerationCriteria = {
+      targetIndustry: values.targetIndustry,
+      targetRole: values.targetRole,
+      companySize: values.companySize || [],
+      location: values.location || [],
+      keywords: values.keywords || [],
+      technologies: values.technologies || [],
+      revenueRange: (values.revenueMin || values.revenueMax) ? {
+        min: values.revenueMin ? parseInt(values.revenueMin.toString()) : undefined,
+        max: values.revenueMax ? parseInt(values.revenueMax.toString()) : undefined
+      } : undefined,
+      leadCount,
+      requirements: values.requirements || []
+    };
+
+    console.log('📋 Final criteria object:', criteria);
+
+    setGenerationProgress(30);
+
+    const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+    console.log('🌐 Calling endpoint:', endpoint);
+
+    const requestBody = {
+      workspaceId: currentWorkspace.id,
+      criteria,
+      campaignName: values.campaignName || `Lead Generation - ${new Date().toLocaleDateString()}`
+    };
+
+    console.log('📤 Request body:', requestBody);
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    setGenerationProgress(70);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ API Error Response:', errorData);
+      throw new Error(errorData.error || `Server error: ${response.status}`);
     }
 
-    setIsGenerating(true);
-    setGenerationProgress(10);
+    const data = await response.json();
+    console.log('📋 Success response:', data);
+    
+    if (data.success) {
+      setGeneratedLeads(data.data.leads);
+      setGenerationProgress(100);
+      setGenerationComplete(true);
+      message.success(`Successfully generated ${data.data.leads.length} leads!`);
+    } else {
+      throw new Error(data.error || 'Lead generation failed');
+    }
 
-    try {
-      const criteria: LeadGenerationCriteria = {
-        targetIndustry: values.targetIndustry,
-        targetRole: values.targetRole,
-        companySize: values.companySize || [],
-        location: values.location || [],
-        keywords: values.keywords || [],
-        technologies: values.technologies || [],
-        revenueRange: values.revenueMin || values.revenueMax ? {
-          min: values.revenueMin ? parseInt(values.revenueMin) : undefined,
-          max: values.revenueMax ? parseInt(values.revenueMax) : undefined
-        } : undefined,
-        leadCount,
-        requirements: values.requirements || []
-      };
-
-      setGenerationProgress(30);
-
-      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          workspaceId: currentWorkspace.id,
-          criteria,
-          campaignName: values.campaignName || `Lead Generation - ${new Date().toLocaleDateString()}`
-        })
-      });
-
-      setGenerationProgress(70);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate leads');
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setGeneratedLeads(data.data.leads);
-        setGenerationProgress(100);
-        setGenerationComplete(true);
-        message.success(`Successfully generated ${data.data.leads.length} leads!`);
+  } catch (error) {
+    console.error('💥 Lead generation error:', error);
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid criteria')) {
+        message.error('Please check your search criteria and try again');
+        setCurrentStep(0);
+      } else if (error.message.includes('Insufficient credits')) {
+        message.error('Not enough credits. Please purchase more credits or use free leads.');
+        setCurrentStep(1);
+      } else if (error.message.includes('Authentication')) {
+        message.error('Session expired. Please refresh the page and try again.');
       } else {
-        throw new Error(data.error || 'Lead generation failed');
+        message.error(error.message);
       }
-
-    } catch (error) {
-      console.error('Lead generation error:', error);
-      message.error(error instanceof Error ? error.message : 'Failed to generate leads');
-    } finally {
-      setIsGenerating(false);
+    } else {
+      message.error('Failed to generate leads. Please try again.');
     }
-  };
+    
+    setGenerationProgress(0);
+    
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
-  const onFinish = async (values: any) => {
-    await generateLeads(values);
-  };
+
+ const onFinish = async (values: any) => {
+  console.log('📝 Form onFinish values:', values);
+  console.log('📝 Target Industry:', values.targetIndustry);
+  console.log('📝 Target Role:', values.targetRole);
+  
+  // The form validation should have already run, but let's double-check
+  if (!values.targetIndustry || values.targetIndustry.length === 0) {
+    message.error('Please select at least one target industry');
+    return;
+  }
+  
+  if (!values.targetRole || values.targetRole.length === 0) {
+    message.error('Please select at least one target role');
+    return;
+  }
+  
+  await generateLeads(values);
+};
 
   const navigateToLeads = () => {
     router.push('/lead-generation');
   };
 
   // Step 1: Target Criteria
-  const stepOneContent = (
-    <div className="space-y-6">
-      <Text>Define your target audience criteria. The more specific you are, the better quality leads you will generate.</Text>
-      
-      <Title level={5}>Core Targeting</Title>
-      <Row gutter={24}>
-        <Col span={12}>
-          <Form.Item
-            name="targetIndustry"
-            label="Target Industries"
-            rules={[{ required: true, message: 'Please select at least one industry' }]}
-          >
-            <Select 
-              placeholder="Select industries" 
-              mode="multiple"
-              showSearch
-              maxTagCount={3}
-              optionFilterProp="children"
-            >
-              {industries.map(industry => (
-                <Option key={industry} value={industry}>{industry}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="targetRole"
-            label="Target Job Titles"
-            rules={[{ required: true, message: 'Please select at least one job title' }]}
-          >
-            <Select 
-              placeholder="Select job titles" 
-              mode="multiple"
-              showSearch
-              maxTagCount={3}
-              optionFilterProp="children"
-            >
-              {jobTitles.map(title => (
-                <Option key={title} value={title}>{title}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-      
-      <Row gutter={24}>
-        <Col span={12}>
-          <Form.Item
-            name="companySize"
-            label="Company Size"
-          >
-            <Select placeholder="Select company sizes" mode="multiple">
-              <Option value="1-10">1-10 employees</Option>
-              <Option value="10-50">10-50 employees</Option>
-              <Option value="50-200">50-200 employees</Option>
-              <Option value="200-500">200-500 employees</Option>
-              <Option value="500-1000">500-1000 employees</Option>
-              <Option value="1000+">1000+ employees</Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="location"
-            label="Geographic Locations"
-          >
-            <Select 
-              placeholder="Select locations" 
-              mode="multiple"
-              showSearch
-              maxTagCount={3}
-            >
-              {locations.map(location => (
-                <Option key={location} value={location}>{location}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-      
-      <Form.Item
-        name="keywords"
-        label={
-          <span>
-            Keywords <Tooltip title="Keywords related to your target companies or services">
-              <InfoCircleOutlined />
-            </Tooltip>
-          </span>
-        }
-      >
-        <Select
-          mode="tags"
-          placeholder="e.g., SaaS, automation, digital transformation"
-          tokenSeparators={[',']}
-        />
-      </Form.Item>
-      
-      <div className="flex justify-between items-center">
-        <Title level={5}>Advanced Targeting</Title>
-        <Button 
-          type="link" 
-          onClick={() => setIsAdvancedVisible(!isAdvancedVisible)}
+// Step 1: Target Criteria - Complete implementation with enhanced validation
+const stepOneContent = (
+  <div className="space-y-6">
+    <Text>Define your target audience criteria. The more specific you are, the better quality leads you will generate.</Text>
+    
+    <Title level={5}>Core Targeting</Title>
+    <Row gutter={24}>
+      <Col span={12}>
+        <Form.Item
+          name="targetIndustry"
+          label="Target Industries"
+          rules={[
+            { 
+              required: true, 
+              message: 'Please select at least one industry' 
+            },
+            {
+              type: 'array',
+              min: 1,
+              message: 'Please select at least one industry'
+            }
+          ]}
         >
-          {isAdvancedVisible ? 'Hide' : 'Show'} Advanced Options
-        </Button>
-      </div>
-      
-      {isAdvancedVisible && (
-        <>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="revenueMin"
-                label="Minimum Annual Revenue"
-              >
-                <InputNumber
-                  placeholder="e.g., 1000000"
-                  formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value!.replace(/\$\s?|(,*)/g, '')}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="revenueMax"
-                label="Maximum Annual Revenue"
-              >
-                <InputNumber
-                  placeholder="e.g., 50000000"
-                  formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value!.replace(/\$\s?|(,*)/g, '')}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Form.Item
-            name="technologies"
-            label="Technologies Used"
+          <Select 
+            placeholder="Select industries" 
+            mode="multiple"
+            showSearch
+            maxTagCount={3}
+            optionFilterProp="children"
+            allowClear
           >
-            <Select
-              mode="multiple"
-              placeholder="Select technologies"
-              showSearch
-              maxTagCount={3}
-            >
-              {technologies.map(tech => (
-                <Option key={tech} value={tech}>
-                  {tech.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </>
-      )}
+            {industries.map(industry => (
+              <Option key={industry} value={industry}>{industry}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item
+          name="targetRole"
+          label="Target Job Titles"
+          rules={[
+            { 
+              required: true, 
+              message: 'Please select at least one job title' 
+            },
+            {
+              type: 'array',
+              min: 1,
+              message: 'Please select at least one job title'
+            }
+          ]}
+        >
+          <Select 
+            placeholder="Select job titles" 
+            mode="multiple"
+            showSearch
+            maxTagCount={3}
+            optionFilterProp="children"
+            allowClear
+          >
+            {jobTitles.map(title => (
+              <Option key={title} value={title}>{title}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+    </Row>
+    
+    <Row gutter={24}>
+      <Col span={12}>
+        <Form.Item
+          name="companySize"
+          label="Company Size"
+        >
+          <Select placeholder="Select company sizes" mode="multiple" allowClear>
+            <Option value="1-10">1-10 employees</Option>
+            <Option value="10-50">10-50 employees</Option>
+            <Option value="50-200">50-200 employees</Option>
+            <Option value="200-500">200-500 employees</Option>
+            <Option value="500-1000">500-1000 employees</Option>
+            <Option value="1000+">1000+ employees</Option>
+          </Select>
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item
+          name="location"
+          label="Geographic Locations"
+        >
+          <Select 
+            placeholder="Select locations" 
+            mode="multiple"
+            showSearch
+            maxTagCount={3}
+            allowClear
+          >
+            {locations.map(location => (
+              <Option key={location} value={location}>{location}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+    </Row>
+    
+    <Form.Item
+      name="keywords"
+      label={
+        <span>
+          Keywords <Tooltip title="Keywords related to your target companies or services">
+            <InfoCircleOutlined />
+          </Tooltip>
+        </span>
+      }
+    >
+      <Select
+        mode="tags"
+        placeholder="e.g., SaaS, automation, digital transformation"
+        tokenSeparators={[',']}
+        allowClear
+      />
+    </Form.Item>
+    
+    <div className="flex justify-between items-center">
+      <Title level={5}>Advanced Targeting</Title>
+      <Button 
+        type="link" 
+        onClick={() => setIsAdvancedVisible(!isAdvancedVisible)}
+      >
+        {isAdvancedVisible ? 'Hide' : 'Show'} Advanced Options
+      </Button>
     </div>
-  );
+    
+    {isAdvancedVisible && (
+      <>
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              name="revenueMin"
+              label="Minimum Annual Revenue"
+            >
+              <InputNumber<number>
+                placeholder="e.g., 1000000"
+                formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={value => {
+                  if (!value) return 0;
+                  const cleaned = value.replace(/\$\s?|(,*)/g, '');
+                  const num = parseFloat(cleaned);
+                  return isNaN(num) ? 0 : num;
+                }}
+                style={{ width: '100%' }}
+                min={0}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="revenueMax"
+              label="Maximum Annual Revenue"
+            >
+              <InputNumber<number>
+                placeholder="e.g., 50000000"
+                formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={value => {
+                  if (!value) return 0;
+                  const cleaned = value.replace(/\$\s?|(,*)/g, '');
+                  const num = parseFloat(cleaned);
+                  return isNaN(num) ? 0 : num;
+                }}
+                style={{ width: '100%' }}
+                min={0}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+        
+        <Form.Item
+          name="technologies"
+          label="Technologies Used"
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select technologies"
+            showSearch
+            maxTagCount={3}
+            allowClear
+          >
+            {technologies.map(tech => (
+              <Option key={tech} value={tech}>
+                {tech.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </>
+    )}
+  </div>
+);
 
   // Step 2: Lead Settings
   const stepTwoContent = (
@@ -504,105 +657,109 @@ const CampaignCreatePage = () => {
 
   // Step 3: Generate Leads
   const stepThreeContent = (
-    <div className="space-y-6">
-      {!isGenerating && !generationComplete && (
-        <div className="text-center">
-          <Title level={4}>Ready to Generate Leads</Title>
-          <Text>Click the button below to start generating your leads based on the criteria you have set.</Text>
-          
-          <Card className="mt-6" style={{ maxWidth: 400, margin: '24px auto' }}>
-            <Statistic
-              title="Leads to Generate"
-              value={leadCount}
-              prefix={<ThunderboltOutlined />}
-            />
-            <div className="mt-4">
-              <Text strong>Estimated Cost: {estimatedCost} credits</Text>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {isGenerating && (
-        <div className="text-center">
-          <LoadingOutlined className="text-4xl text-blue-500 mb-4" />
-          <Title level={4}>Generating Your Leads...</Title>
-          <Text>This may take a few moments while we search through millions of profiles.</Text>
-          
-          <div className="mt-6">
-            <Progress 
-              percent={generationProgress} 
-              status="active"
-              strokeColor={{
-                '0%': '#108ee9',
-                '100%': '#87d068',
-              }}
-            />
+  <div className="space-y-6">
+    {!isGenerating && !generationComplete && (
+      <div className="text-center">
+        <Title level={4}>Ready to Generate Leads</Title>
+        <Text>Click the button below to start generating your leads based on the criteria you have set.</Text>
+        
+        <Card className="mt-6" style={{ maxWidth: 400, margin: '24px auto' }}>
+          <Statistic
+            title="Leads to Generate"
+            value={leadCount}
+            prefix={<ThunderboltOutlined />}
+          />
+          <div className="mt-4">
+            <Text strong>Estimated Cost: {estimatedCost} credits</Text>
           </div>
+        </Card>
+      </div>
+    )}
+
+    {/* Rest of the content remains the same */}
+    {isGenerating && (
+      <div className="text-center">
+        <LoadingOutlined className="text-4xl text-blue-500 mb-4" />
+        <Title level={4}>Generating Your Leads...</Title>
+        <Text>This may take a few moments while we search through millions of profiles.</Text>
+        
+        <div className="mt-6">
+          <Progress 
+            percent={generationProgress} 
+            status="active"
+            strokeColor={{
+              '0%': '#108ee9',
+              '100%': '#87d068',
+            }}
+          />
         </div>
-      )}
+      </div>
+    )}
 
-      {generationComplete && generatedLeads.length > 0 && (
-        <div>
-          <div className="text-center mb-6">
-            <CheckCircleOutlined className="text-4xl text-green-500 mb-4" />
-            <Title level={4}>Leads Generated Successfully!</Title>
-            <Text>Found {generatedLeads.length} high-quality leads matching your criteria.</Text>
-          </div>
+    {generationComplete && generatedLeads.length > 0 && (
+      <div>
+        <div className="text-center mb-6">
+          <CheckCircleOutlined className="text-4xl text-green-500 mb-4" />
+          <Title level={4}>Leads Generated Successfully!</Title>
+          <Text>Found {generatedLeads.length} high-quality leads matching your criteria.</Text>
+        </div>
 
-          <Card title="Generated Leads Preview" className="mb-6">
-            <div className="space-y-4">
-              {generatedLeads.slice(0, 5).map((lead, index) => (
-                <div key={index} className="border-b pb-3 last:border-b-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Text strong>{lead.name}</Text>
-                      <div className="text-sm text-gray-500">
-                        {lead.title} at {lead.company}
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {lead.location} • Score: {lead.score}/100
-                      </div>
+        <Card title="Generated Leads Preview" className="mb-6">
+          <div className="space-y-4">
+            {generatedLeads.slice(0, 5).map((lead, index) => (
+              <div key={index} className="border-b pb-3 last:border-b-0">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Text strong>{lead.name}</Text>
+                    <div className="text-sm text-gray-500">
+                      {lead.title} at {lead.company}
                     </div>
-                    <div className="text-right">
-                      {lead.email && <Tag color="green">Email</Tag>}
-                      {lead.phone && <Tag color="blue">Phone</Tag>}
-                      {lead.linkedinUrl && <Tag color="purple">LinkedIn</Tag>}
+                    <div className="text-sm text-gray-400">
+                      {lead.location} • Score: {lead.score}/100
                     </div>
                   </div>
+                  <div className="text-right">
+                    {lead.email && <Tag color="green">Email</Tag>}
+                    {lead.phone && <Tag color="blue">Phone</Tag>}
+                    {lead.linkedinUrl && <Tag color="purple">LinkedIn</Tag>}
+                  </div>
                 </div>
-              ))}
-              
-              {generatedLeads.length > 5 && (
-                <div className="text-center pt-3">
-                  <Text type="secondary">
-                    And {generatedLeads.length - 5} more leads...
-                  </Text>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <div className="text-center">
-            <Space size="large">
-              <Button size="large" onClick={() => router.back()}>
-                Generate More Leads
-              </Button>
-              <Button 
-                type="primary" 
-                size="large" 
-                onClick={navigateToLeads}
-              >
-                View All Leads
-              </Button>
-            </Space>
+              </div>
+            ))}
+            
+            {generatedLeads.length > 5 && (
+              <div className="text-center pt-3">
+                <Text type="secondary">
+                  And {generatedLeads.length - 5} more leads...
+                </Text>
+              </div>
+            )}
           </div>
+        </Card>
+
+        <div className="text-center">
+          <Space size="large">
+            <Button size="large" onClick={() => router.back()}>
+              Generate More Leads
+            </Button>
+            <Button 
+              type="primary" 
+              size="large" 
+              onClick={navigateToLeads}
+            >
+              View All Leads
+            </Button>
+          </Space>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 
   const stepContents = [stepOneContent, stepTwoContent, stepThreeContent];
+
+
+  // 3. The key fix: Update the form button section
 
   return (
     <div style={{
@@ -649,46 +806,103 @@ const CampaignCreatePage = () => {
       </Steps>
 
       <Card>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{
-            requirements: ['email'],
-            useFreeLeads: hasFreeLeads
-          }}
-        >
-          {stepContents[currentStep]}
+    <Form
+  form={form}
+  layout="vertical"
+  initialValues={formData}
+>
+  {/* Step 1 Content - Always rendered but conditionally visible */}
+  <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+    {stepOneContent}
+  </div>
+
+  {/* Step 2 Content - Always rendered but conditionally visible */}
+  <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
+    {stepTwoContent}
+  </div>
+
+  {/* Step 3 Content - Always rendered but conditionally visible */}
+  <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
+    {stepThreeContent}
+  </div>
+  
+  <Divider />
           
-          <Divider />
-          
-          <div className="flex justify-between">
-            <div>
-              {currentStep > 0 && !isGenerating && (
-                <Button onClick={handlePrev}>
-                  Previous
-                </Button>
-              )}
-            </div>
-            
-            <div>
-              {currentStep < steps.length - 1 && (
-                <Button type="primary" onClick={handleNext}>
-                  Next
-                </Button>
-              )}
-              
-              {currentStep === steps.length - 1 && !generationComplete && (
-                <Button 
-                  type="primary" 
-                  htmlType="submit"
-                  loading={isGenerating}
-                  disabled={userCredits < estimatedCost && !(usingFreeLeads && hasFreeLeads)}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Leads'}
-                </Button>
-              )}
-            </div>
+
+
+<div className="flex justify-between">
+  <div>
+    {currentStep > 0 && !isGenerating && (
+      <Button onClick={handlePrev}>
+        Previous
+      </Button>
+    )}
+  </div>
+  
+  <div>
+    {currentStep < steps.length - 1 && (
+      <Button type="primary" onClick={handleNext}>
+        Next
+      </Button>
+    )}
+    
+  {currentStep === steps.length - 1 && !generationComplete && (
+  <Button 
+    type="primary" 
+    onClick={async () => {
+      try {
+        console.log('🔍 Using saved form data...');
+        
+        // Get any remaining form values from current step
+        const currentStepValues = form.getFieldsValue();
+        
+        // Merge with saved form data
+        const finalValues = { ...formData, ...currentStepValues };
+        console.log('📋 Final merged values:', finalValues);
+        
+        // Validate we have required data
+        if (!finalValues.targetIndustry || finalValues.targetIndustry.length === 0) {
+          console.log('❌ No target industry in final values');
+          message.error('Please select at least one target industry');
+          setCurrentStep(0);
+          return;
+        }
+        
+        if (!finalValues.targetRole || finalValues.targetRole.length === 0) {
+          console.log('❌ No target role in final values');
+          message.error('Please select at least one target role');
+          setCurrentStep(0);
+          return;
+        }
+        
+        console.log('🚀 All validations passed, calling generateLeads...');
+        await generateLeads(finalValues);
+        
+      } catch (error) {
+        console.log('❌ Error:', error);
+        message.error('Please complete all required fields');
+        setCurrentStep(0);
+      }
+    }}
+    loading={isGenerating}
+    disabled={userCredits < estimatedCost && !(usingFreeLeads && hasFreeLeads)}
+  >
+    {isGenerating ? 'Generating...' : 'Generate Leads'}
+  </Button>
+)}
+
+
+<Button 
+  onClick={() => {
+    console.log('DEBUG: Saved form data:', formData);
+    console.log('DEBUG: Current form values:', form.getFieldsValue());
+    console.log('DEBUG: Target Industry in saved data:', formData.targetIndustry);
+    console.log('DEBUG: Target Role in saved data:', formData.targetRole);
+  }}
+>
+  Debug Saved Data
+</Button>
+</div>
           </div>
         </Form>
       </Card>

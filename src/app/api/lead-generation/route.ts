@@ -1,10 +1,11 @@
-// app/api/lead-generation/route.ts
+// app/api/lead-generation/route.ts - COMPLETE WITH CREDITS
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { ApolloLeadService } from '@/services/apollo.service';
+import { CreditsService } from '@/services/credits.service';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
@@ -113,7 +114,7 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
   }
 }
 
-// POST /api/lead-generation - Generate leads
+// POST /api/lead-generation - Generate leads with credit checking
 export async function POST(req: NextRequest) {
   console.log('🚀 Lead Generation API Route called');
   
@@ -152,8 +153,8 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Rate limiting - 5 lead generations per hour
-    const rateLimitResult = await rateLimit(user.id, 5, 3600);
+    // Rate limiting - 10 lead generations per hour
+    const rateLimitResult = await rateLimit(user.id, 10, 3600);
     if (!rateLimitResult.success) {
       console.log('❌ Rate limit exceeded for user:', user.id);
       return NextResponse.json(
@@ -213,55 +214,67 @@ export async function POST(req: NextRequest) {
       leadCount
     });
 
-    // Generate leads using Apollo service
+    // Check credits before generation
+    const creditsService = new CreditsService();
+    const affordabilityCheck = await creditsService.canAffordLeadGeneration(user.id, leadCount);
+    
+    if (!affordabilityCheck.canAfford) {
+      return NextResponse.json({
+        success: false,
+        error: 'Insufficient credits',
+        reason: affordabilityCheck.reason,
+        required: affordabilityCheck.costInfo.totalCost,
+        available: affordabilityCheck.userCredits.credits,
+        freeLeadsAvailable: affordabilityCheck.userCredits.freeLeadsAvailable,
+        code: 'INSUFFICIENT_CREDITS'
+      }, { status: 402 }); // Payment required
+    }
+
+    // Generate leads with automatic credit deduction
     const apolloService = new ApolloLeadService();
-    const response = await apolloService.generateLeads(criteria);
-
-    console.log('✅ Lead generation completed:', {
-      leadsFound: response.leads.length,
-      totalFound: response.totalFound,
-      generationTime: response.generationTime
-    });
-
-    // Save to deliverables
-    const deliverableId = await apolloService.saveLeadGeneration(
+    const response = await apolloService.generateAndSaveLeads(
+      criteria,
       user.id,
       workspaceId,
-      response,
-      criteria,
       campaignName
     );
 
-    console.log('✅ Saved to deliverable:', deliverableId);
+    console.log('✅ Lead generation completed:', {
+      leadsFound: response.leads.length,
+      creditsUsed: response.tokensUsed,
+      deliverableId: response.deliverableId
+    });
 
-    // Log usage
+    // Log usage for analytics
     await logUsage({
       userId: user.id,
       feature: 'lead_generation',
-      tokens: response.leads.length, // Count leads as "tokens"
+      tokens: response.tokensUsed,
       timestamp: new Date(),
       metadata: {
-        deliverableId,
+        deliverableId: response.deliverableId,
         leadCount: response.leads.length,
-        totalFound: response.totalFound,
         criteria: {
           industries: criteria.targetIndustry,
           roles: criteria.targetRole,
           locations: criteria.location
-        }
+        },
+        creditInfo: response.creditInfo
       }
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        generationId: deliverableId,
+        generationId: response.deliverableId,
         leads: response.leads,
-        totalFound: response.totalFound,
-        generationTime: response.generationTime
+        generationTime: response.generationTime,
+        creditInfo: response.creditInfo
       },
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.limit - rateLimitResult.count,
+        creditsRemaining: response.creditInfo.remainingCredits,
+        freeLeadsRemaining: response.creditInfo.remainingFreeLeads
       }
     });
 
