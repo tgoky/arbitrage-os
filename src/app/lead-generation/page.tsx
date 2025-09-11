@@ -84,6 +84,183 @@ const LeadGenerationPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('All');
   const [selectedScore, setSelectedScore] = useState('All');
+
+  const handleViewLead = (lead: Lead) => {
+  // Navigate to the actual lead detail page
+  router.push(`/lead-generation/leads/${lead.id}`);
+};
+
+const handleContactLead = (lead: Lead) => {
+    console.log('Contacting lead:', lead);
+    
+    if (lead.email) {
+      // Open email client with pre-filled email
+      const subject = encodeURIComponent(`Introduction from ${currentWorkspace?.name || 'Our Company'}`);
+      const body = encodeURIComponent(`Hi ${lead.name.split(' ')[0]},\n\nI hope this email finds you well. I came across your profile and was impressed by your work at ${lead.company}.\n\nI'd love to connect and discuss how we might be able to help ${lead.company} with [your value proposition].\n\nBest regards,\n[Your Name]`);
+      
+      window.open(`mailto:${lead.email}?subject=${subject}&body=${body}`);
+      message.success(`Opening email to ${lead.name}`);
+    } else if (lead.linkedinUrl) {
+      // Open LinkedIn profile
+      window.open(lead.linkedinUrl, '_blank');
+      message.success(`Opening LinkedIn profile for ${lead.name}`);
+    } else {
+      message.warning('No contact information available for this lead');
+    }
+  };
+
+  const handleViewGenerationDetails = async (generation: LeadGeneration) => {
+    try {
+      console.log('Viewing generation details:', generation);
+      
+      // Fetch full generation details
+      const response = await fetch(`/api/lead-generation/${generation.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // You could open a modal with details or navigate to a details page
+          console.log('Generation details:', data.data);
+          message.success(`Loaded details for ${generation.title}`);
+          
+          // For now, let's show some info in a message
+          const { leads, metadata } = data.data;
+          message.info(`${generation.title}: ${leads?.length || 0} leads generated on ${new Date(generation.createdAt).toLocaleDateString()}`);
+          
+          // You could implement a modal here or navigate to details page
+          // router.push(`/lead-generation/campaigns/${generation.id}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading generation details:', error);
+      message.error('Failed to load generation details');
+    }
+  };
+
+ const handleExportGeneration = async (generation: LeadGeneration) => {
+  try {
+    console.log('Exporting generation:', generation);
+    message.loading('Preparing export...', 1);
+    
+    // Fetch full generation details to get all leads
+    const response = await fetch(`/api/lead-generation/${generation.id}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.data.leads) {
+        const leads = data.data.leads;
+        
+        // Convert leads to CSV format
+        const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
+        const csvRows = leads.map((lead: Lead) => [
+          lead.name,
+          lead.email || '',
+          lead.phone || '',
+          lead.title,
+          lead.company,
+          lead.industry,
+          lead.location,
+          lead.score.toString(),
+          lead.linkedinUrl || ''
+        ]);
+        
+        // Create CSV content with explicit typing
+        const csvContent = [
+          csvHeaders.join(','),
+          ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
+        ].join('\n');
+        
+        // Download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${generation.title.replace(/[^a-z0-9]/gi, '_')}_leads.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        message.success(`Exported ${leads.length} leads to CSV`);
+      }
+    }
+  } catch (error) {
+    console.error('Error exporting generation:', error);
+    message.error('Failed to export leads');
+  }
+};
+
+
+
+  const handleBulkExport = () => {
+  try {
+    console.log('Bulk exporting filtered leads');
+    message.loading('Preparing bulk export...', 1);
+    
+    if (filteredLeads.length === 0) {
+      message.warning('No leads to export');
+      return;
+    }
+    
+    // Convert filtered leads to CSV
+    const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
+    const csvRows = filteredLeads.map((lead: Lead) => [
+      lead.name,
+      lead.email || '',
+      lead.phone || '',
+      lead.title,
+      lead.company,
+      lead.industry,
+      lead.location,
+      lead.score.toString(),
+      lead.linkedinUrl || ''
+    ]);
+    
+    // Create CSV content with explicit typing
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
+    ].join('\n');
+    
+    // Download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `all_leads_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    message.success(`Exported ${filteredLeads.length} leads to CSV`);
+  } catch (error) {
+    console.error('Error with bulk export:', error);
+    message.error('Failed to export leads');
+  }
+};
+
+  const handleBulkEmail = () => {
+    const leadsWithEmail = filteredLeads.filter(lead => lead.email);
+    
+    if (leadsWithEmail.length === 0) {
+      message.warning('No leads with email addresses found');
+      return;
+    }
+    
+    // Create mailto link with multiple recipients
+    const emails = leadsWithEmail.map(lead => lead.email).join(',');
+    const subject = encodeURIComponent(`Introduction from ${currentWorkspace?.name || 'Our Company'}`);
+    const body = encodeURIComponent(`Hi there,\n\nI hope this email finds you well. I wanted to reach out to introduce our company and discuss potential collaboration opportunities.\n\nBest regards,\n[Your Name]`);
+    
+    // Note: Most email clients have limits on URL length, so this works best with smaller lists
+    if (emails.length > 2000) {
+      message.warning('Too many recipients for bulk email. Consider using smaller batches or an email marketing tool.');
+      return;
+    }
+    
+    window.open(`mailto:${emails}?subject=${subject}&body=${body}`);
+    message.success(`Opening bulk email to ${leadsWithEmail.length} leads`);
+  };
+
   
   // Load data on component mount
   useEffect(() => {
@@ -92,45 +269,59 @@ const LeadGenerationPage = () => {
     }
   }, [currentWorkspace?.id]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      
-      // Load lead generations
-      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
-      const response = await fetch(endpoint);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setGenerations(data.data);
-          
-          // Extract all leads from generations
-          const allLeads: Lead[] = [];
-          for (const gen of data.data) {
-            try {
-              // Load full generation details to get leads
-              const detailResponse = await fetch(`/api/lead-generation/${gen.id}`);
-              if (detailResponse.ok) {
-                const detailData = await detailResponse.json();
-                if (detailData.success && detailData.data.leads) {
-                  allLeads.push(...detailData.data.leads);
-                }
+const loadData = async () => {
+  try {
+    setLoading(true);
+    
+    // Load lead generations
+    const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+    const response = await fetch(endpoint);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        setGenerations(data.data);
+        
+        // Extract all leads from generations with proper IDs
+        const allLeads: Lead[] = [];
+        for (const gen of data.data) {
+          try {
+            // Load full generation details to get leads
+            const detailResponse = await fetch(`/api/lead-generation/${gen.id}`);
+            if (detailResponse.ok) {
+              const detailData = await detailResponse.json();
+              if (detailData.success && detailData.data.leads) {
+                // Add generation context to each lead
+                const leadsWithContext = detailData.data.leads.map((lead: any, index: number) => ({
+                  ...lead,
+                  // Ensure each lead has a unique ID for routing
+                  id: lead.id || `${gen.id}_lead_${index}`,
+                  generationId: gen.id,
+                  generationTitle: gen.title,
+                  // Add missing fields that the detail page expects
+                  notes: lead.notes || '',
+                  status: lead.status || 'new',
+                  lastContacted: lead.lastContacted || null,
+                  createdAt: gen.createdAt,
+                  updatedAt: gen.updatedAt || gen.createdAt
+                }));
+                allLeads.push(...leadsWithContext);
               }
-            } catch (error) {
-              console.warn('Failed to load details for generation:', gen.id);
             }
+          } catch (error) {
+            console.warn('Failed to load details for generation:', gen.id);
           }
-          setLeads(allLeads);
         }
+        setLeads(allLeads);
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      message.error('Failed to load lead data');
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Error loading data:', error);
+    message.error('Failed to load lead data');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter leads based on search and filters
   const filteredLeads = leads.filter(lead => {
@@ -234,14 +425,25 @@ const LeadGenerationPage = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button size="small">View</Button>
-          <Button size="small" type="primary">Contact</Button>
-        </Space>
-      ),
-    },
-  ];
+     render: (_, record) => (
+      <Space>
+        <Button 
+          size="small"
+          onClick={() => handleViewLead(record)}
+        >
+          View
+        </Button>
+        <Button 
+          size="small" 
+          type="primary"
+          onClick={() => handleContactLead(record)}
+        >
+          Contact
+        </Button>
+      </Space>
+    ),
+  },
+];
 
   // Generation history columns
   const generationColumns: ColumnsType<LeadGeneration> = [
@@ -285,10 +487,21 @@ const LeadGenerationPage = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_, record) => (
+       render: (_, record) => (
         <Space>
-          <Button size="small">View Details</Button>
-          <Button size="small" icon={<DownloadOutlined />}>Export</Button>
+          <Button 
+            size="small"
+            onClick={() => handleViewGenerationDetails(record)}
+          >
+            View Details
+          </Button>
+          <Button 
+            size="small" 
+            icon={<DownloadOutlined />}
+            onClick={() => handleExportGeneration(record)}
+          >
+            Export
+          </Button>
         </Space>
       ),
     },
@@ -296,7 +509,7 @@ const LeadGenerationPage = () => {
 
   // Tab items
   const tabItems = [
-    {
+  {
       key: 'leads',
       label: (
         <span>
@@ -343,12 +556,25 @@ const LeadGenerationPage = () => {
               </Col>
               <Col span={8} className="text-right">
                 <Space>
-                  <Button icon={<DownloadOutlined />}>Export</Button>
-                  <Button icon={<MailOutlined />}>Bulk Email</Button>
+                  <Button 
+                    icon={<DownloadOutlined />}
+                    onClick={handleBulkExport}
+                    disabled={filteredLeads.length === 0}
+                  >
+                    Export ({filteredLeads.length})
+                  </Button>
+                  <Button 
+                    icon={<MailOutlined />}
+                    onClick={handleBulkEmail}
+                    disabled={filteredLeads.filter(lead => lead.email).length === 0}
+                  >
+                    Bulk Email ({filteredLeads.filter(lead => lead.email).length})
+                  </Button>
                 </Space>
               </Col>
             </Row>
           </Card>
+
 
           {/* Leads Table */}
           {loading ? (
