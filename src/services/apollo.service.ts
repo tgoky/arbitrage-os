@@ -68,80 +68,91 @@ export class ApolloLeadService {
   }
 
   // ✅ MAIN METHOD: Generate and save leads with credit deduction
-  async generateAndSaveLeads(
-    input: LeadGenerationCriteria, 
-    userId: string, 
-    workspaceId: string,
-    campaignName?: string
-  ): Promise<{
-    leads: GeneratedLead[];
-    deliverableId: string;
-    tokensUsed: number;
-    generationTime: number;
-    creditInfo: any;
-  }> {
-    console.log('🚀 Starting lead generation with credits for user:', userId);
-    
-    // Step 1: Check credits before generation
-    const userCredits = await this.creditsService.getUserCredits(userId);
-    const costInfo = await this.creditsService.calculateCost(
-      input.leadCount, 
-      userCredits.freeLeadsAvailable
+// Update the main generation method to handle errors properly
+async generateAndSaveLeads(
+  input: LeadGenerationCriteria, 
+  userId: string, 
+  workspaceId: string,
+  campaignName?: string
+): Promise<{
+  leads: GeneratedLead[];
+  deliverableId: string;
+  tokensUsed: number;
+  generationTime: number;
+  creditInfo: any;
+}> {
+  console.log('🚀 Starting lead generation with credits for user:', userId);
+  
+  // Step 1: Check credits before generation
+  const userCredits = await this.creditsService.getUserCredits(userId);
+  const costInfo = await this.creditsService.calculateCost(
+    input.leadCount, 
+    userCredits.freeLeadsAvailable
+  );
+  
+  console.log('💳 Credit check:', {
+    userCredits: userCredits.credits,
+    freeLeadsAvailable: userCredits.freeLeadsAvailable,
+    estimatedCost: costInfo.totalCost,
+    freeLeadsToUse: costInfo.freeLeadsUsed
+  });
+  
+  if (costInfo.totalCost > userCredits.credits) {
+    throw new Error(
+      `Insufficient credits. Need ${costInfo.totalCost} credits, have ${userCredits.credits}. ` +
+      `You can use ${userCredits.freeLeadsAvailable} free leads.`
     );
-    
-    console.log('💳 Credit check:', {
-      userCredits: userCredits.credits,
-      freeLeadsAvailable: userCredits.freeLeadsAvailable,
-      estimatedCost: costInfo.totalCost,
-      freeLeadsToUse: costInfo.freeLeadsUsed
-    });
-    
-    if (costInfo.totalCost > userCredits.credits) {
-      throw new Error(
-        `Insufficient credits. Need ${costInfo.totalCost} credits, have ${userCredits.credits}. ` +
-        `You can use ${userCredits.freeLeadsAvailable} free leads.`
-      );
-    }
+  }
 
+  let response: LeadGenerationResponse;
+  
+  try {
     // Step 2: Generate leads using Apollo API
     console.log('🔍 Generating leads via Apollo API...');
-    const response = await this.generateLeads(input);
+    response = await this.generateLeads(input);
     
-    // Step 3: Save to deliverables first
-    console.log('💾 Saving to deliverables...');
-    const deliverableId = await this.saveLeadGeneration(
-      userId, 
-      workspaceId, 
-      response, 
-      input, 
-      campaignName
-    );
+  } catch (error) {
+    console.error('❌ Lead generation failed:', error);
     
-    // Step 4: Deduct credits based on actual leads returned
-    const actualLeadCount = response.leads.length;
-    console.log(`💳 Deducting credits for ${actualLeadCount} actual leads...`);
-    
-    const creditInfo = await this.creditsService.deductCredits(
-      userId, 
-      workspaceId, 
-      actualLeadCount, 
-      deliverableId
-    );
-
-    console.log('✅ Lead generation completed:', {
-      leadsGenerated: actualLeadCount,
-      creditsDeducted: creditInfo.creditsDeducted,
-      remainingCredits: creditInfo.remainingCredits
-    });
-
-    return {
-      leads: response.leads,
-      deliverableId,
-      tokensUsed: creditInfo.creditsDeducted,
-      generationTime: response.generationTime,
-      creditInfo
-    };
+    // Always throw errors - no fallback in any environment
+    throw error;
   }
+  
+  // Step 3: Save to deliverables first
+  console.log('💾 Saving to deliverables...');
+  const deliverableId = await this.saveLeadGeneration(
+    userId, 
+    workspaceId, 
+    response, 
+    input, 
+    campaignName
+  );
+  
+  // Step 4: Deduct credits based on actual leads returned
+  const actualLeadCount = response.leads.length;
+  console.log(`💳 Deducting credits for ${actualLeadCount} actual leads...`);
+  
+  const creditInfo = await this.creditsService.deductCredits(
+    userId, 
+    workspaceId, 
+    actualLeadCount, 
+    deliverableId
+  );
+
+  console.log('✅ Lead generation completed:', {
+    leadsGenerated: actualLeadCount,
+    creditsDeducted: creditInfo.creditsDeducted,
+    remainingCredits: creditInfo.remainingCredits
+  });
+
+  return {
+    leads: response.leads,
+    deliverableId,
+    tokensUsed: creditInfo.creditsDeducted,
+    generationTime: response.generationTime,
+    creditInfo
+  };
+}
 
   // ✅ Core lead generation method (Apollo API integration)
 async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
@@ -169,9 +180,22 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
       const errorText = await response.text();
       console.error('❌ Apollo API error response:', errorText);
       
+      // Handle specific error cases with clear messages
+      if (response.status === 401) {
+        throw new Error('Apollo API authentication failed. Please check your API key.');
+      }
+      
+      if (response.status === 429) {
+        throw new Error('Apollo API rate limit exceeded. Please wait before trying again.');
+      }
+      
       if (response.status === 422 || response.status === 400) {
         console.log('🔄 Retrying with minimal parameters...');
         return this.retryWithMinimalParams(criteria);
+      }
+      
+      if (response.status >= 500) {
+        throw new Error('Apollo API server error. Please try again later.');
       }
       
       throw new Error(`Apollo API error: ${response.status} ${response.statusText} - ${errorText}`);
@@ -199,6 +223,11 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
     
     console.log(`✅ Processed ${leads.length} leads from Apollo response`);
     
+    // Throw error if no leads found
+    if (leads.length === 0) {
+      throw new Error('No leads found matching your criteria. Try broadening your search parameters.');
+    }
+    
     const result: LeadGenerationResponse = {
       leads,
       totalFound: data.pagination?.total_entries || leads.length,
@@ -211,11 +240,15 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
 
   } catch (error) {
     console.error('💥 Apollo API error:', error);
-    console.log('🧪 Returning mock data for testing...');
-    return this.getMockLeads(criteria);
+    
+    // Re-throw the error instead of using fallback
+    if (error instanceof Error) {
+      throw error;
+    }
+    
+    throw new Error('Failed to generate leads. Please try again.');
   }
 }
-
 
 private async retryWithMinimalParams(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
   console.log('🔄 Retrying with minimal parameters...');
