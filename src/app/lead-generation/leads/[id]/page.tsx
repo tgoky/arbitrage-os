@@ -35,7 +35,7 @@ import {
   SaveOutlined,
   CloseOutlined,
   UserOutlined,
-  BuildingOutlined,
+
   EnvironmentOutlined,
   HistoryOutlined,
   MessageOutlined,
