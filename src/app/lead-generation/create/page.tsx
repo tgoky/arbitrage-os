@@ -27,7 +27,6 @@ import {
   ArrowLeftOutlined,
   ThunderboltOutlined,
   InfoCircleOutlined,
-  GlobalOutlined,
   CreditCardOutlined,
   GiftOutlined,
   LoadingOutlined,

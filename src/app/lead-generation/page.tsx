@@ -41,6 +41,8 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
+
+
 interface Lead {
   id: string;
   name: string;
@@ -75,6 +77,8 @@ const LeadGenerationPage = () => {
   const { theme } = useTheme();
   const router = useRouter();
   const { currentWorkspace, getWorkspaceScopedEndpoint } = useWorkspaceContext();
+
+
   
   // State
   const [activeTab, setActiveTab] = useState('leads');
@@ -109,32 +113,11 @@ const handleContactLead = (lead: Lead) => {
     }
   };
 
-  const handleViewGenerationDetails = async (generation: LeadGeneration) => {
-    try {
-      console.log('Viewing generation details:', generation);
-      
-      // Fetch full generation details
-      const response = await fetch(`/api/lead-generation/${generation.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // You could open a modal with details or navigate to a details page
-          console.log('Generation details:', data.data);
-          message.success(`Loaded details for ${generation.title}`);
-          
-          // For now, let's show some info in a message
-          const { leads, metadata } = data.data;
-          message.info(`${generation.title}: ${leads?.length || 0} leads generated on ${new Date(generation.createdAt).toLocaleDateString()}`);
-          
-          // You could implement a modal here or navigate to details page
-          // router.push(`/lead-generation/campaigns/${generation.id}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading generation details:', error);
-      message.error('Failed to load generation details');
-    }
-  };
+// Replace the handleViewGenerationDetails function with:
+const handleViewGenerationDetails = (generation: LeadGeneration) => {
+  router.push(`/lead-generation/campaigns/${generation.id}`);
+};
+
 
  const handleExportGeneration = async (generation: LeadGeneration) => {
   try {
@@ -269,6 +252,7 @@ const handleContactLead = (lead: Lead) => {
     }
   }, [currentWorkspace?.id]);
 
+// Replace your current loadData function with this corrected version
 const loadData = async () => {
   try {
     setLoading(true);
@@ -282,38 +266,42 @@ const loadData = async () => {
       if (data.success) {
         setGenerations(data.data);
         
-        // Extract all leads from generations with proper IDs
+        // Extract all leads from the stored content (not metadata)
         const allLeads: Lead[] = [];
+        
         for (const gen of data.data) {
           try {
-            // Load full generation details to get leads
-            const detailResponse = await fetch(`/api/lead-generation/${gen.id}`);
-            if (detailResponse.ok) {
-              const detailData = await detailResponse.json();
-              if (detailData.success && detailData.data.leads) {
-                // Add generation context to each lead
-                const leadsWithContext = detailData.data.leads.map((lead: any, index: number) => ({
-                  ...lead,
-                  // Ensure each lead has a unique ID for routing
-                  id: lead.id || `${gen.id}_lead_${index}`,
-                  generationId: gen.id,
-                  generationTitle: gen.title,
-                  // Add missing fields that the detail page expects
-                  notes: lead.notes || '',
-                  status: lead.status || 'new',
-                  lastContacted: lead.lastContacted || null,
-                  createdAt: gen.createdAt,
-                  updatedAt: gen.updatedAt || gen.createdAt
-                }));
-                allLeads.push(...leadsWithContext);
-              }
+            // Parse the content field which contains the full LeadGenerationResponse
+            const generationContent = JSON.parse(gen.content);
+            
+            if (generationContent.leads && Array.isArray(generationContent.leads)) {
+              const leadsWithContext = generationContent.leads.map((lead: any, index: number) => ({
+                ...lead,
+                // Ensure each lead has a unique ID for routing
+                id: lead.id || `${gen.id}_lead_${index}`,
+                generationId: gen.id,
+                generationTitle: gen.title,
+                // Add missing fields that the detail page expects
+                notes: lead.notes || '',
+                status: lead.status || 'new',
+                lastContacted: lead.lastContacted || null,
+                createdAt: gen.created_at,
+                updatedAt: gen.updated_at || gen.created_at
+              }));
+              
+              allLeads.push(...leadsWithContext);
             }
-          } catch (error) {
-            console.warn('Failed to load details for generation:', gen.id);
+          } catch (parseError) {
+            console.warn('Failed to parse content for generation:', gen.id, parseError);
           }
         }
+        
         setLeads(allLeads);
+        console.log(`✅ Loaded ${allLeads.length} leads from stored content`);
       }
+    } else {
+      console.error('Failed to fetch generations:', response.status);
+      message.error('Failed to load lead data');
     }
   } catch (error) {
     console.error('Error loading data:', error);
@@ -484,27 +472,27 @@ const loadData = async () => {
       key: 'createdAt',
       render: (date) => new Date(date).toLocaleDateString(),
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-       render: (_, record) => (
-        <Space>
-          <Button 
-            size="small"
-            onClick={() => handleViewGenerationDetails(record)}
-          >
-            View Details
-          </Button>
-          <Button 
-            size="small" 
-            icon={<DownloadOutlined />}
-            onClick={() => handleExportGeneration(record)}
-          >
-            Export
-          </Button>
-        </Space>
-      ),
-    },
+   {
+  title: 'Actions',
+  key: 'actions',
+  render: (_, record) => (
+    <Space>
+      <Button 
+        size="small"
+        onClick={() => router.push(`/lead-generation/campaigns/${record.id}`)}
+      >
+        View Details
+      </Button>
+      <Button 
+        size="small" 
+        icon={<DownloadOutlined />}
+        onClick={() => handleExportGeneration(record)}
+      >
+        Export
+      </Button>
+    </Space>
+  ),
+}
   ];
 
   // Tab items

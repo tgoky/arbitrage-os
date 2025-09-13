@@ -50,6 +50,7 @@ export interface LeadGenerationResponse {
   generationTime: number;
   apolloBatchId?: string;
   creditInfo?: any;
+    fromCache?: boolean; 
 }
 
 export class ApolloLeadService {
@@ -155,12 +156,33 @@ async generateAndSaveLeads(
 }
 
   // ✅ Core lead generation method (Apollo API integration)
+
+// Updated generateLeads method with caching
 async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
   const startTime = Date.now();
   
-  const apolloParams = this.mapCriteriaToApolloParams(criteria);
+  // Check cache first
+  const cacheKey = this.generateCacheKey(criteria);
+  console.log('🔍 Checking cache for key:', cacheKey);
   
-  console.log('🌐 Calling Apollo API with params:', apolloParams);
+  try {
+    const cached = await this.redis.get(cacheKey);
+    if (cached && typeof cached === 'string') { // Add type check
+      console.log('✅ Found cached results, skipping Apollo API call');
+      const cachedResult = JSON.parse(cached);
+      return {
+        ...cachedResult,
+        generationTime: Date.now() - startTime,
+        fromCache: true
+      };
+    }
+  } catch (cacheError) {
+    console.warn('Cache read failed, proceeding with API call:', cacheError);
+  }
+  
+  
+  const apolloParams = this.mapCriteriaToApolloParams(criteria);
+  console.log('🌐 Cache miss - calling Apollo API with params:', apolloParams);
   
   try {
     const formattedParams = this.formatArrayParams(apolloParams);
@@ -180,7 +202,6 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
       const errorText = await response.text();
       console.error('❌ Apollo API error response:', errorText);
       
-      // Handle specific error cases with clear messages
       if (response.status === 401) {
         throw new Error('Apollo API authentication failed. Please check your API key.');
       }
@@ -202,28 +223,8 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
     }
 
     const data = await response.json();
-    
-    // Enhanced debugging
-    console.log('📊 Apollo API response structure:', {
-      hasContacts: 'contacts' in data,
-      hasPeople: 'people' in data,
-      contactsLength: data.contacts?.length || 0,
-      peopleLength: data.people?.length || 0,
-      totalEntries: data.pagination?.total_entries || 0,
-      firstPersonSample: data.people?.[0] ? {
-        name: data.people[0].name,
-        email: data.people[0].email,
-        title: data.people[0].title,
-        company: data.people[0].organization?.name
-      } : null
-    });
-    
-    // Process leads from the people array
     const leads = this.processApolloResponse(data, criteria);
     
-    console.log(`✅ Processed ${leads.length} leads from Apollo response`);
-    
-    // Throw error if no leads found
     if (leads.length === 0) {
       throw new Error('No leads found matching your criteria. Try broadening your search parameters.');
     }
@@ -233,15 +234,23 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
       totalFound: data.pagination?.total_entries || leads.length,
       tokensUsed: 0,
       generationTime: Date.now() - startTime,
-      apolloBatchId: data.pagination?.page?.toString()
+      apolloBatchId: data.pagination?.page?.toString(),
+      fromCache: false
     };
+
+    // Cache the result for 1 hour
+    try {
+      await this.redis.setex(cacheKey, 3600, JSON.stringify(result));
+      console.log('💾 Cached results for 1 hour');
+    } catch (cacheError) {
+      console.warn('Failed to cache results:', cacheError);
+    }
 
     return result;
 
   } catch (error) {
     console.error('💥 Apollo API error:', error);
     
-    // Re-throw the error instead of using fallback
     if (error instanceof Error) {
       throw error;
     }
@@ -249,6 +258,8 @@ async generateLeads(criteria: LeadGenerationCriteria): Promise<LeadGenerationRes
     throw new Error('Failed to generate leads. Please try again.');
   }
 }
+
+
 
 private async retryWithMinimalParams(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
   console.log('🔄 Retrying with minimal parameters...');
@@ -742,10 +753,21 @@ private formatRevenue(organization: any): string {
     return parts.join(', ') || 'Unknown';
   }
 
-  private generateCacheKey(criteria: LeadGenerationCriteria): string {
-    const key = `apollo_leads:${JSON.stringify(criteria)}`;
-    return key.replace(/[^a-zA-Z0-9:]/g, '_').substring(0, 200);
-  }
+private generateCacheKey(criteria: LeadGenerationCriteria): string {
+  // Create a deterministic cache key from criteria
+  const keyData = {
+    industries: criteria.targetIndustry.sort(),
+    roles: criteria.targetRole.sort(),
+    companySize: criteria.companySize?.sort(),
+    location: criteria.location?.sort(),
+    leadCount: criteria.leadCount,
+    requirements: criteria.requirements?.sort()
+  };
+  
+  const key = `apollo_leads:${JSON.stringify(keyData)}`;
+  return key.replace(/[^a-zA-Z0-9:]/g, '_').substring(0, 200);
+}
+
 
   // ✅ Save lead generation to deliverables
   async saveLeadGeneration(
