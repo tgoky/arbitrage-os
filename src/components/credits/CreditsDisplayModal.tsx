@@ -140,7 +140,7 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
         {requiredCredits > currentCredits && (
           <Alert
             type="info"
-            message={`You need ${requiredCredits} credits but only have ${currentCredits}. Purchase more credits to continue.`}
+            message={`You need at least ${requiredCredits} credits but only have ${currentCredits}. Purchase more credits to continue.`}
             showIcon
           />
         )}

@@ -23,7 +23,8 @@ module.exports = {
         raisinblack: '#202020',   // muted, slightly brown-black
         onyx: '#353535',          // warm dark gray-black
         trueblack: '#000000',  
-        customGreen: '#5CC49D',   // pure black (for contrast only)
+        customGreen: '#5CC49D', 
+        darkGreen: '#2B604B'  // pure black (for contrast only)
       },
     },
   },

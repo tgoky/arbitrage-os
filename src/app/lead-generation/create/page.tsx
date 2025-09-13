@@ -36,7 +36,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
-import CreditsPurchaseModal from '../components/CreditsPurchaseModal';
+import CreditsPurchaseModal from '../../../components/credits/CreditsDisplayModal';
 
 const { Title, Text } = Typography;
 const { Option } = Select;

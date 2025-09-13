@@ -23,7 +23,7 @@ import {
   ThunderboltOutlined,
   PlusOutlined
 } from '@ant-design/icons';
-import CreditsPurchaseModal from './CreditsPurchaseModal';
+import CreditsPurchaseModal from './CreditsDisplayModal';
 
 const { Title, Text } = Typography;
 
@@ -161,7 +161,7 @@ const CreditsDisplayHeader: React.FC<CreditsDisplayHeaderProps> = ({
                 size="middle"
                 icon={<PlusOutlined />}
                 onClick={() => setPurchaseModalVisible(true)}
-                className="bg-blue-600 border-0 mb-2 w-full md:w-auto"
+                className="bg-darkGreen border-0 mb-2 w-full md:w-auto"
               >
                 Buy Credits
               </Button>

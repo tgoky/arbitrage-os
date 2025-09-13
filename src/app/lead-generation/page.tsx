@@ -35,7 +35,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
-import CreditsDisplayHeader from './components/CreditsPurchaseHeader';
+import CreditsDisplayHeader from '../../components/credits/CreditsDisplayHeader';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
@@ -694,9 +694,10 @@ const LeadGenerationPage = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <Space align="center">
-            <ThunderboltOutlined className="text-xl text-blue-500" />
+
             <Title level={2} className="mb-0">
-              Lead Generation
+                 <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS  Lead Generation
             </Title>
           </Space>
           <Button
@@ -704,13 +705,14 @@ const LeadGenerationPage = () => {
             icon={<PlusOutlined />}
             onClick={() => router.push('/lead-generation/create')}
             size="large"
+              className="bg-darkGreen"
           >
             Generate New Leads
           </Button>
         </div>
         
         <Text type="secondary">
-          Manage and view your generated leads from Apollo database
+          Manage and view your generated leads
         </Text>
       </div>
 
