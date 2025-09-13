@@ -1,4 +1,4 @@
-// app/lead-generation/page.tsx
+// app/lead-generation/page.tsx - UPDATED WITH CREDITS DISPLAY
 "use client";
 import React, { useState, useEffect } from 'react';
 import {
@@ -35,13 +35,12 @@ import {
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
+import CreditsDisplayHeader from './components/CreditsPurchaseHeader';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
-
-
 
 interface Lead {
   id: string;
@@ -68,7 +67,7 @@ interface LeadGeneration {
   generatedAt: string;
   updatedAt: string;
   createdAt: string;
-    content?: string; 
+  content?: string; 
   workspace: {
     id: string;
     name: string;
@@ -80,8 +79,6 @@ const LeadGenerationPage = () => {
   const router = useRouter();
   const { currentWorkspace, getWorkspaceScopedEndpoint } = useWorkspaceContext();
 
-
-  
   // State
   const [activeTab, setActiveTab] = useState('leads');
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -90,24 +87,22 @@ const LeadGenerationPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('All');
   const [selectedScore, setSelectedScore] = useState('All');
+  const [currentCredits, setCurrentCredits] = useState(0);
 
   const handleViewLead = (lead: Lead) => {
-  // Navigate to the actual lead detail page
-  router.push(`/lead-generation/leads/${lead.id}`);
-};
+    router.push(`/lead-generation/leads/${lead.id}`);
+  };
 
-const handleContactLead = (lead: Lead) => {
+  const handleContactLead = (lead: Lead) => {
     console.log('Contacting lead:', lead);
     
     if (lead.email) {
-      // Open email client with pre-filled email
       const subject = encodeURIComponent(`Introduction from ${currentWorkspace?.name || 'Our Company'}`);
       const body = encodeURIComponent(`Hi ${lead.name.split(' ')[0]},\n\nI hope this email finds you well. I came across your profile and was impressed by your work at ${lead.company}.\n\nI'd love to connect and discuss how we might be able to help ${lead.company} with [your value proposition].\n\nBest regards,\n[Your Name]`);
       
       window.open(`mailto:${lead.email}?subject=${subject}&body=${body}`);
       message.success(`Opening email to ${lead.name}`);
     } else if (lead.linkedinUrl) {
-      // Open LinkedIn profile
       window.open(lead.linkedinUrl, '_blank');
       message.success(`Opening LinkedIn profile for ${lead.name}`);
     } else {
@@ -115,113 +110,102 @@ const handleContactLead = (lead: Lead) => {
     }
   };
 
-// Replace the handleViewGenerationDetails function with:
-const handleViewGenerationDetails = (generation: LeadGeneration) => {
-  router.push(`/lead-generation/campaigns/${generation.id}`);
-};
+  const handleViewGenerationDetails = (generation: LeadGeneration) => {
+    router.push(`/lead-generation/campaigns/${generation.id}`);
+  };
 
-
- const handleExportGeneration = async (generation: LeadGeneration) => {
-  try {
-    console.log('Exporting generation:', generation);
-    message.loading('Preparing export...', 1);
-    
-    // Fetch full generation details to get all leads
-    const response = await fetch(`/api/lead-generation/${generation.id}`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.data.leads) {
-        const leads = data.data.leads;
-        
-        // Convert leads to CSV format
-        const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
-        const csvRows = leads.map((lead: Lead) => [
-          lead.name,
-          lead.email || '',
-          lead.phone || '',
-          lead.title,
-          lead.company,
-          lead.industry,
-          lead.location,
-          lead.score.toString(),
-          lead.linkedinUrl || ''
-        ]);
-        
-        // Create CSV content with explicit typing
-        const csvContent = [
-          csvHeaders.join(','),
-          ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
-        ].join('\n');
-        
-        // Download CSV file
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${generation.title.replace(/[^a-z0-9]/gi, '_')}_leads.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        message.success(`Exported ${leads.length} leads to CSV`);
+  const handleExportGeneration = async (generation: LeadGeneration) => {
+    try {
+      console.log('Exporting generation:', generation);
+      message.loading('Preparing export...', 1);
+      
+      const response = await fetch(`/api/lead-generation/${generation.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.leads) {
+          const leads = data.data.leads;
+          
+          const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
+          const csvRows = leads.map((lead: Lead) => [
+            lead.name,
+            lead.email || '',
+            lead.phone || '',
+            lead.title,
+            lead.company,
+            lead.industry,
+            lead.location,
+            lead.score.toString(),
+            lead.linkedinUrl || ''
+          ]);
+          
+          const csvContent = [
+            csvHeaders.join(','),
+            ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
+          ].join('\n');
+          
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', `${generation.title.replace(/[^a-z0-9]/gi, '_')}_leads.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          message.success(`Exported ${leads.length} leads to CSV`);
+        }
       }
+    } catch (error) {
+      console.error('Error exporting generation:', error);
+      message.error('Failed to export leads');
     }
-  } catch (error) {
-    console.error('Error exporting generation:', error);
-    message.error('Failed to export leads');
-  }
-};
-
-
+  };
 
   const handleBulkExport = () => {
-  try {
-    console.log('Bulk exporting filtered leads');
-    message.loading('Preparing bulk export...', 1);
-    
-    if (filteredLeads.length === 0) {
-      message.warning('No leads to export');
-      return;
+    try {
+      console.log('Bulk exporting filtered leads');
+      message.loading('Preparing bulk export...', 1);
+      
+      if (filteredLeads.length === 0) {
+        message.warning('No leads to export');
+        return;
+      }
+      
+      const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
+      const csvRows = filteredLeads.map((lead: Lead) => [
+        lead.name,
+        lead.email || '',
+        lead.phone || '',
+        lead.title,
+        lead.company,
+        lead.industry,
+        lead.location,
+        lead.score.toString(),
+        lead.linkedinUrl || ''
+      ]);
+      
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `all_leads_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      message.success(`Exported ${filteredLeads.length} leads to CSV`);
+    } catch (error) {
+      console.error('Error with bulk export:', error);
+      message.error('Failed to export leads');
     }
-    
-    // Convert filtered leads to CSV
-    const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
-    const csvRows = filteredLeads.map((lead: Lead) => [
-      lead.name,
-      lead.email || '',
-      lead.phone || '',
-      lead.title,
-      lead.company,
-      lead.industry,
-      lead.location,
-      lead.score.toString(),
-      lead.linkedinUrl || ''
-    ]);
-    
-    // Create CSV content with explicit typing
-    const csvContent = [
-      csvHeaders.join(','),
-      ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
-    ].join('\n');
-    
-    // Download CSV file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `all_leads_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    message.success(`Exported ${filteredLeads.length} leads to CSV`);
-  } catch (error) {
-    console.error('Error with bulk export:', error);
-    message.error('Failed to export leads');
-  }
-};
+  };
 
   const handleBulkEmail = () => {
     const leadsWithEmail = filteredLeads.filter(lead => lead.email);
@@ -231,12 +215,10 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
       return;
     }
     
-    // Create mailto link with multiple recipients
     const emails = leadsWithEmail.map(lead => lead.email).join(',');
     const subject = encodeURIComponent(`Introduction from ${currentWorkspace?.name || 'Our Company'}`);
     const body = encodeURIComponent(`Hi there,\n\nI hope this email finds you well. I wanted to reach out to introduce our company and discuss potential collaboration opportunities.\n\nBest regards,\n[Your Name]`);
     
-    // Note: Most email clients have limits on URL length, so this works best with smaller lists
     if (emails.length > 2000) {
       message.warning('Too many recipients for bulk email. Consider using smaller batches or an email marketing tool.');
       return;
@@ -245,7 +227,6 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
     window.open(`mailto:${emails}?subject=${subject}&body=${body}`);
     message.success(`Opening bulk email to ${leadsWithEmail.length} leads`);
   };
-
   
   // Load data on component mount
   useEffect(() => {
@@ -254,131 +235,119 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
     }
   }, [currentWorkspace?.id]);
 
-
   const loadData = async () => {
-  try {
-    setLoading(true);
-    
-    console.log('🔍 Loading data for workspace:', currentWorkspace?.id);
-    
-    // Load lead generations
-    const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
-    console.log('📡 Calling endpoint:', endpoint);
-    
-    const response = await fetch(endpoint);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('📋 Raw API response:', data);
+    try {
+      setLoading(true);
       
-      if (data.success && data.data) {
-        // The API returns deliverables, not the processed LeadGeneration format
-        const rawGenerations = data.data;
-        console.log(`✅ Loaded ${rawGenerations.length} raw generations`);
+      console.log('Loading data for workspace:', currentWorkspace?.id);
+      
+      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+      console.log('Calling endpoint:', endpoint);
+      
+      const response = await fetch(endpoint);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Raw API response:', data);
         
-        // Process the raw generations into our format
-        const processedGenerations: LeadGeneration[] = [];
-        const allLeads: Lead[] = [];
-        
-        for (const gen of rawGenerations) {
-          try {
-            console.log(`🔍 Processing generation ${gen.id}:`, {
-              title: gen.title,
-              hasContent: !!gen.content,
-              contentType: typeof gen.content,
-              contentLength: gen.content?.length || 0
-            });
-            
-            // Parse the content field which contains the full LeadGenerationResponse
-            let generationContent;
-            if (typeof gen.content === 'string') {
-              generationContent = JSON.parse(gen.content);
-            } else {
-              generationContent = gen.content;
-            }
-            
-            console.log('📋 Parsed generation content keys:', Object.keys(generationContent || {}));
-            
-            const leads = generationContent?.leads || [];
-            const metadata = gen.metadata || {};
-            
-            // Create processed generation for the history tab
-            const processedGen: LeadGeneration = {
-              id: gen.id,
-              title: gen.title,
-              leadCount: leads.length,
-              totalFound: generationContent?.totalFound || leads.length,
-              averageScore: metadata?.averageScore || (leads.length > 0 ? 
-                leads.reduce((sum: number, lead: any) => sum + (lead.score || 0), 0) / leads.length : 0),
-              criteria: metadata?.criteria || {},
-              generatedAt: metadata?.generatedAt || gen.created_at,
-              createdAt: gen.created_at,
-              updatedAt: gen.updated_at || gen.created_at,
-              content: gen.content, // Keep the raw content for debugging
-              workspace: gen.workspace
-            };
-            
-            processedGenerations.push(processedGen);
-            
-            // Extract individual leads for the leads tab
-            if (Array.isArray(leads)) {
-              const leadsWithContext = leads.map((lead: any, index: number) => {
-                return {
-                  ...lead,
-                  // Ensure each lead has a unique ID for routing
-                  id: lead.id || `${gen.id}_lead_${index}`,
-                  generationId: gen.id,
-                  generationTitle: gen.title,
-                  // Add missing fields that the detail page expects
-                  notes: lead.notes || '',
-                  status: lead.status || 'new',
-                  lastContacted: lead.lastContacted || null,
-                  createdAt: gen.created_at,
-                  updatedAt: gen.updated_at || gen.created_at
-                };
+        if (data.success && data.data) {
+          const rawGenerations = data.data;
+          console.log(`Loaded ${rawGenerations.length} raw generations`);
+          
+          const processedGenerations: LeadGeneration[] = [];
+          const allLeads: Lead[] = [];
+          
+          for (const gen of rawGenerations) {
+            try {
+              console.log(`Processing generation ${gen.id}:`, {
+                title: gen.title,
+                hasContent: !!gen.content,
+                contentType: typeof gen.content,
+                contentLength: gen.content?.length || 0
               });
               
-              allLeads.push(...leadsWithContext);
-              console.log(`✅ Added ${leadsWithContext.length} leads from generation ${gen.id}`);
-            } else {
-              console.warn(`❌ No valid leads array found in generation ${gen.id}`);
+              let generationContent;
+              if (typeof gen.content === 'string') {
+                generationContent = JSON.parse(gen.content);
+              } else {
+                generationContent = gen.content;
+              }
+              
+              console.log('Parsed generation content keys:', Object.keys(generationContent || {}));
+              
+              const leads = generationContent?.leads || [];
+              const metadata = gen.metadata || {};
+              
+              const processedGen: LeadGeneration = {
+                id: gen.id,
+                title: gen.title,
+                leadCount: leads.length,
+                totalFound: generationContent?.totalFound || leads.length,
+                averageScore: metadata?.averageScore || (leads.length > 0 ? 
+                  leads.reduce((sum: number, lead: any) => sum + (lead.score || 0), 0) / leads.length : 0),
+                criteria: metadata?.criteria || {},
+                generatedAt: metadata?.generatedAt || gen.created_at,
+                createdAt: gen.created_at,
+                updatedAt: gen.updated_at || gen.created_at,
+                content: gen.content,
+                workspace: gen.workspace
+              };
+              
+              processedGenerations.push(processedGen);
+              
+              if (Array.isArray(leads)) {
+                const leadsWithContext = leads.map((lead: any, index: number) => {
+                  return {
+                    ...lead,
+                    id: lead.id || `${gen.id}_lead_${index}`,
+                    generationId: gen.id,
+                    generationTitle: gen.title,
+                    notes: lead.notes || '',
+                    status: lead.status || 'new',
+                    lastContacted: lead.lastContacted || null,
+                    createdAt: gen.created_at,
+                    updatedAt: gen.updated_at || gen.created_at
+                  };
+                });
+                
+                allLeads.push(...leadsWithContext);
+                console.log(`Added ${leadsWithContext.length} leads from generation ${gen.id}`);
+              } else {
+                console.warn(`No valid leads array found in generation ${gen.id}`);
+              }
+            } catch (parseError) {
+              console.error(`Failed to parse content for generation ${gen.id}:`, parseError);
+              console.log('Raw content that failed to parse:', gen.content?.substring(0, 200));
             }
-          } catch (parseError) {
-            console.error(`❌ Failed to parse content for generation ${gen.id}:`, parseError);
-            console.log('Raw content that failed to parse:', gen.content?.substring(0, 200));
           }
+          
+          console.log(`Final results:`);
+          console.log(`- ${processedGenerations.length} generations processed`);
+          console.log(`- ${allLeads.length} total leads extracted`);
+          
+          setGenerations(processedGenerations);
+          setLeads(allLeads);
+          
+          if (allLeads.length === 0 && processedGenerations.length > 0) {
+            console.warn('Found generations but no leads. Check content format.');
+          }
+          
+        } else {
+          console.error('API response indicates failure:', data);
+          message.error(data.error || 'Failed to load lead data');
         }
-        
-        console.log(`🎯 Final results:`);
-        console.log(`- ${processedGenerations.length} generations processed`);
-        console.log(`- ${allLeads.length} total leads extracted`);
-        
-        setGenerations(processedGenerations);
-        setLeads(allLeads);
-        
-        if (allLeads.length === 0 && processedGenerations.length > 0) {
-          console.warn('⚠️  Found generations but no leads. Check content format.');
-        }
-        
       } else {
-        console.error('❌ API response indicates failure:', data);
-        message.error(data.error || 'Failed to load lead data');
+        const errorText = await response.text();
+        console.error('HTTP error response:', response.status, errorText);
+        message.error(`Failed to load lead data: ${response.status}`);
       }
-    } else {
-      const errorText = await response.text();
-      console.error('❌ HTTP error response:', response.status, errorText);
-      message.error(`Failed to load lead data: ${response.status}`);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      message.error('Failed to load lead data');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('💥 Error loading data:', error);
-    message.error('Failed to load lead data');
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-
+  };
 
   // Filter leads based on search and filters
   const filteredLeads = leads.filter(lead => {
@@ -482,25 +451,25 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
     {
       title: 'Actions',
       key: 'actions',
-     render: (_, record) => (
-      <Space>
-        <Button 
-          size="small"
-          onClick={() => handleViewLead(record)}
-        >
-          View
-        </Button>
-        <Button 
-          size="small" 
-          type="primary"
-          onClick={() => handleContactLead(record)}
-        >
-          Contact
-        </Button>
-      </Space>
-    ),
-  },
-];
+      render: (_, record) => (
+        <Space>
+          <Button 
+            size="small"
+            onClick={() => handleViewLead(record)}
+          >
+            View
+          </Button>
+          <Button 
+            size="small" 
+            type="primary"
+            onClick={() => handleContactLead(record)}
+          >
+            Contact
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   // Generation history columns
   const generationColumns: ColumnsType<LeadGeneration> = [
@@ -541,32 +510,32 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
       key: 'createdAt',
       render: (date) => new Date(date).toLocaleDateString(),
     },
-   {
-  title: 'Actions',
-  key: 'actions',
-  render: (_, record) => (
-    <Space>
-      <Button 
-        size="small"
-        onClick={() => router.push(`/lead-generation/campaigns/${record.id}`)}
-      >
-        View Details
-      </Button>
-      <Button 
-        size="small" 
-        icon={<DownloadOutlined />}
-        onClick={() => handleExportGeneration(record)}
-      >
-        Export
-      </Button>
-    </Space>
-  ),
-}
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Button 
+            size="small"
+            onClick={() => router.push(`/lead-generation/campaigns/${record.id}`)}
+          >
+            View Details
+          </Button>
+          <Button 
+            size="small" 
+            icon={<DownloadOutlined />}
+            onClick={() => handleExportGeneration(record)}
+          >
+            Export
+          </Button>
+        </Space>
+      ),
+    }
   ];
 
   // Tab items
   const tabItems = [
-  {
+    {
       key: 'leads',
       label: (
         <span>
@@ -631,7 +600,6 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
               </Col>
             </Row>
           </Card>
-
 
           {/* Leads Table */}
           {loading ? (
@@ -717,6 +685,11 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
       padding: 24,
       minHeight: '100vh'
     }}>
+      {/* Enhanced Credits Header */}
+      <CreditsDisplayHeader 
+        onCreditsUpdate={setCurrentCredits}
+      />
+
       {/* Header */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
@@ -734,11 +707,10 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
           >
             Generate New Leads
           </Button>
-     
         </div>
         
         <Text type="secondary">
-          Manage and view your generated leads from Apollo  database
+          Manage and view your generated leads from Apollo database
         </Text>
       </div>
 
@@ -752,12 +724,12 @@ const handleViewGenerationDetails = (generation: LeadGeneration) => {
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#3f8600' }}
             />
-                <Progress
-    percent={100} 
-    size="small"
-    showInfo={false}
-    strokeColor="#52c41a"
-  />
+            <Progress
+              percent={100} 
+              size="small"
+              showInfo={false}
+              strokeColor="#52c41a"
+            />
           </Card>
         </Col>
         <Col span={6}>

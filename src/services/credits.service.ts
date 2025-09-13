@@ -1,4 +1,4 @@
-// services/credits.service.ts
+// services/credits.service.ts - CORRECTED FOR 5 FREE LEADS MODEL
 import { prisma } from '@/lib/prisma';
 
 export interface UserCreditsInfo {
@@ -35,12 +35,12 @@ export class CreditsService {
 
     // Create credits record if it doesn't exist (new user)
     if (!userCredit) {
-      console.log('👤 Creating new credit record for user:', userId);
+      console.log('👤 Creating new credit record for user - starting with 0 credits, 5 free leads available');
       userCredit = await prisma.userCredit.create({
         data: {
           user_id: userId,
-          credits: 0,
-          free_leads_used: 0,
+          credits: 0, // New users start with 0 credits
+          free_leads_used: 0, // But 5 free leads available
           total_purchased: 0
         }
       });
@@ -53,14 +53,15 @@ export class CreditsService {
       totalPurchased: userCredit.total_purchased
     };
 
-    console.log('📊 User credits:', result);
+    console.log('📊 User credits result:', result);
     return result;
   }
 
   // Calculate cost for lead generation
   async calculateCost(leadCount: number, freeLeadsAvailable: number): Promise<CostInfo> {
+    // Use free leads first if available
     const freeLeadsUsed = Math.min(leadCount, freeLeadsAvailable);
-    const paidLeads = leadCount - freeLeadsUsed;
+    const paidLeads = Math.max(0, leadCount - freeLeadsUsed);
     const totalCost = paidLeads * CreditsService.CREDITS_PER_LEAD;
 
     const result = {
@@ -78,6 +79,49 @@ export class CreditsService {
     return result;
   }
 
+  // Check if user can afford lead generation
+  async canAffordLeadGeneration(userId: string, leadCount: number): Promise<{
+    canAfford: boolean;
+    costInfo: CostInfo;
+    userCredits: UserCreditsInfo;
+    reason?: string;
+  }> {
+    console.log(`🔍 Checking affordability for user ${userId}, leadCount: ${leadCount}`);
+    
+    const userCredits = await this.getUserCredits(userId);
+    const costInfo = await this.calculateCost(leadCount, userCredits.freeLeadsAvailable);
+
+    // User can afford if they have enough credits for the paid portion
+    const canAfford = costInfo.totalCost <= userCredits.credits;
+    
+    console.log(`💳 Affordability check:`, {
+      userCredits: userCredits.credits,
+      freeLeadsAvailable: userCredits.freeLeadsAvailable,
+      totalCost: costInfo.totalCost,
+      freeLeadsUsed: costInfo.freeLeadsUsed,
+      paidLeads: costInfo.paidLeads,
+      canAfford
+    });
+    
+    let reason: string | undefined;
+    if (!canAfford) {
+      if (userCredits.freeLeadsAvailable > 0) {
+        const maxAffordableLeads = userCredits.freeLeadsAvailable + userCredits.credits;
+        reason = `You can generate up to ${maxAffordableLeads} leads: ${userCredits.freeLeadsAvailable} free leads + ${userCredits.credits} with your current credits. ` +
+                 `To generate ${leadCount} leads, you need ${costInfo.totalCost} credits but only have ${userCredits.credits}.`;
+      } else {
+        reason = `You've used your 5 free leads. To generate ${leadCount} leads, you need ${costInfo.totalCost} credits but only have ${userCredits.credits}.`;
+      }
+    }
+
+    return {
+      canAfford,
+      costInfo,
+      userCredits,
+      reason
+    };
+  }
+
   // Deduct credits for lead generation
   async deductCredits(
     userId: string, 
@@ -92,14 +136,23 @@ export class CreditsService {
       deliverableId
     });
 
+    // Get fresh user credits
     const userCredits = await this.getUserCredits(userId);
     const costInfo = await this.calculateCost(leadCount, userCredits.freeLeadsAvailable);
 
+    console.log('💳 Pre-deduction state:', {
+      userCredits,
+      costInfo,
+      willDeductCredits: costInfo.totalCost,
+      willUseFreeLeads: costInfo.freeLeadsUsed
+    });
+
+    // Check affordability one more time
     if (costInfo.totalCost > userCredits.credits) {
-      throw new Error(
-        `Insufficient credits. Need ${costInfo.totalCost}, have ${userCredits.credits}. ` +
-        `You have ${userCredits.freeLeadsAvailable} free leads available.`
-      );
+      const error = `Insufficient credits. Need ${costInfo.totalCost} credits for ${costInfo.paidLeads} paid leads, have ${userCredits.credits}. ` +
+        `Free leads available: ${userCredits.freeLeadsAvailable}`;
+      console.error('❌ Credit deduction failed:', error);
+      throw new Error(error);
     }
 
     // Use a transaction to ensure consistency
@@ -108,12 +161,12 @@ export class CreditsService {
       const updatedCredits = await tx.userCredit.update({
         where: { user_id: userId },
         data: {
-          credits: Math.max(0, userCredits.credits - costInfo.totalCost),
-          free_leads_used: userCredits.freeLeadsUsed + costInfo.freeLeadsUsed
+          credits: userCredits.credits - costInfo.totalCost, // Deduct only for paid leads
+          free_leads_used: userCredits.freeLeadsUsed + costInfo.freeLeadsUsed // Track free leads used
         }
       });
 
-      // Log the transaction for audit trail
+      // Log paid credits transaction if any
       if (costInfo.totalCost > 0) {
         await tx.creditTransaction.create({
           data: {
@@ -121,30 +174,32 @@ export class CreditsService {
             workspace_id: workspaceId,
             amount: -costInfo.totalCost,
             transaction_type: 'usage',
-            description: `Lead generation: ${leadCount} leads`,
+            description: `Lead generation: ${costInfo.paidLeads} paid leads (${costInfo.freeLeadsUsed} free leads also used)`,
             reference_id: deliverableId,
             metadata: {
               leadCount,
               freeLeadsUsed: costInfo.freeLeadsUsed,
               paidLeads: costInfo.paidLeads,
+              creditsDeducted: costInfo.totalCost,
               deliverableId
             }
           }
         });
       }
 
-      // Log free leads usage if any
+      // Log free leads usage if any (even if no credits were deducted)
       if (costInfo.freeLeadsUsed > 0) {
         await tx.creditTransaction.create({
           data: {
             user_id: userId,
             workspace_id: workspaceId,
-            amount: 0,
+            amount: 0, // Free leads don't cost credits
             transaction_type: 'free_usage',
-            description: `Free leads used: ${costInfo.freeLeadsUsed} leads`,
+            description: `Free leads used: ${costInfo.freeLeadsUsed} of ${leadCount} total leads`,
             reference_id: deliverableId,
             metadata: {
               freeLeadsUsed: costInfo.freeLeadsUsed,
+              totalLeadsGenerated: leadCount,
               deliverableId
             }
           }
@@ -155,7 +210,7 @@ export class CreditsService {
         creditsDeducted: costInfo.totalCost,
         freeLeadsUsed: costInfo.freeLeadsUsed,
         remainingCredits: updatedCredits.credits,
-        remainingFreeLeads: CreditsService.FREE_LEADS_LIMIT - updatedCredits.free_leads_used
+        remainingFreeLeads: Math.max(0, CreditsService.FREE_LEADS_LIMIT - updatedCredits.free_leads_used)
       };
 
       console.log('✅ Credits deducted successfully:', deductionResult);
@@ -193,7 +248,7 @@ export class CreditsService {
         create: {
           user_id: userId,
           credits: amount,
-          free_leads_used: 0,
+          free_leads_used: 0, // New users start with 0 free leads used (5 available)
           total_purchased: source === 'purchase' ? amount : 0
         }
       });
@@ -217,7 +272,8 @@ export class CreditsService {
 
       console.log('✅ Credits added successfully:', {
         newBalance: updatedCredits.credits,
-        totalPurchased: updatedCredits.total_purchased
+        totalPurchased: updatedCredits.total_purchased,
+        freeLeadsRemaining: CreditsService.FREE_LEADS_LIMIT - updatedCredits.free_leads_used
       });
 
       return updatedCredits;
@@ -245,42 +301,12 @@ export class CreditsService {
     return transactions;
   }
 
-  // Check if user can afford lead generation
-  async canAffordLeadGeneration(userId: string, leadCount: number): Promise<{
-    canAfford: boolean;
-    costInfo: CostInfo;
-    userCredits: UserCreditsInfo;
-    reason?: string;
-  }> {
-    const userCredits = await this.getUserCredits(userId);
-    const costInfo = await this.calculateCost(leadCount, userCredits.freeLeadsAvailable);
-
-    const canAfford = costInfo.totalCost <= userCredits.credits || costInfo.freeLeadsUsed === leadCount;
-    
-    let reason: string | undefined;
-    if (!canAfford) {
-      if (userCredits.freeLeadsAvailable > 0) {
-        reason = `Insufficient credits. You can generate ${userCredits.freeLeadsAvailable} leads for free, ` +
-                 `but need ${costInfo.totalCost} credits for ${costInfo.paidLeads} additional leads. ` +
-                 `You have ${userCredits.credits} credits.`;
-      } else {
-        reason = `Insufficient credits. Need ${costInfo.totalCost} credits, have ${userCredits.credits}.`;
-      }
-    }
-
-    return {
-      canAfford,
-      costInfo,
-      userCredits,
-      reason
-    };
-  }
-
   // Get user's usage statistics
   async getUserUsageStats(userId: string, timeframe: 'week' | 'month' | 'all' = 'month') {
     const dateFilter = this.getDateFilter(timeframe);
     
-    const stats = await prisma.creditTransaction.aggregate({
+    // Get both paid usage and free usage
+    const paidStats = await prisma.creditTransaction.aggregate({
       where: {
         user_id: userId,
         transaction_type: 'usage',
@@ -294,77 +320,54 @@ export class CreditsService {
       }
     });
 
-    // Get lead count from metadata
-    const transactions = await prisma.creditTransaction.findMany({
+    const freeStats = await prisma.creditTransaction.aggregate({
       where: {
         user_id: userId,
-        transaction_type: 'usage',
+        transaction_type: 'free_usage',
         created_at: dateFilter ? { gte: dateFilter } : undefined
       },
-      select: {
-        metadata: true
+      _count: {
+        id: true
       }
     });
 
-    const totalLeadsGenerated = transactions.reduce((sum, tx) => {
+    // Get lead count from metadata
+    const allTransactions = await prisma.creditTransaction.findMany({
+      where: {
+        user_id: userId,
+        transaction_type: { in: ['usage', 'free_usage'] },
+        created_at: dateFilter ? { gte: dateFilter } : undefined
+      },
+      select: {
+        metadata: true,
+        transaction_type: true
+      }
+    });
+
+    const totalLeadsGenerated = allTransactions.reduce((sum, tx) => {
       const metadata = tx.metadata as any;
-      return sum + (metadata?.leadCount || 0);
+      if (tx.transaction_type === 'usage') {
+        return sum + (metadata?.leadCount || 0);
+      } else if (tx.transaction_type === 'free_usage') {
+        return sum + (metadata?.freeLeadsUsed || 0);
+      }
+      return sum;
     }, 0);
 
+    const freeLeadsUsed = allTransactions
+      .filter(tx => tx.transaction_type === 'free_usage')
+      .reduce((sum, tx) => {
+        const metadata = tx.metadata as any;
+        return sum + (metadata?.freeLeadsUsed || 0);
+      }, 0);
+
     return {
-      creditsUsed: Math.abs(stats._sum.amount || 0),
-      generationsCount: stats._count.id,
+      creditsUsed: Math.abs(paidStats._sum.amount || 0),
+      freeLeadsUsed,
+      generationsCount: paidStats._count.id + freeStats._count.id,
       totalLeadsGenerated,
       timeframe
     };
-  }
-
-  // Refund credits (admin function)
-  async refundCredits(
-    userId: string,
-    amount: number,
-    reason: string,
-    workspaceId?: string,
-    originalTransactionId?: string
-  ) {
-    console.log('🔄 Processing refund:', {
-      userId,
-      amount,
-      reason,
-      originalTransactionId
-    });
-
-    const result = await prisma.$transaction(async (tx) => {
-      // Add credits back
-      const updatedCredits = await tx.userCredit.update({
-        where: { user_id: userId },
-        data: {
-          credits: { increment: amount }
-        }
-      });
-
-      // Log refund transaction
-      await tx.creditTransaction.create({
-        data: {
-          user_id: userId,
-          workspace_id: workspaceId,
-          amount: amount,
-          transaction_type: 'refund',
-          description: `Refund: ${reason}`,
-          reference_id: originalTransactionId,
-          metadata: {
-            refundReason: reason,
-            originalTransactionId,
-            newBalance: updatedCredits.credits
-          }
-        }
-      });
-
-      return updatedCredits;
-    });
-
-    console.log('✅ Refund processed successfully');
-    return result;
   }
 
   // Helper method to get date filter
@@ -387,46 +390,49 @@ export class CreditsService {
     }
   }
 
-  // Get credit packages for purchase
+  // Get credit packages for purchase - Updated descriptions to be clearer
   static getCreditPackages() {
     return [
       {
         id: 'starter',
         name: 'Starter',
-        credits: 1000,
-        price: 99,
+        credits: 100,
+        price: 29,
         features: [
-          '~200-500 leads',
+          '100 lead generations',
           'Basic targeting',
-          'Email support'
+          'Email & LinkedIn data',
+          'CSV export'
         ]
       },
       {
         id: 'professional',
         name: 'Professional',
-        credits: 5000,
-        price: 299,
+        credits: 500,
+        price: 99,
         popular: true,
         features: [
-          '~1,000-2,500 leads',
+          '500 lead generations',
           'Advanced targeting',
           'Priority support',
+          'Phone numbers included',
           'Analytics dashboard'
         ]
       },
       {
         id: 'enterprise',
         name: 'Enterprise',
-        credits: 15000,
-        price: 799,
+        credits: 2000,
+        price: 299,
         features: [
-          '~3,000-7,500 leads',
+          '2000 lead generations',
           'Custom targeting',
           'Dedicated support',
           'API access',
-          'Custom integrations'
+          'Custom integrations',
+          'Bulk export tools'
         ]
       }
     ];
   }
-} 
+}

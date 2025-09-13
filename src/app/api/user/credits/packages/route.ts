@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CreditsService } from '@/services/credits.service';
 
 export async function GET(req: NextRequest) {
-  console.log('Credit Packages API called');
+  console.log('📦 Credit Packages API called');
   
   try {
     const packages = CreditsService.getCreditPackages();
@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
       success: true,
       data: packages
     });
-
+    
   } catch (error) {
-    console.error('Credit Packages API Error:', error);
+    console.error('💥 Credit Packages API Error:', error);
     return NextResponse.json(
       { 
         success: false,
