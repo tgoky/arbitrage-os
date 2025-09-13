@@ -813,96 +813,90 @@ private generateCacheKey(criteria: LeadGenerationCriteria): string {
   }
 
   // ✅ Get user's lead generations
-  async getUserLeadGenerations(userId: string, workspaceId?: string) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const whereClause: any = {
-        user_id: userId,
-        type: 'lead_generation'
-      };
+ 
+async getUserLeadGenerations(userId: string, workspaceId?: string) {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    const whereClause: any = {
+      user_id: userId,
+      type: 'lead_generation'
+    };
 
-      if (workspaceId) {
-        whereClause.workspace_id = workspaceId;
-      }
+    if (workspaceId) {
+      whereClause.workspace_id = workspaceId;
+    }
 
-      const generations = await prisma.deliverable.findMany({
-        where: whereClause,
-        orderBy: { created_at: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          metadata: true,
-          created_at: true,
-          updated_at: true,
-          workspace: {
-            select: {
-              id: true,
-              name: true
-            }
+    const generations = await prisma.deliverable.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        content: true,        // *** THIS WAS MISSING! ***
+        metadata: true,
+        created_at: true,
+        updated_at: true,
+        workspace: {
+          select: {
+            id: true,
+            name: true
           }
         }
-      });
-
-      return generations.map(gen => {
-        const metadata = gen.metadata as any;
-        
-        return {
-          id: gen.id,
-          title: gen.title,
-          leadCount: metadata?.leadCount || 0,
-          totalFound: metadata?.totalFound || 0,
-          averageScore: metadata?.averageScore || 0,
-          criteria: metadata?.criteria,
-          generatedAt: metadata?.generatedAt,
-          generationTime: metadata?.generationTime,
-          createdAt: gen.created_at,
-          updatedAt: gen.updated_at,
-          workspace: gen.workspace
-        };
-      });
-    } catch (error) {
-      console.error('Error fetching lead generations:', error);
-      return [];
-    }
-  }
-
-  // ✅ Get specific lead generation
-  async getLeadGeneration(userId: string, generationId: string) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const generation = await prisma.deliverable.findFirst({
-        where: {
-          id: generationId,
-          user_id: userId,
-          type: 'lead_generation'
-        },
-        include: {
-          workspace: true
-        }
-      });
-
-      if (!generation) {
-        return null;
       }
+    });
 
-      const response: LeadGenerationResponse = JSON.parse(generation.content);
-
+    console.log(`🔍 Found ${generations.length} generations in database`);
+    
+    return generations.map(gen => {
+      const metadata = gen.metadata as any;
+      
+      // Try to get lead count from content if metadata doesn't have it
+      let leadCount = metadata?.leadCount || 0;
+      let totalFound = metadata?.totalFound || 0;
+      let averageScore = metadata?.averageScore || 0;
+      
+      // Parse content to get actual lead data
+      if (gen.content) {
+        try {
+          const parsedContent = JSON.parse(gen.content);
+          if (parsedContent.leads && Array.isArray(parsedContent.leads)) {
+            leadCount = parsedContent.leads.length;
+            totalFound = parsedContent.totalFound || parsedContent.leads.length;
+            
+            // Calculate average score from actual leads
+            if (parsedContent.leads.length > 0) {
+              const totalScore = parsedContent.leads.reduce((sum: number, lead: any) => 
+                sum + (lead.score || 0), 0);
+              averageScore = totalScore / parsedContent.leads.length;
+            }
+          }
+        } catch (parseError) {
+          console.warn(`Failed to parse content for generation ${gen.id}:`, parseError);
+        }
+      }
+      
       return {
-        id: generation.id,
-        title: generation.title,
-        leads: response.leads,
-        metadata: generation.metadata,
-        createdAt: generation.created_at,
-        updatedAt: generation.updated_at,
-        workspace: generation.workspace
+        id: gen.id,
+        title: gen.title,
+        content: gen.content,     // *** INCLUDE CONTENT IN RESPONSE ***
+        leadCount,
+        totalFound,
+        averageScore,
+        criteria: metadata?.criteria || {},
+        generatedAt: metadata?.generatedAt,
+        generationTime: metadata?.generationTime,
+        createdAt: gen.created_at,
+        updatedAt: gen.updated_at,
+        workspace: gen.workspace
       };
-    } catch (error) {
-      console.error('Error retrieving lead generation:', error);
-      throw error;
-    }
+    });
+  } catch (error) {
+    console.error('Error fetching lead generations:', error);
+    return [];
   }
+}
+
 
   // ✅ Delete lead generation
   async deleteLeadGeneration(userId: string, generationId: string): Promise<boolean> {

@@ -890,17 +890,6 @@ const stepOneContent = (
   </Button>
 )}
 
-
-<Button 
-  onClick={() => {
-    console.log('DEBUG: Saved form data:', formData);
-    console.log('DEBUG: Current form values:', form.getFieldsValue());
-    console.log('DEBUG: Target Industry in saved data:', formData.targetIndustry);
-    console.log('DEBUG: Target Role in saved data:', formData.targetRole);
-  }}
->
-  Debug Saved Data
-</Button>
 </div>
           </div>
         </Form>
