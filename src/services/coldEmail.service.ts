@@ -164,39 +164,44 @@ export class ColdEmailService {
   }
 
   // ✅ NEW: Method to get specific email generation
-  async getEmailGeneration(userId: string, generationId: string) {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const generation = await prisma.deliverable.findFirst({
-        where: {
-          id: generationId,
-          user_id: userId,
-          type: 'cold_email_generation'
-        },
-        include: {
-          workspace: true
-        }
-      });
-
-      if (!generation) {
-        return null;
+// In services/coldEmail.service.ts
+async getEmailGeneration(userId: string, generationId: string) {
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    
+    const generation = await prisma.deliverable.findFirst({
+      where: {
+        id: generationId,
+        user_id: userId,
+        type: 'cold_email_generation'
+      },
+      include: {
+        workspace: true
       }
+    });
 
-      return {
-        id: generation.id,
-        title: generation.title,
-        emails: JSON.parse(generation.content),
-        metadata: generation.metadata,
-        createdAt: generation.created_at,
-        updatedAt: generation.updated_at,
-        workspace: generation.workspace
-      };
-    } catch (error) {
-      console.error('Error retrieving email generation:', error);
-      throw error;
+    if (!generation) {
+      return null;
     }
+
+    // Parse the content and add metadata from the database record
+    const emailsData = JSON.parse(generation.content);
+    
+    return {
+      id: generation.id,
+      title: generation.title,
+      emails: emailsData, // This contains the actual emails array
+      metadata: generation.metadata, // This is the metadata from the database
+      createdAt: generation.created_at,
+      updatedAt: generation.updated_at,
+      workspace: generation.workspace
+    };
+  } catch (error) {
+    console.error('Error retrieving email generation:', error);
+    throw error;
   }
+}
+
 
   // ✅ NEW: Method to delete email generation
   async deleteEmailGeneration(userId: string, generationId: string): Promise<boolean> {

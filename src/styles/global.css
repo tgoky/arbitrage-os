@@ -686,6 +686,15 @@ body {
   background-color: #fff7e6;
 }
 
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .metric-grid {
