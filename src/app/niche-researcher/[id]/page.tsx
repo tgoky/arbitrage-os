@@ -1,320 +1,175 @@
 "use client";
 
-import { useSavedNiche, SavedNiche } from "../hooks/useSavedNiche";
-import { useNicheResearcher } from "../hooks/useNicheResearcher";
-import { useWorkspaceContext } from "../hooks/useWorkspaceContext";
 import React, { useState, useEffect } from "react";
 import {
   Button,
   Card,
-  Spin,
-  Modal,
   Typography,
   Space,
   Tag,
-  message,
-  Tooltip,
   Alert,
-  Select,
   Row,
   Col,
   Progress,
   Avatar,
-  List,
   Tabs,
-  Table
+  Spin,
+  notification,
+  Divider,
 } from "antd";
 import {
   EyeOutlined,
-  DeleteOutlined,
-  ReloadOutlined,
-  HistoryOutlined,
-  CopyOutlined,
   DownloadOutlined,
+  CopyOutlined,
+  StarOutlined,
   DollarOutlined,
   RiseOutlined,
   WalletOutlined,
   WarningOutlined,
-  StarOutlined,
   TagOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
+import { useParams, useRouter } from "next/navigation";
+import { useWorkspaceContext } from "../../hooks/useWorkspaceContext";
+import { useNicheResearcher } from "../../hooks/useNicheResearcher";
 import { GeneratedNicheReport, MultiNicheReport } from "@/types/nicheResearcher";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 const { TabPane } = Tabs;
 
-import { useRouter } from 'next/navigation';
+interface SavedNiche {
+  id: string;
+  title: string;
+  content: GeneratedNicheReport | MultiNicheReport;
+  createdAt: string;
+  metadata?: {
+    nicheName?: string;
+    primaryObjective?: string;
+    budget?: string;
+    marketSize?: string;
+    marketType?: string;
+    totalNiches?: number;
+  };
+}
 
-export const SavedNicheHistory = () => {
-  const { niches, loading, fetchNiches } = useSavedNiche();
+const NicheResearchDetailPage = () => {
+  const params = useParams();
+  const router = useRouter();
+  const { currentWorkspace } = useWorkspaceContext();
   const { getNicheReport } = useNicheResearcher();
-  const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedNiche, setSelectedNiche] = useState<SavedNiche | null>(null);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortKey, setSortKey] = useState<"createdAt" | "title">("createdAt");
-  const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("descend");
+  
+  const [nicheReport, setNicheReport] = useState<SavedNiche | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedNicheTab, setSelectedNicheTab] = useState(0);
-  const pageSize = 1;
-
-      const router = useRouter();
 
   useEffect(() => {
-    if (isWorkspaceReady && currentWorkspace) {
-      fetchNiches();
-    }
-  }, [fetchNiches, isWorkspaceReady, currentWorkspace?.id]);
-
-  const showNicheDetails = async (niche: SavedNiche) => {
-    console.log("Selected Niche:", niche);
-    setModalLoading(true);
-    setModalError(null);
-    try {
-      const report = await getNicheReport(niche.id);
-      console.log("Fetched Report:", report);
-      setSelectedNiche({ ...niche, content: report.report });
-      setIsModalVisible(true);
-      // Reset to first tab when opening a new report
-      setSelectedNicheTab(0);
-    } catch (error) {
-      console.error("Failed to fetch niche report:", error);
-      setModalError("Failed to load niche report details. Please try again.");
-    } finally {
-      setModalLoading(false);
-    }
-  };
-
-  const handleModalClose = () => {
-    setIsModalVisible(false);
-    setSelectedNiche(null);
-    setModalError(null);
-    setSelectedNicheTab(0);
-  };
-
-  const handleDeleteNiche = (nicheId: string) => {
-    Modal.confirm({
-      title: "Delete Niche Report",
-      content: "Are you sure you want to delete this niche report? This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          const response = await fetch(`/api/niche-research/${nicheId}`, {
-            method: "DELETE",
-          });
-          if (response.ok) {
-            await fetchNiches();
-            message.success("Niche report deleted successfully");
-            if (selectedNiche?.id === nicheId) {
-              handleModalClose();
-            }
-            if (niches.length % pageSize === 1 && currentPage > 1) {
-              setCurrentPage(currentPage - 1);
-            }
-          } else {
-            throw new Error("Failed to delete niche report");
-          }
-        } catch (error) {
-          console.error("Delete niche error:", error);
-          message.error("Failed to delete niche report");
+    const fetchNicheReport = async () => {
+  if (!params.id) return;
+  
+  try {
+    setLoading(true);
+    const response = await getNicheReport(params.id as string);
+    
+    console.log("API Response:", response); // Add this to debug
+    
+    if (response) {
+      // ✅ Handle different response structures
+      const reportContent = response.report || response;
+      const savedNiche: SavedNiche = {
+        id: params.id as string,
+        title: response.title || reportContent.title || "Niche Research Report",
+        content: reportContent,
+        createdAt: response.createdAt || new Date().toISOString(),
+        metadata: {
+          nicheName: isMultiNicheReport(reportContent) 
+            ? reportContent.niches[0]?.nicheOverview?.name 
+            : reportContent.nicheOverview?.name,
+          primaryObjective: response.primaryObjective,
+          budget: response.budget,
+          marketSize: isMultiNicheReport(reportContent)
+            ? reportContent.niches[0]?.marketDemand?.marketSize
+            : reportContent.marketDemand?.marketSize,
+          marketType: response.marketType,
+          totalNiches: isMultiNicheReport(reportContent) ? reportContent.niches.length : 1,
         }
-      },
-    });
+      };
+      setNicheReport(savedNiche);
+    } else {
+      setError("Report not found");
+    }
+  } catch (err: any) {
+    console.error("Failed to fetch niche report:", err);
+    setError(err.message || "Failed to load report");
+  } finally {
+    setLoading(false);
+  }
+};
+
+    fetchNicheReport();
+  }, [params.id]);
+
+  const handleBack = () => {
+    router.push(`/niche-researcher`);
   };
 
   const handleCopyText = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      message.success("Text copied to clipboard!");
+      notification.success({ message: "Text copied to clipboard!" });
     }).catch(() => {
-      message.error("Failed to copy text");
+      notification.error({ message: "Failed to copy text" });
     });
   };
 
-  const handleExportReport = async (reportId: string, format: "html" | "json") => {
+  const handleExportReport = async (format: "html" | "json") => {
     try {
-      const response = await fetch(`/api/niche-research/export/${reportId}?format=${format}`);
+      const response = await fetch(`/api/niche-research/export/${params.id}?format=${format}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `niche-report-${reportId}.${format}`;
+        a.download = `niche-report-${params.id}.${format}`;
         a.click();
         window.URL.revokeObjectURL(url);
-        message.success(`Report exported as ${format.toUpperCase()}`);
+        notification.success({ message: `Report exported as ${format.toUpperCase()}` });
       } else {
         throw new Error("Failed to export report");
       }
-    } catch (error) {
-      console.error("Export report error:", error);
-      message.error("Failed to export report");
+    } catch (err) {
+      console.error("Export report error:", err);
+      notification.error({ message: "Failed to export report" });
     }
   };
 
-  // Check if a report is a multi-niche report
- const isMultiNicheReport = (report: any): report is MultiNicheReport => {
-  return report && report.niches && Array.isArray(report.niches) && report.niches.length > 1 && 
-         report.recommendedNiche !== undefined && report.recommendationReason !== undefined;
-};
-
-
-// Check if a report is a single niche report (legacy format stored in niches array)
-const isLegacySingleNicheReport = (report: any): report is { niches: GeneratedNicheReport[] } => {
-  return report && report.niches && Array.isArray(report.niches) && report.niches.length === 1;
-};
-
-// Check if a report is a regular single niche report
-const isSingleNicheReport = (report: any): report is GeneratedNicheReport => {
-  return report && report.nicheOverview !== undefined;
-};
-
-
-  // Render multi-niche report view
-const renderMultiNicheReport = (multiNicheReport: MultiNicheReport, reportId: string) => {
-  return (
-    <>
-      {/* Recommendation Banner */}
-      <Card className="mb-6 recommendation-banner">
-        <div className="text-center">
-          <Title level={2}>Your Top {multiNicheReport.niches.length} Niche Opportunities</Title>
-          <Alert
-            message={`Recommended: ${multiNicheReport.niches[multiNicheReport.recommendedNiche].nicheOverview?.name}`}
-            description={multiNicheReport.recommendationReason}
-            type="success"
-            showIcon
-            className="mb-4"
-          />
-        </div>
-      </Card>
-
-      {/* Comparison Matrix */}
-      {renderComparisonMatrix(multiNicheReport)}
-
-      {/* Niche Selection Tabs */}
-      <Card className="mb-4">
-        <Tabs
-          activeKey={selectedNicheTab.toString()}
-          onChange={(key) => setSelectedNicheTab(parseInt(key))}
-          type="card"
-        >
-          {multiNicheReport.niches.map((niche, index) => (
-            <TabPane
-              key={index.toString()}
-              tab={
-                <span>
-                  {niche.nicheOverview?.name || `Niche ${index + 1}`}
-                  {index === multiNicheReport.recommendedNiche && (
-                    <Tag color="gold" style={{ marginLeft: 8 }}>Recommended</Tag>
-                  )}
-                </span>
-              }
-            >
-              {renderDetailedNicheReport(niche, reportId)}
-            </TabPane>
-          ))}
-        </Tabs>
-      </Card>
-
-      <Card className="mb-4">
-        <div className="text-center">
-          <Space>
-            {/* <Button
-              key="export-html"
-              icon={<DownloadOutlined />}
-              onClick={() => handleExportReport(reportId, "html")}
-              type="primary"
-            >
-              Download Full HTML Report
-            </Button> */}
-            {/* <Button
-              key="export-json"
-              icon={<DownloadOutlined />}
-              onClick={() => handleExportReport(reportId, "json")}
-            >
-              Download JSON Data
-            </Button> */}
-          </Space>
-        </div>
-      </Card>
-    </>
-  );
-};
-  // Render comparison matrix for multi-niche reports
-  const renderComparisonMatrix = (multiNicheReport: MultiNicheReport) => {
-    if (!multiNicheReport.comparisonMatrix) return null;
-
-    const columns = [
-      {
-        title: 'Criteria',
-        dataIndex: 'criterion',
-        key: 'criterion',
-        width: '25%',
-      },
-      ...multiNicheReport.niches.map((niche, index) => ({
-        title: (
-          <div>
-            {niche.nicheOverview?.name || `Niche ${index + 1}`}
-            {index === multiNicheReport.recommendedNiche && (
-              <Tag color="gold" style={{ marginLeft: 8 }}>Recommended</Tag>
-            )}
-          </div>
-        ),
-        dataIndex: `niche${index}`,
-        key: `niche${index}`,
-        render: (score: number) => (
-          <Progress 
-            type="circle" 
-            percent={score} 
-            width={50}
-            format={percent => `${percent}%`}
-          />
-        ),
-      })),
-    ];
-
-    const dataSource = multiNicheReport.comparisonMatrix.criteria.map((criterion, idx) => {
-      const row: any = { key: idx, criterion };
-      multiNicheReport.comparisonMatrix.scores.forEach((scoreObj, nicheIdx) => {
-        row[`niche${nicheIdx}`] = Object.values(scoreObj.scores)[idx];
-      });
-      return row;
-    });
-
-    return (
-      <Card title="Niche Comparison Matrix" className="mb-4">
-        <Table
-          columns={columns}
-          dataSource={dataSource}
-          pagination={false}
-          size="small"
-        />
-      </Card>
-    );
+  // Type guards
+  const isMultiNicheReport = (report: any): report is MultiNicheReport => {
+    return report && report.niches && Array.isArray(report.niches) && report.niches.length > 1;
   };
 
-  // Render detailed niche report for a single niche
-// Render detailed niche report for a single niche
-const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: string) => {
+  const isGeneratedNicheReport = (report: any): report is GeneratedNicheReport => {
+    return report && report.nicheOverview !== undefined;
+  };
+
+  // Render detailed niche report
+// Complete renderDetailedNicheReport function for NicheResearchDetailPage
+const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
   return (
     <>
+      {/* Export buttons */}
       <Card className="mb-4">
         <div className="text-center">
           <Space>
             <Button
-              key="export-html"
               icon={<DownloadOutlined />}
-              onClick={() => handleExportReport(reportId, "html")}
+              onClick={() => handleExportReport("html")}
               type="primary"
             >
               Download HTML Report
             </Button>
             <Button
-              key="export-json"
               icon={<DownloadOutlined />}
-              onClick={() => handleExportReport(reportId, "json")}
+              onClick={() => handleExportReport("json")}
             >
               Download JSON Data
             </Button>
@@ -322,6 +177,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </div>
       </Card>
 
+      {/* 1. Niche Overview */}
       <Card
         title="1. Niche Overview"
         className="mb-4 section-card"
@@ -365,6 +221,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 2. Market Demand Snapshot */}
       <Card
         title="2. Market Demand Snapshot"
         className="mb-4 section-card"
@@ -412,6 +269,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 3. Customer Pain Points */}
       <Card
         title="3. Customer Pain Points"
         className="mb-4 section-card"
@@ -454,6 +312,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 4. Competitive Landscape */}
       <Card
         title="4. Competitive Landscape"
         className="mb-4 section-card"
@@ -500,6 +359,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
             </Col>
           )) || <Text>No competitors available</Text>}
         </Row>
+        
         <Row gutter={16} className="mt-4">
           <Col span={12}>
             <Title level={4}>Gap Analysis</Title>
@@ -553,6 +413,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 5. Arbitrage Opportunity */}
       <Card
         title="5. Arbitrage Opportunity"
         className="mb-4 section-card"
@@ -583,6 +444,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </div>
       </Card>
 
+      {/* 6. Suggested Entry Offers */}
       <Card
         title="6. Suggested Entry Offers"
         className="mb-4 section-card"
@@ -646,6 +508,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 7. Go-To-Market Strategy */}
       <Card
         title="7. Go-To-Market Strategy"
         className="mb-4 section-card"
@@ -685,6 +548,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 8. Scalability & Exit Potential */}
       <Card
         title="8. Scalability & Exit Potential"
         className="mb-4 section-card"
@@ -748,6 +612,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 9. Risk Factors & Constraints */}
       <Card
         title="9. Risk Factors & Constraints"
         className="mb-4 section-card"
@@ -785,6 +650,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
         </Row>
       </Card>
 
+      {/* 10. Difficulty vs Reward Scorecard */}
       <Card
         title="10. Difficulty vs Reward Scorecard"
         className="mb-4 section-card"
@@ -944,39 +810,71 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
     </>
   );
 };
-
-  // Sort niches based on sortKey and sortOrder
-  const sortedNiches = [...niches].sort((a, b) => {
-    if (sortKey === "title") {
-      return sortOrder === "ascend" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
-    }
-    return sortOrder === "ascend"
-      ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-
-  // Paginate niches
-  const paginatedNiches = sortedNiches.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  if (!isWorkspaceReady) {
+  // Render multi-niche report
+  const renderMultiNicheReport = (multiNicheReport: MultiNicheReport) => {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..." />
+      <>
+        <Card className="mb-6 recommendation-banner">
+          <div className="text-center">
+            <Title level={2}>Your Top {multiNicheReport.niches.length} Niche Opportunities</Title>
+            <Alert
+              message={`Recommended: ${multiNicheReport.niches[multiNicheReport.recommendedNiche || 0].nicheOverview?.name}`}
+              description={multiNicheReport.recommendationReason}
+              type="success"
+              showIcon
+              className="mb-4"
+            />
+          </div>
+        </Card>
+
+        <Card className="mb-4">
+          <Tabs
+            activeKey={selectedNicheTab.toString()}
+            onChange={(key) => setSelectedNicheTab(parseInt(key))}
+            type="card"
+          >
+            {multiNicheReport.niches.map((niche, index) => (
+              <TabPane
+                key={index.toString()}
+                tab={
+                  <span>
+                    {niche.nicheOverview?.name || `Niche ${index + 1}`}
+                    {index === multiNicheReport.recommendedNiche && (
+                      <Tag color="gold" style={{ marginLeft: 8 }}>Recommended</Tag>
+                    )}
+                  </span>
+                }
+              >
+                {renderDetailedNicheReport(niche)}
+              </TabPane>
+            ))}
+          </Tabs>
+        </Card>
+      </>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <Spin size="large" tip="Loading niche report..." />
+        </div>
       </div>
     );
   }
 
-  if (!currentWorkspace) {
+  if (error || !nicheReport) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Alert
-          message="Workspace Required"
-          description="The niche report history must be accessed from within a workspace. Please navigate to a workspace first."
+          message="Error Loading Report"
+          description={error || "The requested report could not be found."}
           type="error"
           showIcon
           action={
-            <Button key="dashboard" type="primary" href="/dashboard">
-              Go to Dashboard
+            <Button type="primary" onClick={handleBack}>
+              Back to Niche Researcher
             </Button>
           }
         />
@@ -986,206 +884,91 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <Card
-        title="Your Saved Niche Reports"
-        extra={
+      {/* Header */}
+      <div className="mb-6">
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={handleBack}
+          className="mb-4"
+        >
+          Back to Niche Researcher
+        </Button>
+        
+        <div className="flex justify-between items-start">
+          <div>
+            <Title level={2}>{nicheReport.title}</Title>
+            <Text type="secondary">
+              Created on {new Date(nicheReport.createdAt).toLocaleDateString()}
+            </Text>
+            {nicheReport.metadata && (
+              <div className="mt-2">
+                {nicheReport.metadata.nicheName && (
+                  <Tag color="blue">{nicheReport.metadata.nicheName}</Tag>
+                )}
+                {nicheReport.metadata.primaryObjective && (
+                  <Tag color="green">{nicheReport.metadata.primaryObjective}</Tag>
+                )}
+                {nicheReport.metadata.budget && (
+                  <Tag color="purple">{nicheReport.metadata.budget}</Tag>
+                )}
+                {nicheReport.metadata.totalNiches && (
+                  <Tag color="gold">Multi-Niche Report ({nicheReport.metadata.totalNiches})</Tag>
+                )}
+              </div>
+            )}
+          </div>
+          
           <Space>
-            <Select
-              value={`${sortKey}-${sortOrder}`}
-              style={{ width: 180 }}
-              onChange={(value) => {
-                const [key, order] = value.split("-") as ["createdAt" | "title", "ascend" | "descend"];
-                setSortKey(key);
-                setSortOrder(order);
-                setCurrentPage(1);
-              }}
+            <Button 
+              icon={<DownloadOutlined />}
+              onClick={() => handleExportReport("html")}
+              type="primary"
             >
-              <Option value="createdAt-descend">Newest First</Option>
-              <Option value="createdAt-ascend">Oldest First</Option>
-              <Option value="title-ascend">Title A-Z</Option>
-              <Option value="title-descend">Title Z-A</Option>
-            </Select>
-            <Button
-              key="refresh"
-              icon={<ReloadOutlined />}
-              onClick={() => {
-                fetchNiches();
-                setCurrentPage(1);
-              }}
-              loading={loading}
+              Export HTML
+            </Button>
+            <Button 
+              icon={<DownloadOutlined />}
+              onClick={() => handleExportReport("json")}
             >
-              Refresh
+              Export JSON
             </Button>
           </Space>
-        }
-      >
-        {loading ? (
-          <div className="text-center py-8">
-            <Spin size="large" tip="Loading your niche reports..." />
-          </div>
-        ) : niches.length === 0 ? (
-          <div className="text-center py-12">
-            <HistoryOutlined style={{ fontSize: "48px", color: "#ccc" }} />
-            <Title level={4} type="secondary">
-              No Saved Niche Reports Yet
-            </Title>
-            <Text type="secondary">
-              Your generated niche reports will appear here.
-            </Text>
-            <div className="mt-4">
-              <Button key="create-niche" type="primary" href="/niche-research">
-                Create Your First Niche Report
-              </Button>
-            </div>
-          </div>
+        </div>
+      </div>
+
+      {/* Report Content */}
+      <div className="report-content">
+        {isMultiNicheReport(nicheReport.content) ? (
+          renderMultiNicheReport(nicheReport.content)
+        ) : isGeneratedNicheReport(nicheReport.content) ? (
+          renderDetailedNicheReport(nicheReport.content)
         ) : (
-          <List
-            dataSource={paginatedNiches}
-            renderItem={(niche: SavedNiche) => (
-              <List.Item>
-                <Card
-                  key={niche.id}
-                  size="small"
-                  className="w-full border-l-4 border-l-green-500"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <Text strong>{niche.title}</Text>
-                      <div className="text-sm">
-                        {niche.metadata?.nicheName && (
-                          <Tag color="blue">{niche.metadata.nicheName}</Tag>
-                        )}
-                        {niche.metadata?.primaryObjective && (
-                          <Tag color="green">{niche.metadata.primaryObjective}</Tag>
-                        )}
-                        {niche.metadata?.budget && (
-                          <Tag color="purple">{niche.metadata.budget}</Tag>
-                        )}
-                        {niche.metadata?.totalNiches && (
-                          <Tag color="gold">
-                            Multi-Niche Report ({niche.metadata.totalNiches})
-                          </Tag>
-                        )}
-                        {selectedNiche?.id === niche.id && (
-                          <Tag color="cyan">Currently Viewing</Tag>
-                        )}
-                      </div>
-                    </div>
-                    <Space>
-                      <Tooltip title="View this niche report">
-                        <Button
-                          key="view"
-                          size="small"
-                          type={selectedNiche?.id === niche.id ? "primary" : "default"}
-                          icon={<EyeOutlined />}
-                          onClick={() => router.push(`/niche-researcher/${niche.id}`)}
-                          // loading={modalLoading && selectedNiche?.id === niche.id}
-                        >
-                          View
-                        </Button>
-                      </Tooltip>
-                      <Tooltip title="Delete this niche report">
-                        <Button
-                          key="delete"
-                          size="small"
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => handleDeleteNiche(niche.id)}
-                        >
-                          Delete
-                        </Button>
-                      </Tooltip>
-                    </Space>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                    <div>
-                      <Text className="text-sm font-medium">Market Size:</Text>
-                      <div>{niche.metadata?.marketSize || "N/A"}</div>
-                    </div>
-                    <div>
-                      <Text className="text-sm font-medium">Created:</Text>
-                      <div>{new Date(niche.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div>
-                      <Text className="text-sm font-medium">Market Type:</Text>
-                      <div>{niche.metadata?.marketType || "N/A"}</div>
-                    </div>
-                  </div>
-                </Card>
-              </List.Item>
-            )}
-            pagination={{
-              current: currentPage,
-              pageSize,
-              total: niches.length,
-              onChange: (page) => setCurrentPage(page),
-              showSizeChanger: false,
-              position: "bottom",
-              align: "center",
-            }}
+          <Alert
+            message="Unknown Report Format"
+            description="This report format is not recognized."
+            type="warning"
+            showIcon
           />
         )}
-      </Card>
+      </div>
 
-      <Modal
-        title={selectedNiche?.title || "Niche Report Details"}
-        open={isModalVisible}
-        onCancel={handleModalClose}
-        footer={[
-          <Button key="close" onClick={handleModalClose}>
-            Close
-          </Button>,
-        ]}
-        width={1200}
-        style={{ top: 20 }}
-      >
-       {modalLoading ? (
-  <div className="text-center py-4">
-    <Spin size="large" tip="Loading niche report details..."/>
-  </div>
-) : modalError ? (
-  <Alert
-    message="Error"
-    description={modalError}
-    type="error"
-    showIcon
-  />
-) : selectedNiche && selectedNiche.content ? (
-  <div style={{ maxHeight: "80vh", overflowY: "auto" }}>
-    {isMultiNicheReport(selectedNiche.content) ? (
-      renderMultiNicheReport(selectedNiche.content, selectedNiche.id)
-    ) : isLegacySingleNicheReport(selectedNiche.content) ? (
-      // Handle legacy single niche reports that are stored in a niches array
-      renderDetailedNicheReport(
-        selectedNiche.content.niches[0],
-        selectedNiche.id
-      )
-    ) : isSingleNicheReport(selectedNiche.content) ? (
-      // Handle regular single niche reports
-      renderDetailedNicheReport(selectedNiche.content, selectedNiche.id)
-    ) : (
-      <Alert
-        message="Unknown Report Format"
-        description="This report format is not recognized. It may be from an older version of the application."
-        type="warning"
-        showIcon
-      />
-    )}
-  </div>
-) : (
-  <Alert
-    message="No Content Available"
-    description="The niche report content is missing or incomplete. This could be due to a data issue or an incomplete report generation. Try generating a new report or contact support."
-    type="warning"
-    showIcon
-    action={
-      <Button key="create-niche" type="primary" href="/niche-research">
-        Create New Report
-      </Button>
-    }
-  />
-)}
-      </Modal>
+      <Divider />
+
+      <div className="text-center">
+        <Space>
+          <Button onClick={handleBack}>
+            Back to List
+          </Button>
+          <Button 
+            type="primary" 
+            onClick={() => router.push(`/dashboard/${currentWorkspace?.slug}/niche-researcher`)}
+          >
+            Generate New Report
+          </Button>
+        </Space>
+      </div>
     </div>
   );
 };
+
+export default NicheResearchDetailPage;

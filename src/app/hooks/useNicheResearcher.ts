@@ -1,5 +1,5 @@
 // hooks/useNicheResearcher.ts - UPDATED TO MATCH NEW API STRUCTURE
-import { useState } from 'react';
+import { useState, useCallback} from 'react';
 import { message } from 'antd';
 // import { NicheResearchInput, GeneratedNicheReport } from '@/types/nicheResearcher';
 import { NicheResearchInput, GeneratedNicheReport, MultiNicheReport } from '@/types/nicheResearcher';
@@ -108,8 +108,7 @@ const generateNicheReport = async (
     setLoading(false);
   }
 };
-
-  const getNicheReport = async (reportId: string) => {
+ const getNicheReport = useCallback(async (reportId: string) => {
     setLoading(true);
     setError(null);
     
@@ -125,8 +124,8 @@ const generateNicheReport = async (
       throw err;
     } finally {
       setLoading(false);
-    }
-  };
+     }
+  }, []);
 
   const getUserReports = async (workspaceId?: string): Promise<NicheReportSummary[]> => {
     try {
