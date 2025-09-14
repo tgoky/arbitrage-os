@@ -1051,50 +1051,6 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
   </div>
 </Card>
 
-              {/* Benchmarks Card */}
-           {benchmarks?.industrySpecific?.hourlyRates && (
-  <Card className="mt-6">
-    <Title level={5} className="flex items-center">
-      <TrophyOutlined className="mr-2" />
-      Industry Benchmarks
-    </Title>
-    
-    <div>
-      <Text strong>Hourly Rate Ranges:</Text>
-      <Row gutter={8} className="mt-2">
-        <Col span={6}>
-          <Statistic 
-            title="Junior" 
-            value={benchmarks.industrySpecific.hourlyRates.junior ?? 0} 
-            prefix="$" 
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic 
-            title="Mid" 
-            value={benchmarks.industrySpecific.hourlyRates.mid ?? 0} 
-            prefix="$" 
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic 
-            title="Senior" 
-            value={benchmarks.industrySpecific.hourlyRates.senior ?? 0} 
-            prefix="$" 
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic 
-            title="Expert" 
-            value={benchmarks.industrySpecific.hourlyRates.expert ?? 0} 
-            prefix="$" 
-          />
-        </Col>
-      </Row>
-    </div>
-  </Card>
-)}
-
 
               </Col> 
           </Row> 
@@ -1419,7 +1375,7 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
         size="small" 
         type="link"
         icon={<EyeOutlined />}
-        onClick={() => handleView(record)}
+      onClick={() => router.push(`/pricing-calculator/${record.id}`)}
         loading={viewDetailLoading}
         disabled={viewDetailLoading}
       >
@@ -1440,7 +1396,7 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                 loading={calculationsLoading}
             />
           </Card>
-        <Modal
+      <Modal
   title={viewingCalculation ? `Details for ${viewingCalculation.benchmarks?.industry || 'Calculation'}` : "Calculation Details"}
   open={isViewModalVisible}
   onOk={handleViewOk}
@@ -1456,70 +1412,91 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
     </div>
   ) : viewingCalculation ? (
     <div className="pricing-details-container">
-      {/* Render details from the GeneratedPricingPackage */}
-      <Title level={4} className="modal-main-title">
-        Calculation Details
-      </Title>
+      {/* Main title */}
+      <div className="header-card">
+        <Title level={4} className="modal-main-title">
+          Calculation Details
+        </Title>
+      </div>
       
-      {/* Key metrics in a grid layout */}
-      <div className="metrics-grid">
-        <div className="metric-item">
-          <div className="metric-label">Monthly Retainer</div>
-          <div className="metric-value">${viewingCalculation?.calculations?.recommendedRetainer?.toLocaleString() ?? 'N/A'}</div>
-        </div>
+      {/* Key metrics in cards */}
+      <div className="metrics-cards">
+        <Card className="metric-card" size="small">
+          <div className="metric-content">
+            <div className="metric-label">Monthly Retainer</div>
+            <div className="metric-value highlight">${viewingCalculation?.calculations?.recommendedRetainer?.toLocaleString() ?? 'N/A'}</div>
+          </div>
+        </Card>
         
-        <div className="metric-item">
-          <div className="metric-label">ROI</div>
-          <div className="metric-value">{viewingCalculation?.calculations?.roiPercentage?.toFixed(2) ?? 'N/A'}%</div>
-        </div>
+        <Card className="metric-card" size="small">
+          <div className="metric-content">
+            <div className="metric-label">ROI</div>
+            <div className="metric-value">{viewingCalculation?.calculations?.roiPercentage?.toFixed(2) ?? 'N/A'}%</div>
+          </div>
+        </Card>
         
-        <div className="metric-item">
-          <div className="metric-label">Hourly Rate</div>
-          <div className="metric-value">${viewingCalculation?.calculations?.hourlyRate?.toFixed(2) ?? 'N/A'}</div>
-        </div>
+        <Card className="metric-card" size="small">
+          <div className="metric-content">
+            <div className="metric-label">Hourly Rate</div>
+            <div className="metric-value">${viewingCalculation?.calculations?.hourlyRate?.toFixed(2) ?? 'N/A'}</div>
+          </div>
+        </Card>
         
-        <div className="metric-item">
-          <div className="metric-label">Recommended Approach</div>
-          <div className="metric-value">{viewingCalculation?.strategy?.recommendedApproach ?? 'N/A'}</div>
-        </div>
+        <Card className="metric-card" size="small">
+          <div className="metric-content">
+            <div className="metric-label">Recommended Approach</div>
+            <div className="metric-value">{viewingCalculation?.strategy?.recommendedApproach ?? 'N/A'}</div>
+          </div>
+        </Card>
       </div>
       
       {/* Pricing Options */}
-      <Divider className="section-divider" />
-      <Title level={5} className="section-title">Pricing Options</Title>
-      <List
-        dataSource={viewingCalculation?.calculations?.pricingOptions ?? []}
-        renderItem={(option) => (
-          <List.Item className="pricing-option-item">
-            <Card size="small" className="pricing-option-card">
-              <div className="pricing-option-header">
-                <Text strong>{option.model.charAt(0).toUpperCase() + option.model.slice(1)} Model: </Text>
-                <Text className="price-tag">${option.price?.toLocaleString()}</Text>
-              </div>
-              <div className="pricing-option-description">
-                <Text type="secondary">{option.description}</Text>
+      <Card className="section-card">
+        <div className="section-header">
+          <Title level={5} className="section-title">Pricing Options</Title>
+        </div>
+        <div className="pricing-options-list">
+          {viewingCalculation?.calculations?.pricingOptions?.map((option, index) => (
+            <Card 
+              key={index} 
+              className="pricing-option-card" 
+              size="small"
+            >
+              <div className="pricing-option-content">
+                <div className="pricing-option-header">
+                  <Text strong>{option.model.charAt(0).toUpperCase() + option.model.slice(1)} Model</Text>
+                  <div className="price-tag">${option.price?.toLocaleString()}</div>
+                </div>
+                <div className="pricing-option-description">
+                  <Text type="secondary">{option.description}</Text>
+                </div>
               </div>
             </Card>
-          </List.Item>
-        )}
-      />
+          ))}
+        </div>
+      </Card>
 
       {/* Strategy Summary */}
-      <Divider className="section-divider" />
-      <Title level={5} className="section-title">Strategy</Title>
-      <div className="strategy-container">
-        <Paragraph className="strategy-item">
-          <Text strong>Framework:</Text> {viewingCalculation?.strategy?.pricingFramework ?? 'N/A'}
-        </Paragraph>
-        <Paragraph className="strategy-item">
-          <Text strong>Value Proposition:</Text> {viewingCalculation?.strategy?.valueProposition ?? 'N/A'}
-        </Paragraph>
-      </div>
+      <Card className="section-card">
+        <div className="section-header">
+          <Title level={5} className="section-title">Strategy</Title>
+        </div>
+        <div className="strategy-content">
+          <div className="strategy-item">
+            <Text strong>Framework:</Text> {viewingCalculation?.strategy?.pricingFramework ?? 'N/A'}
+          </div>
+          <div className="strategy-item">
+            <Text strong>Value Proposition:</Text> {viewingCalculation?.strategy?.valueProposition ?? 'N/A'}
+          </div>
+        </div>
+      </Card>
     </div>
   ) : (
-    <div className="no-data-message">
-      <Text>No data available or failed to load.</Text>
-    </div>
+    <Card className="no-data-card">
+      <div className="no-data-message">
+        <Text>No data available or failed to load.</Text>
+      </div>
+    </Card>
   )}
 </Modal>
         </TabPane>

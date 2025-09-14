@@ -618,6 +618,90 @@ body {
   color: #8c8c8c;
 }
 
+/* Add these styles to your existing CSS */
+.calculation-detail-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.detail-header {
+  margin-bottom: 24px;
+}
+
+.export-actions {
+  margin-bottom: 24px;
+}
+
+.section-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  text-align: center;
+  padding: 16px;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.metric-value {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #3f8600;
+}
+
+.metric-label {
+  color: #8c8c8c;
+  font-size: 0.9em;
+  text-transform: uppercase;
+}
+
+.pricing-option-card {
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.pricing-option-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.strategy-section {
+  margin-bottom: 24px;
+}
+
+.objection-card {
+  margin-bottom: 16px;
+}
+
+.objection-card .ant-card-head {
+  background-color: #fff7e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .metric-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .export-actions .ant-space {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .export-actions .ant-space-item {
+    margin-bottom: 8px;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .metrics-grid {
