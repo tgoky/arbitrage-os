@@ -1442,6 +1442,7 @@ const handleOptimizeEmail = async (
         dataSource={savedEmails}
         rowKey="id"
         pagination={{ pageSize: 10 }}
+          className="no-vertical-borders" 
         columns={[
           {
             title: 'Campaign',
@@ -1533,6 +1534,7 @@ const handleOptimizeEmail = async (
     ) : (
       <Table
         dataSource={templates}
+          className="no-vertical-borders" 
         columns={columns}
         rowKey="id"
         pagination={{ pageSize: 5 }}
@@ -1550,6 +1552,7 @@ const handleOptimizeEmail = async (
       >
         <Table
           dataSource={templates}
+            className="no-vertical-borders" 
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 5 }}

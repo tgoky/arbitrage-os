@@ -694,6 +694,17 @@ body {
   overflow: hidden;
 }
 
+.no-vertical-borders .ant-table-container {
+  border-left: none;
+  border-right: none;
+}
+
+.no-vertical-borders .ant-table-thead > tr > th,
+.no-vertical-borders .ant-table-tbody > tr > td {
+  border-right: none;
+}
+
+
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

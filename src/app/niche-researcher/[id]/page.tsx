@@ -63,51 +63,56 @@ const NicheResearchDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedNicheTab, setSelectedNicheTab] = useState(0);
 
-  useEffect(() => {
-    const fetchNicheReport = async () => {
-  if (!params.id) return;
-  
-  try {
-    setLoading(true);
-    const response = await getNicheReport(params.id as string);
-    
-    console.log("API Response:", response); // Add this to debug
-    
-    if (response) {
-      // ✅ Handle different response structures
-      const reportContent = response.report || response;
-      const savedNiche: SavedNiche = {
-        id: params.id as string,
-        title: response.title || reportContent.title || "Niche Research Report",
-        content: reportContent,
-        createdAt: response.createdAt || new Date().toISOString(),
-        metadata: {
-          nicheName: isMultiNicheReport(reportContent) 
-            ? reportContent.niches[0]?.nicheOverview?.name 
-            : reportContent.nicheOverview?.name,
-          primaryObjective: response.primaryObjective,
-          budget: response.budget,
-          marketSize: isMultiNicheReport(reportContent)
-            ? reportContent.niches[0]?.marketDemand?.marketSize
-            : reportContent.marketDemand?.marketSize,
-          marketType: response.marketType,
-          totalNiches: isMultiNicheReport(reportContent) ? reportContent.niches.length : 1,
-        }
-      };
-      setNicheReport(savedNiche);
-    } else {
-      setError("Report not found");
-    }
-  } catch (err: any) {
-    console.error("Failed to fetch niche report:", err);
-    setError(err.message || "Failed to load report");
-  } finally {
-    setLoading(false);
-  }
-};
+useEffect(() => {
+  const fetchNicheReport = async () => {
+    if (!params.id) return;
 
-    fetchNicheReport();
-  }, [params.id]);
+    try {
+      setLoading(true);
+      const response = await getNicheReport(params.id as string);
+
+      // Detailed debugging logs
+      console.log("Raw API Response:", JSON.stringify(response, null, 2));
+      if (isMultiNicheReport(response)) {
+        console.log("MultiNicheReport detected. Comparison Matrix:", response.comparisonMatrix);
+        console.log("Criteria:", response.comparisonMatrix?.criteria);
+        console.log("Scores:", response.comparisonMatrix?.scores);
+      }
+
+      if (response) {
+        const reportContent = response.report || response;
+        const savedNiche: SavedNiche = {
+          id: params.id as string,
+          title: response.title || reportContent.title || "Niche Research Report",
+          content: reportContent,
+          createdAt: response.createdAt || new Date().toISOString(),
+          metadata: {
+            nicheName: isMultiNicheReport(reportContent)
+              ? reportContent.niches[0]?.nicheOverview?.name
+              : reportContent.nicheOverview?.name,
+            primaryObjective: response.primaryObjective,
+            budget: response.budget,
+            marketSize: isMultiNicheReport(reportContent)
+              ? reportContent.niches[0]?.marketDemand?.marketSize
+              : reportContent.marketDemand?.marketSize,
+            marketType: response.marketType,
+            totalNiches: isMultiNicheReport(reportContent) ? reportContent.niches.length : 1,
+          },
+        };
+        setNicheReport(savedNiche);
+      } else {
+        setError("Report not found");
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch niche report:", err);
+      setError(err.message || "Failed to load report");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchNicheReport();
+}, [params.id]);
 
   const handleBack = () => {
     router.push(`/niche-researcher`);
@@ -811,48 +816,147 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
   );
 };
   // Render multi-niche report
-  const renderMultiNicheReport = (multiNicheReport: MultiNicheReport) => {
-    return (
-      <>
-        <Card className="mb-6 recommendation-banner">
-          <div className="text-center">
-            <Title level={2}>Your Top {multiNicheReport.niches.length} Niche Opportunities</Title>
-            <Alert
-              message={`Recommended: ${multiNicheReport.niches[multiNicheReport.recommendedNiche || 0].nicheOverview?.name}`}
-              description={multiNicheReport.recommendationReason}
-              type="success"
-              showIcon
-              className="mb-4"
-            />
-          </div>
-        </Card>
-
-        <Card className="mb-4">
-          <Tabs
-            activeKey={selectedNicheTab.toString()}
-            onChange={(key) => setSelectedNicheTab(parseInt(key))}
-            type="card"
-          >
-            {multiNicheReport.niches.map((niche, index) => (
-              <TabPane
-                key={index.toString()}
-                tab={
-                  <span>
-                    {niche.nicheOverview?.name || `Niche ${index + 1}`}
-                    {index === multiNicheReport.recommendedNiche && (
-                      <Tag color="gold" style={{ marginLeft: 8 }}>Recommended</Tag>
-                    )}
-                  </span>
-                }
-              >
-                {renderDetailedNicheReport(niche)}
-              </TabPane>
-            ))}
-          </Tabs>
-        </Card>
-      </>
-    );
+ const renderMultiNicheReport = (multiNicheReport: MultiNicheReport) => {
+const renderComparisonMatrix = (report: MultiNicheReport) => {
+  // Map frontend criteria to backend scores keys
+  const keyMap: Record<string, string> = {
+    'Market Demand': 'marketDemand',
+    'Competition Level': 'competitionLevel',
+    'Skill Fit': 'skillFit',
+    'Budget Alignment': 'budgetAlignment',
+    'Time to Revenue': 'timeToRevenue',
   };
+
+  // Debugging: Log the comparisonMatrix structure
+  console.log("Rendering Comparison Matrix. Data:", JSON.stringify(report.comparisonMatrix, null, 2));
+  report.comparisonMatrix?.scores?.forEach((score, index) => {
+    console.log(`Niche ${index} scores keys:`, Object.keys(score.scores));
+  });
+
+  if (
+    !report.comparisonMatrix ||
+    !report.comparisonMatrix.criteria ||
+    !report.comparisonMatrix.scores ||
+    report.comparisonMatrix.criteria.length === 0 ||
+    report.comparisonMatrix.scores.length === 0
+  ) {
+    return (
+      <Card title="Comparison Matrix" className="mb-4">
+        <Alert
+          message="Comparison data not available"
+          description="The comparison matrix data is missing or incomplete. Please check the API response or regenerate the report."
+          type="warning"
+          showIcon
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Compare All Niches" className="mb-4">
+      <div className="comparison-table">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="border p-3 text-left ">Criteria</th>
+              {report.niches.map((niche, index) => (
+                <th key={index} className="border p-3 text-center ">
+                  {niche.nicheOverview?.name || `Niche ${index + 1}`}
+                  {index === report.recommendedNiche && (
+                    <Tag color="gold" className="ml-1">
+                      ★
+                    </Tag>
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {report.comparisonMatrix.criteria.map((criterion, criterionIndex) => (
+              <tr key={criterionIndex}>
+                <td className="border p-3 font-medium">{criterion}</td>
+                {report.comparisonMatrix.scores.map((score, scoreIndex) => {
+                  // Use the keyMap to get the correct backend key
+                  const backendKey = keyMap[criterion];
+                  const scoreValue = backendKey ? score.scores[backendKey] : undefined;
+                  // Debugging: Log each score access
+                  console.log(
+                    `Accessing score for niche ${score.nicheIndex}, criterion "${criterion}" (backendKey: "${backendKey}"):`,
+                    scoreValue
+                  );
+                  return (
+                    <td key={scoreIndex} className="border p-3 text-center">
+                      {scoreValue !== undefined && scoreValue !== null ? (
+                        <Progress
+                          type="circle"
+                          percent={Number(scoreValue)}
+                          width={50}
+                          format={() => `${scoreValue}%`}
+                        />
+                      ) : (
+                        <Text type="secondary">N/A</Text>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+};
+
+  return (
+    <>
+      <Card className="mb-6 recommendation-banner">
+        <div className="text-center">
+          <Title level={2}>Your Top {multiNicheReport.niches.length} Niche Opportunities</Title>
+          <Alert
+            message={`Recommended: ${
+              multiNicheReport.niches[multiNicheReport.recommendedNiche || 0].nicheOverview?.name ||
+              'N/A'
+            }`}
+            description={multiNicheReport.recommendationReason || 'No recommendation reason provided.'}
+            type="success"
+            showIcon
+            className="mb-4"
+          />
+        </div>
+      </Card>
+
+      <Card className="mb-4">
+        <Tabs
+          activeKey={selectedNicheTab.toString()}
+          onChange={(key) => setSelectedNicheTab(parseInt(key))}
+          type="card"
+        >
+          {multiNicheReport.niches.map((niche, index) => (
+            <TabPane
+              key={index.toString()}
+              tab={
+                <span>
+                  {niche.nicheOverview?.name || `Niche ${index + 1}`}
+                  {index === multiNicheReport.recommendedNiche && (
+                    <Tag color="gold" style={{ marginLeft: 8 }}>
+                      Recommended
+                    </Tag>
+                  )}
+                </span>
+              }
+            >
+              {renderDetailedNicheReport(niche)}
+            </TabPane>
+          ))}
+        </Tabs>
+      </Card>
+
+      {/* Place Comparison Matrix here, after the Tabs */}
+      {renderComparisonMatrix(multiNicheReport)}
+    </>
+  );
+};
 
   if (loading) {
     return (
