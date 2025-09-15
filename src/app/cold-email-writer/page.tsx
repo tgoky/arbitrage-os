@@ -64,6 +64,8 @@ const ColdEmailWriter = () => {
   const [activePanels, setActivePanels] = useState<string[]>(['1', '2', '3', '4', '5']);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+   const [viewLoading, setViewLoading] = useState<string | null>(null);
+
 
    const [activeTab, setActiveTab] = useState('compose');
 const [savedEmails, setSavedEmails] = useState<any[]>([]);
@@ -277,6 +279,7 @@ useEffect(() => {
 };
 
 const handleViewSavedEmail = async (generationId: string) => {
+  setViewLoading(generationId); // Set loading state for this specific email
   try {
     const generation = await getEmailGeneration(generationId);
     if (generation) {
@@ -296,8 +299,11 @@ const handleViewSavedEmail = async (generationId: string) => {
       description: 'Please try again later',
       placement: 'topRight',
     });
+  } finally {
+    setViewLoading(null); // Clear loading state
   }
 };
+
 
 const handleDeleteSavedEmail = async (generationId: string) => {
   try {
@@ -1476,34 +1482,35 @@ const handleOptimizeEmail = async (
             key: 'createdAt',
             render: (date: string) => new Date(date).toLocaleDateString(),
           },
-          {
-            title: 'Actions',
-            key: 'actions',
-            render: (record: any) => (
-              <Space>
-                <Button
-                  icon={<EyeOutlined />}
-                  onClick={() => handleViewSavedEmail(record.id)}
-                >
-                  View
-                </Button>
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={() => {
-                    // Add download functionality if needed
-                  }}
-                >
-                  Download
-                </Button>
-                <Button
-                  danger
-                  onClick={() => handleDeleteSavedEmail(record.id)}
-                >
-                  Delete
-                </Button>
-              </Space>
-            ),
-          },
+         {
+  title: 'Actions',
+  key: 'actions',
+  render: (record: any) => (
+    <Space>
+      <Button
+        icon={viewLoading === record.id ? <Spin /> : <EyeOutlined />}
+        onClick={() => handleViewSavedEmail(record.id)}
+        disabled={viewLoading !== null} // Disable all view buttons when any is loading
+      >
+        View
+      </Button>
+      <Button
+        icon={<DownloadOutlined />}
+        onClick={() => {
+          // Add download functionality if needed
+        }}
+      >
+        Download
+      </Button>
+      <Button
+        danger
+        onClick={() => handleDeleteSavedEmail(record.id)}
+      >
+        Delete
+      </Button>
+    </Space>
+  ),
+}
         ]}
       />
     )}

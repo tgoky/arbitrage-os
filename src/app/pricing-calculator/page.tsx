@@ -98,6 +98,8 @@ const PricingCalculator = () => {
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
 const [viewDetailLoading, setViewDetailLoading] = useState(false); // Loading for fetching detail
 
+const [viewLoadingStates, setViewLoadingStates] = useState<{[key: string]: boolean}>({});
+
   const [exportState, setExportState] = useState<{
   loading: boolean;
   type: string | null;
@@ -278,6 +280,7 @@ const handleFormChange = () => {
 
 // Handler for the View button
 const handleView = async (record: SavedCalculation) => {
+  setViewLoadingStates(prev => ({ ...prev, [record.id]: true }));
   setViewDetailLoading(true);
   setViewingCalculation(null);
   
@@ -310,9 +313,9 @@ const handleView = async (record: SavedCalculation) => {
     });
   } finally {
     setViewDetailLoading(false);
+    setViewLoadingStates(prev => ({ ...prev, [record.id]: false }));
   }
 };
-
 
 // // Handler for the Export button (using the existing hook)
 // const handleSavedExport = async (record: any, format: 'proposal' | 'presentation' | 'contract' | 'complete' = 'complete') => {
@@ -1366,31 +1369,24 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                   key: 'createdAt',
                   render: (date) => new Date(date).toLocaleDateString()
                 },
-                {
-                  title: 'Actions',
-                  key: 'actions',
-                  render: (_, record) => (
-                    <Space>
-                    <Button 
+             {
+  title: 'Actions',
+  key: 'actions',
+  render: (_, record) => (
+    <Space>
+      <Button 
         size="small" 
         type="link"
-        icon={<EyeOutlined />}
-      onClick={() => router.push(`/pricing-calculator/${record.id}`)}
-        loading={viewDetailLoading}
-        disabled={viewDetailLoading}
+        icon={viewLoadingStates[record.id] ? <Spin size="small" /> : <EyeOutlined />}
+        loading={viewLoadingStates[record.id]}
+            onClick={() => router.push(`/pricing-calculator/${record.id}`)}
+        disabled={viewLoadingStates[record.id]}
       >
         View
       </Button>
-                      {/* <Button size="small" type="link"
-                       icon={<DownloadOutlined />} // Make sure to import DownloadOutlined
-                onClick={() => handleSavedExport(record, 'complete')} // Default to 'complete', or add a dropdown
-                loading={exportLoading} // This loading state is for the overall export hook
-                      >
-                        Export
-                      </Button> */}
-                    </Space>
-                  )
-                }
+    </Space>
+  )
+}
               ]}
               pagination={{ pageSize: 10 }}
                 loading={calculationsLoading}

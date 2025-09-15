@@ -689,6 +689,7 @@ export default function SalesCallAnalyzerPage() {
         <Table
           columns={columns}
           dataSource={filteredData}
+            className="no-vertical-borders"
           rowKey="key"
           loading={loading}
           locale={{

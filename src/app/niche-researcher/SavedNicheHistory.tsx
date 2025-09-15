@@ -58,6 +58,8 @@ export const SavedNicheHistory = () => {
   const [sortKey, setSortKey] = useState<"createdAt" | "title">("createdAt");
   const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("descend");
   const [selectedNicheTab, setSelectedNicheTab] = useState(0);
+  const [viewLoadingStates, setViewLoadingStates] = useState<{[key: string]: boolean}>({});
+
   const pageSize = 1;
 
       const router = useRouter();
@@ -68,24 +70,26 @@ export const SavedNicheHistory = () => {
     }
   }, [fetchNiches, isWorkspaceReady, currentWorkspace?.id]);
 
-  const showNicheDetails = async (niche: SavedNiche) => {
-    console.log("Selected Niche:", niche);
-    setModalLoading(true);
-    setModalError(null);
-    try {
-      const report = await getNicheReport(niche.id);
-      console.log("Fetched Report:", report);
-      setSelectedNiche({ ...niche, content: report.report });
-      setIsModalVisible(true);
-      // Reset to first tab when opening a new report
-      setSelectedNicheTab(0);
-    } catch (error) {
-      console.error("Failed to fetch niche report:", error);
-      setModalError("Failed to load niche report details. Please try again.");
-    } finally {
-      setModalLoading(false);
-    }
-  };
+ const showNicheDetails = async (niche: SavedNiche) => {
+  setViewLoadingStates(prev => ({ ...prev, [niche.id]: true }));
+  console.log("Selected Niche:", niche);
+  setModalLoading(true);
+  setModalError(null);
+  try {
+    const report = await getNicheReport(niche.id);
+    console.log("Fetched Report:", report);
+    setSelectedNiche({ ...niche, content: report.report });
+    setIsModalVisible(true);
+    // Reset to first tab when opening a new report
+    setSelectedNicheTab(0);
+  } catch (error) {
+    console.error("Failed to fetch niche report:", error);
+    setModalError("Failed to load niche report details. Please try again.");
+  } finally {
+    setModalLoading(false);
+    setViewLoadingStates(prev => ({ ...prev, [niche.id]: false }));
+  }
+};
 
   const handleModalClose = () => {
     setIsModalVisible(false);
@@ -1072,18 +1076,19 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
                       </div>
                     </div>
                     <Space>
-                      <Tooltip title="View this niche report">
-                        <Button
-                          key="view"
-                          size="small"
-                          type={selectedNiche?.id === niche.id ? "primary" : "default"}
-                          icon={<EyeOutlined />}
-                          onClick={() => router.push(`/niche-researcher/${niche.id}`)}
-                          // loading={modalLoading && selectedNiche?.id === niche.id}
-                        >
-                          View
-                        </Button>
-                      </Tooltip>
+                    <Tooltip title="View this niche report">
+  <Button
+    key="view"
+    size="small"
+    type={selectedNiche?.id === niche.id ? "primary" : "default"}
+    icon={viewLoadingStates[niche.id] ? <Spin size="small" /> : <EyeOutlined />}
+    loading={viewLoadingStates[niche.id]}
+    onClick={() => router.push(`/niche-researcher/${niche.id}`)}
+    disabled={viewLoadingStates[niche.id]}
+  >
+    View
+  </Button>
+</Tooltip>
                       <Tooltip title="Delete this niche report">
                         <Button
                           key="delete"
