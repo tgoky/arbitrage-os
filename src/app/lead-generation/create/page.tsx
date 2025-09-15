@@ -231,121 +231,206 @@ const CampaignCreatePage = () => {
     }
   };
 
-  const generateLeads = async (values: any) => {
-    if (!currentWorkspace?.id) {
-      message.error('No workspace selected');
-      return;
-    }
+  // Enhanced error handling in your React component
+const generateLeads = async (values: any) => {
+  if (!currentWorkspace?.id) {
+    message.error('No workspace selected');
+    return;
+  }
 
-    console.log('🔍 Starting lead generation with values:', values);
+  console.log('🔍 Starting lead generation with values:', values);
 
-    if (!values.targetIndustry || !Array.isArray(values.targetIndustry) || values.targetIndustry.length === 0) {
-      message.error('Please select at least one target industry');
-      setCurrentStep(0);
-      return;
-    }
+  // Validation checks...
+  if (!values.targetIndustry || !Array.isArray(values.targetIndustry) || values.targetIndustry.length === 0) {
+    message.error('Please select at least one target industry');
+    setCurrentStep(0);
+    return;
+  }
 
-    if (!values.targetRole || !Array.isArray(values.targetRole) || values.targetRole.length === 0) {
-      message.error('Please select at least one target role');
-      setCurrentStep(0);
-      return;
-    }
+  if (!values.targetRole || !Array.isArray(values.targetRole) || values.targetRole.length === 0) {
+    message.error('Please select at least one target role');
+    setCurrentStep(0);
+    return;
+  }
 
-    // Final cost check
-    const finalCosts = calculateCosts();
-    if (!finalCosts.canAfford && finalCosts.freeLeadsUsed < leadCount) {
-      message.error(`Insufficient credits. Need ${finalCosts.totalCost} credits, have ${userCredits.credits}.`);
-      setPurchaseModalVisible(true);
-      return;
-    }
+  // Final cost check
+  const finalCosts = calculateCosts();
+  if (!finalCosts.canAfford && finalCosts.freeLeadsUsed < leadCount) {
+    message.error(`Insufficient credits. Need ${finalCosts.totalCost} credits, have ${userCredits.credits}.`);
+    setPurchaseModalVisible(true);
+    return;
+  }
 
-    setIsGenerating(true);
-    setGenerationProgress(10);
+  setIsGenerating(true);
+  setGenerationProgress(10);
 
-    try {
-      const criteria = {
-        targetIndustry: values.targetIndustry,
-        targetRole: values.targetRole,
-        companySize: values.companySize || [],
-        location: values.location || [],
-        keywords: values.keywords || [],
-        technologies: values.technologies || [],
-        revenueRange: (values.revenueMin || values.revenueMax) ? {
-          min: values.revenueMin ? parseInt(values.revenueMin.toString()) : undefined,
-          max: values.revenueMax ? parseInt(values.revenueMax.toString()) : undefined
-        } : undefined,
-        leadCount,
-        requirements: values.requirements || []
-      };
+  try {
+    const criteria = {
+      targetIndustry: values.targetIndustry,
+      targetRole: values.targetRole,
+      companySize: values.companySize || [],
+      location: values.location || [],
+      keywords: values.keywords || [],
+      technologies: values.technologies || [],
+      revenueRange: (values.revenueMin || values.revenueMax) ? {
+        min: values.revenueMin ? parseInt(values.revenueMin.toString()) : undefined,
+        max: values.revenueMax ? parseInt(values.revenueMax.toString()) : undefined
+      } : undefined,
+      leadCount,
+      requirements: values.requirements || []
+    };
 
-      console.log('📋 Final criteria object:', criteria);
-      setGenerationProgress(30);
+    console.log('📋 Final criteria object:', criteria);
+    setGenerationProgress(30);
 
-      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
-      const requestBody = {
-        workspaceId: currentWorkspace.id,
-        criteria,
-        campaignName: values.campaignName || `Lead Generation - ${new Date().toLocaleDateString()}`
-      };
+    const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+    const requestBody = {
+      workspaceId: currentWorkspace.id,
+      criteria,
+      campaignName: values.campaignName || `Lead Generation - ${new Date().toLocaleDateString()}`
+    };
 
-      console.log('📤 Request body:', requestBody);
+    console.log('📤 Request body:', requestBody);
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    setGenerationProgress(70);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ API Error Response:', errorData);
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      setGenerationProgress(70);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ API Error Response:', errorData);
-        
-        if (response.status === 402) { // Payment required
-          message.error('Insufficient credits. Please purchase more credits.');
-          setPurchaseModalVisible(true);
-          return;
-        }
-        
-        throw new Error(errorData.error || `Server error: ${response.status}`);
+      // Enhanced error handling based on error codes
+      if (response.status === 402) {
+        message.error('Insufficient credits. Please purchase more credits.');
+        setPurchaseModalVisible(true);
+        return;
       }
-
-      const data = await response.json();
-      console.log('📋 Success response:', data);
       
-      if (data.success) {
-        setGeneratedLeads(data.data.leads);
-        setGenerationProgress(100);
-        setGenerationComplete(true);
-        message.success(`Successfully generated ${data.data.leads.length} leads!`);
-        
-        // Update credits after successful generation
-        await loadUserCredits();
-      } else {
-        throw new Error(data.error || 'Lead generation failed');
+      if (response.status === 429) {
+        message.error('Rate limit exceeded. Please wait before trying again.');
+        return;
       }
-
-    } catch (error) {
-      console.error('💥 Lead generation error:', error);
       
-      if (error instanceof Error) {
-        if (error.message.includes('Insufficient credits')) {
-          setPurchaseModalVisible(true);
+      if (response.status === 422 || response.status === 400) {
+        // Apollo API validation errors
+        if (errorData.error?.includes('validation')) {
+          message.error('Search criteria too complex. Try fewer industries or locations.');
         } else {
-          message.error(error.message);
+          message.error('Invalid search parameters. Please adjust your criteria.');
         }
-      } else {
-        message.error('Failed to generate leads. Please try again.');
+        setCurrentStep(0); // Go back to criteria step
+        return;
       }
       
-      setGenerationProgress(0);
-    } finally {
-      setIsGenerating(false);
+      if (response.status === 401) {
+        message.error('Authentication failed. Please refresh and try again.');
+        return;
+      }
+      
+      throw new Error(errorData.error || `Server error: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    console.log('📋 Success response:', data);
+    
+    if (data.success) {
+      if (data.data.leads.length === 0) {
+        // No leads found - provide helpful guidance
+        message.warning({
+          content: (
+            <div>
+              <div>No leads found with your current criteria.</div>
+              <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.8 }}>
+                Try: broader locations, fewer industries, or different job titles
+              </div>
+            </div>
+          ),
+          duration: 6
+        });
+        setCurrentStep(0); // Go back to adjust criteria
+        return;
+      }
+      
+      setGeneratedLeads(data.data.leads);
+      setGenerationProgress(100);
+      setGenerationComplete(true);
+      
+      // Enhanced success message with details
+      const leadsCount = data.data.leads.length;
+      const avgScore = data.data.leads.reduce((sum: number, lead: any) => sum + lead.score, 0) / leadsCount;
+      
+      message.success({
+        content: (
+          <div>
+            <div>Successfully generated {leadsCount} leads!</div>
+            <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.8 }}>
+              Average quality score: {avgScore.toFixed(0)}/100
+            </div>
+          </div>
+        ),
+        duration: 4
+      });
+      
+      // Update credits after successful generation
+      await loadUserCredits();
+    } else {
+      throw new Error(data.error || 'Lead generation failed');
+    }
+
+  } catch (error) {
+    console.error('💥 Lead generation error:', error);
+    
+    if (error instanceof Error) {
+      // Specific error handling
+      if (error.message.includes('rate limit')) {
+        message.error('Too many requests. Please wait a few minutes before trying again.');
+      } else if (error.message.includes('authentication')) {
+        message.error('Authentication failed. Please refresh the page and sign in again.');
+      } else if (error.message.includes('Insufficient credits')) {
+        setPurchaseModalVisible(true);
+      } else if (error.message.includes('No leads found')) {
+        message.warning({
+          content: (
+            <div>
+              <div>No leads found matching your criteria.</div>
+              <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                Try adjusting your search parameters for better results.
+              </div>
+            </div>
+          ),
+          duration: 5
+        });
+        setCurrentStep(0);
+      } else {
+        // Generic error with helpful suggestion
+        message.error({
+          content: (
+            <div>
+              <div>{error.message}</div>
+              <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.8 }}>
+                If this persists, try simpler search criteria
+              </div>
+            </div>
+          ),
+          duration: 6
+        });
+      }
+    } else {
+      message.error('Failed to generate leads. Please try again with different criteria.');
+    }
+    
+    setGenerationProgress(0);
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const onFinish = async (values: any) => {
     console.log('📝 Form onFinish values:', values);
