@@ -673,9 +673,9 @@ const stepOneContent = (
       message="How Search Works"
       description={
         <div className="space-y-2">
-          <div><strong>Industries:</strong> Finds people from ANY of the selected industries (OR logic)</div>
-          <div><strong>Job Titles:</strong> Finds people with ANY of the selected titles (OR logic)</div>
-          <div><strong>Locations:</strong> Finds people from ANY of the selected locations (OR logic)</div>
+          <div><strong>Industries:</strong> Finds people from ANY of the selected industries </div>
+          <div><strong>Job Titles:</strong> Finds people with ANY of the selected titles</div>
+          <div><strong>Locations:</strong> Finds people from ANY of the selected locations</div>
           <div className="text-sm text-gray-600 mt-2">
             Tip: Start with 1-3 selections per category for best results
           </div>
@@ -687,10 +687,10 @@ const stepOneContent = (
     />
 
     {/* Criteria Explanations */}
-    <Card title="Understanding Your Search" className="mb-4">
+    {/* <Card title="Understanding Your Search" className="mb-4">
       <Row gutter={16}>
         <Col span={8}>
-          <div className="text-center p-3 bg-blue-50 rounded">
+          <div className="text-center p-3 rounded">
             <Title level={5} className="text-blue-600 mb-2">Industries</Title>
             <Text className="text-sm">
               People working in ANY of these industries
@@ -701,7 +701,7 @@ const stepOneContent = (
           </div>
         </Col>
         <Col span={8}>
-          <div className="text-center p-3 bg-green-50 rounded">
+          <div className="text-center p-3  rounded">
             <Title level={5} className="text-green-600 mb-2">Job Titles</Title>
             <Text className="text-sm">
               People with ANY of these job titles
@@ -712,7 +712,7 @@ const stepOneContent = (
           </div>
         </Col>
         <Col span={8}>
-          <div className="text-center p-3 bg-purple-50 rounded">
+          <div className="text-center p-3  rounded">
             <Title level={5} className="text-purple-600 mb-2">Locations</Title>
             <Text className="text-sm">
               People located in ANY of these places
@@ -724,7 +724,7 @@ const stepOneContent = (
         </Col>
       </Row>
     </Card>
-    
+     */}
     {/* Quick Presets */}
     <Card title="Quick Start Presets" className="mb-4">
       <Space wrap>
@@ -958,7 +958,7 @@ const stepOneContent = (
     </Row>
 
     {/* Search Preview */}
-    <Card title="Search Preview" className="bg-gray-50">
+    <Card title="Search Preview" >
       {(() => {
         const values = form.getFieldsValue();
         const industries = values.targetIndustry || [];

@@ -609,6 +609,7 @@ const LeadGenerationPage = () => {
           ) : filteredLeads.length > 0 ? (
             <Table
               columns={leadColumns}
+                className="no-vertical-borders"
               dataSource={filteredLeads}
               rowKey="id"
               pagination={{
