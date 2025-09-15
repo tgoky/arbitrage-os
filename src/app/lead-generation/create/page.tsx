@@ -41,6 +41,20 @@ import CreditsPurchaseModal from '../../../components/credits/CreditsDisplayModa
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+interface FormData {
+  targetIndustry: string[];
+  targetRole: string[];
+  companySize: string[];
+  location: string[];
+  keywords: string[];
+  technologies: string[];
+  revenueMin: number | undefined;
+  revenueMax: number | undefined;
+  requirements: string[];
+  campaignName: string;
+}
+
+
 // Industry and job title options (same as before)
 const industries = [
   'Technology', 'SaaS', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
@@ -79,6 +93,196 @@ interface UserCredits {
   freeLeadsAvailable: number;
   totalPurchased: number;
 }
+
+// Search Preview Component - declare this first
+const SearchPreview = ({ industries, roles, locations, companySize }: {
+  industries: string[];
+  roles: string[];
+  locations: string[];
+  companySize: string[];
+}) => {
+  if (!industries.length && !roles.length) {
+    return (
+      <Text type="secondary" className="italic">
+        Select industries and job titles to see search preview
+      </Text>
+    );
+  }
+
+  const parts = [];
+
+  if (roles.length) {
+    const roleText = roles.length === 1 
+      ? `people who are ${roles[0]}s`
+      : `people who are ${roles.slice(0, -1).join(', ')} or ${roles[roles.length - 1]}s`;
+    parts.push(roleText);
+  }
+
+  if (industries.length) {
+    const industryText = industries.length === 1
+      ? `in the ${industries[0]} industry`
+      : `in ${industries.slice(0, -1).join(', ')} or ${industries[industries.length - 1]} industries`;
+    parts.push(industryText);
+  }
+
+  if (locations.length) {
+    const locationText = locations.length === 1
+      ? `located in ${locations[0]}`
+      : `located in ${locations.slice(0, -1).join(', ')} or ${locations[locations.length - 1]}`;
+    parts.push(locationText);
+  }
+
+  if (companySize.length) {
+    const sizeText = companySize.length === 1
+      ? `at companies with ${companySize[0]} employees`
+      : `at companies with ${companySize.join(' or ')} employees`;
+    parts.push(sizeText);
+  }
+
+  return (
+    <div>
+      <Text strong>We will find: </Text>
+      <Text>{parts.join(' ')}</Text>
+      {parts.length > 2 && (
+        <div className="mt-2">
+          <Text type="warning" className="text-sm">
+            Complex searches may return fewer results. Consider reducing filters if needed.
+          </Text>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Complexity Warning Component
+const ComplexityWarning = ({ formInstance }: { formInstance: any }) => {
+  const values = formInstance.getFieldsValue();
+  const totalFilters = (values.targetIndustry?.length || 0) + 
+                      (values.targetRole?.length || 0) + 
+                      (values.location?.length || 0) + 
+                      (values.companySize?.length || 0);
+  
+  if (totalFilters <= 6) return null;
+  
+  return (
+    <Alert
+      message="Complex Search Detected"
+      description={
+        <div>
+          You have {totalFilters} active filters. This may significantly reduce your results.
+          <br />
+          <strong>Suggestions:</strong>
+          <ul className="mt-2 mb-0">
+            <li>Start with 1-2 industries and 1-2 job titles</li>
+            <li>Add more filters only if needed</li>
+            <li>Use keywords instead of many industry selections</li>
+          </ul>
+        </div>
+      }
+      type="warning"
+      showIcon
+      className="mb-4"
+    />
+  );
+};
+
+// Quick Presets Component
+const QuickPresets = ({ formInstance, setFormData }: { 
+  formInstance: any; 
+  setFormData: React.Dispatch<React.SetStateAction<any>>; 
+}) => {
+  const presets = [
+    {
+      name: 'Tech Executives',
+      data: {
+        targetIndustry: ['Technology'],
+        targetRole: ['CEO', 'CTO'],
+        location: ['United States']
+      }
+    },
+    {
+      name: 'Healthcare Leaders', 
+      data: {
+        targetIndustry: ['Healthcare'],
+        targetRole: ['CEO', 'Medical Director'],
+        location: ['United States']
+      }
+    },
+    {
+      name: 'SaaS Founders',
+      data: {
+        targetIndustry: ['SaaS'],
+        targetRole: ['Founder', 'CEO'],
+        companySize: ['1-10', '11-50']
+      }
+    }
+  ];
+  
+  return (
+    <Card title="Quick Start Presets" className="mb-4">
+      <Space wrap>
+        {presets.map(preset => (
+          <Button
+            key={preset.name}
+            onClick={() => {
+              formInstance.setFieldsValue(preset.data);
+              setFormData((prev: any) => ({ ...prev, ...preset.data }));
+              message.success(`Applied ${preset.name} preset`);
+            }}
+            size="small"
+            type="dashed"
+          >
+            {preset.name}
+          </Button>
+        ))}
+      </Space>
+      <Text type="secondary" className="block mt-2 text-xs">
+        Click to apply preset, then customize as needed
+      </Text>
+    </Card>
+  );
+};
+
+// Criteria Explanations Component
+const CriteriaExplanations = () => (
+  <Card title="Understanding Your Search" className="mb-4">
+    <Row gutter={16}>
+      <Col span={8}>
+        <div className="text-center p-3 bg-blue-50 rounded">
+          <Title level={5} className="text-blue-600 mb-2">Industries</Title>
+          <Text className="text-sm">
+            People working in ANY of these industries
+          </Text>
+          <div className="mt-2 text-xs text-gray-500">
+            Technology OR Healthcare OR Finance
+          </div>
+        </div>
+      </Col>
+      <Col span={8}>
+        <div className="text-center p-3 bg-green-50 rounded">
+          <Title level={5} className="text-green-600 mb-2">Job Titles</Title>
+          <Text className="text-sm">
+            People with ANY of these job titles
+          </Text>
+          <div className="mt-2 text-xs text-gray-500">
+            CEO OR CTO OR Marketing Director
+          </div>
+        </div>
+      </Col>
+      <Col span={8}>
+        <div className="text-center p-3 bg-purple-50 rounded">
+          <Title level={5} className="text-purple-600 mb-2">Locations</Title>
+          <Text className="text-sm">
+            People located in ANY of these places
+          </Text>
+          <div className="mt-2 text-xs text-gray-500">
+            United States OR Canada OR UK
+          </div>
+        </div>
+      </Col>
+    </Row>
+  </Card>
+);
 
 const CampaignCreatePage = () => {
   const { theme } = useTheme();
@@ -162,19 +366,18 @@ const CampaignCreatePage = () => {
       content: 'Generate and review your leads',
     }
   ];
-
-  const [formData, setFormData] = useState({
-    targetIndustry: [],
-    targetRole: [],
-    companySize: [],
-    location: [],
-    keywords: [],
-    technologies: [],
-    revenueMin: undefined,
-    revenueMax: undefined,
-    requirements: ['email'],
-    campaignName: ''
-  });
+const [formData, setFormData] = useState<FormData>({
+  targetIndustry: [],
+  targetRole: [],
+  companySize: [],
+  location: [],
+  keywords: [],
+  technologies: [],
+  revenueMin: undefined,
+  revenueMax: undefined,
+  requirements: ['email'],
+  campaignName: ''
+});
 
   const handleNext = async () => {
     if (currentStep === 0) {
@@ -461,174 +664,471 @@ const generateLeads = async (values: any) => {
   };
 
   // Step 1: Target Criteria (same as before)
-  const stepOneContent = (
-    <div className="space-y-6">
-      <Text>Define your target audience criteria. The more specific you are, the better quality leads you will generate.</Text>
-      
-      <Title level={5}>Core Targeting</Title>
-      <Row gutter={24}>
-        <Col span={12}>
-          <Form.Item
-            name="targetIndustry"
-            label="Target Industries"
-            rules={[
-              { required: true, message: 'Please select at least one industry' },
-              { type: 'array', min: 1, message: 'Please select at least one industry' }
-            ]}
-          >
-            <Select 
-              placeholder="Select industries" 
-              mode="multiple"
-              showSearch
-              maxTagCount={3}
-              optionFilterProp="children"
-              allowClear
-            >
-              {industries.map(industry => (
-                <Option key={industry} value={industry}>{industry}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+// Complete Step One Content - place this inside your CampaignCreatePage component
+
+const stepOneContent = (
+  <div className="space-y-6">
+    {/* How Search Works Alert */}
+    <Alert
+      message="How Search Works"
+      description={
+        <div className="space-y-2">
+          <div><strong>Industries:</strong> Finds people from ANY of the selected industries (OR logic)</div>
+          <div><strong>Job Titles:</strong> Finds people with ANY of the selected titles (OR logic)</div>
+          <div><strong>Locations:</strong> Finds people from ANY of the selected locations (OR logic)</div>
+          <div className="text-sm text-gray-600 mt-2">
+            Tip: Start with 1-3 selections per category for best results
+          </div>
+        </div>
+      }
+      type="info"
+      showIcon
+      className="mb-4"
+    />
+
+    {/* Criteria Explanations */}
+    <Card title="Understanding Your Search" className="mb-4">
+      <Row gutter={16}>
+        <Col span={8}>
+          <div className="text-center p-3 bg-blue-50 rounded">
+            <Title level={5} className="text-blue-600 mb-2">Industries</Title>
+            <Text className="text-sm">
+              People working in ANY of these industries
+            </Text>
+            <div className="mt-2 text-xs text-gray-500">
+              Technology OR Healthcare OR Finance
+            </div>
+          </div>
         </Col>
-        <Col span={12}>
-          <Form.Item
-            name="targetRole"
-            label="Target Job Titles"
-            rules={[
-              { required: true, message: 'Please select at least one job title' },
-              { type: 'array', min: 1, message: 'Please select at least one job title' }
-            ]}
-          >
-            <Select 
-              placeholder="Select job titles" 
-              mode="multiple"
-              showSearch
-              maxTagCount={3}
-              optionFilterProp="children"
-              allowClear
-            >
-              {jobTitles.map(title => (
-                <Option key={title} value={title}>{title}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+        <Col span={8}>
+          <div className="text-center p-3 bg-green-50 rounded">
+            <Title level={5} className="text-green-600 mb-2">Job Titles</Title>
+            <Text className="text-sm">
+              People with ANY of these job titles
+            </Text>
+            <div className="mt-2 text-xs text-gray-500">
+              CEO OR CTO OR Marketing Director
+            </div>
+          </div>
         </Col>
-      </Row>
-      
-      <Row gutter={24}>
-        <Col span={12}>
-          <Form.Item name="companySize" label="Company Size">
-            <Select placeholder="Select company sizes" mode="multiple" allowClear>
-              <Option value="1-10">1-10 employees</Option>
-              <Option value="10-50">10-50 employees</Option>
-              <Option value="50-200">50-200 employees</Option>
-              <Option value="200-500">200-500 employees</Option>
-              <Option value="500-1000">500-1000 employees</Option>
-              <Option value="1000+">1000+ employees</Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="location" label="Geographic Locations">
-            <Select 
-              placeholder="Select locations" 
-              mode="multiple"
-              showSearch
-              maxTagCount={3}
-              allowClear
-            >
-              {locations.map(location => (
-                <Option key={location} value={location}>{location}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+        <Col span={8}>
+          <div className="text-center p-3 bg-purple-50 rounded">
+            <Title level={5} className="text-purple-600 mb-2">Locations</Title>
+            <Text className="text-sm">
+              People located in ANY of these places
+            </Text>
+            <div className="mt-2 text-xs text-gray-500">
+              United States OR Canada OR UK
+            </div>
+          </div>
         </Col>
       </Row>
-      
-      <Form.Item
-        name="keywords"
-        label={
-          <span>
-            Keywords <Tooltip title="Keywords related to your target companies or services">
-              <InfoCircleOutlined />
-            </Tooltip>
-          </span>
-        }
-      >
-        <Select
-          mode="tags"
-          placeholder="e.g., SaaS, automation, digital transformation"
-          tokenSeparators={[',']}
-          allowClear
-        />
-      </Form.Item>
-      
-      <div className="flex justify-between items-center">
-        <Title level={5}>Advanced Targeting</Title>
-        <Button 
-          type="link" 
-          onClick={() => setIsAdvancedVisible(!isAdvancedVisible)}
+    </Card>
+    
+    {/* Quick Presets */}
+    <Card title="Quick Start Presets" className="mb-4">
+      <Space wrap>
+        <Button
+          onClick={() => {
+            const presetData = {
+              targetIndustry: ['Technology'],
+              targetRole: ['CEO', 'CTO'],
+              location: ['United States']
+            };
+            form.setFieldsValue(presetData);
+            setFormData(prev => ({ ...prev, ...presetData }));
+            message.success('Applied Tech Executives preset');
+          }}
+          size="small"
+          type="dashed"
         >
-          {isAdvancedVisible ? 'Hide' : 'Show'} Advanced Options
+          Tech Executives
         </Button>
-      </div>
+        <Button
+          onClick={() => {
+            const presetData = {
+              targetIndustry: ['Healthcare'],
+              targetRole: ['CEO', 'Medical Director'],
+              location: ['United States']
+            };
+            form.setFieldsValue(presetData);
+            setFormData(prev => ({ ...prev, ...presetData }));
+            message.success('Applied Healthcare Leaders preset');
+          }}
+          size="small"
+          type="dashed"
+        >
+          Healthcare Leaders
+        </Button>
+        <Button
+          onClick={() => {
+            const presetData = {
+              targetIndustry: ['SaaS'],
+              targetRole: ['Founder', 'CEO'],
+              companySize: ['1-10', '11-50']
+            };
+            form.setFieldsValue(presetData);
+            setFormData(prev => ({ ...prev, ...presetData }));
+            message.success('Applied SaaS Founders preset');
+          }}
+          size="small"
+          type="dashed"
+        >
+          SaaS Founders
+        </Button>
+      </Space>
+      <Text type="secondary" className="block mt-2 text-xs">
+        Click to apply preset, then customize as needed
+      </Text>
+    </Card>
+    
+    {/* Complexity Warning */}
+    {(() => {
+      const values = form.getFieldsValue();
+      const totalFilters = (values.targetIndustry?.length || 0) + 
+                          (values.targetRole?.length || 0) + 
+                          (values.location?.length || 0) + 
+                          (values.companySize?.length || 0);
       
-      {isAdvancedVisible && (
-        <>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item name="revenueMin" label="Minimum Annual Revenue">
-                <InputNumber<number>
-                  placeholder="e.g., 1000000"
-                  formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => {
-                    if (!value) return 0;
-                    const cleaned = value.replace(/\$\s?|(,*)/g, '');
-                    const num = parseFloat(cleaned);
-                    return isNaN(num) ? 0 : num;
-                  }}
-                  style={{ width: '100%' }}
-                  min={0}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="revenueMax" label="Maximum Annual Revenue">
-                <InputNumber<number>
-                  placeholder="e.g., 50000000"
-                  formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => {
-                    if (!value) return 0;
-                    const cleaned = value.replace(/\$\s?|(,*)/g, '');
-                    const num = parseFloat(cleaned);
-                    return isNaN(num) ? 0 : num;
-                  }}
-                  style={{ width: '100%' }}
-                  min={0}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Form.Item name="technologies" label="Technologies Used">
-            <Select
-              mode="multiple"
-              placeholder="Select technologies"
-              showSearch
-              maxTagCount={3}
-              allowClear
-            >
-              {technologies.map(tech => (
-                <Option key={tech} value={tech}>
-                  {tech.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </>
-      )}
+      if (totalFilters > 6) {
+        return (
+          <Alert
+            message="Complex Search Detected"
+            description={
+              <div>
+                You have {totalFilters} active filters. This may significantly reduce your results.
+                <br />
+                <strong>Suggestions:</strong>
+                <ul className="mt-2 mb-0">
+                  <li>Start with 1-2 industries and 1-2 job titles</li>
+                  <li>Add more filters only if needed</li>
+                  <li>Use keywords instead of many industry selections</li>
+                </ul>
+              </div>
+            }
+            type="warning"
+            showIcon
+            className="mb-4"
+          />
+        );
+      }
+      return null;
+    })()}
+
+    <Title level={5}>Core Targeting</Title>
+    
+    <Row gutter={24}>
+      <Col span={12}>
+        <Form.Item
+          name="targetIndustry"
+          label={
+            <span>
+              Target Industries 
+              <Tooltip title="Select industries where your prospects work. We'll find people from ANY of these industries.">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </span>
+          }
+          rules={[
+            { required: true, message: 'Please select at least one industry' },
+            { 
+              type: 'array', 
+              min: 1, 
+              max: 5, 
+              message: 'Select 1-5 industries for best results' 
+            }
+          ]}
+          extra="Recommended: 1-3 industries"
+        >
+          <Select 
+            placeholder="e.g., Technology, Healthcare" 
+            mode="multiple"
+            showSearch
+            maxTagCount={3}
+            optionFilterProp="children"
+            allowClear
+            onChange={() => {
+              // Trigger re-render to update preview and warnings
+              setTimeout(() => {
+                setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+              }, 0);
+            }}
+          >
+            {industries.map(industry => (
+              <Option key={industry} value={industry}>{industry}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item
+          name="targetRole"
+          label={
+            <span>
+              Target Job Titles
+              <Tooltip title="Select job titles to target. We'll find people with ANY of these titles.">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </span>
+          }
+          rules={[
+            { required: true, message: 'Please select at least one job title' },
+            { 
+              type: 'array', 
+              min: 1, 
+              max: 5, 
+              message: 'Select 1-5 job titles for best results' 
+            }
+          ]}
+          extra="Recommended: 1-3 job titles"
+        >
+          <Select 
+            placeholder="e.g., CEO, Marketing Director" 
+            mode="multiple"
+            showSearch
+            maxTagCount={3}
+            optionFilterProp="children"
+            allowClear
+            onChange={() => {
+              // Trigger re-render to update preview and warnings
+              setTimeout(() => {
+                setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+              }, 0);
+            }}
+          >
+            {jobTitles.map(title => (
+              <Option key={title} value={title}>{title}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+    </Row>
+    
+    <Row gutter={24}>
+      <Col span={12}>
+        <Form.Item 
+          name="companySize" 
+          label="Company Size"
+          extra="Optional: Leave blank to include all company sizes"
+        >
+          <Select 
+            placeholder="Select company sizes" 
+            mode="multiple" 
+            allowClear
+            maxTagCount={2}
+            onChange={() => {
+              setTimeout(() => {
+                setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+              }, 0);
+            }}
+          >
+            <Option value="1-10">1-10 employees</Option>
+            <Option value="11-50">11-50 employees</Option>
+            <Option value="51-200">51-200 employees</Option>
+            <Option value="201-500">201-500 employees</Option>
+            <Option value="501-1000">501-1000 employees</Option>
+            <Option value="1000+">1000+ employees</Option>
+          </Select>
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item 
+          name="location" 
+          label="Geographic Locations"
+          extra="Optional: Leave blank to search globally"
+        >
+          <Select 
+            placeholder="e.g., United States, United Kingdom" 
+            mode="multiple"
+            showSearch
+            maxTagCount={2}
+            allowClear
+            onChange={() => {
+              setTimeout(() => {
+                setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+              }, 0);
+            }}
+          >
+            {locations.map(location => (
+              <Option key={location} value={location}>{location}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+    </Row>
+
+    {/* Search Preview */}
+    <Card title="Search Preview" className="bg-gray-50">
+      {(() => {
+        const values = form.getFieldsValue();
+        const industries = values.targetIndustry || [];
+        const roles = values.targetRole || [];
+        const locations = values.location || [];
+        const companySize = values.companySize || [];
+
+        if (!industries.length && !roles.length) {
+          return (
+            <Text type="secondary" className="italic">
+              Select industries and job titles to see search preview
+            </Text>
+          );
+        }
+
+        const parts = [];
+
+        if (roles.length) {
+          const roleText = roles.length === 1 
+            ? `people who are ${roles[0]}s`
+            : `people who are ${roles.slice(0, -1).join(', ')} or ${roles[roles.length - 1]}s`;
+          parts.push(roleText);
+        }
+
+        if (industries.length) {
+          const industryText = industries.length === 1
+            ? `in the ${industries[0]} industry`
+            : `in ${industries.slice(0, -1).join(', ')} or ${industries[industries.length - 1]} industries`;
+          parts.push(industryText);
+        }
+
+        if (locations.length) {
+          const locationText = locations.length === 1
+            ? `located in ${locations[0]}`
+            : `located in ${locations.slice(0, -1).join(', ')} or ${locations[locations.length - 1]}`;
+          parts.push(locationText);
+        }
+
+        if (companySize.length) {
+          const sizeText = companySize.length === 1
+            ? `at companies with ${companySize[0]} employees`
+            : `at companies with ${companySize.join(' or ')} employees`;
+          parts.push(sizeText);
+        }
+
+        return (
+          <div>
+            <Text strong>We will find: </Text>
+            <Text>{parts.join(' ')}</Text>
+            {parts.length > 2 && (
+              <div className="mt-2">
+                <Text type="warning" className="text-sm">
+                  Complex searches may return fewer results. Consider reducing filters if needed.
+                </Text>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+    </Card>
+    
+    <Form.Item
+      name="keywords"
+      label={
+        <span>
+          Additional Keywords 
+          <Tooltip title="Optional keywords to further refine your search">
+            <InfoCircleOutlined className="ml-1" />
+          </Tooltip>
+        </span>
+      }
+      extra="Optional: Add specific terms like 'SaaS', 'fintech', 'AI'"
+    >
+      <Select
+        mode="tags"
+        placeholder="e.g., SaaS, automation, fintech"
+        tokenSeparators={[',']}
+        allowClear
+        maxTagCount={3}
+      />
+    </Form.Item>
+    
+    <div className="flex justify-between items-center">
+      <Title level={5}>Advanced Targeting</Title>
+      <Button 
+        type="link" 
+        onClick={() => setIsAdvancedVisible(!isAdvancedVisible)}
+      >
+        {isAdvancedVisible ? 'Hide' : 'Show'} Advanced Options
+      </Button>
     </div>
-  );
+    
+    {isAdvancedVisible && (
+      <Alert
+        message="Advanced Options"
+        description="These filters further narrow your search. Use sparingly - too many filters can reduce results significantly."
+        type="warning"
+        showIcon
+        className="mb-4"
+      />
+    )}
+    
+    {isAdvancedVisible && (
+      <>
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item 
+              name="revenueMin" 
+              label="Minimum Annual Revenue"
+              extra="Optional: Filter by company revenue"
+            >
+              <InputNumber<number>
+                placeholder="e.g., 1000000"
+                formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={value => {
+                  if (!value) return 0;
+                  const cleaned = value.replace(/\$\s?|(,*)/g, '');
+                  const num = parseFloat(cleaned);
+                  return isNaN(num) ? 0 : num;
+                }}
+                style={{ width: '100%' }}
+                min={0}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item 
+              name="revenueMax" 
+              label="Maximum Annual Revenue"
+              extra="Optional: Set upper revenue limit"
+            >
+              <InputNumber<number>
+                placeholder="e.g., 50000000"
+                formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={value => {
+                  if (!value) return 0;
+                  const cleaned = value.replace(/\$\s?|(,*)/g, '');
+                  const num = parseFloat(cleaned);
+                  return isNaN(num) ? 0 : num;
+                }}
+                style={{ width: '100%' }}
+                min={0}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+        
+        <Form.Item 
+          name="technologies" 
+          label="Technologies Used"
+          extra="Optional: Find companies using specific technologies"
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select technologies"
+            showSearch
+            maxTagCount={3}
+            allowClear
+          >
+            {technologies.map(tech => (
+              <Option key={tech} value={tech}>
+                {tech.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </>
+    )}
+  </div>
+);
 
   // Step 2: Lead Settings with Enhanced Credits Display
   const stepTwoContent = (
