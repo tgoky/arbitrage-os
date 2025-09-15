@@ -375,7 +375,7 @@ const [formData, setFormData] = useState<FormData>({
   technologies: [],
   revenueMin: undefined,
   revenueMax: undefined,
-  requirements: ['email'],
+   requirements: [], 
   campaignName: ''
 });
 
@@ -435,6 +435,8 @@ const [formData, setFormData] = useState<FormData>({
   };
 
   // Enhanced error handling in your React component
+// Replace your generateLeads function with this enhanced debugging version
+
 const generateLeads = async (values: any) => {
   if (!currentWorkspace?.id) {
     message.error('No workspace selected');
@@ -442,15 +444,18 @@ const generateLeads = async (values: any) => {
   }
 
   console.log('🔍 Starting lead generation with values:', values);
+  console.log('🔍 Current workspace:', currentWorkspace);
 
-  // Validation checks...
+  // Validation checks
   if (!values.targetIndustry || !Array.isArray(values.targetIndustry) || values.targetIndustry.length === 0) {
+    console.error('❌ Invalid targetIndustry:', values.targetIndustry);
     message.error('Please select at least one target industry');
     setCurrentStep(0);
     return;
   }
 
   if (!values.targetRole || !Array.isArray(values.targetRole) || values.targetRole.length === 0) {
+    console.error('❌ Invalid targetRole:', values.targetRole);
     message.error('Please select at least one target role');
     setCurrentStep(0);
     return;
@@ -458,7 +463,14 @@ const generateLeads = async (values: any) => {
 
   // Final cost check
   const finalCosts = calculateCosts();
+  console.log('💰 Cost calculation:', finalCosts);
+  
   if (!finalCosts.canAfford && finalCosts.freeLeadsUsed < leadCount) {
+    console.error('❌ Insufficient credits:', {
+      needed: finalCosts.totalCost,
+      available: userCredits.credits,
+      freeLeadsUsed: finalCosts.freeLeadsUsed
+    });
     message.error(`Insufficient credits. Need ${finalCosts.totalCost} credits, have ${userCredits.credits}.`);
     setPurchaseModalVisible(true);
     return;
@@ -483,7 +495,25 @@ const generateLeads = async (values: any) => {
       requirements: values.requirements || []
     };
 
-    console.log('📋 Final criteria object:', criteria);
+    // Log the exact criteria being sent
+    console.log('📋 Criteria object (detailed):', JSON.stringify(criteria, null, 2));
+    
+    // Analyze criteria complexity
+    const complexity = {
+      industries: criteria.targetIndustry.length,
+      roles: criteria.targetRole.length,
+      locations: criteria.location?.length || 0,
+      companySize: criteria.companySize?.length || 0,
+      keywords: criteria.keywords?.length || 0,
+      technologies: criteria.technologies?.length || 0,
+      hasRevenue: !!(criteria.revenueRange?.min || criteria.revenueRange?.max),
+      requirements: criteria.requirements?.length || 0
+    };
+    
+    console.log('🔍 Search complexity:', complexity);
+    const totalFilters = complexity.industries + complexity.roles + complexity.locations + complexity.companySize;
+    console.log('📊 Total filter count:', totalFilters);
+
     setGenerationProgress(30);
 
     const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
@@ -493,7 +523,11 @@ const generateLeads = async (values: any) => {
       campaignName: values.campaignName || `Lead Generation - ${new Date().toLocaleDateString()}`
     };
 
-    console.log('📤 Request body:', requestBody);
+    console.log('📤 Full request details:', {
+      endpoint,
+      method: 'POST',
+      body: JSON.stringify(requestBody, null, 2)
+    });
     
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -503,11 +537,19 @@ const generateLeads = async (values: any) => {
       body: JSON.stringify(requestBody)
     });
 
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
     setGenerationProgress(70);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('❌ API Error Response:', errorData);
+      console.error('❌ Full API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: errorData,
+        headers: Object.fromEntries(response.headers.entries())
+      });
       
       // Enhanced error handling based on error codes
       if (response.status === 402) {
@@ -522,13 +564,17 @@ const generateLeads = async (values: any) => {
       }
       
       if (response.status === 422 || response.status === 400) {
-        // Apollo API validation errors
-        if (errorData.error?.includes('validation')) {
+        console.error('❌ Validation error details:', errorData);
+        if (errorData.error?.includes('validation') || errorData.code === 'APOLLO_VALIDATION_ERROR') {
           message.error('Search criteria too complex. Try fewer industries or locations.');
+        } else if (errorData.code === 'INVALID_TARGET_INDUSTRY') {
+          message.error('Invalid industry selection. Please try again.');
+        } else if (errorData.code === 'INVALID_TARGET_ROLE') {
+          message.error('Invalid job title selection. Please try again.');
         } else {
-          message.error('Invalid search parameters. Please adjust your criteria.');
+          message.error(`Validation error: ${errorData.error || 'Invalid search parameters'}`);
         }
-        setCurrentStep(0); // Go back to criteria step
+        setCurrentStep(0);
         return;
       }
       
@@ -536,16 +582,28 @@ const generateLeads = async (values: any) => {
         message.error('Authentication failed. Please refresh and try again.');
         return;
       }
+
+      if (response.status === 500) {
+        console.error('❌ Server error - check if Apollo service is working');
+        message.error('Server error. Our team has been notified. Please try again in a few minutes.');
+        return;
+      }
       
       throw new Error(errorData.error || `Server error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('📋 Success response:', data);
+    console.log('📋 Success response (full):', JSON.stringify(data, null, 2));
     
     if (data.success) {
-      if (data.data.leads.length === 0) {
-        // No leads found - provide helpful guidance
+      console.log('✅ Generation successful:', {
+        leadsCount: data.data?.leads?.length || 0,
+        hasLeads: !!data.data?.leads,
+        leadsArray: Array.isArray(data.data?.leads)
+      });
+
+      if (!data.data?.leads || !Array.isArray(data.data.leads) || data.data.leads.length === 0) {
+        console.warn('⚠️ No leads in successful response');
         message.warning({
           content: (
             <div>
@@ -557,7 +615,7 @@ const generateLeads = async (values: any) => {
           ),
           duration: 6
         });
-        setCurrentStep(0); // Go back to adjust criteria
+        setCurrentStep(0);
         return;
       }
       
@@ -565,9 +623,15 @@ const generateLeads = async (values: any) => {
       setGenerationProgress(100);
       setGenerationComplete(true);
       
-      // Enhanced success message with details
       const leadsCount = data.data.leads.length;
-      const avgScore = data.data.leads.reduce((sum: number, lead: any) => sum + lead.score, 0) / leadsCount;
+      const avgScore = data.data.leads.reduce((sum: number, lead: any) => sum + (lead.score || 0), 0) / leadsCount;
+      
+      console.log('📊 Lead quality metrics:', {
+        count: leadsCount,
+        avgScore: avgScore.toFixed(1),
+        hasEmails: data.data.leads.filter((l: any) => l.email).length,
+        hasPhones: data.data.leads.filter((l: any) => l.phone).length
+      });
       
       message.success({
         content: (
@@ -581,17 +645,22 @@ const generateLeads = async (values: any) => {
         duration: 4
       });
       
-      // Update credits after successful generation
       await loadUserCredits();
     } else {
+      console.error('❌ Success=false in response:', data);
       throw new Error(data.error || 'Lead generation failed');
     }
 
   } catch (error) {
-    console.error('💥 Lead generation error:', error);
+    console.error('💥 Lead generation error (full details):', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      name: error instanceof Error ? error.name : undefined
+    });
     
     if (error instanceof Error) {
-      // Specific error handling
       if (error.message.includes('rate limit')) {
         message.error('Too many requests. Please wait a few minutes before trying again.');
       } else if (error.message.includes('authentication')) {
@@ -611,8 +680,9 @@ const generateLeads = async (values: any) => {
           duration: 5
         });
         setCurrentStep(0);
+      } else if (error.message.includes('fetch')) {
+        message.error('Network error. Please check your connection and try again.');
       } else {
-        // Generic error with helpful suggestion
         message.error({
           content: (
             <div>
@@ -634,6 +704,7 @@ const generateLeads = async (values: any) => {
     setIsGenerating(false);
   }
 };
+
 
   const onFinish = async (values: any) => {
     console.log('📝 Form onFinish values:', values);

@@ -315,38 +315,46 @@ export class ApolloLeadService {
       params.person_locations = criteria.location.slice(0, 3); // Limit locations
     }
 
-    // ✅ FIX 2: Handle company size properly
+    // ✅ FIX 2: Smart company size handling - avoid when multiple industries selected
     if (criteria.companySize?.length) {
-      const ranges: string[] = [];
-      criteria.companySize.slice(0, 3).forEach(size => { // Limit to 3 ranges
-        switch (size) {
-          case '1-10':
-            ranges.push('1,10');
-            break;
-          case '10-50':
-          case '11-50':
-            ranges.push('11,50');
-            break;
-          case '50-200':
-          case '51-200':
-            ranges.push('51,200');
-            break;
-          case '200-500':
-          case '201-500':
-            ranges.push('201,500');
-            break;
-          case '500-1000':
-          case '501-1000':
-            ranges.push('501,1000');
-            break;
-          case '1000+':
-            ranges.push('1001,');
-            break;
-        }
-      });
+      const industryCount = criteria.targetIndustry?.length || 0;
+      const roleCount = criteria.targetRole?.length || 0;
       
-      if (ranges.length > 0) {
-        params.organization_num_employees_ranges = ranges;
+      // Only apply company size filters if the search isn't already complex
+      if (industryCount <= 2 && roleCount <= 2) {
+        const ranges: string[] = [];
+        criteria.companySize.slice(0, 2).forEach(size => { // Limit to 2 ranges when applying
+          switch (size) {
+            case '1-10':
+              ranges.push('1,10');
+              break;
+            case '10-50':
+            case '11-50':
+              ranges.push('11,50');
+              break;
+            case '50-200':
+            case '51-200':
+              ranges.push('51,200');
+              break;
+            case '200-500':
+            case '201-500':
+              ranges.push('201,500');
+              break;
+            case '500-1000':
+            case '501-1000':
+              ranges.push('501,1000');
+              break;
+            case '1000+':
+              ranges.push('1001,');
+              break;
+          }
+        });
+        
+        if (ranges.length > 0) {
+          params.organization_num_employees_ranges = ranges;
+        }
+      } else {
+        console.log('🚫 Skipping company size filters due to complex search (multiple industries/roles)');
       }
     }
 
@@ -602,22 +610,191 @@ export class ApolloLeadService {
   }
 
   private extractIndustry(organization: any): string {
-    if (!organization) return 'Unknown';
+  if (!organization) return 'Unknown';
+  
+  const sicCodes = organization.sic_codes || [];
+  const naicsCodes = organization.naics_codes || [];
+  
+  // Check for specific industry codes first
+  const industryMapping = {
+    // Technology
+    '7375': 'Technology', '54143': 'Technology', '541511': 'Technology', '541512': 'Technology',
+    '334': 'Technology', '5045': 'Technology', '7371': 'Technology', '7372': 'Technology',
     
-    const sicCodes = organization.sic_codes || [];
-    const naicsCodes = organization.naics_codes || [];
+    // Finance
+    '6211': 'Finance', '522': 'Finance', '523': 'Finance', '524': 'Finance',
+    '6021': 'Finance', '6022': 'Finance', '6035': 'Finance', '6141': 'Finance',
     
-    if (sicCodes.includes('7375') || naicsCodes.includes('54143')) return 'Technology';
-    if (sicCodes.includes('6211')) return 'Finance';
-    if (sicCodes.includes('8011')) return 'Healthcare';
+    // Healthcare
+    '8011': 'Healthcare', '621': 'Healthcare', '622': 'Healthcare', '623': 'Healthcare',
+    '8021': 'Healthcare', '8031': 'Healthcare', '8041': 'Healthcare', '8049': 'Healthcare',
     
-    const name = organization.name?.toLowerCase() || '';
-    if (name.includes('tech') || name.includes('software') || name.includes('digital')) return 'Technology';
-    if (name.includes('health') || name.includes('medical') || name.includes('care')) return 'Healthcare';
-    if (name.includes('finance') || name.includes('bank') || name.includes('capital')) return 'Finance';
+    // Manufacturing
+    '33': 'Manufacturing', '31': 'Manufacturing', '32': 'Manufacturing',
+    '3011': 'Manufacturing', '3021': 'Manufacturing', '3531': 'Manufacturing',
     
-    return 'Technology';
+    // Retail
+    '44': 'Retail', '45': 'Retail', '5311': 'Retail', '5331': 'Retail',
+    '5411': 'Retail', '5812': 'Retail',
+    
+    // Real Estate
+    '531': 'Real Estate', '6531': 'Real Estate', '6552': 'Real Estate',
+    
+    // Professional Services
+    '541': 'Professional Services', '7011': 'Professional Services',
+    '8111': 'Professional Services', '8748': 'Professional Services',
+    
+    // Education
+    '611': 'Education', '8211': 'Education', '8221': 'Education', '8222': 'Education',
+    
+    // Transportation
+    '481': 'Transportation', '482': 'Transportation', '483': 'Transportation',
+    '484': 'Transportation', '485': 'Transportation',
+    
+    // Energy
+    '211': 'Energy', '213': 'Energy', '486': 'Energy', '221': 'Energy',
+    
+    // Media & Entertainment
+    '512': 'Media & Entertainment', '515': 'Media & Entertainment', '518': 'Media & Entertainment',
+    '7832': 'Media & Entertainment', '7833': 'Media & Entertainment'
+  };
+
+  // Check SIC codes
+  for (const code of sicCodes) {
+    const codeStr = code.toString();
+    if (industryMapping[codeStr as keyof typeof industryMapping]) {
+      return industryMapping[codeStr as keyof typeof industryMapping];
+    }
+    // Check partial matches for broader industry codes
+    for (const [key, industry] of Object.entries(industryMapping)) {
+      if (codeStr.startsWith(key) || key.startsWith(codeStr)) {
+        return industry;
+      }
+    }
   }
+
+  // Check NAICS codes
+  for (const code of naicsCodes) {
+    const codeStr = code.toString();
+    if (industryMapping[codeStr as keyof typeof industryMapping]) {
+      return industryMapping[codeStr as keyof typeof industryMapping];
+    }
+    // Check partial matches for broader industry codes
+    for (const [key, industry] of Object.entries(industryMapping)) {
+      if (codeStr.startsWith(key) || key.startsWith(codeStr)) {
+        return industry;
+      }
+    }
+  }
+  
+  // Enhanced keyword-based detection
+  const name = organization.name?.toLowerCase() || '';
+  const description = organization.description?.toLowerCase() || '';
+  const combined = `${name} ${description}`;
+  
+  const keywordMapping = {
+    'Technology': [
+      'tech', 'software', 'digital', 'app', 'platform', 'saas', 'cloud', 'ai',
+      'artificial intelligence', 'machine learning', 'data', 'analytics', 'cyber',
+      'security', 'blockchain', 'fintech', 'edtech', 'healthtech', 'biotech',
+      'semiconductor', 'hardware', 'electronics', 'computing', 'internet',
+      'web', 'mobile', 'startup', 'innovation', 'automation'
+    ],
+    'Healthcare': [
+      'health', 'medical', 'care', 'hospital', 'clinic', 'pharmaceutical',
+      'pharma', 'biotech', 'biotechnology', 'medicine', 'therapy', 'treatment',
+      'patient', 'doctor', 'nurse', 'wellness', 'fitness', 'dental', 'vision',
+      'mental health', 'telehealth', 'medtech'
+    ],
+    'Finance': [
+      'finance', 'financial', 'bank', 'banking', 'credit', 'loan', 'mortgage',
+      'investment', 'capital', 'fund', 'venture', 'equity', 'trading', 'wealth',
+      'insurance', 'fintech', 'payment', 'currency', 'accounting', 'tax'
+    ],
+    'Manufacturing': [
+      'manufacturing', 'factory', 'production', 'industrial', 'assembly',
+      'machinery', 'equipment', 'automotive', 'aerospace', 'steel', 'chemical',
+      'plastic', 'textile', 'food processing', 'beverage', 'pharmaceutical manufacturing'
+    ],
+    'Retail': [
+      'retail', 'store', 'shop', 'marketplace', 'ecommerce', 'e-commerce',
+      'fashion', 'clothing', 'apparel', 'grocery', 'supermarket', 'department store',
+      'boutique', 'outlet', 'consumer goods', 'merchandise'
+    ],
+    'Real Estate': [
+      'real estate', 'property', 'realty', 'housing', 'residential', 'commercial',
+      'construction', 'development', 'building', 'architecture', 'leasing'
+    ],
+    'Professional Services': [
+      'consulting', 'advisory', 'legal', 'law', 'accounting', 'audit', 'marketing',
+      'advertising', 'public relations', 'hr', 'human resources', 'recruitment',
+      'staffing', 'talent', 'management consulting'
+    ],
+    'Education': [
+      'education', 'school', 'university', 'college', 'academy', 'learning',
+      'training', 'teaching', 'student', 'academic', 'educational', 'edtech'
+    ],
+    'Transportation': [
+      'transport', 'transportation', 'logistics', 'shipping', 'delivery',
+      'freight', 'trucking', 'airline', 'railroad', 'maritime', 'supply chain'
+    ],
+    'Energy': [
+      'energy', 'oil', 'gas', 'petroleum', 'renewable', 'solar', 'wind',
+      'electric', 'power', 'utility', 'nuclear', 'coal', 'hydroelectric'
+    ],
+    'Media & Entertainment': [
+      'media', 'entertainment', 'broadcasting', 'television', 'radio', 'film',
+      'movie', 'music', 'gaming', 'publishing', 'news', 'content', 'streaming'
+    ],
+    'Food & Beverage': [
+      'food', 'beverage', 'restaurant', 'dining', 'catering', 'hospitality',
+      'hotel', 'culinary', 'brewery', 'winery', 'cafe', 'bar'
+    ],
+    'Agriculture': [
+      'agriculture', 'farming', 'farm', 'crop', 'livestock', 'agricultural',
+      'organic', 'sustainable farming', 'agtech'
+    ],
+    'Government': [
+      'government', 'federal', 'state', 'municipal', 'public sector', 'agency',
+      'department', 'ministry', 'bureau', 'administration'
+    ],
+    'Non-Profit': [
+      'non-profit', 'nonprofit', 'charity', 'foundation', 'ngo', 'association',
+      'organization', 'social', 'community', 'volunteer'
+    ]
+  };
+  
+  // Check keywords with priority scoring
+  const industryScores: { [key: string]: number } = {};
+  
+  for (const [industry, keywords] of Object.entries(keywordMapping)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (combined.includes(keyword)) {
+        // Give higher score for exact matches in company name
+        if (name.includes(keyword)) {
+          score += 2;
+        } else {
+          score += 1;
+        }
+      }
+    }
+    if (score > 0) {
+      industryScores[industry] = score;
+    }
+  }
+  
+  // Return the industry with the highest score
+  if (Object.keys(industryScores).length > 0) {
+    return Object.entries(industryScores)
+      .sort(([,a], [,b]) => b - a)[0][0];
+  }
+  
+  // If no matches found, try to infer from target criteria
+  // This will use the original search criteria if available
+  return 'Other';
+}
+
 
   private formatPersonLocation(contact: any): string {
     const parts = [contact.city, contact.state, contact.country].filter(Boolean);
