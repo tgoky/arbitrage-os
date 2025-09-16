@@ -288,7 +288,7 @@ const SuccessPage = () => {
                 width: '100%',
                 fontSize: '16px',
                 fontWeight: 600,
-                background: '#2B2B28',
+                background: '#07312f',
                 border: 'none',
                 borderRadius: '8px'
               }}
