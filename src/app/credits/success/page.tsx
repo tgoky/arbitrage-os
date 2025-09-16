@@ -69,8 +69,12 @@ const SuccessPage = () => {
   if (loading) {
     return (
       <div style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
-        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -86,7 +90,7 @@ const SuccessPage = () => {
             background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
           }}
         >
-          <div className="text-center py-12">
+          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
             <Spin size="large" style={{ color: theme === 'dark' ? '#3b82f6' : '#2563eb' }} />
             <Title level={4} style={{ marginTop: '24px', color: theme === 'dark' ? '#e2e8f0' : '#334155' }}>
               Verifying your payment...
@@ -103,8 +107,12 @@ const SuccessPage = () => {
   if (error) {
     return (
       <div style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
-        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -125,7 +133,7 @@ const SuccessPage = () => {
             description={
               <div>
                 <p>{error}</p>
-                <p className="mt-2">Please contact support if you believe this is an error.</p>
+                <p style={{ marginTop: '8px' }}>Please contact support if you believe this is an error.</p>
               </div>
             }
             type="error"
@@ -153,8 +161,12 @@ const SuccessPage = () => {
 
   return (
     <div style={{ 
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
-      minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -171,7 +183,7 @@ const SuccessPage = () => {
           background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
         }}
       >
-        <div style={{ padding: '8px 0 24px', textAlign: 'center' }}>
+        <div style={{ padding: '32px 24px', textAlign: 'center' }}>
           <div style={{
             width: '80px',
             height: '80px',
@@ -244,7 +256,7 @@ const SuccessPage = () => {
                 <div>
                   <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>New Balance:</Text>
                   <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
-                    {purchaseDetails.newBalance.toLocaleString()}
+                    {purchaseDetails.newBalance.toLocaleString()} credits
                   </div>
                 </div>
                 
@@ -276,7 +288,7 @@ const SuccessPage = () => {
                 width: '100%',
                 fontSize: '16px',
                 fontWeight: 600,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: '#2B2B28',
                 border: 'none',
                 borderRadius: '8px'
               }}
