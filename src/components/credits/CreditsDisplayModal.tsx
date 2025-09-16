@@ -1,6 +1,6 @@
-// components/CreditsPurchaseModal.tsx
+// components/CreditsPurchaseModal.tsx - UPDATED WITH STRIPE
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Card,
@@ -19,8 +19,10 @@ import {
   CreditCardOutlined,
   CheckCircleOutlined,
   StarOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
+import { loadStripe } from '@stripe/stripe-js';
 
 const { Title, Text } = Typography;
 
@@ -37,9 +39,13 @@ interface CreditPackage {
   name: string;
   credits: number;
   price: number;
+  stripePriceId: string;
   popular?: boolean;
   features: string[];
 }
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
   visible,
@@ -51,9 +57,10 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [packages, setPackages] = useState<CreditPackage[]>([]);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   // Load packages when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       loadPackages();
     }
@@ -61,20 +68,31 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
 
   const loadPackages = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/credits/packages');
       const data = await response.json();
       
       if (data.success) {
         setPackages(data.data);
-        // Auto-select popular package
+        // Auto-select popular package or first package that meets requirements
         const popularPackage = data.data.find((pkg: CreditPackage) => pkg.popular);
-        if (popularPackage) {
+        const sufficientPackage = data.data.find((pkg: CreditPackage) => 
+          pkg.credits >= requiredCredits
+        );
+        
+        if (sufficientPackage) {
+          setSelectedPackage(sufficientPackage.id);
+        } else if (popularPackage) {
           setSelectedPackage(popularPackage.id);
+        } else if (data.data.length > 0) {
+          setSelectedPackage(data.data[0].id);
         }
       }
     } catch (error) {
       console.error('Failed to load packages:', error);
       message.error('Failed to load credit packages');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,13 +102,12 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
       return;
     }
 
-    setLoading(true);
+    setProcessingPayment(true);
     
     try {
-      // In a real implementation, you would integrate with Stripe here
-      // For now, we'll simulate a successful purchase
-      const mockPaymentIntentId = `pi_mock_${Date.now()}`;
+      console.log('🛒 Starting purchase for package:', selectedPackage);
       
+      // Create checkout session
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
         headers: {
@@ -98,25 +115,39 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
         },
         body: JSON.stringify({
           packageId: selectedPackage,
-          paymentIntentId: mockPaymentIntentId,
-          // You would include real Stripe payment data here
         }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        message.success(`Successfully purchased ${data.data.creditsAdded} credits!`);
-        onPurchaseComplete?.(data.data.newBalance);
-        onClose();
-      } else {
-        throw new Error(data.error || 'Purchase failed');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create checkout session');
       }
+
+      console.log('✅ Checkout session created:', data.data.sessionId);
+
+      // Redirect to Stripe Checkout
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.data.sessionId,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Checkout redirection failed');
+      }
+
+      // If we get here, redirection succeeded
+      // The user will be redirected to Stripe's checkout page
+      console.log('🔄 Redirecting to Stripe checkout...');
+
     } catch (error) {
       console.error('Purchase error:', error);
       message.error(error instanceof Error ? error.message : 'Purchase failed');
-    } finally {
-      setLoading(false);
+      setProcessingPayment(false);
     }
   };
 
@@ -131,10 +162,16 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
         </Space>
       }
       open={visible}
-      onCancel={onClose}
+      onCancel={() => {
+        if (!processingPayment) {
+          onClose();
+        }
+      }}
       footer={null}
       width={800}
       centered
+      closable={!processingPayment}
+      maskClosable={!processingPayment}
     >
       <div className="space-y-6">
         {requiredCredits > currentCredits && (
@@ -145,56 +182,85 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
           />
         )}
 
+        {processingPayment && (
+          <Alert
+            type="info"
+            message={
+              <div className="flex items-center">
+                <LoadingOutlined className="mr-2" />
+                <span>Redirecting to secure payment checkout...</span>
+              </div>
+            }
+            showIcon
+          />
+        )}
+
         <Row gutter={24}>
           <Col span={16}>
             <Title level={4}>Choose a Credit Package</Title>
             <div className="space-y-4">
-              {packages.map((pkg) => (
-                <Card
-                  key={pkg.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedPackage === pkg.id 
-                      ? 'border-blue-500 shadow-md' 
-                      : 'hover:border-gray-400'
-                  }`}
-                  onClick={() => setSelectedPackage(pkg.id)}
-                  extra={
-                    pkg.popular && (
-                      <Tag color="gold" icon={<StarOutlined />}>
-                        Popular
-                      </Tag>
-                    )
-                  }
-                >
-                  <Row align="middle">
-                    <Col span={8}>
-                      <Title level={5} className="mb-1">
-                        {pkg.name}
-                      </Title>
-                      <Text className="text-3xl font-bold text-blue-600">
-                        ${pkg.price}
-                      </Text>
-                    </Col>
-                    <Col span={8} className="text-center">
-                      <Statistic
-                        title="Credits"
-                        value={pkg.credits.toLocaleString()}
-                        prefix={<ThunderboltOutlined />}
-                      />
-                    </Col>
-                    <Col span={8}>
-                      <div className="space-y-1">
-                        {pkg.features.slice(0, 3).map((feature, index) => (
-                          <div key={index} className="flex items-center text-sm">
-                            <CheckCircleOutlined className="text-green-500 mr-2" />
-                            <span>{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </Col>
-                  </Row>
-                </Card>
-              ))}
+              {loading ? (
+                <div className="text-center py-8">
+                  <Spin size="large" />
+                </div>
+              ) : (
+                packages.map((pkg) => (
+                  <Card
+                    key={pkg.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedPackage === pkg.id 
+                        ? 'border-blue-500 shadow-md' 
+                        : 'hover:border-gray-400'
+                    } ${processingPayment ? 'opacity-50 pointer-events-none' : ''}`}
+                    onClick={() => !processingPayment && setSelectedPackage(pkg.id)}
+                    extra={
+                      <Space>
+                        {pkg.popular && (
+                          <Tag color="gold" icon={<StarOutlined />}>
+                            Popular
+                          </Tag>
+                        )}
+                        {requiredCredits > 0 && pkg.credits >= requiredCredits && (
+                          <Tag color="green">
+                            ✓ Sufficient
+                          </Tag>
+                        )}
+                      </Space>
+                    }
+                  >
+                    <Row align="middle">
+                      <Col span={8}>
+                        <Title level={5} className="mb-1">
+                          {pkg.name}
+                        </Title>
+                        <Text className="text-3xl font-bold text-blue-600">
+                          ${pkg.price}
+                        </Text>
+                      </Col>
+                      <Col span={8} className="text-center">
+                        <Statistic
+                          title="Credits"
+                          value={pkg.credits.toLocaleString()}
+                          prefix={<ThunderboltOutlined />}
+                        />
+                        <Text type="secondary" className="text-xs">
+                          ${(pkg.price / pkg.credits).toFixed(3)} per credit
+                        </Text>
+                      </Col>
+                      <Col span={8}>
+                        <div className="space-y-1">
+                          {pkg.features.slice(0, 3).map((feature, index) => (
+                            <div key={index} className="flex items-center text-sm">
+                              <CheckCircleOutlined className="text-green-500 mr-2" />
+                              <span>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))
+              )}
             </div>
           </Col>
 
@@ -230,11 +296,12 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                     type="primary"
                     size="large"
                     block
-                    loading={loading}
+                    loading={processingPayment}
                     onClick={handlePurchase}
+                    disabled={loading || processingPayment}
                     icon={<CreditCardOutlined />}
                   >
-                    {loading ? 'Processing...' : `Purchase for $${selectedPkg.price}`}
+                    {processingPayment ? 'Redirecting...' : `Purchase for ${selectedPkg.price}`}
                   </Button>
                   
                   <Text type="secondary" className="text-xs block text-center">

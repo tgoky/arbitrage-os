@@ -1,4 +1,4 @@
-// services/credits.service.ts - CORRECTED FOR 5 FREE LEADS MODEL
+// services/credits.service.ts - UPDATED WITH STRIPE
 import { prisma } from '@/lib/prisma';
 
 export interface UserCreditsInfo {
@@ -19,6 +19,16 @@ export interface CreditDeductionResult {
   freeLeadsUsed: number;
   remainingCredits: number;
   remainingFreeLeads: number;
+}
+
+export interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  stripePriceId: string; // Add Stripe price ID
+  popular?: boolean;
+  features: string[];
 }
 
 export class CreditsService {
@@ -390,14 +400,15 @@ export class CreditsService {
     }
   }
 
-  // Get credit packages for purchase - Updated descriptions to be clearer
-  static getCreditPackages() {
+  // Get credit packages for purchase - Updated with Stripe price IDs
+  static getCreditPackages(): CreditPackage[] {
     return [
       {
         id: 'starter',
         name: 'Starter',
         credits: 100,
         price: 29,
+        stripePriceId: process.env.STRIPE_STARTER_PRICE_ID!, // Add to .env.local
         features: [
           '100 lead generations',
           'Basic targeting',
@@ -410,6 +421,7 @@ export class CreditsService {
         name: 'Professional',
         credits: 500,
         price: 99,
+        stripePriceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID!, // Add to .env.local
         popular: true,
         features: [
           '500 lead generations',
@@ -424,6 +436,7 @@ export class CreditsService {
         name: 'Enterprise',
         credits: 2000,
         price: 299,
+        stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID!, // Add to .env.local
         features: [
           '2000 lead generations',
           'Custom targeting',
@@ -434,5 +447,11 @@ export class CreditsService {
         ]
       }
     ];
+  }
+
+  // Get package by ID
+  static getPackageById(packageId: string): CreditPackage | null {
+    const packages = CreditsService.getCreditPackages();
+    return packages.find(pkg => pkg.id === packageId) || null;
   }
 }
