@@ -44,8 +44,14 @@ interface CreditPackage {
   features: string[];
 }
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+// Initialize Stripe with error handling
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+if (!stripePublishableKey) {
+  console.error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY environment variable');
+}
+
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
   visible,
@@ -125,24 +131,35 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
       }
 
       console.log('✅ Checkout session created:', data.data.sessionId);
+      console.log('✅ Checkout URL:', data.data.url);
 
-      // Redirect to Stripe Checkout
+      // Direct redirect to Stripe checkout URL instead of using Stripe JS
+      if (data.data.url) {
+        console.log('🔄 Redirecting directly to Stripe checkout URL...');
+        window.location.href = data.data.url;
+        return;
+      }
+
+      // Fallback to Stripe JS method
+      if (!stripePromise) {
+        throw new Error('Payment system not configured and no direct URL available');
+      }
+
       const stripe = await stripePromise;
       if (!stripe) {
-        throw new Error('Stripe failed to load');
+        throw new Error('Stripe failed to initialize');
       }
+
+      console.log('🔍 About to redirect to checkout with session:', data.data.sessionId);
 
       const { error } = await stripe.redirectToCheckout({
         sessionId: data.data.sessionId,
       });
 
       if (error) {
+        console.error('🚨 Stripe redirect error:', error);
         throw new Error(error.message || 'Checkout redirection failed');
       }
-
-      // If we get here, redirection succeeded
-      // The user will be redirected to Stripe's checkout page
-      console.log('🔄 Redirecting to Stripe checkout...');
 
     } catch (error) {
       console.error('Purchase error:', error);
