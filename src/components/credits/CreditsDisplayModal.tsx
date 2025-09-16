@@ -1,4 +1,4 @@
-// components/CreditsPurchaseModal.tsx - UPDATED WITH STRIPE
+// components/CreditsPurchaseModal.tsx - FULLY CORRECTED
 "use client";
 import React, { useState, useEffect } from 'react';
 import {
@@ -298,10 +298,10 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                     block
                     loading={processingPayment}
                     onClick={handlePurchase}
-                    disabled={loading || processingPayment}
+                    disabled={loading || processingPayment || !selectedPkg}
                     icon={<CreditCardOutlined />}
                   >
-                    {processingPayment ? 'Redirecting...' : `Purchase for ${selectedPkg.price}`}
+                    {processingPayment ? 'Redirecting...' : `Purchase for $${selectedPkg.price}`}
                   </Button>
                   
                   <Text type="secondary" className="text-xs block text-center">
@@ -309,7 +309,13 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                   </Text>
                 </div>
               ) : (
-                <Text type="secondary">Select a package to see order summary</Text>
+                <div className="text-center py-8">
+                  {loading ? (
+                    <Spin size="small" />
+                  ) : (
+                    <Text type="secondary">Select a package to see order summary</Text>
+                  )}
+                </div>
               )}
             </Card>
           </Col>
