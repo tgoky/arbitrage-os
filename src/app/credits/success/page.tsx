@@ -1,8 +1,8 @@
 // app/credits/success/page.tsx
 "use client";
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Typography, Space, Spin, Alert, Result } from 'antd';
-import { CheckCircleOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Card, Button, Typography, Space, Spin, Alert, Result, Divider } from 'antd';
+import { CheckCircleOutlined, ThunderboltOutlined, ArrowLeftOutlined, CreditCardOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
 
@@ -69,17 +69,31 @@ const SuccessPage = () => {
   if (loading) {
     return (
       <div style={{ 
-        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-        padding: 24,
+        backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        padding: '16px'
       }}>
-        <Card>
+        <Card 
+          style={{ 
+            maxWidth: '500px', 
+            width: '100%',
+            boxShadow: theme === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)',
+            border: 'none',
+            borderRadius: '12px',
+            background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
+          }}
+        >
           <div className="text-center py-12">
-            <Spin size="large" />
-            <div className="mt-4">Verifying your payment...</div>
+            <Spin size="large" style={{ color: theme === 'dark' ? '#3b82f6' : '#2563eb' }} />
+            <Title level={4} style={{ marginTop: '24px', color: theme === 'dark' ? '#e2e8f0' : '#334155' }}>
+              Verifying your payment...
+            </Title>
+            <Text style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+              This will only take a moment
+            </Text>
           </div>
         </Card>
       </div>
@@ -89,25 +103,49 @@ const SuccessPage = () => {
   if (error) {
     return (
       <div style={{ 
-        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-        padding: 24,
+        backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        padding: '16px'
       }}>
-        <Card>
+        <Card 
+          style={{ 
+            maxWidth: '600px', 
+            width: '100%',
+            boxShadow: theme === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)',
+            border: 'none',
+            borderRadius: '12px',
+            background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
+          }}
+        >
           <Alert
             message="Payment Verification Failed"
-            description={error}
+            description={
+              <div>
+                <p>{error}</p>
+                <p className="mt-2">Please contact support if you believe this is an error.</p>
+              </div>
+            }
             type="error"
             showIcon
-            action={
-              <Button onClick={() => router.push('/lead-generation')}>
-                Continue to Dashboard
-              </Button>
-            }
+            style={{ marginBottom: '16px' }}
           />
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Button 
+              type="primary" 
+              onClick={() => router.push('/credits')}
+              icon={<ArrowLeftOutlined />}
+            >
+              Back to Credits
+            </Button>
+            <Button 
+              onClick={() => router.push('/lead-generation')}
+            >
+              Continue to Dashboard
+            </Button>
+          </div>
         </Card>
       </div>
     );
@@ -115,55 +153,174 @@ const SuccessPage = () => {
 
   return (
     <div style={{ 
-      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-      padding: 24,
+      backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      padding: '16px'
     }}>
-      <Card style={{ maxWidth: 600, width: '100%' }}>
-        <Result
-          status="success"
-          title="Payment Successful!"
-          subTitle={
-            purchaseDetails ? (
-              <div className="space-y-2">
-                <div>Successfully purchased <strong>{purchaseDetails.packageName}</strong></div>
-                <div><strong>{purchaseDetails.credits}</strong> credits added to your account</div>
-                <div>New balance: <strong>{purchaseDetails.newBalance}</strong> credits</div>
-                <div className="text-sm text-gray-500">
-                  Amount paid: ${purchaseDetails.amountPaid} on {purchaseDetails.purchaseDate}
+      <Card 
+        style={{ 
+          maxWidth: '680px', 
+          width: '100%',
+          boxShadow: theme === 'dark' ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.1)',
+          border: 'none',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
+        }}
+      >
+        <div style={{ padding: '8px 0 24px', textAlign: 'center' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: theme === 'dark' ? 'rgba(72, 187, 120, 0.1)' : 'rgba(72, 187, 120, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px'
+          }}>
+            <CheckCircleOutlined style={{ fontSize: '40px', color: '#48bb78' }} />
+          </div>
+          
+          <Title level={2} style={{ 
+            marginBottom: '8px', 
+            color: theme === 'dark' ? '#f7fafc' : '#1a202c',
+            fontWeight: 700
+          }}>
+            Payment Successful!
+          </Title>
+          
+          <Text style={{ 
+            fontSize: '16px', 
+            color: theme === 'dark' ? '#cbd5e0' : '#4a5568',
+            marginBottom: '32px',
+            display: 'block'
+          }}>
+            Thank you for your purchase. Your credits have been added to your account.
+          </Text>
+          
+          <Divider style={{ 
+            margin: '24px 0',
+            borderColor: theme === 'dark' ? '#2d3748' : '#e2e8f0'
+          }} />
+          
+          {purchaseDetails && (
+            <div style={{ 
+              background: theme === 'dark' ? '#232a3b' : '#f1f5f9',
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '32px',
+              textAlign: 'left'
+            }}>
+              <Title level={4} style={{ 
+                marginBottom: '20px', 
+                color: theme === 'dark' ? '#e2e8f0' : '#334155',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <CreditCardOutlined />
+                Purchase Details
+              </Title>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Package:</Text>
+                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
+                    {purchaseDetails.packageName}
+                  </div>
+                </div>
+                
+                <div>
+                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Credits Added:</Text>
+                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
+                    {purchaseDetails.credits.toLocaleString()}
+                  </div>
+                </div>
+                
+                <div>
+                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>New Balance:</Text>
+                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
+                    {purchaseDetails.newBalance.toLocaleString()}
+                  </div>
+                </div>
+                
+                <div>
+                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Amount Paid:</Text>
+                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
+                    ${purchaseDetails.amountPaid.toFixed(2)}
+                  </div>
+                </div>
+                
+                <div style={{ gridColumn: 'span 2' }}>
+                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Purchase Date:</Text>
+                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
+                    {purchaseDetails.purchaseDate}
+                  </div>
                 </div>
               </div>
-            ) : (
-              'Your credits have been added to your account.'
-            )
-          }
-          icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-          extra={[
+            </div>
+          )}
+          
+          <Space direction="vertical" style={{ width: '100%', gap: '16px' }}>
             <Button 
               type="primary" 
-              key="dashboard" 
+              size="large"
               icon={<ThunderboltOutlined />}
               onClick={() => router.push('/lead-generation')}
-              size="large"
+              style={{
+                height: '48px',
+                width: '100%',
+                fontSize: '16px',
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '8px'
+              }}
             >
               Start Generating Leads
-            </Button>,
-            <Button 
-              key="credits" 
-              onClick={() => router.push('/credits')}
-            >
-              View Credit History
-            </Button>,
-          ]}
-        />
-        
-        <div className="text-center mt-6">
-          <Text type="secondary">
-            Session ID: {sessionId}
-          </Text>
+            </Button>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button 
+                size="large"
+                onClick={() => router.push('/credits')}
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '8px'
+                }}
+              >
+                View Credit History
+              </Button>
+              
+              <Button 
+                size="large"
+                onClick={() => router.push('/')}
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '8px'
+                }}
+              >
+                Return to Home
+              </Button>
+            </div>
+          </Space>
+          
+          <div style={{ 
+            marginTop: '32px', 
+            padding: '12px',
+            background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+            borderRadius: '8px'
+          }}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Session ID: {sessionId}
+            </Text>
+          </div>
         </div>
       </Card>
     </div>
