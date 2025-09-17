@@ -1,12 +1,9 @@
 // app/credits/success/page.tsx
 "use client";
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Typography, Space, Spin, Alert, Result, Divider } from 'antd';
-import { CheckCircleOutlined, ThunderboltOutlined, ArrowLeftOutlined, CreditCardOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
-
-const { Title, Text } = Typography;
+import { CheckCircle, ArrowLeft, CreditCard, Zap, Home, Clock } from 'lucide-react';
 
 const SuccessPage = () => {
   const { theme } = useTheme();
@@ -15,8 +12,14 @@ const SuccessPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [purchaseDetails, setPurchaseDetails] = useState<any>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const sessionId = searchParams.get('session_id');
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (sessionId) {
@@ -66,275 +69,314 @@ const SuccessPage = () => {
     }
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   if (loading) {
     return (
-      <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}>
-        <Card 
-          style={{ 
-            maxWidth: '500px', 
-            width: '100%',
-            boxShadow: theme === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)',
-            border: 'none',
-            borderRadius: '12px',
-            background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
-          }}
-        >
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <Spin size="large" style={{ color: theme === 'dark' ? '#3b82f6' : '#2563eb' }} />
-            <Title level={4} style={{ marginTop: '24px', color: theme === 'dark' ? '#e2e8f0' : '#334155' }}>
-              Verifying your payment...
-            </Title>
-            <Text style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
-              This will only take a moment
-            </Text>
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
+        {/* Desktop Background */}
+        <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
+          {/* Loading Window */}
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
+              <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
+                    <div className="w-3 h-3 border-2 border-gray-600 animate-spin"></div>
+                  </div>
+                  <span className="font-bold">Processing Payment</span>
+                </div>
+                <div className="flex space-x-1">
+                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                    <span className="text-xs">_</span>
+                  </div>
+                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                    <span className="text-xs">□</span>
+                  </div>
+                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                    <span className="text-xs">×</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-gray-200">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 border-4 border-blue-700 border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
+                  <div className="text-lg font-bold text-gray-800 mb-2">Verifying your payment...</div>
+                  <div className="text-sm text-gray-600">This will only take a moment</div>
+                </div>
+              </div>
+            </div>
           </div>
-        </Card>
+        </div>
+
+        {/* Taskbar */}
+        <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
+          <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
+            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
+              <div className="w-3 h-3 border-2 border-gray-600"></div>
+            </div>
+            Start
+          </button>
+
+          <div className="flex-1 flex space-x-1 mx-2">
+            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
+              <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
+                <div className="w-3 h-3 border-2 border-gray-600 animate-spin"></div>
+              </div>
+              Processing Payment
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-1">
+            <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
+              <Clock className="w-4 h-4 mr-1" />
+              <span className="text-xs">{formatTime(currentTime)}</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}>
-        <Card 
-          style={{ 
-            maxWidth: '600px', 
-            width: '100%',
-            boxShadow: theme === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.08)',
-            border: 'none',
-            borderRadius: '12px',
-            background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
-          }}
-        >
-          <Alert
-            message="Payment Verification Failed"
-            description={
-              <div>
-                <p>{error}</p>
-                <p style={{ marginTop: '8px' }}>Please contact support if you believe this is an error.</p>
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
+        {/* Desktop Background */}
+        <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
+          {/* Error Window */}
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
+              <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
+                    <div className="w-3 h-3 border-2 border-gray-600 bg-red-600"></div>
+                  </div>
+                  <span className="font-bold">Payment Error</span>
+                </div>
+                <div className="flex space-x-1">
+                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                    <span className="text-xs">_</span>
+                  </div>
+                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                    <span className="text-xs">□</span>
+                  </div>
+                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                    <span className="text-xs">×</span>
+                  </div>
+                </div>
               </div>
-            }
-            type="error"
-            showIcon
-            style={{ marginBottom: '16px' }}
-          />
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <Button 
-              type="primary" 
-              onClick={() => router.push('/credits')}
-              icon={<ArrowLeftOutlined />}
-            >
-              Back to Credits
-            </Button>
-            <Button 
-              onClick={() => router.push('/lead-generation')}
-            >
-              Continue to Dashboard
-            </Button>
+              <div className="p-4 bg-gray-200">
+                <div className="border-2 border-gray-400 bg-white p-4">
+                  <div className="flex items-start mb-4">
+                    <div className="w-6 h-6 bg-red-600 flex items-center justify-center mr-2 flex-shrink-0">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-red-800 mb-1">Payment Verification Failed</div>
+                      <div className="text-sm">{error}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600 mb-4">
+                    Please contact support if you believe this is an error.
+                  </div>
+                  <div className="flex justify-between">
+                    <button 
+                      className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center"
+                      onClick={() => router.push('/credits')}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-1" />
+                      Back to Credits
+                    </button>
+                    <button 
+                      className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
+                      onClick={() => router.push('/lead-generation')}
+                    >
+                      Continue to Dashboard
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </Card>
+        </div>
+
+        {/* Taskbar */}
+        <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
+          <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
+            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
+              <div className="w-3 h-3 border-2 border-gray-600"></div>
+            </div>
+            Start
+          </button>
+
+          <div className="flex-1 flex space-x-1 mx-2">
+            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
+              <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
+                <div className="w-3 h-3 border-2 border-gray-600 bg-red-600"></div>
+              </div>
+              Payment Error
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-1">
+            <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
+              <Clock className="w-4 h-4 mr-1" />
+              <span className="text-xs">{formatTime(currentTime)}</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ 
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: theme === 'dark' ? '#0f1116' : '#f8fafc',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px'
-    }}>
-      <Card 
-        style={{ 
-          maxWidth: '680px', 
-          width: '100%',
-          boxShadow: theme === 'dark' ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.1)',
-          border: 'none',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          background: theme === 'dark' ? '#1a1f2e' : '#ffffff'
-        }}
-      >
-        <div style={{ padding: '32px 24px', textAlign: 'center' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: theme === 'dark' ? 'rgba(72, 187, 120, 0.1)' : 'rgba(72, 187, 120, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px'
-          }}>
-            <CheckCircleOutlined style={{ fontSize: '40px', color: '#48bb78' }} />
-          </div>
-          
-          <Title level={2} style={{ 
-            marginBottom: '8px', 
-            color: theme === 'dark' ? '#f7fafc' : '#1a202c',
-            fontWeight: 700
-          }}>
-            Payment Successful!
-          </Title>
-          
-          <Text style={{ 
-            fontSize: '16px', 
-            color: theme === 'dark' ? '#cbd5e0' : '#4a5568',
-            marginBottom: '32px',
-            display: 'block'
-          }}>
-            Thank you for your purchase. Your credits have been added to your account.
-          </Text>
-          
-          <Divider style={{ 
-            margin: '24px 0',
-            borderColor: theme === 'dark' ? '#2d3748' : '#e2e8f0'
-          }} />
-          
-          {purchaseDetails && (
-            <div style={{ 
-              background: theme === 'dark' ? '#232a3b' : '#f1f5f9',
-              borderRadius: '12px',
-              padding: '24px',
-              marginBottom: '32px',
-              textAlign: 'left'
-            }}>
-              <Title level={4} style={{ 
-                marginBottom: '20px', 
-                color: theme === 'dark' ? '#e2e8f0' : '#334155',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <CreditCardOutlined />
-                Purchase Details
-              </Title>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Package:</Text>
-                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
-                    {purchaseDetails.packageName}
-                  </div>
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
+      {/* Desktop Background */}
+      <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
+        {/* Success Window */}
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
+            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
+                  <div className="w-3 h-3 border-2 border-gray-600 bg-green-600"></div>
                 </div>
-                
-                <div>
-                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Credits Added:</Text>
-                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
-                    {purchaseDetails.credits.toLocaleString()}
-                  </div>
+                <span className="font-bold">Payment Successful</span>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">_</span>
                 </div>
-                
-                <div>
-                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>New Balance:</Text>
-                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
-                    {purchaseDetails.newBalance.toLocaleString()} credits
-                  </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">□</span>
                 </div>
-                
-                <div>
-                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Amount Paid:</Text>
-                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
-                    ${purchaseDetails.amountPaid.toFixed(2)}
-                  </div>
-                </div>
-                
-                <div style={{ gridColumn: 'span 2' }}>
-                  <Text strong style={{ color: theme === 'dark' ? '#cbd5e0' : '#475569' }}>Purchase Date:</Text>
-                  <div style={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b', marginTop: '4px' }}>
-                    {purchaseDetails.purchaseDate}
-                  </div>
+                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
+                  <span className="text-xs">×</span>
                 </div>
               </div>
             </div>
-          )}
-          
-          <Space direction="vertical" style={{ width: '100%', gap: '16px' }}>
-            <Button 
-              type="primary" 
-              size="large"
-              icon={<ThunderboltOutlined />}
-              onClick={() => router.push('/lead-generation')}
-              style={{
-                height: '48px',
-                width: '100%',
-                fontSize: '16px',
-                fontWeight: 600,
-                background: '#07312f',
-                border: 'none',
-                borderRadius: '8px'
-              }}
-            >
-              Start Generating Leads
-            </Button>
-            
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <Button 
-                size="large"
-                onClick={() => router.push('/credits')}
-                style={{
-                  flex: 1,
-                  height: '44px',
-                  borderRadius: '8px'
-                }}
-              >
-                View Credit History
-              </Button>
-              
-              <Button 
-                size="large"
-                onClick={() => router.push('/')}
-                style={{
-                  flex: 1,
-                  height: '44px',
-                  borderRadius: '8px'
-                }}
-              >
-                Return to Home
-              </Button>
+            <div className="p-4 bg-gray-200">
+              <div className="border-2 border-gray-400 bg-white p-4">
+                {/* Success Icon */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-green-100 border-2 border-green-400 flex items-center justify-center">
+                    <CheckCircle className="w-10 h-10 text-green-600" />
+                  </div>
+                </div>
+                
+                {/* Title */}
+                <div className="text-center mb-4">
+                  <div className="text-xl font-bold text-gray-800 mb-1">Payment Successful!</div>
+                  <div className="text-sm text-gray-600">
+                    Thank you for your purchase. Your credits have been added to your account.
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t-2 border-gray-300 my-4"></div>
+                
+                {/* Purchase Details */}
+                {purchaseDetails && (
+                  <div className="bg-gray-100 border-2 border-gray-300 p-3 mb-4">
+                    <div className="flex items-center mb-2">
+                      <CreditCard className="w-4 h-4 mr-2 text-blue-800" />
+                      <div className="font-bold text-gray-800">Purchase Details</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <div className="text-xs text-gray-600">Package:</div>
+                        <div className="font-medium">{purchaseDetails.packageName}</div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-xs text-gray-600">Credits Added:</div>
+                        <div className="font-medium">{purchaseDetails.credits.toLocaleString()}</div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-xs text-gray-600">New Balance:</div>
+                        <div className="font-medium">{purchaseDetails.newBalance.toLocaleString()} credits</div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-xs text-gray-600">Amount Paid:</div>
+                        <div className="font-medium">${purchaseDetails.amountPaid.toFixed(2)}</div>
+                      </div>
+                      
+                      <div className="col-span-2">
+                        <div className="text-xs text-gray-600">Purchase Date:</div>
+                        <div className="font-medium">{purchaseDetails.purchaseDate}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Buttons */}
+                <div className="space-y-2">
+                  <button 
+                    className="w-full py-2 bg-blue-700 text-white font-bold border-2 border-blue-900 hover:bg-blue-800 flex items-center justify-center"
+                    onClick={() => router.push('/lead-generation')}
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Start Generating Leads
+                  </button>
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      className="flex-1 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
+                      onClick={() => router.push('/credits')}
+                    >
+                      View Credit History
+                    </button>
+                    
+                    <button 
+                      className="flex-1 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center justify-center"
+                      onClick={() => router.push('/')}
+                    >
+                      <Home className="w-4 h-4 mr-1" />
+                      Home
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Session ID */}
+                <div className="mt-4 p-2 bg-gray-200 border border-gray-300 text-xs text-center">
+                  <div className="text-gray-600">Session ID: {sessionId}</div>
+                </div>
+              </div>
             </div>
-          </Space>
-          
-          <div style={{ 
-            marginTop: '32px', 
-            padding: '12px',
-            background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-            borderRadius: '8px'
-          }}>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Session ID: {sessionId}
-            </Text>
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Taskbar */}
+      <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
+        <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
+          <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
+            <div className="w-3 h-3 border-2 border-gray-600"></div>
+          </div>
+          Start
+        </button>
+
+        <div className="flex-1 flex space-x-1 mx-2">
+          <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
+            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
+              <div className="w-3 h-3 border-2 border-gray-600 bg-green-600"></div>
+            </div>
+            Payment Successful
+          </button>
+        </div>
+
+        <div className="flex items-center space-x-1">
+          <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
+            <Clock className="w-4 h-4 mr-1" />
+            <span className="text-xs">{formatTime(currentTime)}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
