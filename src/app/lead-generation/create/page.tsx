@@ -146,7 +146,7 @@ const SearchPreview = ({ industries, roles, locations, companySize }: {
       {parts.length > 2 && (
         <div className="mt-2">
           <Text type="warning" className="text-sm">
-            Complex searches may return fewer results. Consider reducing filters if needed.
+                “To improve search results, you can use the keywords below for better accuracy and relevance.”
           </Text>
         </div>
       )}
@@ -1082,7 +1082,7 @@ const stepOneContent = (
             {parts.length > 2 && (
               <div className="mt-2">
                 <Text type="warning" className="text-sm">
-                  Complex searches may return fewer results. Consider reducing filters if needed.
+                 “To improve search results, you can use the keywords below for better accuracy and relevance.”
                 </Text>
               </div>
             )}
@@ -1356,7 +1356,7 @@ const stepOneContent = (
           showIcon
         />
       )}
-
+{/* 
       <Card title="Contact Requirements">
         <Form.Item name="requirements">
           <Checkbox.Group className="space-y-2">
@@ -1373,7 +1373,7 @@ const stepOneContent = (
             </Row>
           </Checkbox.Group>
         </Form.Item>
-      </Card>
+      </Card> */}
 
       <Form.Item name="campaignName" label="Campaign Name (Optional)">
         <Input placeholder="e.g., Q4 SaaS Outreach" />
