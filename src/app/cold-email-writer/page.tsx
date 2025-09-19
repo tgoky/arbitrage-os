@@ -52,6 +52,8 @@ import { useParams, useRouter } from 'next/navigation';
 
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
+import { AutoComplete } from 'antd';
+
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 const { Option } = Select;
@@ -70,6 +72,8 @@ const ColdEmailWriter = () => {
    const [activeTab, setActiveTab] = useState('compose');
 const [savedEmails, setSavedEmails] = useState<any[]>([]);
 const [savedEmailsLoading, setSavedEmailsLoading] = useState(false);
+const generateFollowUps = Form.useWatch('generateFollowUps', form);
+const followUpCount = Form.useWatch('followUpCount', form);
 
 const [emailPreviewModal, setEmailPreviewModal] = useState<{
   visible: boolean;
@@ -139,6 +143,8 @@ useEffect(() => {
     }
   });
 
+
+  
   
 
   // Listen for auth state changes
@@ -827,7 +833,7 @@ const handleOptimizeEmail = async (
       emailLength: 'medium',
       quality: 'balanced',
       creativity: 'moderate',
-      targetIndustry: 'B2B SaaS',
+      targetIndustry: '',
       targetRole: 'CEO',
       valueProposition: '',
       variations: 1,
@@ -1042,6 +1048,24 @@ const handleOptimizeEmail = async (
             <Slider min={1} max={5} marks={{ 1: '1', 3: '3', 5: '5' }} />
           </Form.Item>
 
+        {!generateFollowUps && followUpCount > 1 && (
+  <Alert
+    message="Follow-up Generation Disabled"
+    description="You've selected follow-ups but haven't enabled follow-up generation. Please toggle 'Generate Follow-up Sequence' above."
+    type="warning"
+    showIcon
+    className="mt-2"
+    action={
+      <Button 
+        size="small" 
+        onClick={() => form.setFieldValue('generateFollowUps', true)}
+      >
+        Enable Follow-ups
+      </Button>
+    }
+  />
+)}
+
           <Form.Item
             name="saveAsTemplate"
             valuePropName="checked"
@@ -1119,42 +1143,47 @@ const handleOptimizeEmail = async (
         extra={<Badge status="processing" text="Required" />}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Form.Item
-            name="targetIndustry"
-            label={
-              <span>
-                Target Industry{' '}
-                <Tooltip title="The industry your prospect works in">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </span>
-            }
-            rules={[{ required: true, message: 'Please select an industry!' }]}
-          >
-            <Select 
-              showSearch
-              placeholder="e.g., B2B SaaS, E-commerce Brands, Healthcare"
-              options={industries.map(ind => ({ value: ind, label: ind }))}
-            />
-          </Form.Item>
-          <Form.Item
-            name="targetRole"
-            label={
-              <span>
-                Target Role{' '}
-                <Tooltip title="The job title of the person you're emailing">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </span>
-            }
-            rules={[{ required: true, message: 'Please select a role!' }]}
-          >
-            <Select 
-              showSearch
-              placeholder="e.g., Marketing Manager, CEO, Head of Sales"
-              options={roles.map(role => ({ value: role, label: role }))}
-            />
-          </Form.Item>
+      <Form.Item
+  name="targetIndustry"
+  label={
+    <span>
+      Target Industry{' '}
+      <Tooltip title="The industry your prospect works in">
+        <InfoCircleOutlined />
+      </Tooltip>
+    </span>
+  }
+  rules={[{ required: true, message: 'Please enter an industry!' }]}
+>
+  <AutoComplete
+    placeholder="Type your industry (e.g., Digital Marketing Agency)"
+    options={industries.map(ind => ({ value: ind }))}
+    filterOption={(inputValue, option) =>
+      option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+    }
+  />
+</Form.Item>
+
+        <Form.Item
+  name="targetRole"
+  label={
+    <span>
+      Target Role{' '}
+      <Tooltip title="The job title of the person you're emailing">
+        <InfoCircleOutlined />
+      </Tooltip>
+    </span>
+  }
+  rules={[{ required: true, message: 'Please enter a role!' }]}
+>
+  <AutoComplete
+    placeholder="Type target role (e.g., Agency Owner)"
+    options={roles.map(role => ({ value: role }))}
+    filterOption={(inputValue, option) =>
+      option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+    }
+  />
+</Form.Item>
           <Form.Item
             name="targetFirstName"
             label="Recipient's First Name (optional)"
