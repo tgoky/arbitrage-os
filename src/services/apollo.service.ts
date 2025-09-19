@@ -6,7 +6,14 @@ export interface LeadGenerationCriteria {
   targetIndustry: string[];
   targetRole: string[];
   companySize: string[];
-  location: string[];
+  // Remove the old location field
+  // location: string[];
+  
+  // Add the new separate location fields
+  country?: string[];
+  state?: string[];
+  city?: string[];
+  
   keywords?: string[];
   technologies?: string[];
   revenueRange?: {
@@ -17,7 +24,6 @@ export interface LeadGenerationCriteria {
   requirements?: string[];
   [key: string]: any;
 }
-
 export interface GeneratedLead {
   id: string;
   name: string;
@@ -234,54 +240,68 @@ export class ApolloLeadService {
   }
 
   // Strategy 2: Simplified search with reduced criteria
-  private async executeSimplifiedSearch(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
-    console.log('🎯 Strategy 2: Simplified search');
-    
-    const params: any = {
-      per_page: Math.min(criteria.leadCount, 100),
-      page: 1
-    };
+private async executeSimplifiedSearch(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
+  console.log('🎯 Strategy 2: Simplified search');
+  
+  const params: any = {
+    per_page: Math.min(criteria.leadCount, 100),
+    page: 1
+  };
 
-    // Use only primary criteria
-    if (criteria.targetRole?.length) {
-      params.person_titles = criteria.targetRole.slice(0, 3); // Limit to 3 roles
-    }
-
-    if (criteria.location?.length) {
-      params.person_locations = criteria.location.slice(0, 2); // Limit to 2 locations
-    }
-
-    // Use industries as keywords instead of complex filters
-    if (criteria.targetIndustry?.length) {
-      params.q_keywords = criteria.targetIndustry.slice(0, 2).join(' OR ');
-    }
-
-    params.include_similar_titles = true;
-    
-    return await this.callApolloAPI(params, criteria);
+  // Use only primary criteria
+  if (criteria.targetRole?.length) {
+    params.person_titles = criteria.targetRole.slice(0, 3); // Limit to 3 roles
   }
+
+  // ✅ UPDATED: Handle new location structure
+  if (criteria.country?.length || criteria.state?.length || criteria.city?.length) {
+    const locations = [];
+    if (criteria.city?.length) locations.push(...criteria.city.slice(0, 2));
+    if (criteria.state?.length) locations.push(...criteria.state.slice(0, 2));
+    if (criteria.country?.length) locations.push(...criteria.country.slice(0, 2));
+    
+    if (locations.length > 0) {
+      params.person_locations = locations.slice(0, 2); // Limit to 2 locations
+    }
+  }
+
+  // Use industries as keywords instead of complex filters
+  if (criteria.targetIndustry?.length) {
+    params.q_keywords = criteria.targetIndustry.slice(0, 2).join(' OR ');
+  }
+
+  params.include_similar_titles = true;
+  
+  return await this.callApolloAPI(params, criteria);
+}
+
 
   // Strategy 3: Minimal search with just one criteria
-  private async executeMinimalSearch(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
-    console.log('🎯 Strategy 3: Minimal search');
-    
-    const params: any = {
-      per_page: Math.min(criteria.leadCount, 100),
-      page: 1,
-      include_similar_titles: true
-    };
+private async executeMinimalSearch(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
+  console.log('🎯 Strategy 3: Minimal search');
+  
+  const params: any = {
+    per_page: Math.min(criteria.leadCount, 100),
+    page: 1,
+    include_similar_titles: true
+  };
 
-    // Use only the most important single criterion
-    if (criteria.targetRole?.length) {
-      params.person_titles = [criteria.targetRole[0]];
-    } else if (criteria.targetIndustry?.length) {
-      params.q_keywords = criteria.targetIndustry[0];
-    } else if (criteria.location?.length) {
-      params.person_locations = [criteria.location[0]];
-    }
-    
-    return await this.callApolloAPI(params, criteria);
+  // Use only the most important single criterion
+  if (criteria.targetRole?.length) {
+    params.person_titles = [criteria.targetRole[0]];
+  } else if (criteria.targetIndustry?.length) {
+    params.q_keywords = criteria.targetIndustry[0];
+  } else if (criteria.country?.length) {
+    params.person_locations = [criteria.country[0]];
+  } else if (criteria.state?.length) {
+    params.person_locations = [criteria.state[0]];
+  } else if (criteria.city?.length) {
+    params.person_locations = [criteria.city[0]];
   }
+  
+  return await this.callApolloAPI(params, criteria);
+}
+
 
   // Strategy 4: Very broad search for any professionals
   private async executeBroadSearch(criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
@@ -299,108 +319,141 @@ export class ApolloLeadService {
   }
 
   // ✅ FIXED: Build complex parameters with proper formatting
-  private buildComplexParams(criteria: LeadGenerationCriteria): any {
-    const params: any = {
-      per_page: Math.min(criteria.leadCount, 100),
-      page: 1
-    };
+private buildComplexParams(criteria: LeadGenerationCriteria): any {
+  const params: any = {
+    per_page: Math.min(criteria.leadCount, 100),
+    page: 1
+  };
 
-    // ✅ FIX 1: Proper array parameter formatting for Apollo API
-    if (criteria.targetRole?.length) {
-      // Apollo expects plain arrays, not array notation
-      params.person_titles = criteria.targetRole.slice(0, 5); // Limit to prevent complexity
-    }
-
-    if (criteria.location?.length) {
-      params.person_locations = criteria.location.slice(0, 3); // Limit locations
-    }
-
-    // ✅ FIX 2: Smart company size handling - avoid when multiple industries selected
-    if (criteria.companySize?.length) {
-      const industryCount = criteria.targetIndustry?.length || 0;
-      const roleCount = criteria.targetRole?.length || 0;
-      
-      // Only apply company size filters if the search isn't already complex
-      if (industryCount <= 2 && roleCount <= 2) {
-        const ranges: string[] = [];
-        criteria.companySize.slice(0, 2).forEach(size => { // Limit to 2 ranges when applying
-          switch (size) {
-            case '1-10':
-              ranges.push('1,10');
-              break;
-            case '10-50':
-            case '11-50':
-              ranges.push('11,50');
-              break;
-            case '50-200':
-            case '51-200':
-              ranges.push('51,200');
-              break;
-            case '200-500':
-            case '201-500':
-              ranges.push('201,500');
-              break;
-            case '500-1000':
-            case '501-1000':
-              ranges.push('501,1000');
-              break;
-            case '1000+':
-              ranges.push('1001,');
-              break;
-          }
-        });
-        
-        if (ranges.length > 0) {
-          params.organization_num_employees_ranges = ranges;
-        }
-      } else {
-        console.log('🚫 Skipping company size filters due to complex search (multiple industries/roles)');
-      }
-    }
-
-    // ✅ FIX 3: Smart industry handling
-    if (criteria.targetIndustry?.length) {
-      // For multiple industries, use keywords instead of complex filters
-      if (criteria.targetIndustry.length === 1) {
-        params.q_keywords = criteria.targetIndustry[0];
-      } else {
-        // Limit to top 3 industries and use OR logic
-        const topIndustries = criteria.targetIndustry.slice(0, 3);
-        params.q_keywords = topIndustries.join(' OR ');
-      }
-    }
-
-    // ✅ FIX 4: Revenue range (only if specified)
-    if (criteria.revenueRange?.min || criteria.revenueRange?.max) {
-      if (criteria.revenueRange.min) {
-        params.revenue_range_min = criteria.revenueRange.min;
-      }
-      if (criteria.revenueRange.max) {
-        params.revenue_range_max = criteria.revenueRange.max;
-      }
-    }
-
-    // ✅ FIX 5: Contact requirements
-    if (criteria.requirements?.includes('email')) {
-      params.contact_email_status = ['verified'];
-    }
-
-    // Additional keywords
-    if (criteria.keywords?.length) {
-      const keywordsStr = criteria.keywords.slice(0, 3).join(' OR ');
-      if (params.q_keywords) {
-        params.q_keywords = `(${params.q_keywords}) AND (${keywordsStr})`;
-      } else {
-        params.q_keywords = keywordsStr;
-      }
-    }
-
-    params.include_similar_titles = true;
-
-    console.log('🔧 Complex search parameters:', JSON.stringify(params, null, 2));
-    return params;
+  // ✅ FIX 1: Proper array parameter formatting for Apollo API
+  if (criteria.targetRole?.length) {
+    // Apollo expects plain arrays, not array notation
+    params.person_titles = criteria.targetRole.slice(0, 5); // Limit to prevent complexity
   }
 
+  // ✅ NEW: Handle separate location fields (country, state, city)
+  if (criteria.country?.length || criteria.state?.length || criteria.city?.length) {
+    const locations = [];
+    
+    // Combine city, state, country into location strings
+    if (criteria.city?.length) {
+      criteria.city.forEach(city => {
+        if (criteria.state?.length) {
+          criteria.state.forEach(state => {
+            locations.push(`${city}, ${state}`);
+          });
+        } else if (criteria.country?.length) {
+          criteria.country.forEach(country => {
+            locations.push(`${city}, ${country}`);
+          });
+        } else {
+          locations.push(city);
+        }
+      });
+    } else if (criteria.state?.length) {
+      criteria.state.forEach(state => {
+        if (criteria.country?.length) {
+          criteria.country.forEach(country => {
+            locations.push(`${state}, ${country}`);
+          });
+        } else {
+          locations.push(state);
+        }
+      });
+    } else if (criteria.country?.length) {
+      locations.push(...criteria.country);
+    }
+    
+    if (locations.length > 0) {
+      params.person_locations = locations.slice(0, 4); // Limit to prevent complexity
+    }
+  }
+
+  // ✅ FIX 2: Smart company size handling - avoid when multiple industries selected
+  if (criteria.companySize?.length) {
+    const industryCount = criteria.targetIndustry?.length || 0;
+    const roleCount = criteria.targetRole?.length || 0;
+    
+    // Only apply company size filters if the search isn't already complex
+    if (industryCount <= 2 && roleCount <= 2) {
+      const ranges: string[] = [];
+      criteria.companySize.slice(0, 2).forEach(size => { // Limit to 2 ranges when applying
+        switch (size) {
+          case '1-10':
+            ranges.push('1,10');
+            break;
+          case '10-50':
+          case '11-50':
+            ranges.push('11,50');
+            break;
+          case '50-200':
+          case '51-200':
+            ranges.push('51,200');
+            break;
+          case '200-500':
+          case '201-500':
+            ranges.push('201,500');
+            break;
+          case '500-1000':
+          case '501-1000':
+            ranges.push('501,1000');
+            break;
+          case '1000+':
+            ranges.push('1001,');
+            break;
+        }
+      });
+      
+      if (ranges.length > 0) {
+        params.organization_num_employees_ranges = ranges;
+      }
+    } else {
+      console.log('🚫 Skipping company size filters due to complex search (multiple industries/roles)');
+    }
+  }
+
+  // ✅ FIX 3: Smart industry handling
+  if (criteria.targetIndustry?.length) {
+    // For multiple industries, use keywords instead of complex filters
+    if (criteria.targetIndustry.length === 1) {
+      params.q_keywords = criteria.targetIndustry[0];
+    } else {
+      // Limit to top 3 industries and use OR logic
+      const topIndustries = criteria.targetIndustry.slice(0, 3);
+      params.q_keywords = topIndustries.join(' OR ');
+    }
+  }
+
+  // ✅ FIX 4: Revenue range (only if specified)
+  if (criteria.revenueRange?.min || criteria.revenueRange?.max) {
+    if (criteria.revenueRange.min) {
+      params.revenue_range_min = criteria.revenueRange.min;
+    }
+    if (criteria.revenueRange.max) {
+      params.revenue_range_max = criteria.revenueRange.max;
+    }
+  }
+
+  // ✅ FIX 5: Contact requirements
+  if (criteria.requirements?.includes('email')) {
+    params.contact_email_status = ['verified'];
+  }
+
+  // Additional keywords
+  if (criteria.keywords?.length) {
+    const keywordsStr = criteria.keywords.slice(0, 3).join(' OR ');
+    if (params.q_keywords) {
+      params.q_keywords = `(${params.q_keywords}) AND (${keywordsStr})`;
+    } else {
+      params.q_keywords = keywordsStr;
+    }
+  }
+
+  params.include_similar_titles = true;
+
+  console.log('🔧 Complex search parameters:', JSON.stringify(params, null, 2));
+  return params;
+}
   // ✅ FIXED: Centralized API call with better error handling
   private async callApolloAPI(params: any, criteria: LeadGenerationCriteria): Promise<LeadGenerationResponse> {
     console.log('🌐 Calling Apollo API with params:', JSON.stringify(params, null, 2));
@@ -825,19 +878,23 @@ export class ApolloLeadService {
     return '1000+';
   }
 
-  private generateCacheKey(criteria: LeadGenerationCriteria): string {
-    const keyData = {
-      industries: criteria.targetIndustry?.sort(),
-      roles: criteria.targetRole?.sort(),
-      companySize: criteria.companySize?.sort(),
-      location: criteria.location?.sort(),
-      leadCount: criteria.leadCount,
-      requirements: criteria.requirements?.sort()
-    };
-    
-    const key = `apollo_leads:${JSON.stringify(keyData)}`;
-    return key.replace(/[^a-zA-Z0-9:]/g, '_').substring(0, 200);
-  }
+ private generateCacheKey(criteria: LeadGenerationCriteria): string {
+  const keyData = {
+    industries: criteria.targetIndustry?.sort(),
+    roles: criteria.targetRole?.sort(),
+    companySize: criteria.companySize?.sort(),
+    // ✅ UPDATED: Use new location fields
+    country: criteria.country?.sort(),
+    state: criteria.state?.sort(), 
+    city: criteria.city?.sort(),
+    leadCount: criteria.leadCount,
+    requirements: criteria.requirements?.sort()
+  };
+  
+  const key = `apollo_leads:${JSON.stringify(keyData)}`;
+  return key.replace(/[^a-zA-Z0-9:]/g, '_').substring(0, 200);
+}
+
 
   // Keep existing save/get/delete methods unchanged...
   async saveLeadGeneration(

@@ -45,7 +45,9 @@ interface FormData {
   targetIndustry: string[];
   targetRole: string[];
   companySize: string[];
-  location: string[];
+  country: string[];  // Changed from location
+  state: string[];    // New
+  city: string[];     // New
   keywords: string[];
   technologies: string[];
   revenueMin: number | undefined;
@@ -53,7 +55,6 @@ interface FormData {
   requirements: string[];
   campaignName: string;
 }
-
 
 // Industry and job title options (same as before)
 const industries = [
@@ -73,10 +74,46 @@ const jobTitles = [
 ];
 
 const locations = [
+  // Countries
   'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Australia',
   'New Zealand', 'Netherlands', 'Sweden', 'Norway', 'Denmark', 'Switzerland',
   'Singapore', 'Japan', 'South Korea', 'India', 'Brazil', 'Mexico', 'Spain', 
-  'Italy', 'Ireland', 'Belgium', 'Austria', 'Israel', 'United Arab Emirates'
+  'Italy', 'Ireland', 'Belgium', 'Austria', 'Israel', 'United Arab Emirates',
+  
+  // US States
+  'California, US', 'Texas, US', 'New York, US', 'Florida, US', 'Illinois, US',
+  'Pennsylvania, US', 'Ohio, US', 'Georgia, US', 'North Carolina, US', 'Michigan, US',
+  'New Jersey, US', 'Virginia, US', 'Washington, US', 'Arizona, US', 'Massachusetts, US',
+  'Tennessee, US', 'Indiana, US', 'Maryland, US', 'Missouri, US', 'Wisconsin, US',
+  'Colorado, US', 'Minnesota, US', 'South Carolina, US', 'Alabama, US', 'Louisiana, US',
+  
+  // Major US Cities
+  'New York City, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
+  'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
+  'Austin, TX', 'Jacksonville, FL', 'Fort Worth, TX', 'Columbus, OH', 'Charlotte, NC',
+  'San Francisco, CA', 'Indianapolis, IN', 'Seattle, WA', 'Denver, CO', 'Boston, MA',
+  'El Paso, TX', 'Detroit, MI', 'Nashville, TN', 'Portland, OR', 'Memphis, TN',
+  'Oklahoma City, OK', 'Las Vegas, NV', 'Louisville, KY', 'Baltimore, MD', 'Milwaukee, WI',
+  'Atlanta, GA', 'Miami, FL', 'Tampa, FL', 'Orlando, FL', 'Minneapolis, MN',
+  
+  // Canadian Cities
+  'Toronto, ON', 'Vancouver, BC', 'Montreal, QC', 'Calgary, AB', 'Edmonton, AB',
+  'Ottawa, ON', 'Winnipeg, MB', 'Quebec City, QC', 'Hamilton, ON', 'Kitchener, ON',
+  
+  // UK Cities
+  'London, UK', 'Birmingham, UK', 'Manchester, UK', 'Glasgow, UK', 'Liverpool, UK',
+  'Leeds, UK', 'Sheffield, UK', 'Edinburgh, UK', 'Bristol, UK', 'Cardiff, UK',
+  
+  // Other International Cities
+  'Berlin, Germany', 'Munich, Germany', 'Hamburg, Germany', 'Frankfurt, Germany',
+  'Paris, France', 'Lyon, France', 'Marseille, France', 'Toulouse, France',
+  'Sydney, Australia', 'Melbourne, Australia', 'Brisbane, Australia', 'Perth, Australia',
+  'Amsterdam, Netherlands', 'Rotterdam, Netherlands', 'Stockholm, Sweden', 'Gothenburg, Sweden',
+  'Oslo, Norway', 'Copenhagen, Denmark', 'Zurich, Switzerland', 'Geneva, Switzerland',
+  'Tokyo, Japan', 'Osaka, Japan', 'Seoul, South Korea', 'Singapore', 'Mumbai, India',
+  'Delhi, India', 'Bangalore, India', 'São Paulo, Brazil', 'Rio de Janeiro, Brazil',
+  'Mexico City, Mexico', 'Madrid, Spain', 'Barcelona, Spain', 'Rome, Italy', 'Milan, Italy',
+  'Dublin, Ireland', 'Vienna, Austria', 'Tel Aviv, Israel', 'Dubai, UAE'
 ];
 
 const technologies = [
@@ -155,134 +192,9 @@ const SearchPreview = ({ industries, roles, locations, companySize }: {
 };
 
 // Complexity Warning Component
-const ComplexityWarning = ({ formInstance }: { formInstance: any }) => {
-  const values = formInstance.getFieldsValue();
-  const totalFilters = (values.targetIndustry?.length || 0) + 
-                      (values.targetRole?.length || 0) + 
-                      (values.location?.length || 0) + 
-                      (values.companySize?.length || 0);
-  
-  if (totalFilters <= 6) return null;
-  
-  return (
-    <Alert
-      message="Complex Search Detected"
-      description={
-        <div>
-          You have {totalFilters} active filters. This may significantly reduce your results.
-          <br />
-          <strong>Suggestions:</strong>
-          <ul className="mt-2 mb-0">
-            <li>Start with 1-2 industries and 1-2 job titles</li>
-            <li>Add more filters only if needed</li>
-            <li>Use keywords instead of many industry selections</li>
-          </ul>
-        </div>
-      }
-      type="warning"
-      showIcon
-      className="mb-4"
-    />
-  );
-};
+
 
 // Quick Presets Component
-const QuickPresets = ({ formInstance, setFormData }: { 
-  formInstance: any; 
-  setFormData: React.Dispatch<React.SetStateAction<any>>; 
-}) => {
-  const presets = [
-    {
-      name: 'Tech Executives',
-      data: {
-        targetIndustry: ['Technology'],
-        targetRole: ['CEO', 'CTO'],
-        location: ['United States']
-      }
-    },
-    {
-      name: 'Healthcare Leaders', 
-      data: {
-        targetIndustry: ['Healthcare'],
-        targetRole: ['CEO', 'Medical Director'],
-        location: ['United States']
-      }
-    },
-    {
-      name: 'SaaS Founders',
-      data: {
-        targetIndustry: ['SaaS'],
-        targetRole: ['Founder', 'CEO'],
-        companySize: ['1-10', '11-50']
-      }
-    }
-  ];
-  
-  return (
-    <Card title="Quick Start Presets" className="mb-4">
-      <Space wrap>
-        {presets.map(preset => (
-          <Button
-            key={preset.name}
-            onClick={() => {
-              formInstance.setFieldsValue(preset.data);
-              setFormData((prev: any) => ({ ...prev, ...preset.data }));
-              message.success(`Applied ${preset.name} preset`);
-            }}
-            size="small"
-            type="dashed"
-          >
-            {preset.name}
-          </Button>
-        ))}
-      </Space>
-      <Text type="secondary" className="block mt-2 text-xs">
-        Click to apply preset, then customize as needed
-      </Text>
-    </Card>
-  );
-};
-
-// Criteria Explanations Component
-const CriteriaExplanations = () => (
-  <Card title="Understanding Your Search" className="mb-4">
-    <Row gutter={16}>
-      <Col span={8}>
-        <div className="text-center p-3 bg-blue-50 rounded">
-          <Title level={5} className="text-blue-600 mb-2">Industries</Title>
-          <Text className="text-sm">
-            People working in ANY of these industries
-          </Text>
-          <div className="mt-2 text-xs text-gray-500">
-            Technology OR Healthcare OR Finance
-          </div>
-        </div>
-      </Col>
-      <Col span={8}>
-        <div className="text-center p-3 bg-green-50 rounded">
-          <Title level={5} className="text-green-600 mb-2">Job Titles</Title>
-          <Text className="text-sm">
-            People with ANY of these job titles
-          </Text>
-          <div className="mt-2 text-xs text-gray-500">
-            CEO OR CTO OR Marketing Director
-          </div>
-        </div>
-      </Col>
-      <Col span={8}>
-        <div className="text-center p-3 bg-purple-50 rounded">
-          <Title level={5} className="text-purple-600 mb-2">Locations</Title>
-          <Text className="text-sm">
-            People located in ANY of these places
-          </Text>
-          <div className="mt-2 text-xs text-gray-500">
-            United States OR Canada OR UK
-          </div>
-        </div>
-      </Col>
-    </Row>
-  </Card>
-);
 
 const CampaignCreatePage = () => {
   const { theme } = useTheme();
@@ -366,16 +278,19 @@ const CampaignCreatePage = () => {
       content: 'Generate and review your leads',
     }
   ];
-const [formData, setFormData] = useState<FormData>({
+
+  const [formData, setFormData] = useState<FormData>({
   targetIndustry: [],
   targetRole: [],
   companySize: [],
-  location: [],
+  country: [],    // Changed from location: []
+  state: [],      // New
+  city: [],       // New
   keywords: [],
   technologies: [],
   revenueMin: undefined,
   revenueMax: undefined,
-   requirements: [], 
+  requirements: [], 
   campaignName: ''
 });
 
@@ -484,7 +399,9 @@ const generateLeads = async (values: any) => {
       targetIndustry: values.targetIndustry,
       targetRole: values.targetRole,
       companySize: values.companySize || [],
-      location: values.location || [],
+       country: values.country || [],   
+  state: values.state || [],          
+  city: values.city || [],    
       keywords: values.keywords || [],
       technologies: values.technologies || [],
       revenueRange: (values.revenueMin || values.revenueMax) ? {
@@ -499,21 +416,27 @@ const generateLeads = async (values: any) => {
     console.log('📋 Criteria object (detailed):', JSON.stringify(criteria, null, 2));
     
     // Analyze criteria complexity
-    const complexity = {
-      industries: criteria.targetIndustry.length,
-      roles: criteria.targetRole.length,
-      locations: criteria.location?.length || 0,
-      companySize: criteria.companySize?.length || 0,
-      keywords: criteria.keywords?.length || 0,
-      technologies: criteria.technologies?.length || 0,
-      hasRevenue: !!(criteria.revenueRange?.min || criteria.revenueRange?.max),
-      requirements: criteria.requirements?.length || 0
-    };
-    
-    console.log('🔍 Search complexity:', complexity);
-    const totalFilters = complexity.industries + complexity.roles + complexity.locations + complexity.companySize;
-    console.log('📊 Total filter count:', totalFilters);
+   // Analyze criteria complexity
+const complexity = {
+  industries: criteria.targetIndustry.length,
+  roles: criteria.targetRole.length,
+  // ✅ UPDATED: Use new separate location fields
+  countries: criteria.country?.length || 0,
+  states: criteria.state?.length || 0,
+  cities: criteria.city?.length || 0,
+  companySize: criteria.companySize?.length || 0,
+  keywords: criteria.keywords?.length || 0,
+  technologies: criteria.technologies?.length || 0,
+  hasRevenue: !!(criteria.revenueRange?.min || criteria.revenueRange?.max),
+  requirements: criteria.requirements?.length || 0
+};
 
+
+const totalFilters = complexity.industries + complexity.roles + 
+                    complexity.countries + complexity.states + complexity.cities + 
+                    complexity.companySize;
+console.log('📊 Total filter count:', totalFilters);
+console.log('🔍 Search complexity:', complexity);
     setGenerationProgress(30);
 
     const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
@@ -804,7 +727,7 @@ const stepOneContent = (
             const presetData = {
               targetIndustry: ['Technology'],
               targetRole: ['CEO', 'CTO'],
-              location: ['United States']
+            country: ['United States'] 
             };
             form.setFieldsValue(presetData);
             setFormData(prev => ({ ...prev, ...presetData }));
@@ -820,7 +743,7 @@ const stepOneContent = (
             const presetData = {
               targetIndustry: ['Healthcare'],
               targetRole: ['CEO', 'Medical Director'],
-              location: ['United States']
+                 country: ['United States'] 
             };
             form.setFieldsValue(presetData);
             setFormData(prev => ({ ...prev, ...presetData }));
@@ -858,7 +781,9 @@ const stepOneContent = (
       const values = form.getFieldsValue();
       const totalFilters = (values.targetIndustry?.length || 0) + 
                           (values.targetRole?.length || 0) + 
-                          (values.location?.length || 0) + 
+                             (values.country?.length || 0) +    
+                      (values.state?.length || 0) +     
+                      (values.city?.length || 0) +   
                           (values.companySize?.length || 0);
       
       if (totalFilters > 6) {
@@ -1003,28 +928,105 @@ const stepOneContent = (
         </Form.Item>
       </Col>
       <Col span={12}>
-        <Form.Item 
-          name="location" 
-          label="Geographic Locations"
-          extra="Optional: Leave blank to search globally"
-        >
-          <Select 
-            placeholder="e.g., United States, United Kingdom" 
-            mode="multiple"
-            showSearch
-            maxTagCount={2}
-            allowClear
-            onChange={() => {
-              setTimeout(() => {
-                setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
-              }, 0);
-            }}
-          >
-            {locations.map(location => (
-              <Option key={location} value={location}>{location}</Option>
-            ))}
-          </Select>
-        </Form.Item>
+     <Row gutter={24}>
+  <Col span={8}>
+    <Form.Item 
+      name="country" 
+      label="Country"
+      extra="Optional: Leave blank to search globally"
+    >
+      <Select 
+        mode="tags"
+        placeholder="e.g., United States, Canada" 
+        maxTagCount={2}
+        allowClear
+        tokenSeparators={[',', ';']}
+        options={[
+          'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Australia',
+          'New Zealand', 'Netherlands', 'Sweden', 'Norway', 'Denmark', 'Switzerland',
+          'Singapore', 'Japan', 'South Korea', 'India', 'Brazil', 'Mexico', 'Spain', 
+          'Italy', 'Ireland', 'Belgium', 'Austria', 'Israel', 'United Arab Emirates'
+        ].map(country => ({ value: country, label: country }))}
+        filterOption={(input, option) =>
+          (option?.label ?? '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+        }
+        onChange={() => {
+          setTimeout(() => {
+            setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+          }, 0);
+        }}
+      />
+    </Form.Item>
+  </Col>
+  <Col span={8}>
+    <Form.Item 
+      name="state" 
+      label="State/Province"
+      extra="Optional: e.g., California, Texas, Ontario"
+    >
+      <Select 
+        mode="tags"
+        placeholder="Type any state or province..." 
+        maxTagCount={3}
+        allowClear
+        tokenSeparators={[',', ';']}
+        options={[
+          'California', 'Texas', 'New York', 'Florida', 'Illinois', 'Pennsylvania', 
+          'Ohio', 'Georgia', 'North Carolina', 'Michigan', 'New Jersey', 'Virginia',
+          'Washington', 'Arizona', 'Massachusetts', 'Tennessee', 'Indiana', 'Maryland',
+          'Missouri', 'Wisconsin', 'Colorado', 'Minnesota', 'South Carolina', 'Alabama',
+          'Louisiana', 'Kentucky', 'Oregon', 'Oklahoma', 'Connecticut', 'Utah',
+          // Canadian provinces
+          'Ontario', 'Quebec', 'British Columbia', 'Alberta', 'Manitoba', 'Saskatchewan',
+          'Nova Scotia', 'New Brunswick', 'Newfoundland and Labrador', 'Prince Edward Island'
+        ].map(state => ({ value: state, label: state }))}
+        filterOption={(input, option) =>
+          (option?.label ?? '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+        }
+        onChange={() => {
+          setTimeout(() => {
+            setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+          }, 0);
+        }}
+      />
+    </Form.Item>
+  </Col>
+  <Col span={8}>
+    <Form.Item 
+      name="city" 
+      label="City"
+      extra="Optional: e.g., Austin, Portland, Toronto"
+    >
+      <Select 
+        mode="tags"
+        placeholder="Type any city..." 
+        maxTagCount={3}
+        allowClear
+        tokenSeparators={[',', ';']}
+        options={[
+          'New York City', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia',
+          'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville',
+          'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle',
+          'Denver', 'Boston', 'El Paso', 'Detroit', 'Nashville', 'Portland', 'Memphis',
+          'Oklahoma City', 'Las Vegas', 'Louisville', 'Baltimore', 'Milwaukee', 'Atlanta',
+          'Miami', 'Tampa', 'Orlando', 'Minneapolis',
+          // Canadian cities
+          'Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Edmonton', 'Ottawa', 'Winnipeg',
+          // International cities
+          'London', 'Paris', 'Berlin', 'Tokyo', 'Sydney', 'Mumbai', 'Delhi'
+        ].map(city => ({ value: city, label: city }))}
+        filterOption={(input, option) =>
+          (option?.label ?? '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+        }
+        onChange={() => {
+          setTimeout(() => {
+            setFormData(prev => ({ ...prev, ...form.getFieldsValue() }));
+          }, 0);
+        }}
+      />
+    </Form.Item>
+  </Col>
+</Row>
       </Col>
     </Row>
 
@@ -1034,7 +1036,9 @@ const stepOneContent = (
         const values = form.getFieldsValue();
         const industries = values.targetIndustry || [];
         const roles = values.targetRole || [];
-        const locations = values.location || [];
+         const countries = values.country || [];
+    const states = values.state || [];
+    const cities = values.city || [];
         const companySize = values.companySize || [];
 
         if (!industries.length && !roles.length) {
@@ -1061,12 +1065,16 @@ const stepOneContent = (
           parts.push(industryText);
         }
 
-        if (locations.length) {
-          const locationText = locations.length === 1
-            ? `located in ${locations[0]}`
-            : `located in ${locations.slice(0, -1).join(', ')} or ${locations[locations.length - 1]}`;
-          parts.push(locationText);
-        }
+        // ✅ NEW LOCATION LOGIC
+    if (countries.length || states.length || cities.length) {
+      const locationParts = [];
+      if (cities.length) locationParts.push(`cities: ${cities.join(', ')}`);
+      if (states.length) locationParts.push(`states: ${states.join(', ')}`);
+      if (countries.length) locationParts.push(`countries: ${countries.join(', ')}`);
+      
+      const locationText = `located in ${locationParts.join(' | ')}`;
+      parts.push(locationText);
+    }
 
         if (companySize.length) {
           const sizeText = companySize.length === 1
