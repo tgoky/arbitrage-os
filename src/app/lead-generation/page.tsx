@@ -26,8 +26,13 @@ import {
   TeamOutlined,
   HistoryOutlined,
   SearchOutlined,
+  GlobalOutlined,
   DownloadOutlined,
   MailOutlined,
+  TrophyOutlined,
+  EnvironmentOutlined,
+
+  BankOutlined,
   PhoneOutlined,
   LinkedinOutlined,
   StarOutlined
@@ -42,6 +47,7 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
+// app/lead-generation/page.tsx - Update interface
 interface Lead {
   id: string;
   name: string;
@@ -50,11 +56,32 @@ interface Lead {
   title: string;
   company: string;
   industry: string;
+  companySize?: string;
   location: string;
-  score: number;
   linkedinUrl?: string;
   website?: string;
+  score: number;
   apolloId?: string;
+  metadata?: {
+    companyRevenue?: string;
+    technologies?: string[];
+    employeeCount?: number;
+    founded?: string;
+    departments?: string[];
+    seniority?: string;
+    emailStatus?: string;
+    countryCode?: string;
+    timezone?: string;
+    currency?: string;
+  };
+  // Additional frontend fields
+  generationId?: string;
+  generationTitle?: string;
+  notes?: string;
+  status?: string;
+  lastContacted?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface LeadGeneration {
@@ -376,6 +403,46 @@ const LeadGenerationPage = () => {
     return '#ff4d4f';
   };
 
+  // Add to your lead generation page
+const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
+  if (!globalCoverage) return null;
+  
+  return (
+    <Card title="Global Coverage" className="mb-4">
+      <Row gutter={16}>
+        <Col span={6}>
+          <Statistic
+            title="Countries"
+            value={globalCoverage.countries?.length || 0}
+            prefix={<GlobalOutlined />}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title="Regions"
+            value={globalCoverage.regions?.length || 0}
+            prefix={<EnvironmentOutlined />}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title="Economic Tiers"
+            value={Object.keys(globalCoverage.economicTiers || {}).length}
+            prefix={<TrophyOutlined />}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title="Industries"
+            value={globalCoverage.industries?.length || 0}
+            prefix={<BankOutlined />}
+          />
+        </Col>
+      </Row>
+    </Card>
+  );
+};
+
   // Lead table columns
   const leadColumns: ColumnsType<Lead> = [
     {
@@ -469,6 +536,39 @@ const LeadGenerationPage = () => {
         </Space>
       ),
     },
+    // Add these columns to your leadColumns array
+{
+  title: 'Company Details',
+  key: 'companyDetails',
+  render: (_, record) => (
+    <div>
+      <div className="font-medium">{record.company}</div>
+      <div className="text-sm text-gray-500">{record.industry}</div>
+      {record.companySize && (
+        <Tag >{record.companySize} employees</Tag>
+      )}
+      {record.metadata?.companyRevenue && (
+        <div className="text-xs text-gray-400">
+          Revenue: {record.metadata.companyRevenue}
+        </div>
+      )}
+    </div>
+  ),
+},
+{
+  title: 'Global Info',
+  key: 'globalInfo',
+  render: (_, record) => (
+    <div>
+      <div className="text-sm">{record.location}</div>
+      {record.metadata?.countryCode && (
+        <div className="text-xs text-gray-500">
+          {record.metadata.timezone} • {record.metadata.currency}
+        </div>
+      )}
+    </div>
+  ),
+},
   ];
 
   // Generation history columns

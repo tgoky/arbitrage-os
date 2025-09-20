@@ -29,6 +29,10 @@ import {
   InfoCircleOutlined,
   CreditCardOutlined,
   GiftOutlined,
+   GlobalOutlined,
+  StarOutlined,
+  MailOutlined,
+  PhoneOutlined,
   LoadingOutlined,
   CheckCircleOutlined,
   PlusOutlined
@@ -132,10 +136,12 @@ interface UserCredits {
 }
 
 // Search Preview Component - declare this first
-const SearchPreview = ({ industries, roles, locations, companySize }: {
+const SearchPreview = ({ industries, roles, countries, states, cities, companySize }: {
   industries: string[];
   roles: string[];
-  locations: string[];
+  countries: string[];
+  states: string[];
+  cities: string[];
   companySize: string[];
 }) => {
   if (!industries.length && !roles.length) {
@@ -162,11 +168,17 @@ const SearchPreview = ({ industries, roles, locations, companySize }: {
     parts.push(industryText);
   }
 
-  if (locations.length) {
-    const locationText = locations.length === 1
-      ? `located in ${locations[0]}`
-      : `located in ${locations.slice(0, -1).join(', ')} or ${locations[locations.length - 1]}`;
+  // Enhanced location display
+  if (countries.length || states.length || cities.length) {
+    const locationParts = [];
+    if (cities.length) locationParts.push(`cities: ${cities.join(', ')}`);
+    if (states.length) locationParts.push(`states/provinces: ${states.join(', ')}`);
+    if (countries.length) locationParts.push(`countries: ${countries.join(', ')}`);
+    
+    const locationText = `located in ${locationParts.join(' | ')}`;
     parts.push(locationText);
+  } else {
+    parts.push('located anywhere globally');
   }
 
   if (companySize.length) {
@@ -294,44 +306,51 @@ const CampaignCreatePage = () => {
   campaignName: ''
 });
 
-  const handleNext = async () => {
-    if (currentStep === 0) {
-      try {
-        const currentValues = form.getFieldsValue();
-        setFormData(prev => ({ ...prev, ...currentValues }));
-        
-        await form.validateFields(['targetIndustry', 'targetRole']);
-        
-        if (!currentValues.targetIndustry || currentValues.targetIndustry.length === 0) {
-          message.error('Please select at least one industry');
-          return;
-        }
-        
-        if (!currentValues.targetRole || currentValues.targetRole.length === 0) {
-          message.error('Please select at least one job title');
-          return;
-        }
-        
-      } catch (errorInfo) {
-        console.log('Validation failed:', errorInfo);
-        message.error('Please complete all required fields before proceeding');
+  // Update your form validation
+const handleNext = async () => {
+  if (currentStep === 0) {
+    try {
+      const currentValues = form.getFieldsValue();
+      
+      // Enhanced validation
+      if (!currentValues.targetIndustry || currentValues.targetIndustry.length === 0) {
+        message.error('Please select at least one industry');
         return;
       }
-    }
-    
-    if (currentStep === 1) {
-      const currentValues = form.getFieldsValue();
+      
+      if (!currentValues.targetRole || currentValues.targetRole.length === 0) {
+        message.error('Please select at least one job title');
+        return;
+      }
+      
+      // Optional: Warn if no location specified (global search)
+      const hasLocation = (currentValues.country?.length || 0) + 
+                         (currentValues.state?.length || 0) + 
+                         (currentValues.city?.length || 0) > 0;
+      
+      if (!hasLocation) {
+        message.info('No location specified - searching globally for best results');
+      }
+      
       setFormData(prev => ({ ...prev, ...currentValues }));
       
-      // Check if user can afford the generation
-      if (!costs.canAfford && costs.freeLeadsUsed < leadCount) {
-        message.error(`Not enough credits. You need ${costs.totalCost} credits but only have ${userCredits.credits}.`);
-        return;
-      }
+    } catch (errorInfo) {
+      console.log('Validation failed:', errorInfo);
+      message.error('Please complete all required fields before proceeding');
+      return;
     }
-    
-    setCurrentStep(currentStep + 1);
-  };
+  }
+  
+  setCurrentStep(currentStep + 1);
+};
+
+
+const getScoreColor = (score: number) => {
+  if (score >= 80) return '#52c41a'; // Green
+  if (score >= 60) return '#faad14'; // Orange
+  if (score >= 40) return '#fa8c16'; // Yellow
+  return '#f5222d'; // Red
+};
  
   const handlePrev = () => {
     const currentValues = form.getFieldsValue();
@@ -512,6 +531,19 @@ console.log('🔍 Search complexity:', complexity);
         return;
       }
       
+      if (response.status === 422 || response.status === 400) {
+  console.error('❌ Validation error details:', errorData);
+  if (errorData.error?.includes('validation') || errorData.code === 'APOLLO_VALIDATION_ERROR') {
+    message.error('Search criteria too complex. Try fewer industries or locations.');
+  } else if (errorData.code === 'GLOBAL_SEARCH_FAILED') {
+    message.error('Global search failed. Try more specific criteria.');
+  } else {
+    message.error(`Validation error: ${errorData.error || 'Invalid search parameters'}`);
+  }
+  setCurrentStep(0);
+  return;
+}
+
       throw new Error(errorData.error || `Server error: ${response.status}`);
     }
 
@@ -1449,28 +1481,85 @@ const stepOneContent = (
             <Text>Found {generatedLeads.length} high-quality leads matching your criteria.</Text>
           </div>
 
+
+
+{generationComplete && generatedLeads.length > 0 && (
+  <Card title="Search Coverage" className="mb-4">
+    <Row gutter={16}>
+      <Col span={6}>
+        <Statistic
+          title="Countries Found"
+          value={new Set(generatedLeads.map(lead => lead.metadata?.countryCode).filter(Boolean)).size}
+          prefix={<GlobalOutlined />}
+        />
+      </Col>
+      <Col span={6}>
+        <Statistic
+          title="Avg Lead Score"
+          value={Math.round(generatedLeads.reduce((sum, lead) => sum + lead.score, 0) / generatedLeads.length)}
+          suffix="/100"
+          prefix={<StarOutlined />}
+        />
+      </Col>
+      <Col span={6}>
+        <Statistic
+          title="With Email"
+          value={generatedLeads.filter(lead => lead.email).length}
+          suffix={`/${generatedLeads.length}`}
+          prefix={<MailOutlined />}
+        />
+      </Col>
+      <Col span={6}>
+        <Statistic
+          title="With Phone"
+          value={generatedLeads.filter(lead => lead.phone).length}
+          suffix={`/${generatedLeads.length}`}
+          prefix={<PhoneOutlined />}
+        />
+      </Col>
+    </Row>
+  </Card>
+)}
           <Card title="Generated Leads Preview" className="mb-6">
             <div className="space-y-4">
-              {generatedLeads.slice(0, 5).map((lead, index) => (
-                <div key={index} className="border-b pb-3 last:border-b-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Text strong>{lead.name}</Text>
-                      <div className="text-sm text-gray-500">
-                        {lead.title} at {lead.company}
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {lead.location} • Score: {lead.score}/100
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {lead.email && <Tag color="green">Email</Tag>}
-                      {lead.phone && <Tag color="blue">Phone</Tag>}
-                      {lead.linkedinUrl && <Tag color="purple">LinkedIn</Tag>}
-                    </div>
-                  </div>
-                </div>
-              ))}
+
+{generatedLeads.slice(0, 5).map((lead, index) => (
+  <div key={index} className="border-b pb-3 last:border-b-0">
+    <div className="flex justify-between items-start">
+      <div className="flex-1">
+        <Text strong>{lead.name}</Text>
+        <div className="text-sm text-gray-500">
+          {lead.title} at {lead.company}
+        </div>
+        <div className="text-sm text-gray-400">
+          {lead.location} • {lead.industry}
+        </div>
+        {lead.metadata?.companyRevenue && (
+          <div className="text-xs text-gray-400">
+            Revenue: {lead.metadata.companyRevenue}
+          </div>
+        )}
+      </div>
+      <div className="text-right">
+        <div className="mb-1">
+          <Text className="text-sm font-medium" style={{ color: getScoreColor(lead.score) }}>
+            Score: {lead.score}/100
+          </Text>
+        </div>
+        <div className="space-x-1">
+          {lead.email && <Tag color="green" >Email</Tag>}
+          {lead.phone && <Tag color="blue" >Phone</Tag>}
+          {lead.linkedinUrl && <Tag color="purple" >LinkedIn</Tag>}
+        </div>
+        {lead.metadata?.countryCode && (
+          <div className="text-xs text-gray-400 mt-1">
+            {lead.metadata.timezone} • {lead.metadata.currency}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+))}
               
               {generatedLeads.length > 5 && (
                 <div className="text-center pt-3">

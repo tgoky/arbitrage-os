@@ -1,4 +1,4 @@
-// app/api/lead-generation/route.ts - COMPLETE WITH CREDITS
+// app/api/lead-generation/route.ts - COMPLETE UPDATED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -8,6 +8,53 @@ import { ApolloLeadService } from '@/services/apollo.service';
 import { CreditsService } from '@/services/credits.service';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+
+// Enhanced Lead interface matching the global service
+interface GeneratedLead {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  title: string;
+  company: string;
+  industry: string;
+  companySize?: string;
+  location: string;
+  linkedinUrl?: string;
+  website?: string;
+  score: number;
+  apolloId?: string;
+  metadata?: {
+    companyRevenue?: string;
+    technologies?: string[];
+    employeeCount?: number;
+    founded?: string;
+    departments?: string[];
+    seniority?: string;
+    emailStatus?: string;
+    countryCode?: string;
+    timezone?: string;
+    currency?: string;
+  };
+}
+
+// Enhanced criteria interface for global search
+interface LeadGenerationCriteria {
+  targetIndustry: string[];
+  targetRole: string[];
+  companySize?: string[];
+  country?: string[];     // New global location fields
+  state?: string[];       // New global location fields
+  city?: string[];        // New global location fields
+  keywords?: string[];
+  technologies?: string[];
+  revenueRange?: {
+    min?: number;
+    max?: number;
+  };
+  leadCount: number;
+  requirements?: string[];
+}
 
 // Robust authentication (same pattern as your other APIs)
 async function getAuthenticatedUser(request: NextRequest) {
@@ -114,9 +161,78 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
   }
 }
 
-// POST /api/lead-generation - Generate leads with credit checking
+// Enhanced criteria validation for global search
+function validateGlobalCriteria(criteria: any): { isValid: boolean; error?: string; code?: string } {
+  // Core requirements
+  if (!criteria || !criteria.targetIndustry?.length || !criteria.targetRole?.length) {
+    return {
+      isValid: false,
+      error: 'Target industry and role are required.',
+      code: 'INVALID_CRITERIA'
+    };
+  }
+
+  // Industry validation
+  if (criteria.targetIndustry.length > 10) {
+    return {
+      isValid: false,
+      error: 'Too many industries selected. Maximum 10 allowed.',
+      code: 'TOO_MANY_INDUSTRIES'
+    };
+  }
+
+  // Role validation
+  if (criteria.targetRole.length > 10) {
+    return {
+      isValid: false,
+      error: 'Too many job titles selected. Maximum 10 allowed.',
+      code: 'TOO_MANY_ROLES'
+    };
+  }
+
+  // Location validation - enhanced for global search
+  const locationCount = (criteria.country?.length || 0) + 
+                       (criteria.state?.length || 0) + 
+                       (criteria.city?.length || 0);
+  
+  if (locationCount > 15) {
+    return {
+      isValid: false,
+      error: 'Too many locations selected. Try fewer countries, states, or cities for better results.',
+      code: 'TOO_MANY_LOCATIONS'
+    };
+  }
+
+  // Complexity check - total filter count
+  const totalFilters = criteria.targetIndustry.length + 
+                      criteria.targetRole.length + 
+                      locationCount + 
+                      (criteria.companySize?.length || 0);
+
+  if (totalFilters > 20) {
+    return {
+      isValid: false,
+      error: 'Search criteria too complex. Please reduce the number of filters for better results.',
+      code: 'CRITERIA_TOO_COMPLEX'
+    };
+  }
+
+  // Lead count validation
+  const leadCount = criteria.leadCount || 10;
+  if (leadCount < 1 || leadCount > 1000) {
+    return {
+      isValid: false,
+      error: 'Lead count must be between 1 and 1000.',
+      code: 'INVALID_LEAD_COUNT'
+    };
+  }
+
+  return { isValid: true };
+}
+
+// POST /api/lead-generation - Generate leads with enhanced global search
 export async function POST(req: NextRequest) {
-  console.log('🚀 Lead Generation API Route called');
+  console.log('🚀 Global Lead Generation API Route called');
   
   try {
     // Authentication
@@ -189,29 +305,46 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // Validate criteria
-    if (!criteria || !criteria.targetIndustry?.length || !criteria.targetRole?.length) {
+    // Enhanced criteria validation
+    const validation = validateGlobalCriteria(criteria);
+    if (!validation.isValid) {
       return NextResponse.json({
         success: false,
-        error: 'Invalid criteria. Target industry and role are required.',
-        code: 'INVALID_CRITERIA'
+        error: validation.error,
+        code: validation.code
       }, { status: 400 });
     }
 
-    // Validate lead count
     const leadCount = criteria.leadCount || 10;
-    if (leadCount < 1 || leadCount > 1000) {
-      return NextResponse.json({
-        success: false,
-        error: 'Lead count must be between 1 and 1000.',
-        code: 'INVALID_LEAD_COUNT'
-      }, { status: 400 });
-    }
 
-    console.log('🔍 Starting lead generation with criteria:', {
+    // Enhanced logging for global search
+    console.log('🌍 Starting global lead generation with criteria:', {
       industries: criteria.targetIndustry,
       roles: criteria.targetRole,
-      leadCount
+      countries: criteria.country || [],
+      states: criteria.state || [],
+      cities: criteria.city || [],
+      companySize: criteria.companySize || [],
+      keywords: criteria.keywords || [],
+      technologies: criteria.technologies || [],
+      leadCount,
+      hasRevenue: !!(criteria.revenueRange?.min || criteria.revenueRange?.max)
+    });
+
+    // Log complexity metrics
+    const locationCount = (criteria.country?.length || 0) + 
+                         (criteria.state?.length || 0) + 
+                         (criteria.city?.length || 0);
+    const totalFilters = criteria.targetIndustry.length + 
+                        criteria.targetRole.length + 
+                        locationCount + 
+                        (criteria.companySize?.length || 0);
+
+    console.log('📊 Search complexity:', {
+      totalFilters,
+      locationCount,
+      isGlobalSearch: locationCount === 0,
+      complexityLevel: totalFilters > 10 ? 'high' : totalFilters > 5 ? 'medium' : 'low'
     });
 
     // Check credits before generation
@@ -230,7 +363,7 @@ export async function POST(req: NextRequest) {
       }, { status: 402 }); // Payment required
     }
 
-    // Generate leads with automatic credit deduction
+    // Generate leads with enhanced global service
     const apolloService = new ApolloLeadService();
     const response = await apolloService.generateAndSaveLeads(
       criteria,
@@ -239,16 +372,18 @@ export async function POST(req: NextRequest) {
       campaignName
     );
 
-    console.log('✅ Lead generation completed:', {
+    console.log('✅ Global lead generation completed:', {
       leadsFound: response.leads.length,
       creditsUsed: response.tokensUsed,
-      deliverableId: response.deliverableId
+      deliverableId: response.deliverableId,
+      searchStrategy: response.searchStrategy,
+      globalCoverage: response.globalCoverage
     });
 
-    // Log usage for analytics
+    // Enhanced usage logging with global metadata
     await logUsage({
       userId: user.id,
-      feature: 'lead_generation',
+      feature: 'global_lead_generation',
       tokens: response.tokensUsed,
       timestamp: new Date(),
       metadata: {
@@ -257,43 +392,106 @@ export async function POST(req: NextRequest) {
         criteria: {
           industries: criteria.targetIndustry,
           roles: criteria.targetRole,
-          locations: criteria.location
+          countries: criteria.country || [],
+          states: criteria.state || [],
+          cities: criteria.city || [],
+          companySize: criteria.companySize || [],
+          keywords: criteria.keywords || [],
+          technologies: criteria.technologies || []
         },
-        creditInfo: response.creditInfo
+        creditInfo: response.creditInfo,
+        searchStrategy: response.searchStrategy,
+        globalCoverage: response.globalCoverage,
+        complexity: {
+          totalFilters,
+          locationCount,
+          isGlobalSearch: locationCount === 0
+        }
       }
     });
 
+    // Enhanced response with global metadata
     return NextResponse.json({
       success: true,
       data: {
         generationId: response.deliverableId,
         leads: response.leads,
         generationTime: response.generationTime,
-        creditInfo: response.creditInfo
+        creditInfo: response.creditInfo,
+        searchStrategy: response.searchStrategy,
+        globalCoverage: response.globalCoverage,
+        totalFound: response.totalFound
       },
       meta: {
         remaining: rateLimitResult.limit - rateLimitResult.count,
         creditsRemaining: response.creditInfo.remainingCredits,
-        freeLeadsRemaining: response.creditInfo.remainingFreeLeads
+        freeLeadsRemaining: response.creditInfo.remainingFreeLeads,
+        complexity: {
+          totalFilters,
+          locationCount,
+          complexityLevel: totalFilters > 10 ? 'high' : totalFilters > 5 ? 'medium' : 'low'
+        }
       }
     });
 
   } catch (error) {
-    console.error('💥 Lead Generation API Error:', error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to generate leads. Please try again.',
-        debug: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('💥 Global Lead Generation API Error:', error);
+    
+    if (error instanceof Error) {
+      // Handle specific global search errors
+      if (error.message.includes('location validation')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid location criteria. Please check your country, state, and city selections.',
+          code: 'INVALID_LOCATION_CRITERIA'
+        }, { status: 400 });
+      }
+      
+      if (error.message.includes('global search')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Global search failed. Try more specific location criteria.',
+          code: 'GLOBAL_SEARCH_FAILED'
+        }, { status: 422 });
+      }
+
+      if (error.message.includes('Apollo API')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Lead search service temporarily unavailable. Please try again in a few minutes.',
+          code: 'APOLLO_SERVICE_ERROR'
+        }, { status: 503 });
+      }
+
+      if (error.message.includes('rate limit')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Apollo API rate limit exceeded. Please wait before trying again.',
+          code: 'APOLLO_RATE_LIMIT'
+        }, { status: 429 });
+      }
+
+      if (error.message.includes('authentication')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Apollo API authentication failed. Please contact support.',
+          code: 'APOLLO_AUTH_ERROR'
+        }, { status: 500 });
+      }
+    }
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to generate leads. Please try again.',
+      debug: error instanceof Error ? error.message : 'Unknown error',
+      code: 'INTERNAL_ERROR'
+    }, { status: 500 });
   }
 }
 
-// GET /api/lead-generation - Get user's lead generations
+// GET /api/lead-generation - Get user's lead generations with enhanced metadata
 export async function GET(req: NextRequest) {
-  console.log('🚀 Lead Generation GET API Route called');
+  console.log('🚀 Global Lead Generation GET API Route called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser(req);
@@ -334,7 +532,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // Get generations using service
+    // Get generations using enhanced global service
     const apolloService = new ApolloLeadService();
     const generations = await apolloService.getUserLeadGenerations(
       user.id,
@@ -344,13 +542,14 @@ export async function GET(req: NextRequest) {
     // Log usage for list access
     await logUsage({
       userId: user.id,
-      feature: 'lead_generation_list',
+      feature: 'global_lead_generation_list',
       tokens: 0,
       timestamp: new Date(),
       metadata: {
         workspaceId,
         resultCount: generations.length,
-        action: 'list'
+        action: 'list',
+        hasGlobalGenerations: generations.some(g => g.globalCoverage?.isGlobal)
       }
     });
 
@@ -358,16 +557,19 @@ export async function GET(req: NextRequest) {
       success: true,
       data: generations,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.limit - rateLimitResult.count,
+        totalGenerations: generations.length,
+        globalGenerations: generations.filter(g => g.globalCoverage?.isGlobal).length
       }
     });
 
   } catch (error) {
-    console.error('💥 Lead Generations Fetch Error:', error);
+    console.error('💥 Global Lead Generations Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to fetch lead generations' 
+        error: 'Failed to fetch lead generations',
+        code: 'FETCH_ERROR'
       },
       { status: 500 }
     );
