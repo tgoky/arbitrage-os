@@ -220,6 +220,16 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                          {
+                          name: "Credits",
+                          list: "/credits",
+                          create: "/credits/create",
+                          edit: "/credits/edit/:id",
+                          show: "/credits/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
                         {
                           name: "Agents_Flow",
                           list: "/agents-flow",
