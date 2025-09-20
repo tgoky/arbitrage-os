@@ -2,8 +2,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '../../../providers/ThemeProvider';
-import CreditsPurchaseModal from '../../../components/credits/CreditsDisplayModal';
+import { useTheme } from '../../providers/ThemeProvider';
+import CreditsPurchaseModal from '../../components/credits/CreditsDisplayModal';
 import { 
   CreditCard, 
   Zap, 
