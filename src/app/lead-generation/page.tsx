@@ -445,131 +445,123 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
 
   // Lead table columns
   const leadColumns: ColumnsType<Lead> = [
-    {
-      title: 'Contact',
-      key: 'contact',
-      render: (_, record) => (
-        <div className="flex items-center space-x-3">
-          <Avatar 
-            src={`https://i.pravatar.cc/40?u=${record.id}`}
-            size={40}
-          />
-          <div>
-            <div className="font-medium">{record.name}</div>
-            <div className="text-sm text-gray-500">{record.title}</div>
+  {
+    title: 'Contact',
+    key: 'contact',
+    width: 250,
+    fixed: 'left',
+    render: (_, record) => (
+      <div className="flex items-center space-x-3">
+        <Avatar 
+          src={`https://i.pravatar.cc/40?u=${record.id}`}
+          size={40}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">{record.name}</div>
+          <div className="text-sm text-gray-500 truncate">{record.title}</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'Company',
+    key: 'company',
+    width: 200,
+    render: (_, record) => (
+      <div className="min-w-0">
+        <div className="font-medium truncate">{record.company}</div>
+        <div className="text-sm text-gray-500 truncate">{record.industry}</div>
+        {record.companySize && (
+          <Tag  className="mt-1">{record.companySize}</Tag>
+        )}
+      </div>
+    ),
+  },
+  {
+    title: 'Location',
+    key: 'location',
+    width: 180,
+    render: (_, record) => (
+      <div className="min-w-0">
+        <div className="text-sm truncate">{record.location}</div>
+        {record.metadata?.countryCode && (
+          <div className="text-xs text-gray-500 truncate">
+            {record.metadata.timezone} • {record.metadata.currency}
           </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Company',
-      key: 'company',
-      render: (_, record) => (
-        <div>
-          <div className="font-medium">{record.company}</div>
-          <div className="text-sm text-gray-500">{record.industry}</div>
-        </div>
-      ),
-    },
-    {
-      title: 'Location',
-      dataIndex: 'location',
-      key: 'location',
-    },
-    {
-      title: 'Contact Info',
-      key: 'contactInfo',
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          {record.email && (
-            <div className="flex items-center text-sm">
-              <MailOutlined className="mr-1" />
-              <span>{record.email}</span>
-            </div>
-          )}
-          {record.phone && (
-            <div className="flex items-center text-sm">
-              <PhoneOutlined className="mr-1" />
-              <span>{record.phone}</span>
-            </div>
-          )}
-          {record.linkedinUrl && (
-            <div className="flex items-center text-sm">
-              <LinkedinOutlined className="mr-1" />
-              <span>LinkedIn</span>
-            </div>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: 'Score',
-      key: 'score',
-      render: (_, record) => (
-        <div className="flex items-center">
-          <StarOutlined style={{ color: getScoreColor(record.score) }} className="mr-1" />
-          <span style={{ color: getScoreColor(record.score), fontWeight: 'bold' }}>
-            {record.score}
-          </span>
-        </div>
-      ),
-      sorter: (a, b) => a.score - b.score,
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button 
-            size="small"
-            onClick={() => handleViewLead(record)}
-          >
-            View
-          </Button>
-          <Button 
-            size="small" 
-            type="primary"
-            onClick={() => handleContactLead(record)}
-          >
-            Contact
-          </Button>
-        </Space>
-      ),
-    },
-    // Add these columns to your leadColumns array
-{
-  title: 'Company Details',
-  key: 'companyDetails',
-  render: (_, record) => (
-    <div>
-      <div className="font-medium">{record.company}</div>
-      <div className="text-sm text-gray-500">{record.industry}</div>
-      {record.companySize && (
-        <Tag >{record.companySize} employees</Tag>
-      )}
-      {record.metadata?.companyRevenue && (
-        <div className="text-xs text-gray-400">
-          Revenue: {record.metadata.companyRevenue}
-        </div>
-      )}
-    </div>
-  ),
-},
-{
-  title: 'Global Info',
-  key: 'globalInfo',
-  render: (_, record) => (
-    <div>
-      <div className="text-sm">{record.location}</div>
-      {record.metadata?.countryCode && (
-        <div className="text-xs text-gray-500">
-          {record.metadata.timezone} • {record.metadata.currency}
-        </div>
-      )}
-    </div>
-  ),
-},
-  ];
+        )}
+      </div>
+    ),
+  },
+  {
+    title: 'Contact Info',
+    key: 'contactInfo',
+    width: 160,
+    render: (_, record) => (
+      <div className="space-y-1">
+        {record.email && (
+          <div className="flex items-center text-xs">
+            <MailOutlined className="mr-1 text-green-500" />
+            <span className="truncate">Email</span>
+          </div>
+        )}
+        {record.phone && (
+          <div className="flex items-center text-xs">
+            <PhoneOutlined className="mr-1 text-blue-500" />
+            <span className="truncate">Phone</span>
+          </div>
+        )}
+        {record.linkedinUrl && (
+          <div className="flex items-center text-xs">
+            <LinkedinOutlined className="mr-1 text-purple-500" />
+            <span className="truncate">LinkedIn</span>
+          </div>
+        )}
+        {!record.email && !record.phone && !record.linkedinUrl && (
+          <span className="text-xs text-gray-400">No contact</span>
+        )}
+      </div>
+    ),
+  },
+  {
+    title: 'Score',
+    key: 'score',
+    width: 100,
+    align: 'center',
+    render: (_, record) => (
+      <div className="flex items-center justify-center">
+        <StarOutlined style={{ color: getScoreColor(record.score) }} className="mr-1" />
+        <span style={{ color: getScoreColor(record.score), fontWeight: 'bold' }}>
+          {record.score}
+        </span>
+      </div>
+    ),
+    sorter: (a, b) => a.score - b.score,
+  },
+  {
+    title: 'Actions',
+    key: 'actions',
+    width: 120,
+    fixed: 'right',
+    render: (_, record) => (
+      <Space size="small">
+        <Button 
+          size="small"
+          onClick={() => handleViewLead(record)}
+        >
+          View
+        </Button>
+        <Button 
+          size="small" 
+          type="primary"
+          onClick={() => handleContactLead(record)}
+        >
+          Contact
+        </Button>
+      </Space>
+    ),
+  },
+];
+
 
   // Generation history columns
   const generationColumns: ColumnsType<LeadGeneration> = [
@@ -702,31 +694,36 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
           </Card>
 
           {/* Leads Table */}
-          {loading ? (
-            <div className="text-center py-12">
-              <Spin size="large" />
-            </div>
-          ) : filteredLeads.length > 0 ? (
-            <Table
-              columns={leadColumns}
-                className="no-vertical-borders"
-              dataSource={filteredLeads}
-              rowKey="id"
-              pagination={{
-                total: filteredLeads.length,
-                pageSize: 20,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => 
-                  `${range[0]}-${range[1]} of ${total} leads`,
-              }}
-            />
-          ) : (
-            <Empty 
-              description="No leads found"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
+       {loading ? (
+  <div className="text-center py-12">
+    <Spin size="large" />
+  </div>
+) : filteredLeads.length > 0 ? (
+  <Table
+    columns={leadColumns}
+    className="no-vertical-borders"
+    dataSource={filteredLeads}
+    rowKey="id"
+    scroll={{ 
+      x: 1200, // Enable horizontal scroll on smaller screens
+      y: 600   // Enable vertical scroll for long lists
+    }}
+    pagination={{
+      total: filteredLeads.length,
+      pageSize: 20,
+      showSizeChanger: true,
+      showQuickJumper: true,
+      showTotal: (total, range) => 
+        `${range[0]}-${range[1]} of ${total} leads`,
+    }}
+    size="middle" // Compact table size
+  />
+) : (
+  <Empty 
+    description="No leads found"
+    image={Empty.PRESENTED_IMAGE_SIMPLE}
+  />
+)}
         </div>
       ),
     },
