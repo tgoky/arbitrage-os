@@ -323,10 +323,19 @@ const CreditsHistoryPage = () => {
                 <h2 className="text-xl font-bold text-gray-800">Credits & History</h2>
               </div>
               
-              <div className="text-sm text-gray-600 mb-6">
-                View your credit balance, purchase history, and usage statistics
-              </div>
-
+            <div className="flex justify-between items-center mb-6">
+  <button 
+    className="px-3 py-1 bg-blue-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center"
+       onClick={() => router.back()}
+  >
+    <ArrowLeft className="w-3 h-3 mr-1" />
+    Lead Generation
+  </button>
+  
+  <div className="text-sm text-gray-600">
+    View your credit balance, purchase history, and usage statistics
+  </div>
+</div>
               {/* Current Balance Cards */}
               <div className="grid grid-cols-4 gap-3 mb-6">
                 {/* Available Credits */}
