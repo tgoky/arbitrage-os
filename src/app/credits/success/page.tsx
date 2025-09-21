@@ -317,7 +317,7 @@ const SuccessPage = () => {
                 {/* Buttons */}
                 <div className="space-y-2">
                   <button 
-                    className="w-full py-2 bg-blue-700 text-white font-bold border-2 border-blue-900 hover:bg-blue-800 flex items-center justify-center"
+                    className="w-full py-2 bg-teal-800 text-white font-bold border-2 border-blue-900 hover:bg-blue-800 flex items-center justify-center"
                     onClick={() => router.push('/lead-generation')}
                   >
                     <Zap className="w-4 h-4 mr-2" />
@@ -342,10 +342,13 @@ const SuccessPage = () => {
                   </div>
                 </div>
                 
-                {/* Session ID */}
-                <div className="mt-4 p-2 bg-gray-200 border border-gray-300 text-xs text-center">
-                  <div className="text-gray-600">Session ID: {sessionId}</div>
-                </div>
+               {/* Session ID */}
+<div className="mt-4 p-2 bg-gray-200 border border-gray-300 text-xs">
+  <div className="text-gray-600 mb-1">Session ID:</div>
+  <div className="font-mono text-xs break-all bg-gray-100 p-1 border border-gray-300">
+    {sessionId}
+  </div>
+</div>
               </div>
             </div>
           </div>
