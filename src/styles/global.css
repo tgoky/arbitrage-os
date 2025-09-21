@@ -722,6 +722,9 @@ body {
   }
 }
 
+/* Add these styles to the end of your existing global.css file */
+
+/* Lead Generation Table Styles */
 .ant-table-thead > tr > th {
   font-weight: 600 !important;
   font-size: 12px !important;
@@ -734,7 +737,7 @@ body {
 }
 
 .ant-table-tbody > tr:hover > td {
-  background-color: #f5f5f5 !important;
+
 }
 
 .no-vertical-borders .ant-table-tbody > tr > td {
@@ -745,6 +748,22 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Clickable row styling */
+.clickable-row {
+  transition: background-color 0.2s ease !important;
+}
+
+.clickable-row:hover {
+ 
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.clickable-row:active {
+  transform: translateY(0px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Additional table improvements */
@@ -802,19 +821,19 @@ body {
 }
 
 .lead-generation-table .ant-table-thead {
-  background-color: #fafafa;
+
 }
 
 .lead-generation-table .ant-table-tbody > tr:nth-child(even) {
-  background-color: #fafafa;
+
 }
 
 .lead-generation-table .ant-table-tbody > tr:nth-child(odd) {
-  background-color: white;
+
 }
 
 .lead-generation-table .ant-table-tbody > tr:hover {
-  background-color: #e6f7ff !important;
+
 }
 
 /* Button spacing in table actions */
@@ -826,6 +845,21 @@ body {
   margin-right: 0;
 }
 
+/* Prevent text selection on clickable rows */
+.clickable-row {
+  user-select: none;
+}
+
+/* Button hover states remain interactive */
+.clickable-row .ant-btn {
+  user-select: auto;
+  pointer-events: auto;
+}
+
+.clickable-row .ant-btn:hover {
+  z-index: 1;
+  position: relative;
+}
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .metrics-grid {

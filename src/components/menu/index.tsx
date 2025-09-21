@@ -1,6 +1,7 @@
 // components/menu/Menu.tsx
 "use client";
 
+import React from "react"; // Add explicit React import
 import { useLogout, useMenu } from "@refinedev/core";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,7 @@ import { Controls } from "./Controls";
 import { NavigationMenu } from "./NavigationMenu";
 import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
 import { UserSection } from "./UserSection";
-import { Power } from "lucide-react"; // Import Power icon for consistency
+import { Power } from "lucide-react";
 
 // Simple flat mapping of menu items to their groups based on your NavigationMenu
 const getGroupForMenuItem = (itemKey: string): string | null => {
@@ -30,14 +31,16 @@ const getGroupForMenuItem = (itemKey: string): string | null => {
 };
 
 // Windows 98-style Logout Dialog Component
-const LogoutDialog = ({
-  isOpen,
-  onClose,
-  onConfirm,
-}: {
+interface LogoutDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+}
+
+const LogoutDialog: React.FC<LogoutDialogProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
 }) => {
   if (!isOpen) return null;
 
@@ -80,20 +83,20 @@ const LogoutDialog = ({
   );
 };
 
-export const Menu = () => {
+export const Menu: React.FC = () => {
   const { mutate: logout } = useLogout();
   const { menuItems, selectedKey } = useMenu();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient] = useState<boolean>(false);
   const { collapsed, setCollapsed } = useSidebar();
-  const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false);
-  const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
-  const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
+  const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState<boolean>(false);
+  const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState<boolean>(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
+  const [newWorkspaceDescription, setNewWorkspaceDescription] = useState<string>("");
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]);
-  const userHasInteractedRef = useRef(false);
+  const userHasInteractedRef = useRef<boolean>(false);
   const { theme } = useTheme();
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false); // New state for logout dialog
+  const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
   
   const { 
     currentWorkspace, 
@@ -124,13 +127,13 @@ export const Menu = () => {
         setExpandedGroups([selectedItemGroup]);
       }
     }
-  }, [selectedItemGroup]);
+  }, [selectedItemGroup, expandedGroups]);
 
-  const handleLogout = () => {
-    setShowLogoutDialog(true); // Show the custom dialog instead of window.confirm
+  const handleLogout = (): void => {
+    setShowLogoutDialog(true);
   };
 
-  const handleCreateWorkspace = async () => {
+  const handleCreateWorkspace = async (): Promise<void> => {
     if (!newWorkspaceName.trim()) {
       alert("Workspace name cannot be empty");
       return;
@@ -147,25 +150,24 @@ export const Menu = () => {
     }
   };
 
-  const handleSwitchWorkspace = (workspaceSlug: string) => {
+  const handleSwitchWorkspace = (workspaceSlug: string): void => {
     switchWorkspace(workspaceSlug);
     setWorkspaceDropdownOpen(false);
   };
-const toggleGroup = (groupId: string) => {
-  console.log(`User manually toggled group: ${groupId}`);
-  userHasInteractedRef.current = true;
-  setExpandedGroups((prev) => {
-    if (prev.includes(groupId)) {
-      // Remove the group if it's currently expanded
-      console.log(`Collapsing group: ${groupId}`);
-      return prev.filter(id => id !== groupId);
-    } else {
-      // Add the group to the expanded list (keep others open)
-      console.log(`Expanding group: ${groupId}`);
-      return [...prev, groupId];
-    }
-  });
-};
+
+  const toggleGroup = (groupId: string): void => {
+    console.log(`User manually toggled group: ${groupId}`);
+    userHasInteractedRef.current = true;
+    setExpandedGroups((prev) => {
+      if (prev.includes(groupId)) {
+        console.log(`Collapsing group: ${groupId}`);
+        return prev.filter(id => id !== groupId);
+      } else {
+        console.log(`Expanding group: ${groupId}`);
+        return [...prev, groupId];
+      }
+    });
+  };
 
   if (workspaceLoading) {
     return (
@@ -192,22 +194,22 @@ const toggleGroup = (groupId: string) => {
       `}
     >
       <div className="relative">
-     <WorkspaceHeader
-  collapsed={collapsed}
-  workspaceDropdownOpen={workspaceDropdownOpen}
-  setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-/>
+        <WorkspaceHeader
+          collapsed={collapsed}
+          workspaceDropdownOpen={workspaceDropdownOpen}
+          setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
+        />
 
         {workspaceDropdownOpen && (
-<WorkspaceDropdown
-  workspaceDropdownOpen={workspaceDropdownOpen}
-  workspaces={workspaces}
-  currentWorkspace={currentWorkspace}
-  switchWorkspace={handleSwitchWorkspace}
-  setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
-  setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
-/>
-)}
+          <WorkspaceDropdown
+            workspaceDropdownOpen={workspaceDropdownOpen}
+            workspaces={workspaces}
+            currentWorkspace={currentWorkspace}
+            switchWorkspace={handleSwitchWorkspace}
+            setCreateWorkspaceModalOpen={setCreateWorkspaceModalOpen}
+            setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
+          />
+        )}
       </div>
 
       <Controls collapsed={collapsed} setCollapsed={setCollapsed} />

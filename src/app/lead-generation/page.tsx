@@ -790,6 +790,23 @@ const leadColumns: ColumnsType<Lead> = [
   }}
   size="small" // Changed from "middle" to "small" for more compact rows
   tableLayout="fixed" // Enforces the width constraints
+  onRow={(record) => ({
+    onClick: (event) => {
+      // Don't navigate if user clicked on a button or link
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'BUTTON' || 
+        target.closest('button') || 
+        target.tagName === 'A' || 
+        target.closest('a')
+      ) {
+        return;
+      }
+      handleViewLead(record);
+    },
+    style: { cursor: 'pointer' },
+    className: 'clickable-row'
+  })}
 />
 
 
