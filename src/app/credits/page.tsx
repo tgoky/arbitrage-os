@@ -325,7 +325,7 @@ const CreditsHistoryPage = () => {
               
             <div className="flex justify-between items-center mb-6">
   <button 
-    className="px-3 py-1 bg-blue-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center"
+    className="px-3 py-1 bg-teal-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center"
        onClick={() => router.back()}
   >
     <ArrowLeft className="w-3 h-3 mr-1" />
