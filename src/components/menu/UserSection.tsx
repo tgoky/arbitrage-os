@@ -54,7 +54,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   };
 
   const handleProfileClick = () => {
-    router.push('/profile');
+    router.push('/profiles');
   };
 
   // Handle auth errors
