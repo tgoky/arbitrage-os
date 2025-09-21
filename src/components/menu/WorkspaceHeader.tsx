@@ -86,7 +86,6 @@ export const WorkspaceHeader = ({
             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors border-none ${
               theme === "dark" ? "bg-black hover:bg-gray-900" : "bg-white hover:bg-gray-100"
             }`}
-            disabled={workspaces.length <= 1} // Disable if only one workspace
           >
             <div
               className={`w-8 h-8 rounded-lg ${getCurrentWorkspaceColor()} flex items-center justify-center text-white font-medium text-sm flex-shrink-0 shadow-sm`}
@@ -109,21 +108,19 @@ export const WorkspaceHeader = ({
               </div>
             </div>
 
-            {/* Only show dropdown arrows if there are multiple workspaces */}
-            {workspaces.length > 1 && (
-              <div className="flex flex-col items-center -space-y-2">
-                <ChevronUp
-                  className={`w-5 h-5 transition-transform ${
-                    workspaceDropdownOpen ? "rotate-180" : ""
-                  } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
-                />
-                <ChevronDown
-                  className={`w-5 h-5 transition-transform ${
-                    workspaceDropdownOpen ? "rotate-180" : ""
-                  } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
-                />
-              </div>
-            )}
+            {/* Always show dropdown arrows to allow access to create workspace */}
+            <div className="flex flex-col items-center -space-y-2">
+              <ChevronUp
+                className={`w-5 h-5 transition-transform ${
+                  workspaceDropdownOpen ? "rotate-180" : ""
+                } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
+              />
+              <ChevronDown
+                className={`w-5 h-5 transition-transform ${
+                  workspaceDropdownOpen ? "rotate-180" : ""
+                } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
+              />
+            </div>
           </button>
         </div>
       ) : (
