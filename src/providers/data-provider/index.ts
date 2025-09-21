@@ -1,7 +1,11 @@
 "use client";
 
-import dataProviderNestjsxCrud from "@refinedev/nestjsx-crud";
+import { dataProvider as supabaseDataProvider } from "@refinedev/supabase";
+import { createClient } from "@supabase/supabase-js";
 
-const API_URL = "https://api.nestjsx-crud.refine.dev";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const dataProvider = dataProviderNestjsxCrud(API_URL);
+const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+export const dataProvider = supabaseDataProvider(supabaseClient);

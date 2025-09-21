@@ -230,6 +230,16 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                           {
+                          name: "Profiles",
+                          list: "/profiles",
+                          create: "/profiles/create",
+                          edit: "/profiles/edit/:id",
+                          show: "/profiles/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
                         {
                           name: "Agents_Flow",
                           list: "/agents-flow",

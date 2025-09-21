@@ -1,4 +1,5 @@
-// schema.prisma - COMPLETE WITH CREDITS SYSTEM
+// schema.prisma - COMPLETE WITH CREDITS SYSTEM AND USER MODEL + RELATIONS
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,6 +11,29 @@ datasource db {
   schemas   = ["public"]
 }
 
+// ------------------ USER MODEL ------------------
+model User {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String    @unique
+  name       String?
+  avatar     String?
+  created_at DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
+  updated_at DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  workspaces         Workspace[]
+  deliverables       Deliverable[]
+  userFavorites      UserFavorite[]
+  aiToolFavorites    AIToolFavorite[]
+  userCredits        UserCredit?
+  creditTransactions CreditTransaction[]
+
+  @@index([email], map: "idx_users_email")
+  @@map("users")
+  @@schema("public")
+}
+
+// ------------------ WORKSPACE ------------------
 model Workspace {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id     String    @map("user_id") @db.Uuid
@@ -20,6 +44,8 @@ model Workspace {
   created_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
   updated_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Relations
+  user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   deliverables       Deliverable[]
   creditTransactions CreditTransaction[]
   
@@ -30,6 +56,7 @@ model Workspace {
   @@schema("public")
 }
 
+// ------------------ DELIVERABLE ------------------
 model Deliverable {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title        String   @db.VarChar(255)
@@ -43,6 +70,8 @@ model Deliverable {
   created_at   DateTime @default(now()) @db.Timestamptz(6)
   updated_at   DateTime @updatedAt @db.Timestamptz(6)
 
+  // Relations
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   
   @@index([user_id], map: "idx_deliverables_user_id")
@@ -53,11 +82,15 @@ model Deliverable {
   @@schema("public")
 }
 
+// ------------------ USER FAVORITE ------------------
 model UserFavorite {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String   @db.Uuid
   prompt_id  Int
   created_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
     
   @@unique([user_id, prompt_id])
   @@index([user_id], map: "idx_user_favorites_user_id")
@@ -65,11 +98,15 @@ model UserFavorite {
   @@schema("public")
 }
 
+// ------------------ AI TOOL FAVORITE ------------------
 model AIToolFavorite {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String   @db.Uuid
   tool_id    String
   created_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
        
   @@unique([user_id, tool_id])
   @@index([user_id], map: "idx_aitool_favorites_user_id")
@@ -77,7 +114,7 @@ model AIToolFavorite {
   @@schema("public")
 }
 
-// NEW: User Credits System
+// ------------------ USER CREDITS ------------------
 model UserCredit {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id           String   @unique @db.Uuid
@@ -87,23 +124,28 @@ model UserCredit {
   created_at        DateTime @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
   updated_at        DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@index([user_id], map: "idx_user_credits_user_id")
   @@map("user_credits")
   @@schema("public")
 }
 
-// NEW: Credit Transaction History
+// ------------------ CREDIT TRANSACTION ------------------
 model CreditTransaction {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id          String    @db.Uuid
   workspace_id     String?   @db.Uuid
-  amount           Int       // Positive for credits added, negative for credits used
+  amount           Int
   transaction_type String    @map("transaction_type") @db.VarChar(50) // 'purchase', 'usage', 'refund', 'bonus', 'free_usage'
   description      String?
-  reference_id     String?   @map("reference_id") // Link to deliverable or payment
+  reference_id     String?   @map("reference_id")
   metadata         Json?
   created_at       DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
 
+  // Relations
+  user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
   workspace Workspace? @relation(fields: [workspace_id], references: [id], onDelete: SetNull)
   
   @@index([user_id], map: "idx_credit_transactions_user_id")

@@ -2,52 +2,76 @@
 
 // components/menu/UserSection.tsx
 import { useTheme } from "../../providers/ThemeProvider";
-import { useGetIdentity } from "@refinedev/core";
 import { useState, useEffect } from "react";
-// import { useRouter } from "next/router"; // or "next/navigation" if using App Router
-// If using App Router, use: import { useRouter } from "next/navigation";
- import { useRouter } from "next/navigation";
-interface UserSectionProps {
-  collapsed: boolean;
-  handleLogout: () => void;
-}
+import { useRouter } from "next/navigation";
+import { useUserProfile } from "../../app/hooks/useUserProfile";
 
-interface UserIdentity {
+
+
+// Add this interface
+interface UserProfile {
   id: string;
   email?: string;
   name?: string;
   avatar?: string;
 }
 
+
+
+interface UserSectionProps {
+  collapsed: boolean;
+  handleLogout: () => void;
+}
+
 export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   const { theme } = useTheme();
-  const { data: identity, isLoading } = useGetIdentity<UserIdentity>();
+
+   const { data: userProfile, isLoading, error } = useUserProfile() as {
+    data: UserProfile | undefined;
+    isLoading: boolean;
+    error: any;
+  };
+
   const [userInitial, setUserInitial] = useState("U");
   const router = useRouter();
 
   useEffect(() => {
-    if (identity) {
+    if (userProfile) {
       // Get initial from name or email
-      const initial = identity.name?.charAt(0).toUpperCase() || 
-                     identity.email?.charAt(0).toUpperCase() || 
+      const initial = userProfile.name?.charAt(0).toUpperCase() || 
+                     userProfile.email?.charAt(0).toUpperCase() || 
                      "U";
       setUserInitial(initial);
     }
-  }, [identity]);
+  }, [userProfile]);
 
   const handleFeedbackClick = () => {
     router.push('/feedback');
   };
 
   const handleWorkspaceSettings = () => {
-    // Add your workspace settings navigation here
     router.push('/settings');
   };
 
+  const handleProfileClick = () => {
+    router.push('/profile');
+  };
+
+  // Handle auth errors
+  if (error?.message === 'Authentication required') {
+    return (
+      <div className={`p-3 ${theme === "dark" ? "bg-black" : "bg-white"}`}>
+        <div className="text-center">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+            Please sign in
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`p-3 ${theme === "dark" ? "bg-black" : "bg-white"}`}
-    >
+    <div className={`p-3 ${theme === "dark" ? "bg-black" : "bg-white"}`}>
       {/* Submit Feedback */}
       {!collapsed && (
         <button
@@ -108,11 +132,19 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
       {/* User Section */}
       <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed ? (
-          <div className="flex items-center gap-2">
-            {identity?.avatar ? (
+          <button
+            onClick={handleProfileClick}
+            className={`flex items-center gap-2 p-2 rounded-md flex-1 mr-2 transition-colors border-none ${
+              theme === "dark"
+                ? "bg-black text-gray-200 hover:bg-gray-800"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+            title="View Profile"
+          >
+            {userProfile?.avatar ? (
               <img 
-                src={identity.avatar} 
-                alt={identity.name || identity.email || "User"}
+                src={userProfile.avatar} 
+                alt={userProfile.name || userProfile.email || "User"}
                 className="h-8 w-8 rounded-lg object-cover"
               />
             ) : (
@@ -120,37 +152,48 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                 {isLoading ? "..." : userInitial}
               </div>
             )}
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-left">
               <p
                 className={`text-xs font-medium truncate ${
                   theme === "dark" ? "text-gray-200" : "text-gray-700"
                 }`}
               >
-                {isLoading ? "Loading..." : (identity?.name || "User")}
+                {isLoading ? "Loading..." : (userProfile?.name || "User")}
               </p>
               <p
                 className={`text-[0.75rem] truncate ${
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 }`}
-                title={identity?.email}
+                title={userProfile?.email}
               >
-                {isLoading ? "..." : (identity?.email || "No email")}
+                {isLoading ? "..." : (userProfile?.email || "No email")}
               </p>
             </div>
-          </div>
+          </button>
         ) : (
-          identity?.avatar ? (
-            <img 
-              src={identity.avatar} 
-              alt={identity.name || identity.email || "User"}
-              className="h-8 w-8 rounded-lg object-cover"
-            />
-          ) : (
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-              {isLoading ? "..." : userInitial}
-            </div>
-          )
+          <button
+            onClick={handleProfileClick}
+            className={`p-1 rounded-md transition-colors border-none ${
+              theme === "dark"
+                ? "bg-black text-gray-200 hover:bg-gray-800"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+            title="View Profile"
+          >
+            {userProfile?.avatar ? (
+              <img 
+                src={userProfile.avatar} 
+                alt={userProfile.name || userProfile.email || "User"}
+                className="h-8 w-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                {isLoading ? "..." : userInitial}
+              </div>
+            )}
+          </button>
         )}
+        
         <button
           onClick={handleLogout}
           className={`p-2 rounded-md ${
