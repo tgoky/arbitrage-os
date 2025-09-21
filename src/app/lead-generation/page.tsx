@@ -444,21 +444,21 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
 };
 
   // Lead table columns
-  const leadColumns: ColumnsType<Lead> = [
+  // Lead table columns
+const leadColumns: ColumnsType<Lead> = [
   {
     title: 'Contact',
     key: 'contact',
-    width: 250,
-    fixed: 'left',
+    // Removed fixed width to allow flexibility
     render: (_, record) => (
       <div className="flex items-center space-x-3">
         <Avatar 
           src={`https://i.pravatar.cc/40?u=${record.id}`}
           size={40}
         />
-        <div className="min-w-0 flex-1">
-          <div className="font-medium truncate">{record.name}</div>
-          <div className="text-sm text-gray-500 truncate">{record.title}</div>
+        <div>
+          <div className="font-medium">{record.name}</div>
+          <div className="text-sm text-gray-500">{record.title}</div>
         </div>
       </div>
     ),
@@ -466,69 +466,61 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
   {
     title: 'Company',
     key: 'company',
-    width: 200,
+    // Removed fixed width
     render: (_, record) => (
-      <div className="min-w-0">
-        <div className="font-medium truncate">{record.company}</div>
-        <div className="text-sm text-gray-500 truncate">{record.industry}</div>
+      <div>
+        <div className="font-medium">{record.company}</div>
+        <div className="text-sm text-gray-500">{record.industry}</div>
         {record.companySize && (
-          <Tag  className="mt-1">{record.companySize}</Tag>
+          <Tag className="mt-1">{record.companySize} employees</Tag>
+        )}
+        {record.metadata?.companyRevenue && (
+          <div className="text-xs text-gray-400">
+            Revenue: {record.metadata.companyRevenue}
+          </div>
         )}
       </div>
     ),
   },
   {
     title: 'Location',
+    dataIndex: 'location',
     key: 'location',
-    width: 180,
-    render: (_, record) => (
-      <div className="min-w-0">
-        <div className="text-sm truncate">{record.location}</div>
-        {record.metadata?.countryCode && (
-          <div className="text-xs text-gray-500 truncate">
-            {record.metadata.timezone} • {record.metadata.currency}
-          </div>
-        )}
-      </div>
-    ),
+    // Removed fixed width
   },
   {
-    title: 'Contact Info',
+    title: 'Contact Info', // Reverted to show actual info
     key: 'contactInfo',
-    width: 160,
+    // Removed fixed width
     render: (_, record) => (
-      <div className="space-y-1">
+      <Space direction="vertical" size={0}>
         {record.email && (
-          <div className="flex items-center text-xs">
+          <div className="flex items-center text-sm">
             <MailOutlined className="mr-1 text-green-500" />
-            <span className="truncate">Email</span>
+            <span>{record.email}</span>
           </div>
         )}
         {record.phone && (
-          <div className="flex items-center text-xs">
+          <div className="flex items-center text-sm">
             <PhoneOutlined className="mr-1 text-blue-500" />
-            <span className="truncate">Phone</span>
+            <span>{record.phone}</span>
           </div>
         )}
         {record.linkedinUrl && (
-          <div className="flex items-center text-xs">
+          <div className="flex items-center text-sm">
             <LinkedinOutlined className="mr-1 text-purple-500" />
-            <span className="truncate">LinkedIn</span>
+            <span>LinkedIn</span> {/* Or truncate the URL if preferred */}
           </div>
         )}
-        {!record.email && !record.phone && !record.linkedinUrl && (
-          <span className="text-xs text-gray-400">No contact</span>
-        )}
-      </div>
+      </Space>
     ),
   },
   {
     title: 'Score',
     key: 'score',
-    width: 100,
-    align: 'center',
+    // Removed fixed width and align
     render: (_, record) => (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center">
         <StarOutlined style={{ color: getScoreColor(record.score) }} className="mr-1" />
         <span style={{ color: getScoreColor(record.score), fontWeight: 'bold' }}>
           {record.score}
@@ -540,10 +532,9 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
   {
     title: 'Actions',
     key: 'actions',
-    width: 120,
-    fixed: 'right',
+    // Removed fixed width and fixed position
     render: (_, record) => (
-      <Space size="small">
+      <Space>
         <Button 
           size="small"
           onClick={() => handleViewLead(record)}
@@ -561,7 +552,6 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
     ),
   },
 ];
-
 
   // Generation history columns
   const generationColumns: ColumnsType<LeadGeneration> = [
@@ -737,35 +727,39 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
       ),
       children: (
         <div>
-          {loading ? (
-            <div className="text-center py-12">
-              <Spin size="large" />
-            </div>
-          ) : generations.length > 0 ? (
-            <Table
-              columns={generationColumns}
-              dataSource={generations}
-              rowKey="id"
-              pagination={{
-                total: generations.length,
-                pageSize: 10,
-                showSizeChanger: true,
-              }}
-            />
-          ) : (
-            <Empty 
-              description="No lead generations yet"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            >
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />}
-                onClick={() => router.push('/lead-generation/create')}
-              >
-                Generate Your First Leads
-              </Button>
-            </Empty>
-          )}
+     {loading ? (
+  <div className="text-center py-12">
+    <Spin size="large" />
+  </div>
+) : generations.length > 0 ? (
+  <Table
+    columns={generationColumns}
+    dataSource={generations}
+    rowKey="id"
+    // Removed potential horizontal scroll settings
+    // scroll={{ x: 'max-content' }} // Remove this if it exists
+    pagination={{
+      total: generations.length,
+      pageSize: 10,
+      showSizeChanger: true,
+    }}
+    // Add responsive settings
+    tableLayout="auto" // Distribute columns based on content
+  />
+) : (
+  <Empty 
+    description="No lead generations yet"
+    image={Empty.PRESENTED_IMAGE_SIMPLE}
+  >
+    <Button 
+      type="primary" 
+      icon={<PlusOutlined />}
+      onClick={() => router.push('/lead-generation/create')}
+    >
+      Generate Your First Leads
+    </Button>
+  </Empty>
+)}
         </div>
       ),
     },
