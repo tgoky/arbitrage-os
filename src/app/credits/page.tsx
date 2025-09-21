@@ -463,87 +463,87 @@ const CreditsHistoryPage = () => {
                   </div>
                 </div>
 
-                {loading ? (
-                  <div className="text-center py-8">
-                    <div className="w-8 h-8 border-4 border-blue-700 border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
-                    <div className="text-sm text-gray-600">Loading transactions...</div>
-                  </div>
-                ) : filteredTransactions.length > 0 ? (
-                  <div className="border-2 border-gray-300">
-                    <div className="bg-gray-200 border-b-2 border-gray-300 grid grid-cols-5 p-2 font-bold text-sm">
-                      <div>Date</div>
-                      <div>Type</div>
-                      <div className="text-right">Amount</div>
-                      <div>Description</div>
-                      <div>Reference</div>
-                    </div>
-                    
-                    <div className="max-h-96 overflow-y-auto">
-                      {filteredTransactions.map((tx) => (
-                        <div key={tx.id} className="grid grid-cols-5 p-2 border-b border-gray-300 text-sm hover:bg-gray-100">
-                          <div>
-                            <div>{new Date(tx.created_at).toLocaleDateString()}</div>
-                            <div className="text-xs text-gray-600">
-                              {new Date(tx.created_at).toLocaleTimeString()}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center">
-                            <div 
-                              className="w-4 h-4 mr-1 flex items-center justify-center"
-                              style={{ color: getTransactionTypeColor(tx.transaction_type) }}
-                            >
-                              {getTransactionIcon(tx.transaction_type)}
-                            </div>
-                            <div>{tx.transaction_type.replace('_', ' ').toUpperCase()}</div>
-                          </div>
-                          
-                          <div className="text-right">
-                            <div 
-                              className="font-bold" 
-                              style={{ 
-                                color: tx.amount > 0 ? '#00c000' : tx.amount < 0 ? '#c00000' : '#666' 
-                              }}
-                            >
-                              {tx.amount > 0 ? '+' : ''}{tx.amount}
-                            </div>
-                            {tx.transaction_type === 'free_usage' && (
-                              <div className="text-xs text-gray-600">(Free)</div>
-                            )}
-                          </div>
-                          
-                          <div>
-                            <div>{tx.description}</div>
-                            {tx.workspace && (
-                              <div className="text-xs text-gray-600">
-                                Workspace: {tx.workspace.name}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="text-xs">
-                            {tx.reference_id ? (
-                              <code>{tx.reference_id.substring(0, 12)}...</code>
-                            ) : (
-                              '-'
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 border-2 border-gray-300 border-dashed">
-                    <div className="text-gray-600 mb-4">No transactions found</div>
-                    <button 
-                      className="px-3 py-1 bg-blue-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center mx-auto"
-                      onClick={() => setPurchaseModalVisible(true)}
-                    >
-                      <ShoppingCart className="w-3 h-3 mr-1" />
-                      Make Your First Purchase
-                    </button>
-                  </div>
-                )}
+              {loading ? (
+  <div className="text-center py-8">
+    <div className="w-8 h-8 border-4 border-blue-700 border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
+    <div className="text-sm text-gray-600">Loading transactions...</div>
+  </div>
+) : filteredTransactions.length > 0 ? (
+  <div className="border-2 border-gray-300">
+    <div className="bg-gray-200 border-b-2 border-gray-300 grid grid-cols-12 gap-2 p-2 font-bold text-sm">
+      <div className="col-span-3">Date</div>
+      <div className="col-span-2">Type</div>
+      <div className="col-span-2 text-right">Amount</div>
+      <div className="col-span-3">Description</div>
+      <div className="col-span-2">Reference</div>
+    </div>
+    
+    <div className="max-h-96 overflow-y-auto">
+      {filteredTransactions.map((tx) => (
+        <div key={tx.id} className="grid grid-cols-12 gap-2 p-2 border-b border-gray-300 text-sm hover:bg-gray-100 items-center">
+          <div className="col-span-3">
+            <div>{new Date(tx.created_at).toLocaleDateString()}</div>
+            <div className="text-xs text-gray-600">
+              {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+          
+          <div className="col-span-2 flex items-center">
+            <div 
+              className="w-4 h-4 mr-1 flex items-center justify-center"
+              style={{ color: getTransactionTypeColor(tx.transaction_type) }}
+            >
+              {getTransactionIcon(tx.transaction_type)}
+            </div>
+            <div className="truncate">{tx.transaction_type.replace('_', ' ').toUpperCase()}</div>
+          </div>
+          
+          <div className="col-span-2 text-right">
+            <div 
+              className="font-bold" 
+              style={{ 
+                color: tx.amount > 0 ? '#00c000' : tx.amount < 0 ? '#c00000' : '#666' 
+              }}
+            >
+              {tx.amount > 0 ? '+' : ''}{tx.amount}
+            </div>
+            {tx.transaction_type === 'free_usage' && (
+              <div className="text-xs text-gray-600">(Free)</div>
+            )}
+          </div>
+          
+          <div className="col-span-3">
+            <div className="truncate">{tx.description}</div>
+            {tx.workspace && (
+              <div className="text-xs text-gray-600 truncate">
+                Workspace: {tx.workspace.name}
+              </div>
+            )}
+          </div>
+          
+          <div className="col-span-2 text-xs">
+            {tx.reference_id ? (
+              <code className="truncate">{tx.reference_id.substring(0, 12)}...</code>
+            ) : (
+              <span>-</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+) : (
+  <div className="text-center py-8 border-2 border-gray-300 border-dashed">
+    <div className="text-gray-600 mb-4">No transactions found</div>
+    <button 
+      className="px-3 py-1 bg-blue-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center mx-auto"
+      onClick={() => setPurchaseModalVisible(true)}
+    >
+      <ShoppingCart className="w-3 h-3 mr-1" />
+      Make Your First Purchase
+    </button>
+  </div>
+)}
               </div>
             </div>
           </div>
