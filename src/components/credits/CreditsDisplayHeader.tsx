@@ -24,6 +24,7 @@ import {
   PlusOutlined
 } from '@ant-design/icons';
 import CreditsPurchaseModal from './CreditsDisplayModal';
+import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
 
@@ -49,6 +50,7 @@ const CreditsDisplayHeader: React.FC<CreditsDisplayHeaderProps> = ({
   });
   const [loading, setLoading] = useState(true);
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
+    const router = useRouter();
 
   useEffect(() => {
     loadCredits();
@@ -154,37 +156,52 @@ const CreditsDisplayHeader: React.FC<CreditsDisplayHeaderProps> = ({
           </Col>
 
           {/* Action Buttons */}
-          <Col xs={24} sm={24} md={6}>
-            <div className="text-center h-full flex flex-col justify-center items-center md:items-end">
-              <Button
-                type="primary"
-                size="middle"
-                icon={<PlusOutlined />}
-                onClick={() => setPurchaseModalVisible(true)}
-                className="bg-darkGreen border-0 mb-2 w-full md:w-auto"
-              >
-                Buy Credits
-              </Button>
-              
-              {(isLowCredits || credits.freeLeadsAvailable > 0) && (
-                <div className="flex flex-col space-y-1 w-full md:w-auto">
-                  {credits.freeLeadsAvailable > 0 && (
-                    <Tag color="green" className="w-full md:w-auto justify-center text-xs py-1">
-                      <GiftOutlined /> {credits.freeLeadsAvailable} free leads
-                    </Tag>
-                  )}
-                  {isLowCredits && (
-                    <Tag 
-                      color={isCriticalCredits ? "red" : "orange"} 
-                      className="w-full md:w-auto justify-center text-xs py-1"
-                    >
-                      {isCriticalCredits ? "Critical" : "Low"} credits
-                    </Tag>
-                  )}
-                </div>
-              )}
-            </div>
-          </Col>
+          {/* Action Buttons */}
+<Col xs={24} sm={24} md={6}>
+  <div className="text-center h-full flex flex-col justify-center items-center md:items-end">
+    <div className="flex flex-col space-y-2 w-full md:w-auto">
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
+        <Button
+          type="default"
+          size="middle"
+          icon={<CreditCardOutlined />}
+          onClick={() => router.push('/credits')}
+          className="w-full"
+        >
+          History
+        </Button>
+        
+        <Button
+          type="primary"
+          size="middle"
+          icon={<PlusOutlined />}
+          onClick={() => setPurchaseModalVisible(true)}
+          className="bg-darkGreen border-0 w-full"
+        >
+          Buy Credits
+        </Button>
+      </div>
+    </div>
+    
+    {(isLowCredits || credits.freeLeadsAvailable > 0) && (
+      <div className="flex flex-col space-y-1 w-full mt-2">
+        {credits.freeLeadsAvailable > 0 && (
+          <Tag color="green" className="w-full justify-center text-xs py-1">
+            <GiftOutlined /> {credits.freeLeadsAvailable} free leads
+          </Tag>
+        )}
+        {isLowCredits && (
+          <Tag 
+            color={isCriticalCredits ? "red" : "orange"} 
+            className="w-full justify-center text-xs py-1"
+          >
+            {isCriticalCredits ? "Critical" : "Low"} credits
+          </Tag>
+        )}
+      </div>
+    )}
+  </div>
+</Col>
         </Row>
 
         {/* Warning Alerts - Slimmer version */}
