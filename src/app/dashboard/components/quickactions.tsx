@@ -1,11 +1,12 @@
 // app/dashboard/components/QuickStartActions.tsx
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Typography, Grid, Button, Spin, message, Select, Space } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Card, Typography, Grid, Button, Select, Space, Spin, message } from 'antd';
 import { BarChartOutlined, LineChartOutlined, PieChartOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+import { useWorkItems } from '../../hooks/useDashboardData';
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -20,56 +21,19 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
   const { theme } = useTheme();
   const router = useRouter();
   
-  const [workItems, setWorkItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie' | 'area'>('bar');
 
-  // Fetch work items data
-// In QuickStartActions.tsx, update the fetchAllWorkItems function:
-const fetchAllWorkItems = async () => {
-  setLoading(true);
-  try {
-    // Get current workspace
-    const workspaceData = localStorage.getItem('current-workspace');
-    let currentWorkspaceId = workspaceId;
-    
-    if (!currentWorkspaceId && workspaceData) {
-      const workspace = JSON.parse(workspaceData);
-      currentWorkspaceId = workspace.id;
-    }
-    
-    console.log('Fetching work items for workspace:', currentWorkspaceId);
-    const url = new URL('/api/dashboard/work-items', window.location.origin);
-    if (currentWorkspaceId) {
-      url.searchParams.append('workspaceId', currentWorkspaceId);
-    }
+  // Use React Query for work items
+  const {
+    data: workItems = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching
+  } = useWorkItems();
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`Failed to fetch work items: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-
-    if (data.success && Array.isArray(data.data?.items)) {
-      setWorkItems(data.data.items);
-    } else {
-      throw new Error(data.error || 'Invalid response format');
-    }
-  } catch (error) {
-    console.error('Error fetching work items:', error);
-    message.error('Failed to load statistics');
-    setWorkItems([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Load data on mount
-  useEffect(() => {
-    fetchAllWorkItems();
-  }, [workspaceId]);
-
-  // Helper functions - moved before useMemo
+  // Helper functions
   const getTypeName = (type: string) => {
     const names: Record<string, string> = {
       'sales-call': 'Sales Call Analysis',
@@ -135,6 +99,15 @@ const fetchAllWorkItems = async () => {
     return chartType === 'line' || chartType === 'area' ? lineData : barData;
   }, [workItems, chartType]);
 
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      message.success('Analytics refreshed');
+    } catch (err) {
+      message.error('Failed to refresh analytics');
+    }
+  };
+
   const getMainCardStyles = () => ({
     header: {
       backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
@@ -143,7 +116,7 @@ const fetchAllWorkItems = async () => {
     body: {
       backgroundColor: theme === 'dark' ? '#081724' : '#ffffff',
       padding: '12px',
-      minHeight: '150px', // Reduced from 320px to 200px
+      minHeight: '150px',
     },
   });
 
@@ -156,7 +129,7 @@ const fetchAllWorkItems = async () => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          height: 240,
+          height: 160,
           color: theme === 'dark' ? '#9ca3af' : '#666'
         }}>
           No data available for visualization
@@ -166,7 +139,7 @@ const fetchAllWorkItems = async () => {
 
     const commonProps = {
       width: '100%',
-      height: 160, // Reduced from 240 to 160
+      height: 160,
     };
 
     switch (chartType) {
@@ -273,8 +246,8 @@ const fetchAllWorkItems = async () => {
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={30} // Reduced from 40
-                outerRadius={60} // Reduced from 80
+                innerRadius={30}
+                outerRadius={60}
                 paddingAngle={5}
                 dataKey="count"
                 label={({ name, percent }: any) => 
@@ -303,6 +276,39 @@ const fetchAllWorkItems = async () => {
         return null;
     }
   };
+
+  // Error state
+  if (isError) {
+    return (
+      <Card
+        data-tour="quick-actions"
+        title="Submissions Analytics"
+        styles={getMainCardStyles()}
+        style={{ 
+          marginBottom: 24, 
+          borderRadius: '8px', 
+          borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+        }}
+      >
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: 160,
+          flexDirection: 'column',
+          gap: 12,
+          color: theme === 'dark' ? '#ef4444' : '#dc2626'
+        }}>
+          <Text style={{ color: 'inherit' }}>
+            Failed to load analytics: {(error as Error)?.message || 'Unknown error'}
+          </Text>
+          <Button type="primary" onClick={handleRefresh} loading={isFetching}>
+            Retry
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -345,22 +351,22 @@ const fetchAllWorkItems = async () => {
         <Button 
           type="link" 
           icon={<ReloadOutlined />}
-          loading={loading}
-          onClick={fetchAllWorkItems}
+          loading={isFetching}
+          onClick={handleRefresh}
           style={{ color: theme === 'dark' ? '#a78bfa' : '#1890ff', fontWeight: 500 }}
         >
           Refresh
         </Button>
       }
     >
-      {loading ? (
+      {isLoading ? (
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          height: 160, // Reduced from 240
+          height: 160,
           flexDirection: 'column',
-          gap: 12 // Reduced from 16
+          gap: 12
         }}>
           <Spin size="large" />
           <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#666' }}>
@@ -368,7 +374,7 @@ const fetchAllWorkItems = async () => {
           </Text>
         </div>
       ) : (
-        <div style={{ width: '100%', height: 160 }}> {/* Reduced from 240 */}
+        <div style={{ width: '100%', height: 160 }}>
           {renderChart()}
         </div>
       )}

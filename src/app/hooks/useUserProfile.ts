@@ -10,9 +10,9 @@ interface UserProfile {
 }
 
 export const useUserProfile = () => {
-  return useQuery<UserProfile>({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
+  return useQuery(
+    ['userProfile'],
+    async () => {
       const response = await fetch('/api/profile');
       if (!response.ok) {
         if (response.status === 401) {
@@ -22,14 +22,15 @@ export const useUserProfile = () => {
       }
       return response.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: (failureCount: number, error: Error) => {
-      // Don't retry on auth errors
-      if (error.message === 'Authentication required') {
-        return false;
+    {
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000, // Changed from gcTime
+      retry: (failureCount: number, error: Error) => {
+        if (error.message === 'Authentication required') {
+          return false;
+        }
+        return failureCount < 3;
       }
-      return failureCount < 3;
     }
-  });
+  );
 };

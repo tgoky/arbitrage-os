@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   SearchOutlined,
   EllipsisOutlined,
@@ -48,9 +47,10 @@ import {
   message
 } from 'antd';
 import { useParsed } from "@refinedev/core";
-import { useWorkspaceContext } from '../hooks/useWorkspaceContext'; // Add workspace context
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { useRouter } from 'next/navigation';
-
+import { useWorkItems } from '../hooks/useDashboardData';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -58,7 +58,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 // Define proper types
-type WorkItemType =  'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
+type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
 type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
 
 // Unified work item interface
@@ -76,114 +76,35 @@ interface WorkItem {
 
 const IntegratedWorkDashboard = () => {
   const { params } = useParsed();
+  const queryClient = useQueryClient();
   
-  // Use workspace context instead of just params
+  // Use workspace context
   const { 
     currentWorkspace, 
     isWorkspaceReady, 
     getWorkspaceScopedEndpoint 
   } = useWorkspaceContext();
 
-  // State
+  // Use TanStack Query hook instead of manual fetching
+  const {
+    data: workItems = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching
+  } = useWorkItems(100); // Fetch up to 100 items
+
+  // State for UI controls only (no more data fetching state)
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [dateRange, setDateRange] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [error, setError] = useState<string | null>(null);
-      const router = useRouter();
+  const router = useRouter();
 
-  // Unified data fetching function with workspace context
-  const fetchAllWorkItems = async () => {
-    if (!isWorkspaceReady || !currentWorkspace) {
-      console.log('Workspace not ready, skipping fetch');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('🔄 Fetching all work items from unified API for workspace:', currentWorkspace.name);
-      
-      // Use workspace-scoped endpoint
-      const baseUrl = '/api/dashboard/work-items';
-      const url = getWorkspaceScopedEndpoint(baseUrl);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Workspace-Id': currentWorkspace.id, // Add workspace header
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('📥 Unified API response for workspace:', data);
-
-      if (data.success && Array.isArray(data.data?.items)) {
-        // Filter items to ensure they belong to current workspace
-        const workspaceItems = data.data.items.filter((item: any) => 
-          !item.workspace_id || item.workspace_id === currentWorkspace.id
-        );
-        
-        console.log(`🎉 Successfully fetched ${workspaceItems.length} work items for workspace: ${currentWorkspace.name}`);
-        setWorkItems(workspaceItems);
-      } else {
-        throw new Error(data.error || 'Invalid response format from unified API');
-      }
-    } catch (error) {
-      console.error('💥 Error fetching work items from unified API:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load work items');
-      message.error('Failed to load work items for this workspace');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load data when workspace is ready
-  useEffect(() => {
-    if (isWorkspaceReady) {
-      fetchAllWorkItems();
-    }
-  }, [currentWorkspace?.id, isWorkspaceReady]);
-
-  // Listen for workspace changes
-// In IntegratedWorkDashboard, update the workspace change effect:
-useEffect(() => {
-  const handleWorkspaceChange = () => {
-    console.log('Workspace changed, clearing data and refetching...');
-    setWorkItems([]); // Clear immediately
-    setError(null);
-    setCurrentPage(1); // Reset pagination
-    
-    if (isWorkspaceReady && currentWorkspace) {
-      // Add small delay to ensure workspace is fully switched
-      setTimeout(() => {
-        fetchAllWorkItems();
-      }, 100);
-    }
-  };
-
-  window.addEventListener('workspaceChanged', handleWorkspaceChange);
-  window.addEventListener('workspaceDataChanged', handleWorkspaceChange); // Add this
-  
-  return () => {
-    window.removeEventListener('workspaceChanged', handleWorkspaceChange);
-    window.removeEventListener('workspaceDataChanged', handleWorkspaceChange); // Add this
-  };
-}, [isWorkspaceReady, currentWorkspace?.id]);
-
-  // Calculate summary stats
+  // Calculate summary stats - now using cached data
   const summaryStats = useMemo(() => {
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -291,71 +212,99 @@ useEffect(() => {
     return colors[type] || '#666';
   };
 
-  // Handle actions with workspace context
-// Updated handleAction function for your IntegratedWorkDashboard.tsx
+  // Optimized delete function with cache updates
+  const deleteWorkItem = async (item: WorkItem) => {
+    if (!currentWorkspace) {
+      message.error('No workspace selected');
+      return;
+    }
 
-const handleAction = async (action: string, item: WorkItem) => {
-  if (!currentWorkspace) {
-    message.error('No workspace selected');
-    return;
-  }
+    try {
+      const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'X-Workspace-Id': currentWorkspace.id
+        }
+      });
 
-  try {
-    switch (action) {
-      case 'view':
-        // For offer creator, use the specific offer creator detail page
-        if (item.type === 'offer-creator') {
-          const viewUrl = `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`;
-          window.location.href = viewUrl;
-        } else {
-          // For other types, could use a generic work item detail page or specific pages
-          // For now, let's create specific routes for each type
-          const viewUrls = {
-            'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer/${item.metadata.deliverableId}`,
-            'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans/${item.metadata.deliverableId}`,
-            'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator/${item.metadata.deliverableId}`,
-            'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research/${item.metadata.deliverableId}`,
-            'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
-            'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
-            'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`
-          };
-          
-          const viewUrl = viewUrls[item.type];
-          if (viewUrl) {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Delete failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Optimistically update the cache
+        queryClient.setQueryData(
+          ['workItems', currentWorkspace.id, 100],
+          (oldData: WorkItem[] | undefined) => {
+            return oldData?.filter(workItem => workItem.id !== item.id) || [];
+          }
+        );
+
+        message.success('Item deleted successfully');
+        
+        // Optionally refetch to ensure consistency
+        // refetch();
+      } else {
+        throw new Error(result.error || 'Delete operation failed');
+      }
+    } catch (deleteError) {
+      console.error('Delete error:', deleteError);
+      message.error(deleteError instanceof Error ? deleteError.message : 'Failed to delete item');
+      
+      // Invalidate and refetch on error to ensure consistency
+      queryClient.invalidateQueries(['workItems', currentWorkspace?.id]);
+    }
+  };
+
+  // Handle actions with optimized cache management
+  const handleAction = async (action: string, item: WorkItem) => {
+    if (!currentWorkspace) {
+      message.error('No workspace selected');
+      return;
+    }
+
+    try {
+      switch (action) {
+        case 'view':
+          // For offer creator, use the specific offer creator detail page
+          if (item.type === 'offer-creator') {
+            const viewUrl = `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`;
             window.location.href = viewUrl;
           } else {
-            message.warning('View details not available for this item type yet');
+            // For other types, could use a generic work item detail page or specific pages
+            const viewUrls = {
+              'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer/${item.metadata.deliverableId}`,
+              'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans/${item.metadata.deliverableId}`,
+              'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator/${item.metadata.deliverableId}`,
+              'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research/${item.metadata.deliverableId}`,
+              'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
+              'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
+              'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`
+            };
+            
+            const viewUrl = viewUrls[item.type];
+            if (viewUrl) {
+              window.location.href = viewUrl;
+            } else {
+              message.warning('View details not available for this item type yet');
+            }
           }
-        }
-        break;
+          break;
 
-      case 'edit':
-        // Navigate to the specific tool for editing
-        const editUrls = {
-          'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer?load=${item.metadata.deliverableId}`,
-          'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans?load=${item.metadata.deliverableId}`,
-          'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator?load=${item.metadata.deliverableId}`,
-          'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research?load=${item.metadata.deliverableId}`,
-          'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email?load=${item.metadata.deliverableId}`,
-          'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator?load=${item.metadata.deliverableId}`,
-          'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer?load=${item.metadata.deliverableId}`,
-          'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder?load=${item.metadata.deliverableId}`
-        };
-        
-        const editUrl = editUrls[item.type];
-        if (editUrl) {
-          window.location.href = editUrl;
-        } else {
-          message.warning('Edit functionality not available for this item type');
-        }
-        break;
+        case 'delete':
+          const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
+          if (deleteConfirm) {
+            await deleteWorkItem(item);
+          }
+          break;
 
-      case 'delete':
-        const deleteConfirm = window.confirm('Are you sure you want to delete this item?');
-        if (deleteConfirm) {
+        case 'export':
           try {
+            // First fetch the deliverable data
             const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
-              method: 'DELETE',
               credentials: 'include',
               headers: {
                 'X-Workspace-Id': currentWorkspace.id
@@ -363,115 +312,59 @@ const handleAction = async (action: string, item: WorkItem) => {
             });
 
             if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              throw new Error(errorData.error || `Delete failed with status ${response.status}`);
+              throw new Error('Failed to fetch item data for export');
             }
 
-            const result = await response.json();
-            if (result.success) {
-              message.success('Item deleted successfully');
-              fetchAllWorkItems(); // Refresh data
-            } else {
-              throw new Error(result.error || 'Delete operation failed');
+            const data = await response.json();
+            if (!data.success) {
+              throw new Error(data.error || 'Failed to fetch item data');
             }
-          } catch (deleteError) {
-            console.error('Delete error:', deleteError);
-            message.error(deleteError instanceof Error ? deleteError.message : 'Failed to delete item');
+
+            // Create export blob
+            const exportData = {
+              title: item.title,
+              type: item.type,
+              content: data.data.content,
+              metadata: data.data.metadata,
+              createdAt: data.data.createdAt,
+              updatedAt: data.data.updatedAt
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            message.success('Exported successfully');
+          } catch (exportError) {
+            console.error('Export error:', exportError);
+            message.error(exportError instanceof Error ? exportError.message : 'Failed to export item');
           }
-        }
-        break;
+          break;
 
-      case 'export':
-        try {
-          // First fetch the deliverable data
-          const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
-            credentials: 'include',
-            headers: {
-              'X-Workspace-Id': currentWorkspace.id
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to fetch item data for export');
-          }
-
-          const data = await response.json();
-          if (!data.success) {
-            throw new Error(data.error || 'Failed to fetch item data');
-          }
-
-          // Create export blob
-          const exportData = {
-            title: item.title,
-            type: item.type,
-            content: data.data.content,
-            metadata: data.data.metadata,
-            createdAt: data.data.createdAt,
-            updatedAt: data.data.updatedAt
-          };
-
-          const dataStr = JSON.stringify(exportData, null, 2);
-          const dataBlob = new Blob([dataStr], { type: 'application/json' });
-          const url = URL.createObjectURL(dataBlob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.json`;
-          link.click();
-          URL.revokeObjectURL(url);
-
-          message.success('Exported successfully');
-        } catch (exportError) {
-          console.error('Export error:', exportError);
-          message.error(exportError instanceof Error ? exportError.message : 'Failed to export item');
-        }
-        break;
-
-      case 'copy':
-        try {
-          // Fetch the deliverable data to copy
-          const response = await fetch(`/api/deliverables/${item.metadata.deliverableId}?workspaceId=${currentWorkspace.id}`, {
-            credentials: 'include',
-            headers: {
-              'X-Workspace-Id': currentWorkspace.id
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to fetch item data for copying');
-          }
-
-          const data = await response.json();
-          if (!data.success) {
-            throw new Error(data.error || 'Failed to fetch item data');
-          }
-
-          // Copy content to clipboard
-          navigator.clipboard.writeText(JSON.stringify(data.data.content, null, 2));
-          message.success('Content copied to clipboard');
-        } catch (copyError) {
-          console.error('Copy error:', copyError);
-          message.error(copyError instanceof Error ? copyError.message : 'Failed to copy content');
-        }
-        break;
-
-      case 'duplicate':
-      case 'optimize':
-        message.info(`${action} functionality coming soon!`);
-        break;
-
-      default:
-        message.info(`${action} action not implemented yet`);
+        default:
+          message.info(`${action} functionality coming soon!`);
+      }
+    } catch (error) {
+      console.error(`Error performing ${action}:`, error);
+      message.error(`Failed to ${action} item`);
     }
-  } catch (error) {
-    console.error(`Error performing ${action}:`, error);
-    message.error(`Failed to ${action} item`);
-  }
-};
+  };
 
-   const handleBack = () => {
+  const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
   };
 
+  // Optimized refresh function
+  const handleRefresh = async () => {
+    // Invalidate cache and refetch
+    await queryClient.invalidateQueries(['workItems', currentWorkspace?.id]);
+    refetch();
+  };
 
   // Create action menu
   const createActionMenu = (item: WorkItem) => (
@@ -481,31 +374,11 @@ const handleAction = async (action: string, item: WorkItem) => {
           View Details
         </Menu.Item>
       )} 
-      {/* {item.actions.includes('edit') && (
-        <Menu.Item key="edit" icon={<EditOutlined />}>
-          Edit
-        </Menu.Item>
-      )} */}
       {item.actions.includes('export') && (
         <Menu.Item key="export" icon={<DownloadOutlined />}>
           Export
         </Menu.Item>
       )}
-      {/* {item.actions.includes('copy') && (
-        <Menu.Item key="copy" icon={<ShareAltOutlined />}>
-          Copy to Clipboard
-        </Menu.Item>
-      )} */}
-      {/* {item.actions.includes('duplicate') && (
-        <Menu.Item key="duplicate" icon={<ShareAltOutlined />}>
-          Duplicate
-        </Menu.Item>
-      )} */}
-      {/* {item.actions.includes('optimize') && (
-        <Menu.Item key="optimize" icon={<BarChartOutlined />}>
-          Optimize
-        </Menu.Item>
-      )} */}
       <Menu.Divider />
       <Menu.Item key="delete" icon={<DeleteOutlined />} danger>
         Delete
@@ -513,7 +386,7 @@ const handleAction = async (action: string, item: WorkItem) => {
     </Menu>
   );
 
-  // Filter items based on active tab and filters
+  // Filter items based on active tab and filters - now using cached data
   const filteredItems = useMemo(() => {
     return workItems.filter(item => {
       if (activeTab !== 'all' && item.type !== activeTab) return false;
@@ -527,7 +400,7 @@ const handleAction = async (action: string, item: WorkItem) => {
     });
   }, [workItems, activeTab, filterType, searchQuery, dateRange]);
 
-  // Get tab counts
+  // Get tab counts - now using cached data
   const getTabCount = (type: string) => {
     if (type === 'all') return workItems.length;
     return workItems.filter(item => item.type === type).length;
@@ -544,30 +417,32 @@ const handleAction = async (action: string, item: WorkItem) => {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
         <Spin size="large" tip="Loading workspace..."/>
-        {/* <p style={{ marginTop: 16 }}></p> */}
       </div>
     );
   }
 
-  if (loading && workItems.length === 0) {
+  // Show loading for initial data fetch
+  if (isLoading && workItems.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
         <Spin size="large" tip="Loading your work..."/>
-        {/* <p style={{ marginTop: 16 }}></p> */}
       </div>
     );
   }
 
-  if (error && workItems.length === 0) {
+  // Show error state
+  if (isError && workItems.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
         <div style={{ color: '#ff4d4f', marginBottom: 16 }}>
           <FileTextOutlined style={{ fontSize: 48 }} />
         </div>
         <Title level={4}>Failed to Load Work Items</Title>
-        <Text style={{ color: '#666' }}>{error}</Text>
+        <Text style={{ color: '#666' }}>
+          {error instanceof Error ? error.message : 'Unknown error occurred'}
+        </Text>
         <div style={{ marginTop: 16 }}>
-          <Button type="primary" onClick={fetchAllWorkItems}>
+          <Button type="primary" onClick={handleRefresh}>
             Try Again
           </Button>
         </div>
@@ -577,14 +452,14 @@ const handleAction = async (action: string, item: WorkItem) => {
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh' }}>
+      <Button 
+        style={{ top: -4 }}
+        icon={<ArrowLeftOutlined />} 
+        onClick={handleBack}
+      >
+        Back
+      </Button>
 
-               <Button style={{top: -4}}
-  icon={<ArrowLeftOutlined />} 
-  onClick={handleBack}
-// negative margin top
->
-  Back
-</Button>
       {/* Header with workspace context */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -597,14 +472,14 @@ const handleAction = async (action: string, item: WorkItem) => {
         </div>
         <Button 
           icon={<ReloadOutlined />} 
-          onClick={fetchAllWorkItems} 
-          loading={loading}
+          onClick={handleRefresh} 
+          loading={isFetching}
         >
-          Refresh
+          {isFetching ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary Stats - now using cached data */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         {summaryStats.map((stat, index) => (
           <Col xs={24} sm={12} lg={6} key={index}>
@@ -682,7 +557,7 @@ const handleAction = async (action: string, item: WorkItem) => {
         </div>
       </Card>
 
-      {/* Content Tabs */}
+      {/* Content Tabs - now using cached data */}
       <Card style={{ borderRadius: 8 }}>
         <Tabs 
           activeKey={activeTab} 
@@ -717,22 +592,21 @@ const handleAction = async (action: string, item: WorkItem) => {
             tab={<Badge count={getTabCount('offer-creator')} offset={[8, 0]}>Offers</Badge>} 
             key="offer-creator" 
           />
-           <Tabs.TabPane 
-  tab={<Badge count={getTabCount('ad-writer')} offset={[8, 0]}>Ad Writer</Badge>} 
-  key="ad-writer" 
-/>
-<Tabs.TabPane 
-  tab={<Badge count={getTabCount('n8n-workflow')} offset={[8, 0]}>Workflows</Badge>} 
-  key="n8n-workflow" 
-/>
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('ad-writer')} offset={[8, 0]}>Ad Writer</Badge>} 
+            key="ad-writer" 
+          />
+          <Tabs.TabPane 
+            tab={<Badge count={getTabCount('n8n-workflow')} offset={[8, 0]}>Workflows</Badge>} 
+            key="n8n-workflow" 
+          />
         </Tabs>
 
         {/* Work Items List */}
         <div style={{ marginTop: 24 }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <Spin size="large" tip="Refreshing your work..." />
-              {/* <p style={{ marginTop: 16 }}></p> */}
+          {isFetching && workItems.length > 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <Spin size="small" tip="Refreshing..." />
             </div>
           ) : filteredItems.length === 0 ? (
             <Empty 
@@ -812,7 +686,6 @@ const handleAction = async (action: string, item: WorkItem) => {
                           </div>
                         </div>
 
-                    
                         <Dropdown overlay={createActionMenu(item)} trigger={['click']}>
                           <Button type="text" icon={<EllipsisOutlined />} />
                         </Dropdown>

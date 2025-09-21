@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, Card, Typography, Grid, Statistic, Space, Spin, message } from 'antd';
 import { 
   FileTextOutlined,
@@ -7,7 +7,7 @@ import {
   RocketOutlined 
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { useWorkspaceContext } from '../../hooks/useWorkspaceContext'; // Use the workspace context hook
+import { useWorkItems } from '../../hooks/useDashboardData';
 
 const { Title } = Typography;
 const { useBreakpoint } = Grid;
@@ -17,135 +17,35 @@ interface WelcomePanelProps {
   workspaceId?: string;
 }
 
-interface WorkItem {
-  id: string;
-  createdAt: string;
-  status: 'processing' | 'completed' | 'failed' | 'in_progress' | 'pending' | 'done' | 'finished' | string;
-  workspace_id?: string; // Add workspace_id to work items
-}
-
 const WelcomePanel: React.FC<WelcomePanelProps> = ({
   workspaceName,
   workspaceId
 }) => {
   const { theme } = useTheme();
   const screens = useBreakpoint();
-  const { currentWorkspace, isWorkspaceReady, getWorkspaceScopedEndpoint } = useWorkspaceContext();
   
-  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  // Use React Query for work items
+  const {
+    data: workItems = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+    dataUpdatedAt
+  } = useWorkItems();
 
-// In WelcomePanel.tsx, update fetchAllWorkItems:
-const fetchAllWorkItems = useCallback(async (isRetry = false) => {
-  // Remove 'loading' from the dependency check - this causes infinite loops
-  if (!isWorkspaceReady || !currentWorkspace) {
-    return;
-  }
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
-  setLoading(true);
-  try {
-    const url = `${getWorkspaceScopedEndpoint('/api/dashboard/work-items')}&_t=${Date.now()}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Workspace-Id': currentWorkspace.id,
-      },
-      cache: 'no-cache'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.status}`);
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refetch();
+      setLastRefreshTime(new Date());
+      message.success('Statistics refreshed successfully');
+    } catch (err) {
+      message.error('Failed to refresh statistics');
     }
-
-    const data = await response.json();
-    
-    if (data.success && Array.isArray(data.data?.items)) {
-      setWorkItems(data.data.items);
-      setLastFetchTime(new Date());
-      setRetryCount(0);
-      setError(null); // Clear any previous errors
-    } else {
-      // Handle case where API returns success but no items
-      setWorkItems([]);
-      setLastFetchTime(new Date());
-    }
-    
-  } catch (error) {
-    console.error('Error fetching work items:', error);
-    setError(error as Error);
-    
-    if (!isRetry && retryCount < 2) {
-      setTimeout(() => fetchAllWorkItems(true), 2000);
-      setRetryCount(prev => prev + 1);
-    }
-  } finally {
-    setLoading(false); // Always set loading to false
-  }
-}, [currentWorkspace, isWorkspaceReady, getWorkspaceScopedEndpoint, retryCount]);
-
-
-  const handleRetry = useCallback(async () => {
-    if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
-      const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-      setTimeout(() => {
-        fetchAllWorkItems(true);
-      }, delay);
-    }
-  }, [fetchAllWorkItems, retryCount]);
-
-useEffect(() => {
-  let mounted = true;
-  let timeoutId: NodeJS.Timeout | undefined;
-  
-  const loadData = async () => {
-    if (mounted && isWorkspaceReady && currentWorkspace) {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      // Remove the timeout delay for initial load
-      fetchAllWorkItems();
-    }
-  };
-
-  loadData();
-
-
-    // Listen for workspace changes
-const handleWorkspaceChange = () => {
-    if (mounted) {
-      setWorkItems([]);
-      setError(null);
-      setRetryCount(0);
-      loadData();
-    }
-  };
-
-  window.addEventListener('workspaceChanged', handleWorkspaceChange);
-
-  return () => {
-    mounted = false;
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    window.removeEventListener('workspaceChanged', handleWorkspaceChange);
-  };
-}, [currentWorkspace?.id, isWorkspaceReady]); 
-
-  useEffect(() => {
-    if (error && retryCount < 3 && !error.message.includes('Authentication')) {
-      const timer = setTimeout(() => {
-        handleRetry();
-      }, 2000 * (retryCount + 1));
-      
-      return () => clearTimeout(timer);
-    }
-  }, [error, retryCount, handleRetry]);
+  }, [refetch]);
 
   const summaryStats = useMemo(() => {
     if (!Array.isArray(workItems) || workItems.length === 0) {
@@ -164,10 +64,8 @@ const handleWorkspaceChange = () => {
     const thisMonthItems = workItems.filter(item => {
       try {
         if (!item.createdAt) return false;
-        
         const itemDate = new Date(item.createdAt);
         if (isNaN(itemDate.getTime())) return false;
-        
         return itemDate >= thisMonth;
       } catch (err) {
         return false;
@@ -244,28 +142,86 @@ const handleWorkspaceChange = () => {
   const getParentCardStyles = () => ({
     body: {
       backgroundColor: theme === 'dark' ? '#111827' : '#FFFFFF',
-      padding: screens.xs ? '12px' : '16px',
+      padding: screens.xs ? '12px' : '16px', // Reduced padding for slimmer look
       borderRadius: '12px',
     },
   });
 
-  // Show loading while workspace is loading
-  if (!isWorkspaceReady || loading) {
+  // Error state
+  if (isError) {
     return (
       <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        {/* Header with proper spacing */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start', 
+          marginBottom: 12, // Reduced from 20
+          paddingTop: 4, // Reduced from 8
+          paddingBottom: 4 // Reduced from 8
+        }}>
           <Title
             level={2}
             style={{
               margin: 0,
               color: theme === 'dark' ? '#f9fafb' : '#111827',
               fontWeight: 700,
-              fontSize: '22px',
+              fontSize: screens.xs ? '18px' : '20px', // Reduced font size for slimmer look
+              lineHeight: '1.2',
             }}
           >
-            Welcome to {workspaceName} Arbitrage-OS !
+            Welcome to {workspaceName} Arbitrage-OS
           </Title>
         </div>
+        
+        <Card
+          styles={getParentCardStyles()}
+          style={{ borderColor: theme === 'dark' ? '#374151' : '#E5E7EB' }}
+        >
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <p style={{ color: theme === 'dark' ? '#EF4444' : '#DC2626', marginBottom: 16 }}>
+              Unable to load workspace statistics: {(error as Error)?.message  || 'Unknown error'}
+            </p>
+            <Button
+              type="primary"
+              onClick={handleRefresh}
+              loading={isFetching}
+            >
+              Try Again
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
+        {/* Header with proper spacing */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start', 
+          marginBottom: 12, // Reduced from 20
+          paddingTop: 4, // Reduced from 8
+          paddingBottom: 4 // Reduced from 8
+        }}>
+          <Title
+            level={2}
+            style={{
+              margin: 0,
+              color: theme === 'dark' ? '#f9fafb' : '#111827',
+              fontWeight: 700,
+              fontSize: screens.xs ? '18px' : '20px', // Reduced font size for slimmer look
+              lineHeight: '1.2',
+            }}
+          >
+            Welcome to {workspaceName} Arbitrage-OS
+          </Title>
+        </div>
+        
         <Card
           styles={getParentCardStyles()}
           style={{ borderColor: theme === 'dark' ? '#374151' : '#E5E7EB' }}
@@ -273,53 +229,8 @@ const handleWorkspaceChange = () => {
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <Spin size="large" />
             <p style={{ marginTop: 16, color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }}>
-              {!isWorkspaceReady ? 'Loading workspace...' : 'Loading statistics...'}
+              Loading workspace statistics...
             </p>
-            {retryCount > 0 && (
-              <p style={{ marginTop: 8, color: theme === 'dark' ? '#FEF3C7' : '#D97706', fontSize: '12px' }}>
-                Retry attempt {retryCount}/3
-              </p>
-            )}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error && retryCount >= 3) {
-    return (
-      <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Title
-            level={2}
-            style={{
-              margin: 0,
-              color: theme === 'dark' ? '#f9fafb' : '#111827',
-              fontWeight: 700,
-              fontSize: '22px',
-            }}
-          >
-            Welcome to {workspaceName} Arbitrage-OS !
-          </Title>
-        </div>
-        <Card
-          styles={getParentCardStyles()}
-          style={{ borderColor: theme === 'dark' ? '#374151' : '#E5E7EB' }}
-        >
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <p style={{ color: theme === 'dark' ? '#EF4444' : '#DC2626', marginBottom: 16 }}>
-              Unable to load workspace statistics: {error.message}
-            </p>
-            <Button
-              type="primary"
-              onClick={() => {
-                setRetryCount(0);
-                setError(null);
-                fetchAllWorkItems();
-              }}
-            >
-              Retry
-            </Button>
           </div>
         </Card>
       </div>
@@ -328,59 +239,79 @@ const handleWorkspaceChange = () => {
 
   return (
     <div data-tour="welcome-panel" style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      {/* Header with proper spacing and professional layout */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: screens.xs ? 'flex-start' : 'center', 
+        marginBottom: 12, // Reduced from 20
+        paddingTop: 4, // Reduced from 8
+        paddingBottom: 4, // Reduced from 8
+        flexDirection: screens.xs ? 'column' : 'row',
+        gap: screens.xs ? '8px' : '12px' // Reduced gaps
+      }}>
         <Title
           level={2}
           style={{
             margin: 0,
             color: theme === 'dark' ? '#f9fafb' : '#111827',
             fontWeight: 700,
-            fontSize: '22px',
+            fontSize: screens.xs ? '18px' : '20px', // Reduced font size for slimmer look
+            lineHeight: '1.2',
+            flex: 1
           }}
         >
-          Welcome to {workspaceName} Arbitrage-OS !
+          Welcome to {workspaceName} Arbitrage-OS
         </Title>
-        <Space>
+        
+        {/* Refresh controls with better spacing */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          flexShrink: 0
+        }}>
           <Button
             type="default"
-            size="small"
-            onClick={() => {
-              setError(null);
-              setRetryCount(0);
-              fetchAllWorkItems();
-            }}
-            loading={loading}
+            size={screens.xs ? 'small' : 'middle'}
+            onClick={handleRefresh}
+            loading={isFetching}
             style={{
               backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
               color: theme === 'dark' ? '#e5e7eb' : '#1a1a1a',
               borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+              minWidth: '80px', // Ensure consistent button width
             }}
           >
-            Refresh
+            {isFetching ? 'Refreshing...' : 'Refresh'}
           </Button>
-          {lastFetchTime && (
+          
+          {(lastRefreshTime || dataUpdatedAt) && (
             <span style={{ 
               fontSize: '12px', 
-              color: theme === 'dark' ? '#9CA3AF' : '#6B7280' 
+              color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
+              whiteSpace: 'nowrap'
             }}>
-              Last updated: {lastFetchTime.toLocaleTimeString()}
+              Last updated: {(lastRefreshTime || new Date(dataUpdatedAt)).toLocaleTimeString()}
             </span>
           )}
-        </Space>
+        </div>
       </div>
 
+      {/* Main card with better internal spacing */}
       <Card
         styles={getParentCardStyles()}
         style={{
           borderColor: theme === 'dark' ? '#374151' : '#E5E7EB',
         }}
-        bodyStyle={{ padding: '12px' }}
       >
+        {/* Statistics grid with proper spacing */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
-            gap: screens.xs ? '8px' : '12px',
+            gap: screens.xs ? '8px' : '12px', // Reduced gap for slimmer look
+            marginBottom: '12px', // Reduced margin below stats
           }}
         >
           {summaryStats.map((stat, index) => (
@@ -394,11 +325,12 @@ const handleWorkspaceChange = () => {
                 value={stat.value}
                 valueStyle={{ 
                   color: theme === 'dark' ? '#F9FAFB' : '#111827', 
-                  fontSize: '16px',
-                  lineHeight: '1.2'
+                  fontSize: '16px', // Reduced from 18px for slimmer look
+                  lineHeight: '1.2',
+                  fontWeight: 600
                 }}
                 prefix={
-                  <span style={{ color: stat.color, fontSize: '14px', marginRight: '4px' }}>
+                  <span style={{ color: stat.color, fontSize: '16px', marginRight: '6px' }}>
                     {stat.icon}
                   </span>
                 }
@@ -407,24 +339,27 @@ const handleWorkspaceChange = () => {
           ))}
         </div>
         
-       <div style={{ 
-  marginTop: '12px', 
-  padding: '8px', 
-  backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
-  borderRadius: '4px',
-  fontSize: '11px',
-  color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-}}>
-  <span>
-    Workspace: {currentWorkspace?.name || 'Unknown'} ({currentWorkspace?.id || 'No ID'})
-  </span>
-  {workItems.length > 0 && (
-    <span>Items loaded: {workItems.length}</span>
-  )}
-</div>
+        {/* Footer info with better styling */}
+        <div style={{ 
+          marginTop: '16px', 
+          padding: '12px 16px', // Increased padding
+          backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6',
+          borderRadius: '8px', // Increased border radius
+          fontSize: '11px',
+          color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }}>
+          <span>
+            Workspace: {workspaceName} {workspaceId && `(${workspaceId})`}
+          </span>
+          {workItems.length > 0 && (
+            <span>Items loaded: {workItems.length}</span>
+          )}
+        </div>
       </Card>
     </div>
   );
