@@ -444,40 +444,106 @@ const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
 };
 
   // Lead table columns
-  // Lead table columns
 const leadColumns: ColumnsType<Lead> = [
   {
     title: 'Contact',
     key: 'contact',
-    // Removed fixed width to allow flexibility
-    render: (_, record) => (
-      <div className="flex items-center space-x-3">
-        <Avatar 
-          src={`https://i.pravatar.cc/40?u=${record.id}`}
-          size={40}
-        />
-        <div>
-          <div className="font-medium">{record.name}</div>
-          <div className="text-sm text-gray-500">{record.title}</div>
+    width: 250, // Increased to accommodate badges
+    render: (_, record) => {
+      // Function to determine if title is senior level
+      const getSeniorityInfo = (title: string, metadata?: any) => {
+        const titleLower = title.toLowerCase();
+        const seniority = metadata?.seniority?.toLowerCase() || '';
+        
+        // C-Level executives
+        if (titleLower.includes('ceo') || titleLower.includes('chief executive')) {
+          return { level: 'c-level', badge: 'CEO', color: '#722ed1' };
+        }
+        if (titleLower.includes('cto') || titleLower.includes('chief technology')) {
+          return { level: 'c-level', badge: 'CTO', color: '#722ed1' };
+        }
+        if (titleLower.includes('cfo') || titleLower.includes('chief financial')) {
+          return { level: 'c-level', badge: 'CFO', color: '#722ed1' };
+        }
+        if (titleLower.includes('coo') || titleLower.includes('chief operating')) {
+          return { level: 'c-level', badge: 'COO', color: '#722ed1' };
+        }
+        if (titleLower.includes('chief') && titleLower.includes('officer')) {
+          return { level: 'c-level', badge: 'C-Level', color: '#722ed1' };
+        }
+        
+        // Founders
+        if (titleLower.includes('founder') || titleLower.includes('co-founder')) {
+          return { level: 'founder', badge: 'Founder', color: '#fa541c' };
+        }
+        
+        // VPs and Directors
+        if (titleLower.includes('vp ') || titleLower.includes('vice president')) {
+          return { level: 'vp', badge: 'VP', color: '#1890ff' };
+        }
+        if (titleLower.includes('director') && !titleLower.includes('associate')) {
+          return { level: 'director', badge: 'Director', color: '#52c41a' };
+        }
+        
+        // Presidents
+        if (titleLower.includes('president') && !titleLower.includes('vice')) {
+          return { level: 'president', badge: 'President', color: '#fa541c' };
+        }
+        
+        // Seniority from metadata
+        if (seniority.includes('senior') || seniority.includes('lead')) {
+          return { level: 'senior', badge: 'Senior', color: '#faad14' };
+        }
+        
+        return null;
+      };
+
+      const seniorityInfo = getSeniorityInfo(record.title, record.metadata);
+
+      return (
+        <div className="flex items-center space-x-3">
+          <Avatar 
+            src={`https://i.pravatar.cc/32?u=${record.id}`}
+            size={32}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="font-medium text-sm truncate">{record.name}</span>
+              {seniorityInfo && (
+                <span 
+                  className="px-2 py-0.5 text-xs font-medium text-white rounded-full"
+                  style={{ backgroundColor: seniorityInfo.color }}
+                >
+                  {seniorityInfo.badge}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-gray-500 truncate">{record.title}</div>
+            {record.metadata?.seniority && (
+              <div className="text-xs text-gray-400 truncate">
+                {record.metadata.seniority}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    ),
+      );
+    },
   },
   {
     title: 'Company',
     key: 'company',
-    // Removed fixed width
+    width: 200,
     render: (_, record) => (
       <div>
-        <div className="font-medium">{record.company}</div>
-        <div className="text-sm text-gray-500">{record.industry}</div>
-        {record.companySize && (
-          <Tag className="mt-1">{record.companySize} employees</Tag>
-        )}
-        {record.metadata?.companyRevenue && (
-          <div className="text-xs text-gray-400">
-            Revenue: {record.metadata.companyRevenue}
-          </div>
+        <div className="font-medium text-sm truncate">{record.company}</div>
+        <div className="text-xs text-gray-500 truncate">{record.industry}</div>
+        {/* Only show company size if it exists and isn't "unknown" */}
+        {record.companySize && 
+         !record.companySize.toLowerCase().includes('unknown') && 
+         record.companySize !== 'Unknown' && (
+          <Tag  className="mt-1 text-xs">
+            {record.companySize}
+          </Tag>
         )}
       </div>
     ),
@@ -486,45 +552,58 @@ const leadColumns: ColumnsType<Lead> = [
     title: 'Location',
     dataIndex: 'location',
     key: 'location',
-    // Removed fixed width
+    width: 150, // Increased from 120
+    render: (location) => (
+      <div className="text-sm" title={location}>
+        <span className="truncate block">{location}</span>
+      </div>
+    ),
   },
   {
-    title: 'Contact Info', // Reverted to show actual info
+    title: 'Contact Info',
     key: 'contactInfo',
-    // Removed fixed width
+    width: 200, // Increased from 140 to show full contact details
     render: (_, record) => (
-      <Space direction="vertical" size={0}>
+      <div className="space-y-1">
         {record.email && (
-          <div className="flex items-center text-sm">
-            <MailOutlined className="mr-1 text-green-500" />
-            <span>{record.email}</span>
+          <div className="flex items-center text-xs">
+            <MailOutlined className="mr-1 text-green-500 flex-shrink-0" />
+            <span className="truncate" title={record.email}>{record.email}</span>
           </div>
         )}
         {record.phone && (
-          <div className="flex items-center text-sm">
-            <PhoneOutlined className="mr-1 text-blue-500" />
-            <span>{record.phone}</span>
+          <div className="flex items-center text-xs">
+            <PhoneOutlined className="mr-1 text-blue-500 flex-shrink-0" />
+            <span className="truncate" title={record.phone}>{record.phone}</span>
           </div>
         )}
         {record.linkedinUrl && (
-          <div className="flex items-center text-sm">
-            <LinkedinOutlined className="mr-1 text-purple-500" />
-            <span>LinkedIn</span> {/* Or truncate the URL if preferred */}
+          <div className="flex items-center text-xs">
+            <LinkedinOutlined className="mr-1 text-purple-500 flex-shrink-0" />
+            <span className="truncate" title={record.linkedinUrl}>
+              {record.linkedinUrl.replace('https://', '').replace('www.', '')}
+            </span>
           </div>
         )}
-      </Space>
+        {!record.email && !record.phone && !record.linkedinUrl && (
+          <span className="text-xs text-gray-400">No contact info</span>
+        )}
+      </div>
     ),
   },
   {
     title: 'Score',
     key: 'score',
-    // Removed fixed width and align
+    width: 80, // Compact width for score
+    align: 'center',
     render: (_, record) => (
-      <div className="flex items-center">
-        <StarOutlined style={{ color: getScoreColor(record.score) }} className="mr-1" />
-        <span style={{ color: getScoreColor(record.score), fontWeight: 'bold' }}>
+      <div className="flex items-center justify-center">
+        <div 
+          className="flex items-center justify-center w-12 h-6 rounded text-xs font-bold text-white"
+          style={{ backgroundColor: getScoreColor(record.score) }}
+        >
           {record.score}
-        </span>
+        </div>
       </div>
     ),
     sorter: (a, b) => a.score - b.score,
@@ -532,11 +611,13 @@ const leadColumns: ColumnsType<Lead> = [
   {
     title: 'Actions',
     key: 'actions',
-    // Removed fixed width and fixed position
+    width: 140,
+    fixed: 'right' as const, // Keep actions always visible
     render: (_, record) => (
-      <Space>
+      <Space size="small">
         <Button 
           size="small"
+          type="text"
           onClick={() => handleViewLead(record)}
         >
           View
@@ -552,6 +633,7 @@ const leadColumns: ColumnsType<Lead> = [
     ),
   },
 ];
+
 
   // Generation history columns
   const generationColumns: ColumnsType<LeadGeneration> = [
@@ -689,25 +771,29 @@ const leadColumns: ColumnsType<Lead> = [
     <Spin size="large" />
   </div>
 ) : filteredLeads.length > 0 ? (
-  <Table
-    columns={leadColumns}
-    className="no-vertical-borders"
-    dataSource={filteredLeads}
-    rowKey="id"
-    scroll={{ 
-      x: 1200, // Enable horizontal scroll on smaller screens
-      y: 600   // Enable vertical scroll for long lists
-    }}
-    pagination={{
-      total: filteredLeads.length,
-      pageSize: 20,
-      showSizeChanger: true,
-      showQuickJumper: true,
-      showTotal: (total, range) => 
-        `${range[0]}-${range[1]} of ${total} leads`,
-    }}
-    size="middle" // Compact table size
-  />
+<Table
+  columns={leadColumns}
+  dataSource={filteredLeads}
+  rowKey="id"
+  className="lead-generation-table no-vertical-borders"
+  scroll={{ 
+    x: 1030, // Increased to accommodate wider contact column with badges
+    y: 600   
+  }}
+  pagination={{
+    total: filteredLeads.length,
+    pageSize: 20,
+    showSizeChanger: true,
+    showQuickJumper: true,
+    showTotal: (total, range) => 
+      `${range[0]}-${range[1]} of ${total} leads`,
+  }}
+  size="small" // Changed from "middle" to "small" for more compact rows
+  tableLayout="fixed" // Enforces the width constraints
+/>
+
+
+
 ) : (
   <Empty 
     description="No leads found"
