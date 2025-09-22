@@ -311,13 +311,13 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         bodyStyle={{ padding: '20px' }}
       >
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <RocketOutlined 
+          {/* <RocketOutlined 
             style={{ 
               fontSize: 48, 
               color: theme === 'dark' ? '#4b5563' : '#d1d5db',
               marginBottom: 16 
             }} 
-          />
+          /> */}
           <Title level={4} style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
             Loading Your Achievements...
           </Title>
