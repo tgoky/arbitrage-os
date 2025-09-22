@@ -13,7 +13,7 @@ import ActivityFeed from '../components/activityfeed';
 import RecentDeliverables from '../components/recentdeliveries';
 import CelebrationMilestonesPanel from '../../../components/heatmaps/celebrationmilestones';
 import ActivityHeatmap from '../../../components/heatmaps/activityheatmap';
-import { AutomationItem, ActivityItem, Deliverable } from '../components/types';
+import { ActivityItem, Deliverable } from '../components/types';
 import { EnhancedLoadingState } from '../../../components/loadingui/loading';
 
 const { useBreakpoint } = Grid;

@@ -6,8 +6,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUserProfile } from "../../app/hooks/useUserProfile";
 
-
-
 // Add this interface
 interface UserProfile {
   id: string;
@@ -15,8 +13,6 @@ interface UserProfile {
   name?: string;
   avatar?: string;
 }
-
-
 
 interface UserSectionProps {
   collapsed: boolean;
@@ -26,19 +22,67 @@ interface UserSectionProps {
 export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   const { theme } = useTheme();
 
-   const { data: userProfile, isLoading, error } = useUserProfile() as {
+  const { data: userProfile, isLoading, error } = useUserProfile() as {
     data: UserProfile | undefined;
     isLoading: boolean;
     error: any;
   };
 
+  const [displayName, setDisplayName] = useState("User");
   const [userInitial, setUserInitial] = useState("U");
   const router = useRouter();
 
+  // Smart name extraction function
+  const extractNameFromEmail = (email: string): string => {
+    try {
+      // Get the part before @ symbol
+      const localPart = email.split('@')[0];
+      
+      // Handle common email patterns
+      if (localPart.includes('.')) {
+        // Split by dots and capitalize each part (john.doe -> John Doe)
+        return localPart
+          .split('.')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else if (localPart.includes('_')) {
+        // Split by underscores and capitalize each part (john_doe -> John Doe)
+        return localPart
+          .split('_')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else if (localPart.includes('-')) {
+        // Split by hyphens and capitalize each part (john-doe -> John Doe)
+        return localPart
+          .split('-')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else {
+        // Just capitalize the whole thing (john -> John)
+        return localPart.charAt(0).toUpperCase() + localPart.slice(1).toLowerCase();
+      }
+    } catch {
+      return "User";
+    }
+  };
+
   useEffect(() => {
     if (userProfile) {
-      // Get initial from name or email
-      const initial = userProfile.name?.charAt(0).toUpperCase() || 
+      // Priority: 1. Explicit name, 2. Smart email extraction, 3. Fallback
+      let name = "User";
+      
+      if (userProfile.name && userProfile.name.trim()) {
+        // Use the explicit name if available
+        name = userProfile.name.trim();
+      } else if (userProfile.email) {
+        // Extract name from email
+        name = extractNameFromEmail(userProfile.email);
+      }
+      
+      setDisplayName(name);
+      
+      // Set initial from the display name or email
+      const initial = name.charAt(0).toUpperCase() || 
                      userProfile.email?.charAt(0).toUpperCase() || 
                      "U";
       setUserInitial(initial);
@@ -144,7 +188,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
             {userProfile?.avatar ? (
               <img 
                 src={userProfile.avatar} 
-                alt={userProfile.name || userProfile.email || "User"}
+                alt={displayName}
                 className="h-8 w-8 rounded-lg object-cover"
               />
             ) : (
@@ -158,7 +202,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                   theme === "dark" ? "text-gray-200" : "text-gray-700"
                 }`}
               >
-                {isLoading ? "Loading..." : (userProfile?.name || "User")}
+                {isLoading ? "Loading..." : displayName}
               </p>
               <p
                 className={`text-[0.75rem] truncate ${
@@ -168,6 +212,12 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
               >
                 {isLoading ? "..." : (userProfile?.email || "No email")}
               </p>
+              {/* Show hint if name was extracted from email */}
+              {userProfile && !userProfile.name && userProfile.email && displayName !== "User" && (
+                <p className={`text-[0.65rem] ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                  Click to customize
+                </p>
+              )}
             </div>
           </button>
         ) : (
@@ -178,12 +228,12 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                 ? "bg-black text-gray-200 hover:bg-gray-800"
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
-            title="View Profile"
+            title={`${displayName} - Click to view profile`}
           >
             {userProfile?.avatar ? (
               <img 
                 src={userProfile.avatar} 
-                alt={userProfile.name || userProfile.email || "User"}
+                alt={displayName}
                 className="h-8 w-8 rounded-lg object-cover"
               />
             ) : (

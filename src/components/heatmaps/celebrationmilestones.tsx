@@ -311,13 +311,6 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         bodyStyle={{ padding: '20px' }}
       >
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          {/* <RocketOutlined 
-            style={{ 
-              fontSize: 48, 
-              color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-              marginBottom: 16 
-            }} 
-          /> */}
           <Title level={4} style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
             Loading Your Achievements...
           </Title>
@@ -377,7 +370,7 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Achievements Row */}
+      {/* Achievements Row - Made wider for 2-column dashboard layout */}
       <Card 
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -390,57 +383,58 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         style={getCardStyle()}
         bodyStyle={{ padding: '16px' }}
       >
-        <Row gutter={[16, 16]}>
+        <Row gutter={[12, 12]}>
           {achievements.map((achievement, index) => (
-            <Col xs={12} sm={6} key={index}>
+            <Col xs={24} sm={12} key={index}>
               <div style={{
-                padding: '12px',
+                padding: '16px',
                 borderRadius: '8px',
                 backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
                 border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                textAlign: 'center'
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                minHeight: '64px'
               }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginBottom: 8
-                }}>
-                  <Avatar
-                    icon={achievement.icon}
-                    style={{
-                      backgroundColor: achievement.color + '15',
-                      color: achievement.color,
-                      border: `2px solid ${achievement.color}20`
+                <Avatar
+                  icon={achievement.icon}
+                  style={{
+                    backgroundColor: achievement.color + '15',
+                    color: achievement.color,
+                    border: `2px solid ${achievement.color}20`,
+                    flexShrink: 0
+                  }}
+                  size={36}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Text 
+                    style={{ 
+                      fontSize: 12, 
+                      color: theme === 'dark' ? '#9ca3af' : '#666666',
+                      display: 'block',
+                      marginBottom: 2
                     }}
-                    size={32}
-                  />
+                  >
+                    {achievement.title}
+                  </Text>
+                  <Text 
+                    style={{ 
+                      fontSize: 14, 
+                      fontWeight: 600,
+                      color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    {achievement.value}
+                  </Text>
                 </div>
-                <Text 
-                  style={{ 
-                    fontSize: 11, 
-                    color: theme === 'dark' ? '#9ca3af' : '#666666',
-                    display: 'block',
-                    marginBottom: 2
-                  }}
-                >
-                  {achievement.title}
-                </Text>
-                <Text 
-                  style={{ 
-                    fontSize: 13, 
-                    fontWeight: 600,
-                    color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
-                  }}
-                >
-                  {achievement.value}
-                </Text>
               </div>
             </Col>
           ))}
         </Row>
       </Card>
 
-      {/* Milestones Progress */}
+      {/* Milestones Progress - Compact for 2-column layout */}
       <Card 
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -453,7 +447,7 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         style={getCardStyle()}
         bodyStyle={{ padding: '16px' }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {milestones.map((milestone) => (
             <div 
               key={milestone.id}
@@ -466,21 +460,23 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                   <Avatar
                     icon={milestone.icon}
                     style={{
                       backgroundColor: milestone.achieved ? milestone.color : (theme === 'dark' ? '#374151' : '#e5e7eb'),
                       color: milestone.achieved ? '#ffffff' : (theme === 'dark' ? '#9ca3af' : '#666666'),
+                      flexShrink: 0
                     }}
                     size={24}
                   />
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <Text 
                       style={{ 
                         fontSize: 13, 
                         fontWeight: 600,
-                        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a'
+                        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
+                        display: 'block'
                       }}
                     >
                       {milestone.title}
@@ -501,7 +497,8 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
                     count={milestone.badge} 
                     style={{ 
                       backgroundColor: milestone.color,
-                      fontSize: 10
+                      fontSize: 9,
+                      flexShrink: 0
                     }} 
                   />
                 )}
