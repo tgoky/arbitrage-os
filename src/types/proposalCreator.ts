@@ -35,15 +35,17 @@ export type PricingModel =
   | 'hybrid';
 
 export interface ClientInformation {
-  legalName: string; // Required
-  stateOfIncorporation?: string; // Made optional
-  entityType?: 'corporation' | 'llc' | 'partnership' | 'sole-proprietorship'; // Made optional
-  address?: string; // Made optional
-  signatoryName?: string; // Made optional
-  signatoryTitle?: string; // Made optional
-  industry: IndustryType; // Required with default
-  companySize: 'startup' | 'small' | 'medium' | 'enterprise'; // Required with default
-  decisionMaker?: string; // Made optional
+  legalName: string;
+  stateOfIncorporation?: string;
+  entityType?: 'corporation' | 'llc' | 'partnership' | 'sole-proprietorship';
+  address?: string;
+  signatoryName?: string;
+  signatoryTitle?: string;
+  industry: IndustryType;
+  companySize: 'startup' | 'small' | 'medium' | 'enterprise';
+  decisionMaker?: string;
+  // ADD THIS
+  previousEngagements?: number;
 }
 
 // Updated ServiceProvider interface to match validator
@@ -211,6 +213,15 @@ export interface GeneratedProposal {
     statementOfWork: string;
     masterServiceAgreement?: string;
   };
+  // ADD THIS
+  metadata?: {
+    tokensUsed?: number;
+    model?: string;
+    generatedAt?: string;
+    fallbackGeneration?: boolean;
+    minimalGeneration?: boolean;
+    proposalType?: ProposalType;
+  };
 }
 
 export interface ProposalPackage {
@@ -267,9 +278,12 @@ export interface RiskAssessment {
     financial: Risk[];
     timeline: Risk[];
     relationship: Risk[];
+    // ADD THIS
+    market?: Risk[];
   };
   mitigationPlan: string[];
 }
+
 
 export interface CompetitiveAnalysis {
   positioningAdvantages: string[];
@@ -295,12 +309,14 @@ export interface SavedProposal {
   metadata: {
     industry: IndustryType;
     projectSize: 'small' | 'medium' | 'large';
-    complexity: 'simple' | 'moderate' | 'complex';
+    // FIX THIS - change to match the actual values used in service
+    complexity: 'low' | 'moderate' | 'high'; // Changed from 'simple' | 'moderate' | 'complex'
     winProbability: number;
-    version: number;
+    version: string; // Changed from number to string to match "1.0"
   };
   workspace?: any;
 }
+
 
 export interface ProposalTemplate {
   id: string;
