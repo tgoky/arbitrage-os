@@ -103,6 +103,16 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                         {
+                          name: "Proposal_Generator",
+                          list: "/proposal-generator",
+                          create: "/proposal-generator/create",
+                          edit: "/proposal-generator/edit/:id",
+                          show: "/proposal-generator/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
                         {
                           name: "Ad_Writer",
                           list: "/ad-writer",

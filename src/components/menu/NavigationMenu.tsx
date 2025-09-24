@@ -54,7 +54,7 @@ const menuGroups: MenuGroupConfig[] = [
         id: "tools",
         label: "Tools",
         icon: <BoltIcon className="h-4 w-4" />,
-        items: [ "AI_Tools",  "Lead_Generation"],
+        items: [ "AI_Tools",  "Lead_Generation", "Proposal_Generator"],
         //commented out lead gen and playbooks
       },
       {
