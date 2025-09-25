@@ -52,61 +52,115 @@ export class ProposalCreatorService {
     });
   }
 
-  async generateProposal(input: ProposalInput): Promise<ProposalPackage> {
-    const startTime = Date.now();
+async generateProposal(input: ProposalInput): Promise<ProposalPackage> {
+  const startTime = Date.now();
 
-    try {
-      // Validate input thoroughly
-      this.validateInput(input);
+  try {
+    this.validateInput(input);
 
-      // Check cache with robust error handling
-      const cachedResult = await this.getCachedProposal(input);
-      if (cachedResult) {
-        return cachedResult;
-      }
-
-      // Generate proposal with timeout and retry logic
-      const proposal = await this.generateProposalWithRetry(input);
-      
-      // Generate analysis and additional components
-      const analysis = this.generateProposalAnalysis(input, proposal);
-      const recommendations = this.generateRecommendations(input, analysis);
-      const alternatives = this.generateAlternativeOptions(input);
-      const riskAssessment = this.generateRiskAssessment(input);
-      const competitiveAnalysis = this.generateCompetitiveAnalysis(input);
-
-  const proposalPackage: ProposalPackage = {
-  proposal,
-  analysis,
-  recommendations,
-  alternativeOptions: proposal.alternativeOptions || this.generateAlternativeOptions(input), // Fallback to service-generated
-  riskAssessment,
-  competitiveAnalysis,
-  tokensUsed: proposal.metadata?.tokensUsed || 0,
-  generationTime: Date.now() - startTime,
-  originalInput: input
-};
-
-
-
-      // Cache result asynchronously (don't block response)
-      this.cacheProposalAsync(input, proposalPackage);
-
-      return proposalPackage;
-    } catch (error) {
-      console.error('Proposal generation failed:', error);
-      
-      if (error instanceof ProposalValidationError) {
-        throw error;
-      }
-      
-      throw new ProposalGenerationError(
-        'Failed to generate proposal. Please check your input and try again.',
-        error instanceof Error ? error : new Error(String(error))
-      );
+    const cachedResult = await this.getCachedProposal(input);
+    if (cachedResult) {
+      return cachedResult;
     }
-  }
 
+    // Generate main proposal
+    const proposal = await this.generateProposalWithRetry(input);
+    
+    // ALL AI-generated content - including analysis
+    const [analysis, recommendations, alternatives, riskAssessment, competitiveAnalysis] = await Promise.all([
+      this.generateAnalysisAI(input, proposal), // NEW AI method
+      this.generateRecommendationsAI(input), // Remove analysis dependency
+      proposal.alternativeOptions ? Promise.resolve(proposal.alternativeOptions) : this.generateAlternativeOptionsAI(input),
+      this.generateRiskAssessmentAI(input), 
+      this.generateCompetitiveAnalysisAI(input)
+    ]);
+
+    const proposalPackage: ProposalPackage = {
+      proposal,
+      analysis,
+      recommendations,
+      alternativeOptions: alternatives,
+      riskAssessment,
+      competitiveAnalysis,
+      tokensUsed: (proposal.metadata?.tokensUsed || 0) + 4000, // 5 AI calls now
+      generationTime: Date.now() - startTime,
+      originalInput: input
+    };
+
+    this.cacheProposalAsync(input, proposalPackage);
+    return proposalPackage;
+    
+  } catch (error) {
+    console.error('Proposal generation failed:', error);
+    
+    if (error instanceof ProposalValidationError) {
+      throw error;
+    }
+    
+    throw new ProposalGenerationError(
+      'Failed to generate proposal. Please check your input and try again.',
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
+
+
+private async generateAnalysisAI(input: ProposalInput, proposal: GeneratedProposal): Promise<ProposalAnalysis> {
+  try {
+    const prompt = `Analyze this business proposal and provide strategic insights:
+
+CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
+PROJECT: "${input.project.description}"
+VALUE: $${input.pricing.totalAmount.toLocaleString()}
+TIMELINE: ${input.project.timeline || 'TBD'}
+
+Analyze the win probability, pricing competitiveness, risk level, and strengths/weaknesses.
+
+Return JSON:
+{
+  "winProbability": {
+    "score": number (0-100),
+    "factors": [{"factor": "string", "impact": "High|Medium|Low", "description": "string"}]
+  },
+  "pricingAnalysis": {
+    "competitiveness": "low|competitive|premium",
+    "valueJustification": "string",
+    "recommendations": ["string1", "string2"]
+  },
+  "riskLevel": "low|medium|high",
+  "strengthsWeaknesses": {
+    "strengths": ["string1", "string2"],
+    "weaknesses": ["string1", "string2"], 
+    "improvements": ["string1", "string2"]
+  }
+}`;
+
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a proposal analysis expert. Return only valid JSON with the specified structure.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.6,
+      max_tokens: 2000
+    });
+
+    return JSON.parse(response.content);
+    
+  } catch (error) {
+    console.error('AI analysis generation failed:', error);
+    throw new ProposalGenerationError(
+      'Failed to generate proposal analysis. Please try again.',
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
 
   
   private validateInput(input: ProposalInput): void {
@@ -1399,6 +1453,246 @@ Date: [EXECUTION_DATE]                   Date: [EXECUTION_DATE]`;
   }
 }
 
+private async generateAlternativeOptionsAI(input: ProposalInput): Promise<AlternativeOption[]> {
+  try {
+    const prompt = `Generate 3 unique alternative approaches for this specific proposal:
+
+CLIENT: ${input.client.legalName} (${input.client.companySize} ${input.client.industry} company)
+PROJECT: "${input.project.description}"
+BUDGET: $${input.pricing.totalAmount.toLocaleString()}
+TIMELINE: ${input.project.timeline || 'TBD'}
+
+Create alternatives that are:
+1. SPECIFIC to this exact project (not generic templates)
+2. REALISTIC with actual pricing/timeline adjustments
+3. CONTEXTUAL to ${input.client.industry} industry needs
+
+Return JSON array with exactly this structure:
+[
+  {
+    "title": "specific name for ${input.client.legalName}",
+    "description": "detailed description specific to their project",
+    "pricingAdjustment": number (-0.5 to 0.5),
+    "timelineAdjustment": "specific timeline change description", 
+    "scopeChanges": ["specific scope modification 1", "specific scope modification 2", "etc"],
+    "pros": ["specific advantage 1", "specific advantage 2", "etc"],
+    "cons": ["specific limitation 1", "specific limitation 2", "etc"]
+  }
+]
+
+Generate: Essential version (-30-40% cost), Premium version (+40-50% cost), Phased approach (+15% cost)`;
+
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system', 
+          content: 'You are an expert at creating project alternatives. Always return valid JSON arrays only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 3000
+    });
+
+    const alternatives = JSON.parse(response.content);
+    return Array.isArray(alternatives) ? alternatives : [];
+    
+ } catch (error) {
+    console.error('AI alternatives generation failed:', error);
+    throw new ProposalGenerationError(
+      'Failed to generate alternative options. Please try again.',
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
+
+
+private async generateRecommendationsAI(input: ProposalInput): Promise<string[]> {
+  // Remove the analysis parameter since we're generating everything independently
+  try {
+    const prompt = `Generate 6-8 specific, actionable recommendations for this proposal:
+
+CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
+PROJECT: "${input.project.description}"
+VALUE: $${input.pricing.totalAmount.toLocaleString()}
+
+Focus on improving win probability, competitive positioning, and value proposition.
+Return JSON array of strings: ["recommendation 1", "recommendation 2", ...]`;
+
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a proposal optimization expert. Return only valid JSON arrays.'
+        },
+        {
+          role: 'user', 
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    const recommendations = JSON.parse(response.content);
+    return Array.isArray(recommendations) ? recommendations : [];
+    
+  } catch (error) {
+    console.error('AI recommendations generation failed:', error);
+    throw new ProposalGenerationError(
+      'Failed to generate recommendations. Please try again.',
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
+
+
+private async generateRiskAssessmentAI(input: ProposalInput): Promise<RiskAssessment> {
+  try {
+    const deliverableCount = input.project.deliverables?.length || 0;
+    const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
+    const dependencyCount = input.project.dependencies?.length || 0;
+
+    const prompt = `Analyze risks for this specific proposal:
+
+CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
+PROJECT: "${input.project.description}"
+VALUE: $${input.pricing.totalAmount.toLocaleString()}
+TIMELINE: ${input.project.timeline || 'TBD'} (${timelineWeeks} weeks)
+DELIVERABLES: ${deliverableCount} items
+DEPENDENCIES: ${dependencyCount} dependencies
+PAYMENT: ${input.pricing.model} model
+
+Analyze SPECIFIC risks for THIS project in these categories:
+- Technical: Implementation, integration, complexity risks
+- Financial: Payment, budget, cost overrun risks  
+- Timeline: Delivery, milestone, scheduling risks
+- Relationship: Client communication, expectation risks
+- Market: Industry, competitive, economic risks
+
+For each risk, assess:
+- Probability: low/medium/high
+- Impact: low/medium/high  
+- Specific mitigation strategy
+
+Return JSON:
+{
+  "overallRisk": "low|medium|high",
+  "riskCategories": {
+    "technical": [{"description": "specific risk", "probability": "medium", "impact": "high", "mitigation": "specific action"}],
+    "financial": [...],
+    "timeline": [...], 
+    "relationship": [...],
+    "market": [...]
+  },
+  "mitigationPlan": ["overall strategy 1", "overall strategy 2", ...]
+}`;
+
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a project risk analysis expert. Return only valid JSON with the specified structure.'
+        },
+        {
+          role: 'user',
+          content: prompt  
+        }
+      ],
+      temperature: 0.6,
+      max_tokens: 2500
+    });
+
+    const riskAssessment = JSON.parse(response.content);
+    return riskAssessment;
+    
+} catch (error) {
+    console.error('AI risk assessment generation failed:', error);
+    throw new ProposalGenerationError(
+      'Failed to generate risk assessment. Please try again.',
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
+
+
+private async generateCompetitiveAnalysisAI(input: ProposalInput): Promise<CompetitiveAnalysis> {
+  try {
+    const specializations = input.serviceProvider.specializations?.join(', ') || 'General services';
+    const credentials = input.serviceProvider.credentials?.join(', ') || 'Professional credentials';
+
+    const prompt = `Generate competitive analysis for this specific proposal:
+
+SERVICE PROVIDER: ${input.serviceProvider.name || 'Service Provider'}
+SPECIALIZATIONS: ${specializations}  
+CREDENTIALS: ${credentials}
+
+CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
+PROJECT: "${input.project.description}"
+VALUE: $${input.pricing.totalAmount.toLocaleString()}
+MODEL: ${input.pricing.model}
+
+Analyze competitive positioning for THIS specific engagement:
+
+1. POSITIONING ADVANTAGES: What makes this provider uniquely suited for THIS project?
+2. POTENTIAL CHALLENGES: What competitive/market challenges might arise?  
+3. DIFFERENTIATION POINTS: How does this proposal stand out from alternatives?
+4. MARKET BENCHMARKS: Realistic pricing/timeline ranges for similar ${input.client.industry} projects
+
+Be specific to:
+- This exact project type and scope
+- ${input.client.industry} industry dynamics  
+- ${input.client.companySize} company decision factors
+- Current market conditions
+
+Return JSON:
+{
+  "positioningAdvantages": ["specific advantage 1", "specific advantage 2", ...],
+  "potentialChallenges": ["specific challenge 1", "specific challenge 2", ...], 
+  "differentiationPoints": ["specific differentiator 1", "specific differentiator 2", ...],
+  "marketBenchmarks": {
+    "pricingRange": {"min": 0, "max": 0},
+    "typicalTimeline": "timeline description",
+    "standardFeatures": ["standard feature 1", "standard feature 2", ...]
+  }
+}`;
+
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a competitive analysis expert. Return only valid JSON with the specified structure.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    });
+
+    const competitiveAnalysis = JSON.parse(response.content);
+    return competitiveAnalysis;
+    
+} catch (error) {
+    console.error('AI competitive analysis generation failed:', error);
+    throw new ProposalGenerationError(
+      'Failed to generate competitive analysis. Please try again.',
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+}
+
+
+
 private generateConsultingSOW(input: ProposalInput): string {
   try {
     const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
@@ -1624,234 +1918,7 @@ private generateExecutiveSummary(input: ProposalInput): string {
   }
 }
 
-private generateProposalAnalysis(input: ProposalInput, proposal: GeneratedProposal): ProposalAnalysis {
-  try {
-    const winProbability = this.calculateWinProbability(input);
-    const pricingAnalysis = this.analyzePricing(input);
-    const riskLevel = this.assessOverallRisk(input);
-    const strengthsWeaknesses = this.analyzeStrengthsWeaknesses(input);
 
-    return {
-      winProbability,
-      pricingAnalysis,
-      riskLevel,
-      strengthsWeaknesses
-    };
-  } catch (error) {
-    console.error('Error generating proposal analysis:', error);
-    return this.generateMinimalAnalysis(input);
-  }
-}
-
-private generateMinimalAnalysis(input: ProposalInput): ProposalAnalysis {
-  return {
-    winProbability: {
-      score: 65,
-      factors: [{
-        factor: 'Professional service offering',
-        impact: 'Medium',
-        description: 'Standard professional services with competitive positioning'
-      }]
-    },
-    pricingAnalysis: {
-      competitiveness: 'competitive',
-      valueJustification: 'Pricing aligned with industry standards for professional services',
-      recommendations: ['Consider highlighting unique value propositions']
-    },
-    riskLevel: 'medium',
-    strengthsWeaknesses: {
-      strengths: ['Professional service delivery', 'Clear project scope'],
-      weaknesses: ['Limited differentiation factors'],
-      improvements: ['Enhance value proposition', 'Add industry-specific expertise']
-    }
-  };
-}
-
-private calculateWinProbability(input: ProposalInput): { score: number; factors: any[] } {
-  try {
-    let score = 50; // Start neutral
-    const factors: any[] = [];
-
-    // UNIQUE: Analyze actual specializations against client industry
-    const specializations = this.safeFilterArray(input.serviceProvider.specializations);
-    const industryKeywords = this.getIndustryKeywords(input.client.industry);
-    
-    const relevantSpecs = specializations.filter(spec => 
-      industryKeywords.some(keyword => spec.toLowerCase().includes(keyword))
-    );
-
-    if (relevantSpecs.length > 0) {
-      const boost = Math.min(relevantSpecs.length * 8, 20);
-      score += boost;
-      factors.push({
-        factor: `Direct ${input.client.industry} expertise: ${relevantSpecs.join(', ')}`,
-        impact: relevantSpecs.length > 2 ? 'High' : 'Medium',
-        description: `Service provider demonstrates specific experience in ${input.client.industry} through documented specializations`
-      });
-    }
-
-    // UNIQUE: Project complexity vs timeline realism
-    const projectComplexity = this.calculateProjectComplexity(input);
-    const timelineRealism = this.assessTimelineRealism(input);
-    
-    if (projectComplexity === 'high' && timelineRealism === 'realistic') {
-      score += 15;
-      factors.push({
-        factor: 'Realistic timeline for complex project',
-        impact: 'High',
-        description: `Complex project (${input.project.deliverables?.length || 0} deliverables) with achievable timeline shows professional planning`
-      });
-    } else if (projectComplexity === 'high' && timelineRealism === 'aggressive') {
-      score -= 12;
-      factors.push({
-        factor: 'Aggressive timeline risks delivery',
-        impact: 'High',
-        description: `High complexity project may suffer quality issues with compressed ${input.project.timeline} timeline`
-      });
-    }
-
-    // UNIQUE: Price positioning for specific client size
-    const expectedRange = this.getIndustryPriceRange(input.client.industry, input.client.companySize);
-    if (input.pricing.totalAmount >= expectedRange.min && input.pricing.totalAmount <= expectedRange.max) {
-      score += 10;
-      factors.push({
-        factor: `Price fits ${input.client.companySize} ${input.client.industry} budget expectations`,
-        impact: 'Medium',
-        description: `$${input.pricing.totalAmount.toLocaleString()} aligns with typical ${input.client.companySize} company budgets in ${input.client.industry}`
-      });
-    }
-
-    return {
-      score: Math.min(95, Math.max(20, score)),
-      factors: factors.slice(0, 4) // Limit to most impactful factors
-    };
-  } catch (error) {
-    console.error('Error calculating win probability:', error);
-    return {
-      score: 60,
-      factors: [{
-        factor: 'Standard market positioning',
-        impact: 'Medium', 
-        description: 'Analysis limited due to incomplete data - recommend providing more project details'
-      }]
-    };
-  }
-}
-
-private getIndustryKeywords(industry: IndustryType): string[] {
-  const keywords: Record<IndustryType, string[]> = {
-    'technology': ['tech', 'software', 'digital', 'system', 'platform', 'app', 'web', 'cloud', 'api', 'development', 'coding', 'programming', 'database', 'integration', 'automation', 'ai', 'machine', 'learning', 'cyber', 'security'],
-    
-    'healthcare': ['health', 'medical', 'clinical', 'patient', 'hipaa', 'hospital', 'pharma', 'pharmaceutical', 'therapy', 'treatment', 'diagnosis', 'healthcare', 'wellness', 'telemedicine', 'nursing', 'doctor', 'physician', 'care', 'medicine', 'surgical'],
-    
-    'finance': ['financial', 'banking', 'investment', 'fintech', 'payment', 'compliance', 'risk', 'audit', 'accounting', 'tax', 'portfolio', 'trading', 'wealth', 'insurance', 'loan', 'credit', 'mortgage', 'capital', 'fund', 'regulatory'],
-    
-    'consulting': ['strategy', 'advisory', 'management', 'organizational', 'process', 'optimization', 'transformation', 'change', 'improvement', 'analysis', 'assessment', 'planning', 'implementation', 'governance', 'performance', 'operational', 'strategic', 'business', 'enterprise', 'workflow'],
-    
-    'marketing': ['brand', 'campaign', 'advertising', 'digital', 'social', 'media', 'content', 'seo', 'sem', 'email', 'lead', 'conversion', 'analytics', 'engagement', 'audience', 'creative', 'promotional', 'outreach', 'awareness', 'positioning'],
-    
-    'ecommerce': ['online', 'retail', 'shopping', 'cart', 'checkout', 'payment', 'inventory', 'fulfillment', 'shipping', 'marketplace', 'storefront', 'catalog', 'product', 'customer', 'order', 'sales', 'conversion', 'optimization', 'logistics', 'supply'],
-    
-    'manufacturing': ['production', 'assembly', 'quality', 'process', 'lean', 'manufacturing', 'supply', 'chain', 'logistics', 'inventory', 'operations', 'equipment', 'machinery', 'automation', 'efficiency', 'safety', 'compliance', 'industrial', 'factory', 'workflow'],
-    
-    'real-estate': ['property', 'real', 'estate', 'residential', 'commercial', 'investment', 'development', 'construction', 'market', 'valuation', 'appraisal', 'leasing', 'rental', 'mortgage', 'acquisition', 'portfolio', 'asset', 'management', 'zoning', 'regulatory'],
-    
-    'education': ['learning', 'education', 'training', 'curriculum', 'instruction', 'assessment', 'student', 'academic', 'course', 'program', 'certification', 'skills', 'knowledge', 'pedagogy', 'teaching', 'classroom', 'online', 'elearning', 'educational', 'development'],
-    
-    'other': ['business', 'professional', 'service', 'solution', 'project', 'management', 'delivery', 'quality', 'performance', 'improvement', 'analysis', 'planning', 'implementation', 'support', 'consultation', 'expertise', 'experience', 'specialized', 'custom', 'tailored']
-  };
-  
-  return keywords[industry] || keywords['other'];
-}
-
-
-private calculateProjectComplexity(input: ProposalInput): 'low' | 'medium' | 'high' {
-  let complexity = 0;
-  
-  // Factor in deliverable count and types
-  const deliverableCount = input.project.deliverables?.length || 0;
-  complexity += deliverableCount * 2;
-  
-  // Factor in milestone complexity
-  const milestoneCount = input.project.milestones?.length || 0;
-  complexity += milestoneCount * 3;
-  
-  // Factor in dependency count
-  const dependencyCount = input.project.dependencies?.length || 0;
-  complexity += dependencyCount * 4;
-  
-  // Industry-specific complexity
-  const complexIndustries = ['technology', 'healthcare', 'finance'];
-  if (complexIndustries.includes(input.client.industry)) {
-    complexity += 5;
-  }
-  
-  if (complexity >= 25) return 'high';
-  if (complexity >= 12) return 'medium';
-  return 'low';
-}
-
-private analyzePricing(input: ProposalInput): {
-  competitiveness: 'low' | 'competitive' | 'premium';
-  valueJustification: string;
-  recommendations: string[];
-} {
-  try {
-    const competitiveness = this.assessPricingCompetitiveness(input);
-    const recommendations: string[] = [];
-    
-    let valueJustification = `The ${input.pricing.model} pricing model provides `;
-    
-    const modelDescriptions: Record<string, { description: string; recommendations: string[] }> = {
-      'fixed-price': {
-        description: 'budget certainty and risk transfer to the service provider.',
-        recommendations: competitiveness === 'premium' ? ['Break down value components to justify premium pricing'] : []
-      },
-      'milestone-based': {
-        description: 'payment tied to deliverable completion, reducing client risk.',
-        recommendations: ['Ensure milestones are clearly defined and measurable']
-      },
-      'value-based': {
-        description: 'pricing aligned with business outcomes and ROI.',
-        recommendations: ['Quantify expected business impact to support pricing']
-      },
-      'hourly': {
-        description: 'transparent time-based billing with flexibility.',
-        recommendations: ['Consider providing time estimates for better budget planning']
-      }
-    };
-
-    const modelInfo = modelDescriptions[input.pricing.model] || {
-      description: 'transparent and fair pricing for services rendered.',
-      recommendations: []
-    };
-
-    valueJustification += modelInfo.description;
-    recommendations.push(...modelInfo.recommendations);
-
-    // Additional recommendations based on pricing amount
-    if (input.pricing.totalAmount > 100000) {
-      recommendations.push('Consider offering flexible payment plan options for large engagements');
-    }
-
-    if (input.pricing.totalAmount < 5000) {
-      recommendations.push('Ensure pricing adequately reflects the value and expertise provided');
-    }
-
-    return {
-      competitiveness,
-      valueJustification,
-      recommendations: recommendations.slice(0, 3) // Limit to top 3 recommendations
-    };
-  } catch (error) {
-    console.error('Error analyzing pricing:', error);
-    return {
-      competitiveness: 'competitive',
-      valueJustification: 'Pricing aligned with professional service standards',
-      recommendations: ['Review pricing against market benchmarks']
-    };
-  }
-}
 
 private assessPricingCompetitiveness(input: ProposalInput): 'low' | 'competitive' | 'premium' {
   try {
@@ -1992,120 +2059,7 @@ private assessScopeClarity(input: ProposalInput): 'unclear' | 'moderate' | 'clea
   }
 }
 
-private assessOverallRisk(input: ProposalInput): 'low' | 'medium' | 'high' {
-  try {
-    let riskScore = 0;
-    
-    // Timeline risk
-    const timelineRisk = this.assessTimelineRealism(input);
-    if (timelineRisk === 'aggressive') riskScore += 2;
-    else if (timelineRisk === 'unknown') riskScore += 1;
-    
-    // Pricing risk
-    const pricingRisk = this.assessPricingCompetitiveness(input);
-    if (pricingRisk === 'premium') riskScore += 1;
-    else if (pricingRisk === 'low') riskScore += 2;
-    
-    // Scope clarity risk
-    const scopeClarity = this.assessScopeClarity(input);
-    if (scopeClarity === 'unclear') riskScore += 2;
-    else if (scopeClarity === 'moderate') riskScore += 1;
-    
-    // Payment schedule risk
-    if (Array.isArray(input.pricing.paymentSchedule) && input.pricing.paymentSchedule.length > 0) {
-      const firstPayment = input.pricing.paymentSchedule[0];
-      if (firstPayment && typeof firstPayment.amount === 'number') {
-        const upfrontPercentage = firstPayment.amount / input.pricing.totalAmount;
-        if (upfrontPercentage < 0.25) riskScore += 1;
-      }
-    }
-    
-    if (riskScore >= 4) return 'high';
-    if (riskScore >= 2) return 'medium';
-    return 'low';
-  } catch (error) {
-    console.error('Error assessing overall risk:', error);
-    return 'medium';
-  }
-}
 
-private analyzeStrengthsWeaknesses(input: ProposalInput): {
-  strengths: string[];
-  weaknesses: string[];
-  improvements: string[];
-} {
-  try {
-    const strengths: string[] = [];
-    const weaknesses: string[] = [];
-    const improvements: string[] = [];
-
-    // Analyze credentials and specializations
-    const credentials = this.safeFilterArray(input.serviceProvider.credentials);
-    const specializations = this.safeFilterArray(input.serviceProvider.specializations);
-    
-    if (credentials.length > 0) {
-      strengths.push('Strong credentials and professional certifications');
-    }
-    
-    if (specializations.length >= 3) {
-      strengths.push('Diverse specialization portfolio');
-    } else if (specializations.length === 0) {
-      weaknesses.push('Limited documented specializations');
-      improvements.push('Add specific industry or technical specializations');
-    }
-    
-    // Analyze scope clarity
-    const scopeClarity = this.assessScopeClarity(input);
-    if (scopeClarity === 'clear') {
-      strengths.push('Well-defined project scope and deliverables');
-    } else if (scopeClarity === 'unclear') {
-      weaknesses.push('Project scope needs better definition');
-      improvements.push('Add detailed acceptance criteria and project exclusions');
-    }
-    
-    // Analyze pricing strategy
-    const pricingCompetitiveness = this.assessPricingCompetitiveness(input);
-    if (pricingCompetitiveness === 'premium') {
-      weaknesses.push('Premium pricing may face market resistance');
-      improvements.push('Strengthen value proposition and ROI justification');
-    } else if (pricingCompetitiveness === 'low') {
-      weaknesses.push('Low pricing may undervalue expertise');
-      improvements.push('Consider pricing adjustments to reflect true value');
-    } else {
-      strengths.push('Competitive and market-appropriate pricing');
-    }
-    
-    // Analyze timeline
-    const timelineRealism = this.assessTimelineRealism(input);
-    if (timelineRealism === 'aggressive') {
-      weaknesses.push('Timeline may be overly aggressive');
-      improvements.push('Add buffer time to critical milestones');
-    } else if (timelineRealism === 'realistic') {
-      strengths.push('Realistic and achievable timeline');
-    }
-    
-    // Payment structure analysis
-    const paymentSchedule = this.safeFilterArray(input.pricing.paymentSchedule);
-    if (paymentSchedule.length <= 2) {
-      improvements.push('Consider more frequent payment milestones for better cash flow');
-    } else {
-      strengths.push('Well-structured payment schedule');
-    }
-
-    return { 
-      strengths: strengths.slice(0, 5), 
-      weaknesses: weaknesses.slice(0, 4), 
-      improvements: improvements.slice(0, 4) 
-    };
-  } catch (error) {
-    console.error('Error analyzing strengths and weaknesses:', error);
-    return {
-      strengths: ['Professional service approach'],
-      weaknesses: ['Analysis limited due to data constraints'],
-      improvements: ['Provide more detailed project information']
-    };
-  }
-}
 
 // Safe utility method for filtering arrays
 private safeFilterArray(arr: any[] | undefined): any[] {
@@ -2609,1125 +2563,6 @@ private getDisputeResolutionMethod(method: string): string {
 }
 
 
-
-// services/proposalCreator.service.ts - PRODUCTION-READY PART 4
-// Recommendations, Risk Assessment, Competitive Analysis & Database Operations
-
-// ===== RECOMMENDATIONS ENGINE =====
-private generateRecommendations(input: ProposalInput, analysis: ProposalAnalysis): string[] {
-  try {
-    const recommendations: string[] = [];
-    
-    // Win probability recommendations
-    if (analysis.winProbability.score < 60) {
-      recommendations.push('Consider strengthening value proposition and reducing identified risk factors');
-      recommendations.push('Add specific case studies or testimonials relevant to client industry');
-    }
-    
-    // Pricing analysis recommendations
-    if (Array.isArray(analysis.pricingAnalysis.recommendations)) {
-      recommendations.push(...analysis.pricingAnalysis.recommendations.slice(0, 2));
-    }
-    
-    // Risk level recommendations
-    if (analysis.riskLevel === 'high') {
-      recommendations.push('Implement additional risk mitigation strategies and contingency plans');
-      recommendations.push('Consider adding performance guarantees or success metrics');
-    } else if (analysis.riskLevel === 'medium') {
-      recommendations.push('Monitor key risk factors and establish mitigation protocols');
-    }
-    
-    // Industry-specific recommendations
-    const industryRecs = this.getIndustryRecommendations(input.client.industry);
-    recommendations.push(...industryRecs.slice(0, 2));
-    
-    // Proposal type specific recommendations
-    const typeRecs = this.getProposalTypeRecommendations(input.proposalType, input);
-    recommendations.push(...typeRecs.slice(0, 2));
-    
-    return this.deduplicateRecommendations(recommendations).slice(0, 8);
-  } catch (error) {
-    console.error('Error generating recommendations:', error);
-    return [
-      'Review proposal for completeness and accuracy before submission',
-      'Ensure all client requirements are addressed in the scope',
-      'Consider adding industry-specific expertise highlights',
-      'Validate pricing against market benchmarks'
-    ];
-  }
-}
-
-private getIndustryRecommendations(industry: IndustryType): string[] {
-  const industryRecommendations: Record<IndustryType, string[]> = {
-    technology: [
-      'Emphasize technical expertise and integration capabilities',
-      'Include security and scalability considerations in deliverables',
-      'Highlight agile methodology and iterative development approach',
-      'Address data privacy and compliance requirements'
-    ],
-    healthcare: [
-      'Address compliance requirements (HIPAA, FDA, state regulations)',
-      'Emphasize patient outcome improvements and safety protocols',
-      'Include risk management and quality assurance frameworks',
-      'Highlight healthcare industry experience and certifications'
-    ],
-    finance: [
-      'Address regulatory compliance requirements (SOX, GDPR, PCI-DSS)',
-      'Emphasize risk management and security protocols',
-      'Include audit trail and documentation standards',
-      'Highlight financial services expertise and certifications'
-    ],
-    consulting: [
-      'Focus on proven methodology and established frameworks',
-      'Emphasize change management and organizational adoption',
-      'Include comprehensive knowledge transfer and training components',
-      'Highlight senior consultant expertise and industry experience'
-    ],
-    marketing: [
-      'Include specific performance metrics and KPI tracking',
-      'Emphasize creative approach balanced with strategic thinking',
-      'Address brand guidelines and consistency requirements',
-      'Provide campaign measurement and optimization frameworks'
-    ],
-    ecommerce: [
-      'Focus on conversion optimization and user experience improvements',
-      'Address scalability and performance requirements for growth',
-      'Include analytics and measurement frameworks for ROI tracking',
-      'Highlight experience with ecommerce platforms and integrations'
-    ],
-    manufacturing: [
-      'Emphasize operational efficiency and cost reduction opportunities',
-      'Address safety protocols and compliance requirements',
-      'Include quality control and process improvement methodologies',
-      'Highlight lean manufacturing and continuous improvement experience'
-    ],
-    'real-estate': [
-      'Focus on market analysis and property valuation expertise',
-      'Address regulatory compliance and legal considerations',
-      'Include comprehensive risk assessment and mitigation strategies',
-      'Highlight real estate market knowledge and transaction experience'
-    ],
-    education: [
-      'Emphasize measurable learning outcomes and student success metrics',
-      'Address accessibility and inclusion requirements (ADA compliance)',
-      'Include assessment and evaluation frameworks for program effectiveness',
-      'Highlight educational technology and pedagogical expertise'
-    ],
-    other: [
-      'Focus on industry best practices and established standards',
-      'Emphasize customized approach and flexibility to unique requirements',
-      'Include performance monitoring and continuous optimization',
-      'Highlight cross-industry experience and adaptability'
-    ]
-  };
-  
-  return industryRecommendations[industry] || industryRecommendations.other;
-}
-
-private getProposalTypeRecommendations(proposalType: ProposalType, input: ProposalInput): string[] {
-  const typeRecommendations: Record<ProposalType, string[]> = {
-    'retainer-agreement': [
-      'Clearly define monthly service boundaries and included hours',
-      'Establish clear escalation procedures for additional work',
-      'Include quarterly business reviews to assess value delivery',
-      'Consider annual retainer discounts for long-term commitments'
-    ],
-    'consulting-proposal': [
-      'Include specific case studies demonstrating similar engagement success',
-      'Define clear success metrics and measurement criteria',
-      'Establish regular checkpoint meetings with executive sponsors',
-      'Include change management and organizational adoption planning'
-    ],
-    'project-proposal': [
-      'Define clear project success criteria and acceptance testing',
-      'Include risk mitigation strategies for scope creep',
-      'Establish regular milestone reviews and approval gates',
-      'Consider fixed-price vs. time-and-materials trade-offs'
-    ],
-    'service-agreement': [
-      'Define service level agreements with measurable metrics',
-      'Include escalation procedures for service issues',
-      'Establish regular service reviews and optimization cycles',
-      'Consider performance-based pricing adjustments'
-    ],
-    'custom-proposal': [
-      'Ensure all unique requirements are explicitly addressed',
-      'Include flexibility for scope adjustments during engagement',
-      'Define clear communication and approval processes',
-      'Consider pilot or proof-of-concept phases for complex requirements'
-    ]
-  };
-  
-  return typeRecommendations[proposalType] || [];
-}
-
-private deduplicateRecommendations(recommendations: string[]): string[] {
-  return Array.from(new Set(recommendations.filter(rec => rec && rec.trim().length > 0)));
-}
-
-// ===== ALTERNATIVE OPTIONS GENERATOR =====
-private generateAlternativeOptions(input: ProposalInput): AlternativeOption[] {
-  try {
-    const alternatives: AlternativeOption[] = [];
-    const projectKeywords = this.extractProjectKeywords(input.project.description);
-    const primaryKeyword = projectKeywords[0] || 'solution';
-    
-    // UNIQUE: Essential version based on actual project core
-    alternatives.push({
-      title: `${input.client.legalName} ${primaryKeyword.charAt(0).toUpperCase() + primaryKeyword.slice(1)} Essentials`,
-      description: this.generateUniqueEssentialDescription(input, primaryKeyword),
-      pricingAdjustment: -0.35,
-      timelineAdjustment: this.calculateTimelineReduction(input),
-      scopeChanges: this.generateProjectSpecificScopeChanges(input, 'essential'),
-      pros: this.generateContextualPros(input, 'essential'),
-      cons: this.generateContextualCons(input, 'essential')
-    });
-    
-    // UNIQUE: Premium version with advanced features
-    alternatives.push({
-      title: `${input.client.legalName} ${primaryKeyword.charAt(0).toUpperCase() + primaryKeyword.slice(1)} Premium`,
-      description: this.generateUniquePremiumDescription(input, primaryKeyword),
-      pricingAdjustment: 0.45,
-      timelineAdjustment: this.calculateTimelineExtension(input),
-      scopeChanges: this.generateProjectSpecificScopeChanges(input, 'premium'),
-      pros: this.generateContextualPros(input, 'premium'),
-      cons: this.generateContextualCons(input, 'premium')
-    });
-    
-    // UNIQUE: Phased approach based on project complexity
-    alternatives.push({
-      title: `${input.client.legalName} ${primaryKeyword.charAt(0).toUpperCase() + primaryKeyword.slice(1)} Phases`,
-      description: this.generateUniquePhasedDescription(input, primaryKeyword),
-      pricingAdjustment: 0.15,
-      timelineAdjustment: this.calculatePhasedTimelineAdjustment(input),
-      scopeChanges: this.generateProjectSpecificScopeChanges(input, 'phased'),
-      pros: this.generateContextualPros(input, 'phased'),
-      cons: this.generateContextualCons(input, 'phased')
-    });
-
-    // Add value-based option for high-value projects
-    if (input.pricing.totalAmount > 50000) {
-      alternatives.push({
-        title: `${input.client.legalName} Performance Partnership`,
-        description: this.generateUniquePerformanceDescription(input, primaryKeyword),
-        pricingAdjustment: -0.20,
-        timelineAdjustment: 'Extended timeline with performance milestones',
-        scopeChanges: this.generateProjectSpecificScopeChanges(input, 'performance'),
-        pros: this.generateContextualPros(input, 'performance'),
-        cons: this.generateContextualCons(input, 'performance')
-      });
-    }
-    
-    return alternatives;
-  } catch (error) {
-    console.error('Error generating alternative options:', error);
-    return this.generateMinimalAlternatives(input);
-  }
-}
-
-private generateUniqueEssentialDescription(input: ProposalInput, primaryKeyword: string): string {
-  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
-  return `Streamlined ${primaryKeyword} approach focusing on ${coreAspect} for immediate ${input.client.industry} impact at ${input.client.legalName}. Delivers core value while maintaining ${input.client.companySize} company operational efficiency.`;
-}
-
-private generateUniquePremiumDescription(input: ProposalInput, primaryKeyword: string): string {
-  const advancedAspects = this.identifyAdvancedProjectAspects(input.project.description);
-  return `Comprehensive ${primaryKeyword} solution with ${advancedAspects} for ${input.client.legalName}. Includes advanced ${input.client.industry} optimization, extended support, and strategic consulting tailored for ${input.client.companySize} organizations.`;
-}
-
-private generateUniquePhasedDescription(input: ProposalInput, primaryKeyword: string): string {
-  const phaseCount = this.calculateOptimalPhases(input);
-  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
-  return `Strategic ${phaseCount}-phase implementation of ${primaryKeyword} solution for ${input.client.legalName}. Each phase builds on ${coreAspect} with validation checkpoints and measurable ${input.client.industry} business outcomes.`;
-}
-
-private generateUniquePerformanceDescription(input: ProposalInput, primaryKeyword: string): string {
-  const outcomeMetrics = this.identifyOutcomeMetrics(input.client.industry);
-  return `Results-driven ${primaryKeyword} partnership with ${input.client.legalName} featuring shared risk/reward model. Success tied to measurable ${outcomeMetrics} and ${input.client.industry} performance improvements.`;
-}
-
-private generateProjectSpecificScopeChanges(input: ProposalInput, tier: 'essential' | 'premium' | 'phased' | 'performance'): string[] {
-  const changes = [];
-  const deliverableCount = input.project.deliverables?.length || 0;
-  const milestoneCount = input.project.milestones?.length || 0;
-  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
-  
-  switch (tier) {
-    case 'essential':
-      changes.push(`Focus on top ${Math.min(3, Math.max(1, Math.floor(deliverableCount * 0.6)))} priority deliverables from "${input.project.description}"`);
-      changes.push(`Streamlined ${coreAspect} implementation with essential ${input.client.industry} requirements only`);
-      if (milestoneCount > 2) {
-        changes.push(`Reduce to ${Math.ceil(milestoneCount * 0.5)} critical milestones for faster delivery`);
-      }
-      changes.push(`Standard ${input.client.industry} compliance documentation (reduced scope)`);
-      changes.push('Limited revision cycles (2 rounds maximum) to maintain timeline');
-      break;
-      
-    case 'premium':
-      changes.push(`All original deliverables plus ${Math.ceil(deliverableCount * 0.4)} enhanced ${input.client.industry} components`);
-      changes.push(`Advanced ${coreAspect} optimization with predictive analytics and reporting`);
-      changes.push(`Comprehensive ${input.client.industry} compliance audit and documentation`);
-      changes.push('Extended 90-day post-delivery support and optimization period');
-      changes.push(`Executive-level presentation materials for ${input.client.companySize} leadership teams`);
-      changes.push(`Staff training program tailored to ${input.client.legalName} workflows`);
-      break;
-      
-    case 'phased':
-      const phaseCount = this.calculateOptimalPhases(input);
-      changes.push(`Phase 1: Foundation ${coreAspect} setup (${Math.floor(40)}% scope) with immediate wins`);
-      changes.push(`Phase 2: Core ${input.project.description} implementation (${Math.floor(45)}% scope)`);
-      changes.push(`Phase 3: Advanced optimization and ${input.client.industry} integration (${Math.floor(15)}% scope)`);
-      changes.push('ROI validation and business impact measurement between each phase');
-      changes.push(`Go/no-go decision points with performance metrics specific to ${input.client.legalName}`);
-      break;
-      
-    case 'performance':
-      changes.push('Reduced upfront scope with performance-based expansion triggers');
-      changes.push(`Success metrics tied to ${input.client.industry} KPIs and business outcomes`);
-      changes.push(`Shared accountability framework for ${input.project.description} results`);
-      changes.push('Ongoing optimization partnership extending beyond initial delivery');
-      changes.push(`${input.client.industry} benchmarking and competitive performance tracking`);
-      break;
-  }
-  
-  return changes;
-}
-
-private generateContextualPros(input: ProposalInput, tier: 'essential' | 'premium' | 'phased' | 'performance'): string[] {
-  const pros = [];
-  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
-  const budgetRange = this.categorizeBudgetRange(input.pricing.totalAmount);
-  
-  switch (tier) {
-    case 'essential':
-      pros.push(`Lower initial investment ideal for ${budgetRange} ${input.client.companySize} company budgets`);
-      pros.push(`Faster time-to-value for core ${coreAspect} functionality`);
-      pros.push(`Reduced complexity while maintaining essential ${input.client.industry} compliance`);
-      pros.push(`Proven ${input.project.description} approach with minimal implementation risk`);
-      pros.push(`Quick wins demonstration before considering expanded scope`);
-      break;
-      
-    case 'premium':
-      pros.push(`Comprehensive solution addressing broader ${input.client.industry} business transformation needs`);
-      pros.push(`Advanced ${coreAspect} features providing competitive advantage in ${input.client.industry} market`);
-      pros.push(`Extended support period reduces post-implementation risks for ${input.client.legalName}`);
-      pros.push(`Executive-grade deliverables suitable for board presentations and strategic planning`);
-      pros.push(`Future-proof solution accommodating ${input.client.companySize} company growth trajectories`);
-      break;
-      
-    case 'phased':
-      pros.push(`Lower initial financial commitment with option to proceed based on demonstrated ${coreAspect} results`);
-      pros.push(`Validated business impact from ${input.project.description} before full scope investment`);
-      pros.push(`Reduced implementation risk through iterative validation and course correction`);
-      pros.push(`Flexibility to adjust approach based on ${input.client.legalName} business priorities and market changes`);
-      pros.push(`${input.client.industry} learnings from early phases incorporated into subsequent development`);
-      break;
-      
-    case 'performance':
-      pros.push(`Aligned incentives ensuring laser focus on ${input.client.legalName} business results rather than activity`);
-      pros.push(`Reduced upfront investment with outcome-based payment structure spreading financial risk`);
-      pros.push(`Continued optimization partnership ensuring sustained value from ${input.project.description} investment`);
-      pros.push(`Shared accountability model reducing ${input.client.legalName} implementation and adoption risks`);
-      pros.push(`${input.client.industry} performance benchmarking providing ongoing competitive intelligence`);
-      break;
-  }
-  
-  return pros;
-}
-
-private generateContextualCons(input: ProposalInput, tier: 'essential' | 'premium' | 'phased' | 'performance'): string[] {
-  const cons = [];
-  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
-  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
-  
-  switch (tier) {
-    case 'essential':
-      cons.push(`May miss strategic optimization opportunities beyond core ${coreAspect} functionality`);
-      cons.push(`Limited scope may not address peripheral ${input.client.industry} business challenges`);
-      cons.push(`Reduced customization may not fully align with ${input.client.legalName} unique processes`);
-      cons.push(`Basic support model may require additional resources for complex ${input.project.description} issues`);
-      cons.push('Fewer strategic insights and recommendations for long-term business planning');
-      break;
-      
-    case 'premium':
-      cons.push(`Higher investment requirement may exceed ${input.client.legalName} allocated budget parameters`);
-      cons.push(`Extended ${timelineWeeks + Math.ceil(timelineWeeks * 0.35)} week timeline may delay immediate business results`);
-      cons.push(`Increased ${input.project.description} complexity requiring more stakeholder coordination and change management`);
-      cons.push(`Advanced features may include capabilities not immediately necessary for ${input.client.companySize} operations`);
-      cons.push(`Higher complexity may extend staff training and adoption timelines`);
-      break;
-      
-    case 'phased':
-      cons.push('Potential coordination delays between validation phases may extend overall project duration');
-      cons.push(`May require additional ${input.client.legalName} stakeholder alignment at each decision checkpoint`);
-      cons.push(`Slight overall cost increase due to phase transition management and restart activities`);
-      cons.push(`Risk of scope discontinuity if later phases are not approved based on ${coreAspect} performance`);
-      cons.push('Phase boundaries may create artificial constraints on integrated solution optimization');
-      break;
-      
-    case 'performance':
-      cons.push(`Complex performance measurement requiring detailed KPI tracking and ${input.client.industry} baseline establishment`);
-      cons.push(`Potential disputes over success criteria achievement and measurement methodologies`);
-      cons.push(`Extended engagement timeline required for full ROI realization and performance validation`);
-      cons.push(`Detailed baseline establishment and ongoing monitoring increases ${input.client.legalName} administrative overhead`);
-      cons.push(`${input.client.industry} market changes may affect performance metrics validity over time`);
-      break;
-  }
-  
-  return cons;
-}
-
-// Helper methods for unique content generation
-
-private extractProjectKeywords(description: string): string[] {
-  const words = description.toLowerCase().match(/\b\w{4,}\b/g) || [];
-  const stopWords = new Set(['this', 'that', 'with', 'from', 'they', 'have', 'will', 'been', 'their', 'said', 'each', 'which', 'want', 'need', 'help', 'work', 'make', 'take', 'come', 'could', 'would', 'should']);
-  const meaningful = words.filter(word => !stopWords.has(word));
-  
-  // Prioritize business/technical terms
-  const businessTerms = meaningful.filter(word => 
-    word.includes('system') || word.includes('process') || word.includes('manage') || 
-    word.includes('develop') || word.includes('implement') || word.includes('optimize') ||
-    word.includes('solution') || word.includes('platform') || word.includes('service')
-  );
-  
-  return [...businessTerms, ...meaningful].slice(0, 8);
-}
-
-// Add these missing methods to your ProposalCreatorService class
-
-private getIndustryPriceRange(industry: IndustryType, companySize: string): { min: number; max: number } {
-  const basePrices: Record<IndustryType, { min: number; max: number }> = {
-    'technology': { min: 5000, max: 200000 },
-    'healthcare': { min: 10000, max: 150000 },
-    'finance': { min: 15000, max: 300000 },
-    'consulting': { min: 8000, max: 100000 },
-    'marketing': { min: 3000, max: 80000 },
-    'ecommerce': { min: 5000, max: 120000 },
-    'manufacturing': { min: 10000, max: 180000 },
-    'real-estate': { min: 8000, max: 150000 },
-    'education': { min: 3000, max: 60000 },
-    'other': { min: 5000, max: 100000 }
-  };
-
-  const sizeMultipliers: Record<string, number> = {
-    'startup': 0.6,
-    'small': 0.8,
-    'medium': 1.0,
-    'large': 1.5,
-    'enterprise': 2.0
-  };
-
-  const baseRange = basePrices[industry] || basePrices['other'];
-  const multiplier = sizeMultipliers[companySize] || 1.0;
-
-  return {
-    min: Math.round(baseRange.min * multiplier),
-    max: Math.round(baseRange.max * multiplier)
-  };
-}
-
-private generateDynamicBenchmarks(input: ProposalInput): any {
-  const priceRange = this.getIndustryPriceRange(input.client.industry, input.client.companySize);
-  const timeline = input.project.timeline || '8-12 weeks';
-  
-  return {
-    pricingRange: {
-      min: Math.round(input.pricing.totalAmount * 0.7),
-      max: Math.round(input.pricing.totalAmount * 1.4)
-    },
-    typicalTimeline: timeline,
-    standardFeatures: [
-      `Professional ${input.client.industry} service delivery with quality assurance`,
-      'Regular progress reporting and stakeholder communication',
-      'Comprehensive documentation and knowledge transfer',
-      `Industry-specific ${input.client.industry} compliance and best practices`,
-      'Post-delivery support and optimization recommendations'
-    ]
-  };
-}
-
-private getMatchingAdvantages(specializations: string[], projectKeywords: string[], industry: IndustryType): string[] {
-  const advantages: string[] = [];
-  
-  // Find specializations that match project keywords
-  const relevantSpecs = specializations.filter(spec =>
-    projectKeywords.some(keyword => spec.toLowerCase().includes(keyword.toLowerCase()))
-  );
-  
-  if (relevantSpecs.length > 0) {
-    advantages.push(`Specialized expertise in ${relevantSpecs.slice(0, 2).join(' and ')} directly addressing project requirements`);
-  }
-  
-  // Find industry-specific specializations
-  const industryKeywords = this.getIndustryKeywords(industry);
-  const industrySpecs = specializations.filter(spec =>
-    industryKeywords.some(keyword => spec.toLowerCase().includes(keyword.toLowerCase()))
-  );
-  
-  if (industrySpecs.length > 0) {
-    advantages.push(`Deep ${industry} industry experience with ${industrySpecs.slice(0, 2).join(' and ')} specializations`);
-  }
-  
-  return advantages;
-}
-
-private getPricingModelAdvantage(pricingModel: string, companySize: string, totalAmount: number): string {
-  const modelAdvantages: Record<string, (size: string, amount: number) => string> = {
-    'fixed-price': (size, amount) => `Fixed-price model provides budget certainty ideal for ${size} company financial planning`,
-    'milestone-based': (size, amount) => `Milestone payments reduce risk and align with ${size} company cash flow management`,
-    'value-based': (size, amount) => `Value-based pricing aligns investment with business outcomes for ${size} organizations`,
-    'hourly': (size, amount) => `Hourly billing provides flexibility and transparency preferred by ${size} companies`,
-    'retainer': (size, amount) => `Retainer model ensures priority access and predictable costs for ${size} operations`
-  };
-  
-  const generator = modelAdvantages[pricingModel] || modelAdvantages['fixed-price'];
-  return generator(companySize, totalAmount);
-}
-
-private extractDifferentiationFromProject(description: string): string[] {
-  const differentiators: string[] = [];
-  const keywords = this.extractProjectKeywords(description);
-  
-  // Look for unique project aspects
-  const uniquePatterns = [
-    { pattern: /custom|bespoke|tailored/, diff: 'Custom-tailored approach specifically designed for unique requirements' },
-    { pattern: /integration|connect|sync/, diff: 'Seamless integration capabilities with existing systems and workflows' },
-    { pattern: /automation|efficient|optimize/, diff: 'Advanced automation and optimization expertise for enhanced efficiency' },
-    { pattern: /analytics|data|reporting/, diff: 'Comprehensive analytics and data-driven insights throughout engagement' },
-    { pattern: /strategy|strategic|planning/, diff: 'Strategic consulting approach combining tactical execution with long-term planning' }
-  ];
-  
-  for (const pattern of uniquePatterns) {
-    if (pattern.pattern.test(description.toLowerCase())) {
-      differentiators.push(pattern.diff);
-      break; // Only add one project-specific differentiator
-    }
-  }
-  
-  return differentiators;
-}
-
-private getCredentialDifferentiation(credentials: string[]): string[] {
-  const differentiators: string[] = [];
-  
-  if (credentials.length === 0) return [];
-  
-  // Group credentials by type
-  const certifications = credentials.filter(cred => 
-    cred.toLowerCase().includes('certified') || 
-    cred.toLowerCase().includes('certification') ||
-    cred.toLowerCase().includes('cert')
-  );
-  
-  const degrees = credentials.filter(cred =>
-    cred.toLowerCase().includes('mba') ||
-    cred.toLowerCase().includes('master') ||
-    cred.toLowerCase().includes('phd') ||
-    cred.toLowerCase().includes('bachelor')
-  );
-  
-  const professional = credentials.filter(cred => 
-    !certifications.includes(cred) && !degrees.includes(cred)
-  );
-  
-  if (certifications.length > 0) {
-    differentiators.push(`Professional certifications including ${certifications.slice(0, 2).join(' and ')}`);
-  }
-  
-  if (degrees.length > 0) {
-    differentiators.push(`Advanced academic credentials with ${degrees.slice(0, 2).join(' and ')}`);
-  }
-  
-  if (professional.length > 0) {
-    differentiators.push(`Specialized professional qualifications in ${professional.slice(0, 2).join(' and ')}`);
-  }
-  
-  return differentiators;
-}
-
-private getDeliveryDifferentiation(proposalType: ProposalType, deliverableCount: number): string {
-  const typeDescriptions: Record<ProposalType, string> = {
-    'retainer-agreement': 'Ongoing advisory model with continuous optimization and strategic guidance',
-    'consulting-proposal': 'Structured consulting methodology with proven frameworks and measurable outcomes',
-    'project-proposal': 'Milestone-driven project delivery with clear accountability and progress tracking',
-    'service-agreement': 'Comprehensive service delivery with performance monitoring and quality assurance',
-    'custom-proposal': 'Fully customized approach tailored to specific business requirements and constraints'
-  };
-  
-  const deliverableComplexity = deliverableCount > 5 ? 'comprehensive multi-faceted' : 
-                               deliverableCount > 2 ? 'structured multi-component' : 'focused';
-  
-  return `${typeDescriptions[proposalType]} with ${deliverableComplexity} deliverable framework`;
-}
-
-private identifyCoreProjectAspect(description: string): string {
-  const keywords = this.extractProjectKeywords(description);
-  const corePatterns = [
-    { pattern: /system|platform|solution/, aspect: 'system development' },
-    { pattern: /process|workflow|operation/, aspect: 'process optimization' },
-    { pattern: /manage|administration|control/, aspect: 'management enhancement' },
-    { pattern: /analy|report|data/, aspect: 'analytics and reporting' },
-    { pattern: /integration|connect|sync/, aspect: 'system integration' },
-    { pattern: /automat|efficien|stream/, aspect: 'automation and efficiency' },
-    { pattern: /training|education|learn/, aspect: 'training and development' }
-  ];
-  
-  for (const pattern of corePatterns) {
-    if (pattern.pattern.test(description.toLowerCase())) {
-      return pattern.aspect;
-    }
-  }
-  
-  return keywords[0] ? `${keywords[0]} enhancement` : 'business improvement';
-}
-
-private identifyAdvancedProjectAspects(description: string): string {
-  const coreAspect = this.identifyCoreProjectAspect(description);
-  const advancedFeatures = [
-    'predictive analytics',
-    'machine learning integration', 
-    'advanced reporting dashboards',
-    'real-time monitoring',
-    'automated optimization',
-    'strategic intelligence',
-    'performance forecasting'
-  ];
-  
-  return advancedFeatures[Math.floor(Math.random() * advancedFeatures.length)];
-}
-
-private calculateOptimalPhases(input: ProposalInput): number {
-  const deliverableCount = input.project.deliverables?.length || 0;
-  const complexity = this.calculateProjectComplexity(input);
-  
-  if (complexity === 'high' || deliverableCount > 8) return 4;
-  if (complexity === 'medium' || deliverableCount > 4) return 3;
-  return 2;
-}
-
-private identifyOutcomeMetrics(industry: IndustryType): string {
-  const metrics: Record<IndustryType, string> = {
-    'technology': 'system performance, user adoption, and operational efficiency metrics',
-    'healthcare': 'patient outcomes, compliance scores, and operational efficiency metrics', 
-    'finance': 'risk reduction, compliance ratings, and operational efficiency metrics',
-    'consulting': 'process improvement, cost reduction, and performance optimization metrics',
-    'marketing': 'engagement rates, conversion metrics, and brand awareness improvements',
-    'ecommerce': 'conversion rates, customer satisfaction, and revenue optimization metrics',
-    'manufacturing': 'productivity gains, quality improvements, and cost reduction metrics',
-    'real-estate': 'portfolio performance, market positioning, and investment return metrics',
-    'education': 'learning outcomes, engagement metrics, and performance improvement measures',
-    'other': 'operational efficiency, performance improvement, and business outcome metrics'
-  };
-  
-  return metrics[industry] || metrics['other'];
-}
-
-private categorizeBudgetRange(amount: number): string {
-  if (amount < 10000) return 'cost-conscious';
-  if (amount < 50000) return 'mid-range';
-  if (amount < 150000) return 'substantial';
-  return 'enterprise-level';
-}
-
-private calculateTimelineReduction(input: ProposalInput): string {
-  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
-  const reducedWeeks = Math.max(1, Math.floor(timelineWeeks * 0.7));
-  return `Reduced to ${reducedWeeks} weeks (${Math.round((timelineWeeks - reducedWeeks) / timelineWeeks * 100)}% faster delivery)`;
-}
-
-private calculateTimelineExtension(input: ProposalInput): string {
-  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
-  const extendedWeeks = Math.ceil(timelineWeeks * 1.35);
-  return `Extended to ${extendedWeeks} weeks for comprehensive implementation and optimization`;
-}
-
-private calculatePhasedTimelineAdjustment(input: ProposalInput): string {
-  const phaseCount = this.calculateOptimalPhases(input);
-  return `Same overall timeline organized into ${phaseCount} strategic phases with validation checkpoints`;
-}
-
-// Add these helper methods
-private getIndustrySpecificReduction(industry: IndustryType): string {
-  const reductions: Record<IndustryType, string> = {
-    'technology': 'Reduced technical integration complexity',
-    'healthcare': 'Streamlined compliance documentation',
-    'finance': 'Essential regulatory compliance only',
-    'consulting': 'Core methodology implementation',
-    'marketing': 'Primary campaign elements only',
-    'ecommerce': 'Essential conversion optimization',
-    'manufacturing': 'Core process improvements only',
-    'real-estate': 'Basic market analysis components',
-    'education': 'Essential curriculum elements',
-    'other': 'Core business requirements only'
-  };
-  return reductions[industry] || reductions.other;
-}
-
-private getIndustrySpecificAddons(industry: IndustryType): string {
-  const addons: Record<IndustryType, string> = {
-    'technology': 'Advanced API integration and scalability planning',
-    'healthcare': 'Comprehensive HIPAA compliance audit and optimization',
-    'finance': 'Advanced risk management and regulatory reporting',
-    'consulting': 'Strategic consulting methodology training program',
-    'marketing': 'Advanced analytics and attribution modeling',
-    'ecommerce': 'Conversion rate optimization and customer journey mapping',
-    'manufacturing': 'Lean manufacturing and Six Sigma implementation',
-    'real-estate': 'Advanced market analytics and investment modeling',
-    'education': 'Learning outcome measurement and curriculum optimization',
-    'other': 'Advanced business optimization and strategic consulting'
-  };
-  return addons[industry] || addons.other;
-}
-
-
-private generateMinimalAlternatives(input: ProposalInput): AlternativeOption[] {
-  return [
-    {
-      title: 'Basic Package',
-      description: 'Core deliverables with standard service levels',
-      pricingAdjustment: -0.25,
-      timelineAdjustment: 'Reduced timeline',
-      scopeChanges: ['Essential deliverables only'],
-      pros: ['Lower cost', 'Faster delivery'],
-      cons: ['Reduced scope', 'Limited support']
-    }
-  ];
-}
-
-// ===== RISK ASSESSMENT SYSTEM =====
-private generateRiskAssessment(input: ProposalInput): RiskAssessment {
-  try {
-    const riskCategories = {
-      technical: this.assessTechnicalRisks(input),
-      financial: this.assessFinancialRisks(input),
-      timeline: this.assessTimelineRisks(input),
-      relationship: this.assessRelationshipRisks(input),
-      market: this.assessMarketRisks(input)
-    };
-    
-    const overallRisk = this.assessOverallRisk(input);
-    const mitigationPlan = this.generateMitigationPlan(riskCategories, input);
-    
-    return {
-      overallRisk,
-      riskCategories,
-      mitigationPlan
-    };
-  } catch (error) {
-    console.error('Error generating risk assessment:', error);
-    return this.generateMinimalRiskAssessment(input);
-  }
-}
-
-private assessTechnicalRisks(input: ProposalInput): any[] {
-  const risks: any[] = [];
-  
-  try {
-    // Check for complex deliverables
-    const complexDeliverables = this.safeFilterArray(input.project.deliverables).filter(del => 
-      del.description && (
-        del.description.toLowerCase().includes('integration') ||
-        del.description.toLowerCase().includes('custom') ||
-        del.description.toLowerCase().includes('complex') ||
-        del.description.toLowerCase().includes('api') ||
-        del.description.toLowerCase().includes('database')
-      )
-    );
-    
-    if (complexDeliverables.length > 0) {
-      risks.push({
-        description: 'Complex technical deliverables may require specialized expertise and additional coordination',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Ensure technical team has required expertise; conduct technical feasibility assessment upfront'
-      });
-    }
-
-    // Check for technology dependencies
-    const hasTechDependencies = this.safeFilterArray(input.project.dependencies).some(dep =>
-      dep.toLowerCase().includes('system') ||
-      dep.toLowerCase().includes('platform') ||
-      dep.toLowerCase().includes('software')
-    );
-
-    if (hasTechDependencies) {
-      risks.push({
-        description: 'Technical dependencies on client systems may cause delays or compatibility issues',
-        probability: 'medium',
-        impact: 'high',
-        mitigation: 'Conduct early technical discovery; establish fallback solutions; test integrations incrementally'
-      });
-    }
-
-    // Industry-specific technical risks
-    if (input.client.industry === 'technology' || input.client.industry === 'finance') {
-      risks.push({
-        description: 'High security and compliance requirements may extend development and approval cycles',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Include security review checkpoints; plan for compliance validation; engage client security teams early'
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error assessing technical risks:', error);
-  }
-  
-  return risks;
-}
-
-private assessFinancialRisks(input: ProposalInput): any[] {
-  const risks: any[] = [];
-  
-  try {
-    // Payment schedule analysis
-    if (Array.isArray(input.pricing.paymentSchedule) && input.pricing.paymentSchedule.length > 0) {
-      const validPayments = input.pricing.paymentSchedule.filter(p => 
-        p && typeof p.amount === 'number' && !this.isPlaceholder(p.description)
-      );
-      
-      if (validPayments.length > 0) {
-        const upfrontPercentage = validPayments[0].amount / input.pricing.totalAmount;
-        
-        if (upfrontPercentage < 0.25) {
-          risks.push({
-            description: 'Low upfront payment (less than 25%) may create cash flow challenges and project risk',
-            probability: 'medium',
-            impact: 'medium',
-            mitigation: 'Negotiate higher upfront payment; implement milestone-based payments; establish clear cancellation terms'
-          });
-        }
-      }
-    }
-
-    // Large project financial risk
-    if (input.pricing.totalAmount > 100000) {
-      risks.push({
-        description: 'Large project value increases financial exposure and client scrutiny',
-        probability: 'low',
-        impact: 'high',
-        mitigation: 'Implement comprehensive project controls; regular financial reporting; consider performance bonds or insurance'
-      });
-    }
-
-    // Currency and pricing model risks
-    if (input.pricing.currency !== 'USD') {
-      risks.push({
-        description: 'Foreign currency exposure may affect project profitability',
-        probability: 'low',
-        impact: 'medium',
-        mitigation: 'Consider currency hedging; include exchange rate adjustment clauses; price in stable currency'
-      });
-    }
-
-    // Client financial stability (industry-based assessment)
-    const riskIndustries = ['retail', 'hospitality', 'entertainment'];
-    if (riskIndustries.includes(input.client.industry)) {
-      risks.push({
-        description: 'Client industry may face financial volatility affecting payment capability',
-        probability: 'low',
-        impact: 'high',
-        mitigation: 'Conduct client financial due diligence; require payment guarantees; consider shorter payment terms'
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error assessing financial risks:', error);
-  }
-  
-  return risks;
-}
-
-private assessTimelineRisks(input: ProposalInput): any[] {
-  const risks: any[] = [];
-  
-  try {
-    const timelineRealism = this.assessTimelineRealism(input);
-    
-    if (timelineRealism === 'aggressive') {
-      risks.push({
-        description: 'Aggressive timeline may lead to quality compromises, team burnout, or delivery delays',
-        probability: 'high',
-        impact: 'high',
-        mitigation: 'Add buffer time to critical path; prioritize deliverables; establish scope reduction protocols; increase team resources'
-      });
-    }
-
-    // Dependencies risk assessment
-    const dependencies = this.safeFilterArray(input.project.dependencies);
-    if (dependencies.length > 3) {
-      risks.push({
-        description: 'Multiple project dependencies increase coordination complexity and delay probability',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Create dependency tracking matrix; establish regular stakeholder check-ins; develop contingency plans'
-      });
-    }
-
-    // Seasonal or business cycle risks
-    const currentDate = new Date();
-    const isYearEnd = currentDate.getMonth() >= 10; // Nov-Dec
-    if (isYearEnd && input.project.timeline && this.parseTimelineToWeeks(input.project.timeline) > 8) {
-      risks.push({
-        description: 'Year-end timeline may face holiday delays and reduced client availability',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Plan around holiday schedules; front-load critical activities; establish clear holiday protocols'
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error assessing timeline risks:', error);
-  }
-  
-  return risks;
-}
-
-private assessRelationshipRisks(input: ProposalInput): any[] {
-  const risks: any[] = [];
-  
-  try {
-    const scopeClarity = this.assessScopeClarity(input);
-    
-    if (scopeClarity === 'unclear') {
-      risks.push({
-        description: 'Unclear project scope may lead to client expectation misalignment and scope disputes',
-        probability: 'medium',
-        impact: 'high',
-        mitigation: 'Conduct detailed requirements gathering; establish clear acceptance criteria; implement regular scope validation checkpoints'
-      });
-    }
-
-    // New client relationship risk
-    const isNewClient = !input.client.previousEngagements || input.client.previousEngagements === 0;
-    if (isNewClient) {
-      risks.push({
-        description: 'New client relationship increases communication and expectation management challenges',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Establish clear communication protocols; conduct relationship building activities; assign dedicated account management'
-      });
-    }
-
-    // Decision maker clarity
-    if (!input.client.decisionMaker || this.isPlaceholder(input.client.decisionMaker)) {
-      risks.push({
-        description: 'Unclear decision-making authority may cause approval delays and scope changes',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Identify and engage key stakeholders; establish clear approval hierarchies; document decision-making processes'
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error assessing relationship risks:', error);
-  }
-  
-  return risks;
-}
-
-private assessMarketRisks(input: ProposalInput): any[] {
-  const risks: any[] = [];
-  
-  try {
-    // Competitive pressure assessment
-    const competitiveIndustries = ['technology', 'marketing', 'consulting'];
-    if (competitiveIndustries.includes(input.client.industry)) {
-      risks.push({
-        description: 'Highly competitive market may pressure pricing and differentiation requirements',
-        probability: 'medium',
-        impact: 'medium',
-        mitigation: 'Strengthen unique value proposition; highlight differentiating factors; consider value-based pricing models'
-      });
-    }
-
-    // Economic sensitivity
-    const economicSensitiveIndustries = ['retail', 'real-estate', 'manufacturing'];
-    if (economicSensitiveIndustries.includes(input.client.industry)) {
-      risks.push({
-        description: 'Economic downturns may affect client budget availability and project continuity',
-        probability: 'low',
-        impact: 'high',
-        mitigation: 'Include economic adjustment clauses; focus on ROI justification; consider flexible payment terms'
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error assessing market risks:', error);
-  }
-  
-  return risks;
-}
-
-private generateMitigationPlan(riskCategories: any, input: ProposalInput): string[] {
-  const mitigationPlan: string[] = [];
-  
-  try {
-    // Standard mitigation strategies
-    mitigationPlan.push('Establish comprehensive communication protocols with regular stakeholder check-ins and progress updates');
-    mitigationPlan.push('Define detailed acceptance criteria and quality standards for all deliverables with client sign-off requirements');
-    mitigationPlan.push('Implement robust change management process for scope modifications with impact assessment procedures');
-    mitigationPlan.push('Maintain detailed project documentation, progress tracking, and risk monitoring throughout engagement');
-    
-    // Risk-specific mitigations based on assessment
-    const hasHighTechnicalRisk = riskCategories.technical?.some((risk: any) => risk.impact === 'high');
-    if (hasHighTechnicalRisk) {
-      mitigationPlan.push('Conduct early technical feasibility assessments and establish technical advisory board if needed');
-    }
-    
-    const hasHighFinancialRisk = riskCategories.financial?.some((risk: any) => risk.impact === 'high');
-    if (hasHighFinancialRisk) {
-      mitigationPlan.push('Implement enhanced financial controls and consider payment guarantees or milestone-based invoicing');
-    }
-    
-    const hasHighTimelineRisk = riskCategories.timeline?.some((risk: any) => risk.probability === 'high');
-    if (hasHighTimelineRisk) {
-      mitigationPlan.push('Build buffer time into critical path activities and establish scope prioritization framework');
-    }
-    
-    // Industry-specific mitigations
-    if (input.client.industry === 'healthcare' || input.client.industry === 'finance') {
-      mitigationPlan.push('Implement compliance validation checkpoints and engage regulatory expertise as needed');
-    }
-    
-    return mitigationPlan.slice(0, 6); // Limit to top 6 strategies
-  } catch (error) {
-    console.error('Error generating mitigation plan:', error);
-    return [
-      'Establish clear communication and approval processes',
-      'Monitor project risks and implement corrective actions as needed',
-      'Maintain comprehensive documentation throughout engagement'
-    ];
-  }
-}
-
-private generateMinimalRiskAssessment(input: ProposalInput): RiskAssessment {
-  return {
-    overallRisk: 'medium',
-    riskCategories: {
-      technical: [],
-      financial: [],
-      timeline: [],
-      relationship: [],
-      market: [] // Add this to match the updated interface
-    },
-    mitigationPlan: [
-      'Establish clear project management and communication protocols',
-      'Monitor key performance indicators and project milestones',
-      'Implement regular stakeholder reviews and approval checkpoints'
-    ]
-  };
-}
-
-
-
-
-// ===== COMPETITIVE ANALYSIS =====
-private generateCompetitiveAnalysis(input: ProposalInput): CompetitiveAnalysis {
-  try {
-    const specializations = this.safeFilterArray(input.serviceProvider.specializations);
-    const projectKeywords = this.extractProjectKeywords(input.project.description);
-    
-    return {
-      positioningAdvantages: [
-        // DYNAMIC: Based on actual project needs
-        `Specialized approach to ${input.project.description.substring(0, 50)}... addressing ${input.client.legalName}'s unique ${input.client.industry} challenges`,
-        // DYNAMIC: Based on actual specializations matching project
-        ...this.getMatchingAdvantages(specializations, projectKeywords, input.client.industry),
-        // DYNAMIC: Based on pricing model fit
-        this.getPricingModelAdvantage(input.pricing.model, input.client.companySize, input.pricing.totalAmount)
-      ].filter(Boolean).slice(0, 4),
-      
-      potentialChallenges: this.generateContextualChallenges(input),
-      
-      differentiationPoints: [
-        // DYNAMIC: Extract from actual project description
-        ...this.extractDifferentiationFromProject(input.project.description),
-        // DYNAMIC: Based on service provider's actual credentials
-        ...this.getCredentialDifferentiation(input.serviceProvider.credentials || []),
-        // DYNAMIC: Based on delivery approach
-        this.getDeliveryDifferentiation(input.proposalType, input.project.deliverables?.length || 0)
-      ].filter(Boolean).slice(0, 5),
-      
-      marketBenchmarks: this.generateDynamicBenchmarks(input)
-    };
-  } catch (error) {
-    console.error('Error generating competitive analysis:', error);
-    return this.generateMinimalCompetitiveAnalysis(input);
-  }
-}
-
-
-private generateContextualChallenges(input: ProposalInput): string[] {
-  const challenges = [];
-  
-  // Challenge based on client size
-  if (input.client.companySize === 'enterprise') {
-    challenges.push(`Enterprise-level decision complexity at ${input.client.legalName} may extend approval cycles beyond typical ${input.client.industry} standards`);
-  } else if (input.client.companySize === 'startup') {
-    challenges.push(`Startup budget constraints may limit scope flexibility for comprehensive ${input.project.description} implementation`);
-  }
-  
-  // Challenge based on project timeline vs amount
-  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '');
-  if (timelineWeeks > 0) {
-    const weeklyBudget = input.pricing.totalAmount / timelineWeeks;
-    if (weeklyBudget < 2000) {
-      challenges.push(`Limited weekly budget allocation may constrain resource availability for ${input.project.description}`);
-    }
-  }
-  
-  // Industry-specific challenges
-  if (input.client.industry === 'healthcare' && input.pricing.totalAmount > 50000) {
-    challenges.push('Healthcare compliance requirements may necessitate additional approval layers and documentation');
-  }
-  
-  return challenges.slice(0, 3);
-}
-
-private getPricingModelBenefit(pricingModel: string): string {
-  const benefits: Record<string, string> = {
-    'fixed-price': 'budget certainty and risk transfer',
-    'milestone-based': 'payment alignment with delivery progress',
-    'value-based': 'alignment with business outcomes and ROI',
-    'hourly': 'transparency and flexibility',
-    'retainer': 'predictable costs and priority access'
-  };
-  return benefits[pricingModel] || 'competitive and transparent pricing';
-}
-
-private generateMinimalCompetitiveAnalysis(input: ProposalInput): CompetitiveAnalysis {
-  return {
-    positioningAdvantages: [
-      'Professional service delivery with industry expertise',
-      'Comprehensive approach with clear deliverables',
-      'Competitive pricing and transparent methodology'
-    ],
-    potentialChallenges: [
-      'Market competition and pricing pressure',
-      'Client budget constraints',
-      'Alternative service providers'
-    ],
-    differentiationPoints: [
-      'Industry-specific expertise',
-      'Proven methodology',
-      'Quality deliverables and support'
-    ],
-    marketBenchmarks: {
-      pricingRange: {
-        min: Math.round(input.pricing.totalAmount * 0.8),
-        max: Math.round(input.pricing.totalAmount * 1.2)
-      },
-      typicalTimeline: input.project.timeline || 'Standard industry timeline',
-      standardFeatures: [
-        'Project management and reporting',
-        'Quality assurance processes',
-        'Documentation and knowledge transfer'
-      ]
-    }
-  };
-}
 
 // ===== DATABASE OPERATIONS =====
 async saveProposal(userId: string, workspaceId: string, proposal: ProposalPackage, input: ProposalInput): Promise<string> {
