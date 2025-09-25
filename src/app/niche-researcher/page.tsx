@@ -130,6 +130,8 @@ const NicheResearcher = () => {
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   const [activeView, setActiveView] = useState<'research' | 'history'>('research');
   
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const router = useRouter();
 
   const [multiNicheReport, setMultiNicheReport] = useState<MultiNicheReport | null>(null);
@@ -1503,77 +1505,137 @@ if (!currentWorkspace) {
           </Card>
 
           {/* Research Form */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${isSidebarCollapsed ? 'lg:grid-cols-[80px_1fr]' : 'lg:grid-cols-4'}`}>
             {/* Sidebar with Quick Actions */}
-            <div className="lg:col-span-1">
-              <Card 
-                title="Quick Actions" 
-                size="small"
-                className="sticky top-4"
-              >
-                <Space direction="vertical" className="w-full">
-                  <Button 
-                    icon={<HistoryOutlined />}
-                    onClick={() => setActiveView('history')}
-                    block
-                  >
-                    View History
-                  </Button>
-                  <Button 
-                    icon={<EyeOutlined />}
-                    onClick={loadPreviousReports}
-                    block
-                  >
-                    Previous Reports
-                  </Button>
-                  {currentStep > 0 && currentStep < 5 && (
-                    <Button 
-                      icon={<FileAddOutlined />}
-                      onClick={() => {
-                        setCurrentStep(0);
-                        form.resetFields();
-                        setReportGenerated(false);
-                        setMultiNicheReport(null);
-                      }}
-                      block
-                      danger
-                    >
-                      Start Over
-                    </Button>
-                  )}
-                </Space>
+         <div className={`${isSidebarCollapsed ? 'lg:col-span-1 w-auto' : 'lg:col-span-1'}`}>
+             <Card 
+    title={
+      <div className="flex items-center justify-between">
+        {!isSidebarCollapsed && <span>Quick Actions</span>}
+        <Button 
+          icon={isSidebarCollapsed ? <EyeOutlined /> : <EyeOutlined />}
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          type="text"
+          size="small"
+        >
+          {!isSidebarCollapsed ? 'Collapse' : 'Expand'}
+        </Button>
+      </div>
+    } 
+    size="small"
+    className={`sticky top-4 ${isSidebarCollapsed ? 'w-[80px]' : ''}`}
+    bodyStyle={isSidebarCollapsed ? { padding: '12px' } : {}}
+  >
+    {isSidebarCollapsed ? (
+      // Collapsed - Icon only version
+      <Space direction="vertical" className="w-full">
+        <Tooltip title="View History" placement="right">
+          <Button 
+            icon={<HistoryOutlined />}
+            onClick={() => setActiveView('history')}
+            block
+            type="text"
+            size="large"
+            style={{ height: '40px' }}
+          />
+        </Tooltip>
+        <Tooltip title="Previous Reports" placement="right">
+          <Button 
+            icon={<EyeOutlined />}
+            onClick={loadPreviousReports}
+            block
+            type="text"
+            size="large"
+            style={{ height: '40px' }}
+          />
+        </Tooltip>
+        {currentStep > 0 && currentStep < 5 && (
+          <Tooltip title="Start Over" placement="right">
+            <Button 
+              icon={<FileAddOutlined />}
+              onClick={() => {
+                setCurrentStep(0);
+                form.resetFields();
+                setReportGenerated(false);
+                setMultiNicheReport(null);
+              }}
+              block
+              type="text"
+              size="large"
+              danger
+              style={{ height: '40px' }}
+            />
+          </Tooltip>
+        )}
+      </Space>
+    ) : (
+      // Expanded - Full version
+      <>
+        <Space direction="vertical" className="w-full">
+          <Button 
+            icon={<HistoryOutlined />}
+            onClick={() => setActiveView('history')}
+            block
+          >
+            View History
+          </Button>
+          <Button 
+            icon={<EyeOutlined />}
+            onClick={loadPreviousReports}
+            block
+          >
+            Previous Reports
+          </Button>
+          {currentStep > 0 && currentStep < 5 && (
+            <Button 
+              icon={<FileAddOutlined />}
+              onClick={() => {
+                setCurrentStep(0);
+                form.resetFields();
+                setReportGenerated(false);
+                setMultiNicheReport(null);
+              }}
+              block
+              danger
+            >
+              Start Over
+            </Button>
+          )}
+        </Space>
 
-                {/* Progress Summary */}
-                <Divider className="my-4" />
-                <div className="space-y-3">
-                  <Text strong>Your Progress</Text>
-                  <div className="space-y-2">
-                    {steps.slice(0, 5).map((step, index) => (
-                      <div 
-                        key={index}
-                        className={`flex items-center justify-between p-2 rounded ${
-                          currentStep > index ? '' : 
-                          currentStep === index ? '' : ''
-                        }`}
-                      >
-                        <Text 
-                          type={currentStep >= index ? undefined : 'secondary'}
-                          className="text-sm"
-                        >
-                          {step.title}
-                        </Text>
-                        {currentStep > index && (
-                          <Tag color="green" >✓</Tag>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
+        <Divider className="my-4" />
+        <div className="space-y-3">
+          <Text strong>Your Progress</Text>
+          <div className="space-y-2">
+            {steps.slice(0, 5).map((step, index) => (
+              <div 
+                key={index}
+                className={`flex items-center justify-between p-2 rounded ${
+                  currentStep > index ? '' : 
+                  currentStep === index ? '' : ''
+                }`}
+              >
+                <Text 
+                  type={currentStep >= index ? undefined : 'secondary'}
+                  className="text-sm"
+                >
+                  {step.title}
+                </Text>
+                {currentStep > index && (
+                  <Tag color="green" >✓</Tag>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    )}
+  </Card>
+
             </div>
 
             {/* Main Form Content */}
-            <div className="lg:col-span-3">
+  <div className={isSidebarCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'}>
               <Form
                 form={form}
                 layout="vertical"
