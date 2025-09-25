@@ -128,7 +128,7 @@ export default function ProposalGeneratorPage() {
   });
 
   const [serviceProvider, setServiceProvider] = useState<ServiceProvider>({
-  name: "", // Initialize empty, will be set in useEffect
+    name: "", // Initialize empty, will be set in useEffect
   legalName: "",
   address: "",
   signatoryName: "",
@@ -392,18 +392,18 @@ const getDefaultAmount = (proposalType: ProposalType, industry: IndustryType): n
   }, [isWorkspaceReady, currentWorkspace?.id]);
 
   // Update service provider when workspace changes
-useEffect(() => {
-  if (currentWorkspace) {
-    setServiceProvider(prev => ({
-      ...prev,
-      name: currentWorkspace?.name || "",
-      legalName: (currentWorkspace as any)?.legalName || "",
-      address: (currentWorkspace as any)?.address || "",
-      signatoryName: (currentWorkspace as any)?.signatoryName || "",
-      signatoryTitle: (currentWorkspace as any)?.signatoryTitle || ""
-    }));
-  }
-}, [currentWorkspace]);
+// useEffect(() => {
+//   if (currentWorkspace) {
+//     setServiceProvider(prev => ({
+//       ...prev,
+//       name: currentWorkspace?.name || "",
+//       legalName: (currentWorkspace as any)?.legalName || "",
+//       address: (currentWorkspace as any)?.address || "",
+//       signatoryName: (currentWorkspace as any)?.signatoryName || "",
+//       signatoryTitle: (currentWorkspace as any)?.signatoryTitle || ""
+//     }));
+//   }
+// }, [currentWorkspace]);
 
 
   // Create complete input object
@@ -1105,7 +1105,7 @@ useEffect(() => {
 {/* Add helpful tip */}
 <Alert
   message="Pro Tip"
-  description="Leave deliverables empty and we'll create professional deliverables based on your project description automatically."
+  description="Add your deliverables here. If you leave this blank, we’ll suggest professional deliverables based on your project description."
   type="info"
   showIcon
   className="mb-4"
@@ -2094,7 +2094,44 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
         </div>
       </Card>
 
-       {proposal.alternativeOptions?.length > 0 && (
+    
+
+      <Tabs
+        activeKey={activeSection}
+        onChange={setActiveSection as any}
+        type="card"
+        items={[
+          {
+            key: 'overview',
+            label: 'Executive Overview',
+            children: <ProposalOverviewTab proposal={proposal} />,
+          },
+          {
+            key: 'agreement',
+              label: getDocumentTitle(proposal.originalInput.proposalType), // Dynamic title
+            children: <ServiceAgreementTab proposal={proposal} copyToClipboard={copyToClipboard} />,
+          },
+          {
+            key: 'sow',
+            label: 'Statement of Work',
+            children: <StatementOfWorkTab proposal={proposal} copyToClipboard={copyToClipboard} />,
+          },
+            {
+      key: 'complete', // ADD THIS NEW TAB
+      label: 'Complete Proposal',
+      children: <CompleteProposalTab proposal={proposal} copyToClipboard={copyToClipboard} />,
+    },
+          {
+            key: 'analysis',
+            label: 'Analysis & Insights',
+            children: <AnalysisTab proposal={proposal} />,
+          },
+        ]}
+
+        
+      />
+
+         {proposal.alternativeOptions?.length > 0 && (
         <Card title="Alternative Options" className="mb-6">
           {proposal.alternativeOptions.map((option, index) => (
             <Card key={index} size="small" className="mb-4">
@@ -2134,39 +2171,6 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
           ))}
         </Card>
       )}
-
-      <Tabs
-        activeKey={activeSection}
-        onChange={setActiveSection as any}
-        type="card"
-        items={[
-          {
-            key: 'overview',
-            label: 'Executive Overview',
-            children: <ProposalOverviewTab proposal={proposal} />,
-          },
-          {
-            key: 'agreement',
-              label: getDocumentTitle(proposal.originalInput.proposalType), // Dynamic title
-            children: <ServiceAgreementTab proposal={proposal} copyToClipboard={copyToClipboard} />,
-          },
-          {
-            key: 'sow',
-            label: 'Statement of Work',
-            children: <StatementOfWorkTab proposal={proposal} copyToClipboard={copyToClipboard} />,
-          },
-            {
-      key: 'complete', // ADD THIS NEW TAB
-      label: 'Complete Proposal',
-      children: <CompleteProposalTab proposal={proposal} copyToClipboard={copyToClipboard} />,
-    },
-          {
-            key: 'analysis',
-            label: 'Analysis & Insights',
-            children: <AnalysisTab proposal={proposal} />,
-          },
-        ]}
-      />
     </div>
   );
 }

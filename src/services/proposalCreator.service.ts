@@ -34,9 +34,9 @@ export class ProposalCreatorService {
   private openRouterClient: OpenRouterClient;
   private redis: Redis;
   private readonly CACHE_TTL = 7200; // 2 hours
-  private readonly AI_TIMEOUT = 45000; // 45 seconds
+  private readonly AI_TIMEOUT = 120000;// 2 minutes
   private readonly MAX_RETRIES = 2;
-
+ 
   constructor() {
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error('OPENROUTER_API_KEY is required');
@@ -105,6 +105,8 @@ export class ProposalCreatorService {
     }
   }
 
+
+  
   private validateInput(input: ProposalInput): void {
     const errors: string[] = [];
 
@@ -149,38 +151,46 @@ export class ProposalCreatorService {
     }
   }
 
-  private async getCachedProposal(input: ProposalInput): Promise<ProposalPackage | null> {
-    try {
-      const cacheKey = generateProposalCacheKey(input);
-      const cached = await this.redis.get(cacheKey);
+  // private async getCachedProposal(input: ProposalInput): Promise<ProposalPackage | null> {
+  //   try {
+  //     const cacheKey = generateProposalCacheKey(input);
+  //     const cached = await this.redis.get(cacheKey);
       
-      if (!cached) return null;
+  //     if (!cached) return null;
 
-      // Handle both string and object responses from Redis
-      let parsedCache: ProposalPackage;
-      if (typeof cached === 'string') {
-        parsedCache = JSON.parse(cached);
-      } else if (typeof cached === 'object' && cached !== null) {
-        parsedCache = cached as ProposalPackage;
-      } else {
-        console.warn('Invalid cache format, proceeding with fresh generation');
-        return null;
-      }
+  //     // Handle both string and object responses from Redis
+  //     let parsedCache: ProposalPackage;
+  //     if (typeof cached === 'string') {
+  //       parsedCache = JSON.parse(cached);
+  //     } else if (typeof cached === 'object' && cached !== null) {
+  //       parsedCache = cached as ProposalPackage;
+  //     } else {
+  //       console.warn('Invalid cache format, proceeding with fresh generation');
+  //       return null;
+  //     }
 
-      // Validate cached structure
-      if (this.validateProposalPackage(parsedCache)) {
-        return parsedCache;
-      } else {
-        console.warn('Cached proposal structure invalid, proceeding with fresh generation');
-        // Clean up invalid cache entry
-        await this.redis.del(cacheKey).catch(() => {});
-        return null;
-      }
-    } catch (error) {
-      console.warn('Cache retrieval error, proceeding with fresh generation:', error);
-      return null;
-    }
-  }
+  //     // Validate cached structure
+  //     if (this.validateProposalPackage(parsedCache)) {
+  //       return parsedCache;
+  //     } else {
+  //       console.warn('Cached proposal structure invalid, proceeding with fresh generation');
+  //       // Clean up invalid cache entry
+  //       await this.redis.del(cacheKey).catch(() => {});
+  //       return null;
+  //     }
+  //   } catch (error) {
+  //     console.warn('Cache retrieval error, proceeding with fresh generation:', error);
+  //     return null;
+  //   }
+  // }
+
+
+  
+  
+  private async getCachedProposal(input: ProposalInput): Promise<ProposalPackage | null> {
+  // Temporarily disable cache to force fresh generation
+  return null;
+}
 
   private validateProposalPackage(pkg: any): boolean {
     return !!(
@@ -200,37 +210,45 @@ export class ProposalCreatorService {
     );
   }
 
-  private async generateProposalWithRetry(input: ProposalInput): Promise<GeneratedProposal> {
-    let lastError: Error | null = null;
-    
-    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-      try {
-        console.log(`Generating proposal (attempt ${attempt}/${this.MAX_RETRIES})`);
-        return await this.generateProposalFromAI(input);
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        console.warn(`Proposal generation attempt ${attempt} failed:`, lastError.message);
-        
-        if (attempt < this.MAX_RETRIES) {
-          // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        }
+private async generateProposalWithRetry(input: ProposalInput): Promise<GeneratedProposal> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+    try {
+      console.log(`🔄 Generating proposal (attempt ${attempt}/${this.MAX_RETRIES})`);
+      return await this.generateProposalFromAI(input);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`❌ Attempt ${attempt} failed:`, lastError.message);
+      
+      if (attempt < this.MAX_RETRIES) {
+        const delay = 2000 * attempt; // Exponential backoff
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-
-    console.warn('All AI generation attempts failed, using fallback generation');
-    return this.generateFallbackProposal(input);
   }
 
-  private async generateProposalFromAI(input: ProposalInput): Promise<GeneratedProposal> {
-    const prompt = this.buildProposalPrompt(input);
-    
-    // Create timeout promise
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('AI generation timeout')), this.AI_TIMEOUT);
-    });
+  // TEMPORARILY THROW INSTEAD OF FALLBACK
+  console.error('💥 ALL AI ATTEMPTS FAILED - THROWING ERROR INSTEAD OF FALLBACK');
+  throw new Error(`AI generation failed after ${this.MAX_RETRIES} attempts: ${lastError?.message}`);
+  
+  // Comment out fallback for debugging
+  // console.warn('All AI generation attempts failed, using fallback generation');
+  // return this.generateFallbackProposal(input);
+}
 
-    // Race between AI call and timeout
+ private async generateProposalFromAI(input: ProposalInput): Promise<GeneratedProposal> {
+  console.log('🚀 Starting AI generation...');
+  console.log('📝 Project description:', input.project.description);
+  console.log('🏢 Client:', input.client.legalName);
+  
+  const prompt = this.buildProposalPrompt(input);
+  console.log('📄 Prompt generated, length:', prompt.length);
+  
+  try {
+    console.log('🤖 Making OpenRouter API call...');
+    
     const response = await Promise.race([
       this.openRouterClient.complete({
         model: 'openai/gpt-4o',
@@ -245,11 +263,16 @@ export class ProposalCreatorService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 8000
+      max_tokens: 16000 
       }),
-      timeoutPromise
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('AI generation timeout')), this.AI_TIMEOUT);
+      })
     ]);
 
+    console.log('✅ AI response received, length:', response.content.length);
+    console.log('🔍 First 500 chars:', response.content.substring(0, 500));
+    
     const parsed = this.parseProposalResponse(response.content, input);
     
     // Add metadata about generation
@@ -259,8 +282,17 @@ export class ProposalCreatorService {
       generatedAt: new Date().toISOString()
     };
 
+    console.log('✅ Proposal parsed successfully');
     return parsed;
+    
+  } catch (error) {
+    console.error('❌ AI generation failed with error:', error);
+    // console.error('❌ Error type:', error.constructor.name);
+    // console.error('❌ Error message:', error.message);
+    throw error;
   }
+}
+
 
   private async cacheProposalAsync(input: ProposalInput, proposalPackage: ProposalPackage): Promise<void> {
     try {
@@ -285,7 +317,7 @@ export class ProposalCreatorService {
     return typeSpecificPrompts[proposalType];
   }
 
-  private buildProposalPrompt(input: ProposalInput): string {
+private buildProposalPrompt(input: ProposalInput): string {
     const formatCurrency = (amount: number, currency: string = 'USD') => {
       if (currency === 'USD') {
         return `$${amount.toLocaleString()}`;
@@ -294,82 +326,63 @@ export class ProposalCreatorService {
     };
 
     const totalValue = input.pricing.totalAmount;
-    
-    // Safe payment schedule generation
     const paymentSchedule = this.safeGeneratePaymentScheduleText(input.pricing, formatCurrency);
 
     return `
-# PROPOSAL GENERATION BRIEF
+# PERSONALIZED PROPOSAL GENERATION BRIEF
+
+## PERSONALIZATION MANDATE
+Create a UNIQUE proposal that could ONLY be for ${input.client.legalName}. This is NOT a template - make it specific to their exact situation: "${input.project.description}"
+
+Reference their specific project description throughout. Address ${input.client.industry}-specific challenges and regulations. Avoid generic phrases like "professional service delivery" or "quality assurance."
 
 ## CLIENT PROFILE
 **Client:** ${this.getCleanValue(input.client.legalName)} (${input.client.entityType || 'Corporation'})
 **Industry:** ${input.client.industry}
 **Company Size:** ${input.client.companySize}
+**Specific Project Need:** ${input.project.description}
 **Decision Maker:** ${this.getCleanValue(input.client.decisionMaker, 'TBD')}
-**Address:** ${this.getCleanValue(input.client.address, 'Client Address TBD')}
-**Signatory:** ${this.getCleanValue(input.client.signatoryName, 'TBD')}, ${this.getCleanValue(input.client.signatoryTitle, 'TBD')}
 
 ## SERVICE PROVIDER
 **Provider:** ${this.getCleanValue(input.serviceProvider.name, 'Service Provider')}
-**Legal Name:** ${this.getCleanValue(input.serviceProvider.legalName, 'Service Provider LLC')}
-**Address:** ${this.getCleanValue(input.serviceProvider.address, 'Provider Address TBD')}
-**Signatory:** ${this.getCleanValue(input.serviceProvider.signatoryName, 'TBD')}, ${this.getCleanValue(input.serviceProvider.signatoryTitle, 'TBD')}
 **Specializations:** ${this.safeJoinArray(input.serviceProvider.specializations, 'Professional Services')}
 **Credentials:** ${this.safeJoinArray(input.serviceProvider.credentials, 'Professional Credentials')}
 
-## PROJECT SCOPE
+## PROJECT SCOPE - CUSTOMIZE THIS SECTION
 **Description:** ${input.project.description}
-
-**Objectives:**
-${this.safeGenerateObjectivesList(input.project.objectives)}
-
-**Deliverables:**
-${this.safeGenerateDeliverablesText(input.project.deliverables, formatCurrency)}
-
+**Objectives:** ${this.safeGenerateObjectivesList(input.project.objectives)}
 **Timeline:** ${this.getCleanValue(input.project.timeline, '8-12 weeks')}
-
-**Key Milestones:**
-${this.safeGenerateMilestonesText(input.project.milestones)}
-
-**Project Exclusions:**
-${this.safeGenerateListItems(input.project.exclusions, ['Third-party services and materials not specified', 'Ongoing support beyond project completion'])}
-
-**Assumptions:**
-${this.safeGenerateListItems(input.project.assumptions, ['Client will provide necessary access and information', 'Project requirements remain stable'])}
-
-**Dependencies:**
-${this.safeGenerateListItems(input.project.dependencies, ['Client availability for reviews and approvals'])}
+**Deliverables:** ${this.safeGenerateDeliverablesText(input.project.deliverables, formatCurrency)}
 
 ## PRICING STRUCTURE
 **Model:** ${input.pricing.model}
 **Total Value:** ${formatCurrency(totalValue, input.pricing.currency)}
-**Payment Schedule:**
-${paymentSchedule}
-
-**Pricing Breakdown:**
-${this.safeGeneratePricingBreakdown(input.pricing, formatCurrency)}
-
-**Expense Policy:** ${this.getCleanValue(input.pricing.expensePolicy, 'Pre-approved expenses will be reimbursed with receipts')}
+**Payment Schedule:** ${paymentSchedule}
 
 ## CONTRACT TERMS
 **Proposal Validity:** ${input.terms.proposalValidityDays} days
 **Contract Length:** ${input.terms.contractLength}
-**Termination Notice:** ${input.terms.terminationNotice} days
 **IP Ownership:** ${input.terms.intellectualProperty}
-**Liability Limit:** ${input.terms.liabilityLimit > 0 ? formatCurrency(input.terms.liabilityLimit, input.pricing.currency) : 'Standard professional limits'}
 **Governing Law:** ${this.getCleanValue(input.terms.governingLaw, 'Delaware')}
-**Dispute Resolution:** ${input.terms.disputeResolution}
+
+## SPECIFIC REQUIREMENTS FOR THIS PROPOSAL
+
+1. **Industry Context**: Address specific ${input.client.industry} industry challenges, regulations, and best practices
+2. **Project Integration**: Weave "${input.project.description}" throughout all sections - don't just mention it once
+3. **Client-Specific Value**: Explain why THIS solution fits ${input.client.legalName}'s specific needs
+4. **Unique Deliverables**: Create deliverables that directly serve "${input.project.description}" - not generic ones
+5. **Personalized Risks**: Identify risks specific to ${input.client.industry} and this project type
+6. **Custom Timeline**: Reference actual project phases that make sense for "${input.project.description}"
 
 ## OUTPUT REQUIREMENTS
-
 Return a valid JSON object with this exact structure:
 {
   "executiveSummary": "string (optional, only if requested)",
-  "projectOverview": "string (required)",
-  "scopeOfWork": "string (required)", 
+  "projectOverview": "string (required - make this unique to ${input.client.legalName}'s situation)",
+  "scopeOfWork": "string (required - directly address '${input.project.description}')", 
   "pricing": "string (required)",
   "timeline": "string (required)",
-  "deliverables": "string (required)",
+  "deliverables": "string (required - custom to this project)",
   "terms": "string (required)",
   "nextSteps": "string (required)",
   "contractTemplates": {
@@ -378,9 +391,12 @@ Return a valid JSON object with this exact structure:
   }
 }
 
-CRITICAL: Ensure all contract templates use placeholder formatting like [CLIENT NAME], [DATE], [AMOUNT] for fields that need customization. Make the proposal compelling and professional.
+CRITICAL: Make this proposal so specific to ${input.client.legalName} and "${input.project.description}" that it couldn't be used for any other client. Use their exact project description as the foundation for all content.
 `;
   }
+
+
+  
 
   // Safe helper methods for handling arrays and undefined values
   private safeJoinArray(arr: string[] | undefined, fallback: string): string {
@@ -535,28 +551,94 @@ CRITICAL: Ensure all contract templates use placeholder formatting like [CLIENT 
     return this.isPlaceholder(value) ? fallback : value.trim();
   }
 
-  private parseProposalResponse(content: string, input: ProposalInput): GeneratedProposal {
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const jsonString = jsonMatch[1] || jsonMatch[0];
-        const parsed = JSON.parse(jsonString);
-        
-        if (this.validateProposalStructure(parsed)) {
-          return parsed;
-        } else {
-          console.warn('AI returned invalid proposal structure, using fallback');
-        }
+private parseProposalResponse(content: string, input: ProposalInput): GeneratedProposal {
+  console.log('🔧 Parsing AI response...');
+  
+  try {
+    let jsonString = '';
+    
+    const jsonBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonBlockMatch) {
+      jsonString = jsonBlockMatch[1];
+      console.log('📦 Found JSON in code block');
+    } else {
+      const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonObjectMatch) {
+        jsonString = jsonObjectMatch[0];
+        console.log('📦 Found raw JSON object');
       } else {
-        console.warn('No valid JSON found in AI response, using fallback');
+        console.log('❌ No JSON found in AI response');
+        throw new Error('No JSON found in AI response');
       }
-    } catch (error) {
-      console.warn('Failed to parse AI JSON response:', error);
     }
-
-    return this.generateFallbackProposal(input);
+    
+    console.log('🔍 JSON string length:', jsonString.length);
+    
+    // Check if JSON appears truncated (ends abruptly)
+    if (!jsonString.trim().endsWith('}')) {
+      console.log('⚠️ JSON appears truncated, attempting to fix...');
+      jsonString = this.attemptJSONRepair(jsonString);
+    }
+    
+    const cleanedJson = jsonString
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .replace(/,\s*}/g, '}')
+      .replace(/,\s*]/g, ']');
+    
+    const parsed = JSON.parse(cleanedJson);
+    
+    // If structure is incomplete, use partial parsing
+    if (!this.validateProposalStructure(parsed)) {
+      console.log('⚠️ Structure incomplete, using partial AI content with fallback completion');
+      return this.completePartialProposal(parsed, input);
+    }
+    
+    return parsed;
+    
+  } catch (error) {
+    console.error('❌ JSON parsing failed:', error);
+    throw error;
   }
+}
+
+private attemptJSONRepair(truncatedJson: string): string {
+  // Basic repair for truncated JSON
+  let repaired = truncatedJson.trim();
+  
+  // Count open braces vs close braces
+  const openBraces = (repaired.match(/\{/g) || []).length;
+  const closeBraces = (repaired.match(/\}/g) || []).length;
+  
+  // Add missing closing braces
+  const missingBraces = openBraces - closeBraces;
+  for (let i = 0; i < missingBraces; i++) {
+    repaired += '}';
+  }
+  
+  return repaired;
+}
+
+private completePartialProposal(partialAI: any, input: ProposalInput): GeneratedProposal {
+  // Use AI content where available, fallback for missing parts
+  const fallback = this.generateMinimalProposal(input);
+  
+  return {
+    projectOverview: partialAI.projectOverview || fallback.projectOverview,
+    scopeOfWork: partialAI.scopeOfWork || fallback.scopeOfWork,
+    pricing: partialAI.pricing || fallback.pricing,
+    timeline: partialAI.timeline || fallback.timeline,
+    deliverables: partialAI.deliverables || fallback.deliverables,
+    terms: partialAI.terms || fallback.terms,
+    nextSteps: partialAI.nextSteps || fallback.nextSteps,
+    contractTemplates: partialAI.contractTemplates || fallback.contractTemplates,
+    ...(partialAI.executiveSummary && { executiveSummary: partialAI.executiveSummary }),
+    metadata: {
+      generatedAt: new Date().toISOString(),
+      partialGeneration: true,
+      proposalType: input.proposalType
+    }
+  };
+}
 
   private validateProposalStructure(proposal: any): boolean {
     const required = [
