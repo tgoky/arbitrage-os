@@ -46,7 +46,12 @@ const { TabPane } = Tabs;
 
 import { useRouter } from 'next/navigation';
 
-export const SavedNicheHistory = () => {
+interface SavedNicheHistoryProps {
+  compactMode?: boolean;
+}
+
+
+export const SavedNicheHistory: React.FC<SavedNicheHistoryProps> = ({ compactMode = false }) => {
   const { niches, loading, fetchNiches } = useSavedNiche();
   const { getNicheReport } = useNicheResearcher();
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
@@ -1037,7 +1042,7 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
               Your generated niche reports will appear here.
             </Text>
             <div className="mt-4">
-              <Button key="create-niche" type="primary" href="/niche-research">
+              <Button key="create-niche" type="primary" href="/niche-researcher">
                 Create Your First Niche Report
               </Button>
             </div>
