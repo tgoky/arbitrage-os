@@ -40,7 +40,7 @@ interface NavigationMenuProps {
 const menuGroups: MenuGroupConfig[] = [
   {
     id: "content",
-    label: "WorkFlows",
+    label: "Tool Gen",
     icon: <ShieldCheckIcon className="h-4 w-4" />,
     subGroups: [
       {

@@ -1991,7 +1991,7 @@ function CompleteProposalTab({
         className="mb-4"
       />
 
-      <div className="bg-gray-50 p-6 rounded border">
+      <div className=" p-6 rounded border">
         <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border bg-white p-4 rounded">
           {completeProposalText}
         </div>
@@ -2264,7 +2264,7 @@ function ServiceAgreementTab({
           Copy Agreement
         </Button>
       </div>
-      <div className="bg-gray-50 p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
+      <div className=" p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
         {proposal.proposal.contractTemplates.serviceAgreement}
       </div>
     </Card>
@@ -2290,7 +2290,7 @@ function StatementOfWorkTab({
           Copy SOW
         </Button>
       </div>
-      <div className="bg-gray-50 p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
+      <div className=" p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
         {proposal.proposal.contractTemplates.statementOfWork}
       </div>
     </Card>
