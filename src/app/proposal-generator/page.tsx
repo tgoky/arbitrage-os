@@ -2208,11 +2208,11 @@ function ProposalOverviewTab({ proposal }: { proposal: ProposalPackage }) {
       </Col>
 
       <Col xs={24}>
-        <Card title="Executive Summary" size="small">
+        {/* <Card title="Executive Summary" size="small">
           <Paragraph>
             {proposal.proposal.executiveSummary || "Executive summary not included in this proposal."}
           </Paragraph>
-        </Card>
+        </Card> */}
       </Col>
 
       <Col xs={24}>
