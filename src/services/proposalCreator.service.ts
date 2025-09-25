@@ -75,17 +75,19 @@ export class ProposalCreatorService {
       const riskAssessment = this.generateRiskAssessment(input);
       const competitiveAnalysis = this.generateCompetitiveAnalysis(input);
 
-      const proposalPackage: ProposalPackage = {
-        proposal,
-        analysis,
-        recommendations,
-        alternativeOptions: alternatives,
-        riskAssessment,
-        competitiveAnalysis,
-        tokensUsed: proposal.metadata?.tokensUsed || 0,
-        generationTime: Date.now() - startTime,
-        originalInput: input
-      };
+  const proposalPackage: ProposalPackage = {
+  proposal,
+  analysis,
+  recommendations,
+  alternativeOptions: proposal.alternativeOptions || this.generateAlternativeOptions(input), // Fallback to service-generated
+  riskAssessment,
+  competitiveAnalysis,
+  tokensUsed: proposal.metadata?.tokensUsed || 0,
+  generationTime: Date.now() - startTime,
+  originalInput: input
+};
+
+
 
       // Cache result asynchronously (don't block response)
       this.cacheProposalAsync(input, proposalPackage);
@@ -374,6 +376,15 @@ Reference their specific project description throughout. Address ${input.client.
 5. **Personalized Risks**: Identify risks specific to ${input.client.industry} and this project type
 6. **Custom Timeline**: Reference actual project phases that make sense for "${input.project.description}"
 
+## ALTERNATIVE OPTIONS REQUIREMENT
+Create 3 alternative approaches specifically for ${input.client.legalName}'s "${input.project.description}" project:
+
+1. **Essential Package**: Streamlined version focusing on core aspects of "${input.project.description}" with reduced scope but faster delivery
+2. **Premium Package**: Enhanced version with additional ${input.client.industry}-specific optimization and extended support
+3. **Phased Approach**: Break "${input.project.description}" into strategic phases with validation checkpoints
+
+Make each alternative specific to their project - not generic templates. Include realistic pricing adjustments, timeline changes, and specific scope modifications that make sense for "${input.project.description}".
+
 ## OUTPUT REQUIREMENTS
 Return a valid JSON object with this exact structure:
 {
@@ -385,15 +396,27 @@ Return a valid JSON object with this exact structure:
   "deliverables": "string (required - custom to this project)",
   "terms": "string (required)",
   "nextSteps": "string (required)",
+  "alternativeOptions": [
+    {
+      "title": "string (specific to ${input.client.legalName})",
+      "description": "string (specific to '${input.project.description}')",
+      "pricingAdjustment": number (between -0.5 and 0.5),
+      "timelineAdjustment": "string (specific timeline changes)",
+      "scopeChanges": ["array of specific scope modifications for this project"],
+      "pros": ["array of specific advantages for ${input.client.legalName}"],
+      "cons": ["array of specific disadvantages or limitations"]
+    }
+  ],
   "contractTemplates": {
     "serviceAgreement": "string (required - full legal template)",
     "statementOfWork": "string (required - full SOW template)"
   }
 }
 
-CRITICAL: Make this proposal so specific to ${input.client.legalName} and "${input.project.description}" that it couldn't be used for any other client. Use their exact project description as the foundation for all content.
+CRITICAL: Make this proposal so specific to ${input.client.legalName} and "${input.project.description}" that it couldn't be used for any other client. Use their exact project description as the foundation for all content. The alternative options must be equally specific - not generic packages with client names swapped in.
 `;
   }
+
 
 
   
@@ -640,7 +663,7 @@ private completePartialProposal(partialAI: any, input: ProposalInput): Generated
   };
 }
 
-  private validateProposalStructure(proposal: any): boolean {
+private validateProposalStructure(proposal: any): boolean {
     const required = [
       'projectOverview',
       'scopeOfWork', 
@@ -649,16 +672,23 @@ private completePartialProposal(partialAI: any, input: ProposalInput): Generated
       'deliverables',
       'terms',
       'nextSteps',
-      'contractTemplates'
+      'contractTemplates',
+      'alternativeOptions' // Add this
     ];
 
     if (!proposal || typeof proposal !== 'object') return false;
 
     for (const field of required) {
-      if (!proposal[field] || typeof proposal[field] !== 'string') {
-        console.warn(`Missing or invalid field: ${field}`);
+      if (!proposal[field]) {
+        console.warn(`Missing field: ${field}`);
         return false;
       }
+    }
+
+    // Validate alternative options structure
+    if (!Array.isArray(proposal.alternativeOptions) || proposal.alternativeOptions.length === 0) {
+      console.warn('Alternative options must be an array with at least one option');
+      return false;
     }
 
     // Validate contract templates structure
@@ -1639,106 +1669,126 @@ private generateMinimalAnalysis(input: ProposalInput): ProposalAnalysis {
 
 private calculateWinProbability(input: ProposalInput): { score: number; factors: any[] } {
   try {
-    let score = 60; // Base score
+    let score = 50; // Start neutral
     const factors: any[] = [];
 
-    // Industry expertise alignment
-    const realSpecializations = this.safeFilterArray(input.serviceProvider.specializations);
-    const hasIndustryExpertise = realSpecializations.some(spec => 
-      spec.toLowerCase().includes(input.client.industry.toLowerCase())
+    // UNIQUE: Analyze actual specializations against client industry
+    const specializations = this.safeFilterArray(input.serviceProvider.specializations);
+    const industryKeywords = this.getIndustryKeywords(input.client.industry);
+    
+    const relevantSpecs = specializations.filter(spec => 
+      industryKeywords.some(keyword => spec.toLowerCase().includes(keyword))
     );
 
-    if (hasIndustryExpertise) {
+    if (relevantSpecs.length > 0) {
+      const boost = Math.min(relevantSpecs.length * 8, 20);
+      score += boost;
+      factors.push({
+        factor: `Direct ${input.client.industry} expertise: ${relevantSpecs.join(', ')}`,
+        impact: relevantSpecs.length > 2 ? 'High' : 'Medium',
+        description: `Service provider demonstrates specific experience in ${input.client.industry} through documented specializations`
+      });
+    }
+
+    // UNIQUE: Project complexity vs timeline realism
+    const projectComplexity = this.calculateProjectComplexity(input);
+    const timelineRealism = this.assessTimelineRealism(input);
+    
+    if (projectComplexity === 'high' && timelineRealism === 'realistic') {
       score += 15;
       factors.push({
-        factor: 'Industry expertise alignment',
+        factor: 'Realistic timeline for complex project',
         impact: 'High',
-        description: 'Service provider has relevant industry specialization'
+        description: `Complex project (${input.project.deliverables?.length || 0} deliverables) with achievable timeline shows professional planning`
       });
-    } else if (realSpecializations.length > 0) {
-      score += 5;
+    } else if (projectComplexity === 'high' && timelineRealism === 'aggressive') {
+      score -= 12;
       factors.push({
-        factor: 'Professional specializations',
-        impact: 'Medium',
-        description: 'Service provider has relevant professional expertise'
-      });
-    } else {
-      factors.push({
-        factor: 'Limited specialization data',
-        impact: 'Medium',
-        description: 'Consider adding specific specializations for better positioning'
+        factor: 'Aggressive timeline risks delivery',
+        impact: 'High',
+        description: `High complexity project may suffer quality issues with compressed ${input.project.timeline} timeline`
       });
     }
 
-    // Pricing competitiveness
-    const pricingScore = this.assessPricingCompetitiveness(input);
-    if (pricingScore === 'competitive') {
+    // UNIQUE: Price positioning for specific client size
+    const expectedRange = this.getIndustryPriceRange(input.client.industry, input.client.companySize);
+    if (input.pricing.totalAmount >= expectedRange.min && input.pricing.totalAmount <= expectedRange.max) {
       score += 10;
       factors.push({
-        factor: 'Competitive pricing',
+        factor: `Price fits ${input.client.companySize} ${input.client.industry} budget expectations`,
         impact: 'Medium',
-        description: 'Pricing is well-positioned for market acceptance'
-      });
-    } else if (pricingScore === 'premium') {
-      score -= 5;
-      factors.push({
-        factor: 'Premium pricing',
-        impact: 'Medium',
-        description: 'Higher pricing may face resistance - ensure strong value justification'
-      });
-    }
-
-    // Timeline realism
-    const timelineRisk = this.assessTimelineRealism(input);
-    if (timelineRisk === 'realistic') {
-      score += 10;
-      factors.push({
-        factor: 'Realistic timeline',
-        impact: 'High',
-        description: 'Timeline appears achievable and well-planned'
-      });
-    } else if (timelineRisk === 'aggressive') {
-      score -= 10;
-      factors.push({
-        factor: 'Aggressive timeline',
-        impact: 'High',
-        description: 'Timeline may be too optimistic - consider adding buffer time'
-      });
-    }
-
-    // Scope clarity
-    const scopeClarity = this.assessScopeClarity(input);
-    if (scopeClarity === 'clear') {
-      score += 5;
-      factors.push({
-        factor: 'Clear project scope',
-        impact: 'Medium',
-        description: 'Well-defined deliverables and expectations'
-      });
-    } else if (scopeClarity === 'unclear') {
-      score -= 5;
-      factors.push({
-        factor: 'Scope needs clarification',
-        impact: 'Medium',
-        description: 'Consider adding more detailed acceptance criteria and exclusions'
+        description: `$${input.pricing.totalAmount.toLocaleString()} aligns with typical ${input.client.companySize} company budgets in ${input.client.industry}`
       });
     }
 
     return {
-      score: Math.min(95, Math.max(25, score)),
-      factors
+      score: Math.min(95, Math.max(20, score)),
+      factors: factors.slice(0, 4) // Limit to most impactful factors
     };
   } catch (error) {
     console.error('Error calculating win probability:', error);
     return {
       score: 60,
       factors: [{
-        factor: 'Standard assessment',
-        impact: 'Medium',
-        description: 'Unable to perform detailed analysis due to data limitations'
+        factor: 'Standard market positioning',
+        impact: 'Medium', 
+        description: 'Analysis limited due to incomplete data - recommend providing more project details'
       }]
     };
   }
+}
+
+private getIndustryKeywords(industry: IndustryType): string[] {
+  const keywords: Record<IndustryType, string[]> = {
+    'technology': ['tech', 'software', 'digital', 'system', 'platform', 'app', 'web', 'cloud', 'api', 'development', 'coding', 'programming', 'database', 'integration', 'automation', 'ai', 'machine', 'learning', 'cyber', 'security'],
+    
+    'healthcare': ['health', 'medical', 'clinical', 'patient', 'hipaa', 'hospital', 'pharma', 'pharmaceutical', 'therapy', 'treatment', 'diagnosis', 'healthcare', 'wellness', 'telemedicine', 'nursing', 'doctor', 'physician', 'care', 'medicine', 'surgical'],
+    
+    'finance': ['financial', 'banking', 'investment', 'fintech', 'payment', 'compliance', 'risk', 'audit', 'accounting', 'tax', 'portfolio', 'trading', 'wealth', 'insurance', 'loan', 'credit', 'mortgage', 'capital', 'fund', 'regulatory'],
+    
+    'consulting': ['strategy', 'advisory', 'management', 'organizational', 'process', 'optimization', 'transformation', 'change', 'improvement', 'analysis', 'assessment', 'planning', 'implementation', 'governance', 'performance', 'operational', 'strategic', 'business', 'enterprise', 'workflow'],
+    
+    'marketing': ['brand', 'campaign', 'advertising', 'digital', 'social', 'media', 'content', 'seo', 'sem', 'email', 'lead', 'conversion', 'analytics', 'engagement', 'audience', 'creative', 'promotional', 'outreach', 'awareness', 'positioning'],
+    
+    'ecommerce': ['online', 'retail', 'shopping', 'cart', 'checkout', 'payment', 'inventory', 'fulfillment', 'shipping', 'marketplace', 'storefront', 'catalog', 'product', 'customer', 'order', 'sales', 'conversion', 'optimization', 'logistics', 'supply'],
+    
+    'manufacturing': ['production', 'assembly', 'quality', 'process', 'lean', 'manufacturing', 'supply', 'chain', 'logistics', 'inventory', 'operations', 'equipment', 'machinery', 'automation', 'efficiency', 'safety', 'compliance', 'industrial', 'factory', 'workflow'],
+    
+    'real-estate': ['property', 'real', 'estate', 'residential', 'commercial', 'investment', 'development', 'construction', 'market', 'valuation', 'appraisal', 'leasing', 'rental', 'mortgage', 'acquisition', 'portfolio', 'asset', 'management', 'zoning', 'regulatory'],
+    
+    'education': ['learning', 'education', 'training', 'curriculum', 'instruction', 'assessment', 'student', 'academic', 'course', 'program', 'certification', 'skills', 'knowledge', 'pedagogy', 'teaching', 'classroom', 'online', 'elearning', 'educational', 'development'],
+    
+    'other': ['business', 'professional', 'service', 'solution', 'project', 'management', 'delivery', 'quality', 'performance', 'improvement', 'analysis', 'planning', 'implementation', 'support', 'consultation', 'expertise', 'experience', 'specialized', 'custom', 'tailored']
+  };
+  
+  return keywords[industry] || keywords['other'];
+}
+
+
+private calculateProjectComplexity(input: ProposalInput): 'low' | 'medium' | 'high' {
+  let complexity = 0;
+  
+  // Factor in deliverable count and types
+  const deliverableCount = input.project.deliverables?.length || 0;
+  complexity += deliverableCount * 2;
+  
+  // Factor in milestone complexity
+  const milestoneCount = input.project.milestones?.length || 0;
+  complexity += milestoneCount * 3;
+  
+  // Factor in dependency count
+  const dependencyCount = input.project.dependencies?.length || 0;
+  complexity += dependencyCount * 4;
+  
+  // Industry-specific complexity
+  const complexIndustries = ['technology', 'healthcare', 'finance'];
+  if (complexIndustries.includes(input.client.industry)) {
+    complexity += 5;
+  }
+  
+  if (complexity >= 25) return 'high';
+  if (complexity >= 12) return 'medium';
+  return 'low';
 }
 
 private analyzePricing(input: ProposalInput): {
@@ -2719,112 +2769,52 @@ private deduplicateRecommendations(recommendations: string[]): string[] {
 private generateAlternativeOptions(input: ProposalInput): AlternativeOption[] {
   try {
     const alternatives: AlternativeOption[] = [];
-    const baseAmount = input.pricing.totalAmount;
+    const projectKeywords = this.extractProjectKeywords(input.project.description);
+    const primaryKeyword = projectKeywords[0] || 'solution';
     
-    // Essential Package - reduced scope
+    // UNIQUE: Essential version based on actual project core
     alternatives.push({
-      title: 'Essential Package',
-      description: 'Streamlined version focusing on core deliverables with reduced complexity',
+      title: `${input.client.legalName} ${primaryKeyword.charAt(0).toUpperCase() + primaryKeyword.slice(1)} Essentials`,
+      description: this.generateUniqueEssentialDescription(input, primaryKeyword),
       pricingAdjustment: -0.35,
-      timelineAdjustment: 'Reduced by 30%',
-      scopeChanges: [
-        'Focus on essential deliverables only',
-        'Reduce revision cycles from unlimited to 2 rounds',
-        'Streamlined reporting and documentation',
-        'Standard communication cadence (weekly vs. daily)'
-      ],
-      pros: [
-        'Lower initial investment required',
-        'Faster time to value and delivery',
-        'Reduced project complexity and coordination overhead',
-        'Easier approval process for budget-conscious clients'
-      ],
-      cons: [
-        'Limited scope coverage may miss optimization opportunities',
-        'Fewer revision rounds may limit refinement',
-        'Less comprehensive documentation for future reference',
-        'Reduced stakeholder engagement and training'
-      ]
+      timelineAdjustment: this.calculateTimelineReduction(input),
+      scopeChanges: this.generateProjectSpecificScopeChanges(input, 'essential'),
+      pros: this.generateContextualPros(input, 'essential'),
+      cons: this.generateContextualCons(input, 'essential')
     });
     
-    // Comprehensive Package - expanded scope
+    // UNIQUE: Premium version with advanced features
     alternatives.push({
-      title: 'Comprehensive Package',
-      description: 'Enhanced version with additional services, extended support, and premium deliverables',
+      title: `${input.client.legalName} ${primaryKeyword.charAt(0).toUpperCase() + primaryKeyword.slice(1)} Premium`,
+      description: this.generateUniquePremiumDescription(input, primaryKeyword),
       pricingAdjustment: 0.45,
-      timelineAdjustment: 'Extended by 35%',
-      scopeChanges: [
-        'Additional strategic consultation sessions and workshops',
-        'Enhanced documentation with detailed implementation guides',
-        'Extended post-delivery support period (90 days vs. 30 days)',
-        'Additional deliverable formats and presentation materials',
-        'Comprehensive stakeholder training and knowledge transfer'
-      ],
-      pros: [
-        'More comprehensive solution addressing broader business needs',
-        'Extended support reducing implementation risk',
-        'Additional training and knowledge transfer for team capability building',
-        'Premium deliverables suitable for executive presentations'
-      ],
-      cons: [
-        'Higher investment requirement may exceed budget constraints',
-        'Longer implementation timeline may delay time to value',
-        'Increased project complexity requiring more coordination',
-        'May include services not immediately necessary for core objectives'
-      ]
+      timelineAdjustment: this.calculateTimelineExtension(input),
+      scopeChanges: this.generateProjectSpecificScopeChanges(input, 'premium'),
+      pros: this.generateContextualPros(input, 'premium'),
+      cons: this.generateContextualCons(input, 'premium')
     });
     
-    // Phased Implementation - risk management approach
+    // UNIQUE: Phased approach based on project complexity
     alternatives.push({
-      title: 'Phased Implementation',
-      description: 'Break engagement into distinct phases allowing for validation and adjustment between phases',
+      title: `${input.client.legalName} ${primaryKeyword.charAt(0).toUpperCase() + primaryKeyword.slice(1)} Phases`,
+      description: this.generateUniquePhasedDescription(input, primaryKeyword),
       pricingAdjustment: 0.15,
-      timelineAdjustment: 'Same overall timeline with phased milestones',
-      scopeChanges: [
-        'Phase 1: Foundation and quick wins (40% of scope)',
-        'Phase 2: Core implementation and optimization (45% of scope)', 
-        'Phase 3: Enhancement and scaling opportunities (15% of scope)',
-        'Go/no-go decision points between phases'
-      ],
-      pros: [
-        'Lower initial investment with option to proceed based on results',
-        'Proven value demonstration before full commitment',
-        'Reduced implementation risk through iterative approach',
-        'Flexibility to adjust scope based on Phase 1 learnings'
-      ],
-      cons: [
-        'Potential coordination delays between phases',
-        'May require additional stakeholder alignment at phase boundaries',
-        'Slight overall cost increase due to phase transition overhead',
-        'Risk of scope discontinuity if phases are not approved'
-      ]
+      timelineAdjustment: this.calculatePhasedTimelineAdjustment(input),
+      scopeChanges: this.generateProjectSpecificScopeChanges(input, 'phased'),
+      pros: this.generateContextualPros(input, 'phased'),
+      cons: this.generateContextualCons(input, 'phased')
     });
 
-    // Value-Based Alternative (if applicable)
-    if (baseAmount > 50000) {
+    // Add value-based option for high-value projects
+    if (input.pricing.totalAmount > 50000) {
       alternatives.push({
-        title: 'Value-Based Partnership',
-        description: 'Performance-based engagement with shared risk and reward structure',
+        title: `${input.client.legalName} Performance Partnership`,
+        description: this.generateUniquePerformanceDescription(input, primaryKeyword),
         pricingAdjustment: -0.20,
         timelineAdjustment: 'Extended timeline with performance milestones',
-        scopeChanges: [
-          'Reduced upfront fees with performance bonuses',
-          'Success metrics tied to business outcomes',
-          'Shared risk model with guaranteed minimums',
-          'Ongoing partnership for optimization and improvement'
-        ],
-        pros: [
-          'Aligned incentives between client and service provider',
-          'Lower upfront investment with outcome-based payments',
-          'Continued optimization focus beyond initial delivery',
-          'Shared accountability for business results'
-        ],
-        cons: [
-          'Complex performance measurement and tracking requirements',
-          'Potential disputes over performance criteria achievement',
-          'Extended engagement timeline for full value realization',
-          'Requires detailed baseline establishment and monitoring'
-        ]
+        scopeChanges: this.generateProjectSpecificScopeChanges(input, 'performance'),
+        pros: this.generateContextualPros(input, 'performance'),
+        cons: this.generateContextualCons(input, 'performance')
       });
     }
     
@@ -2834,6 +2824,462 @@ private generateAlternativeOptions(input: ProposalInput): AlternativeOption[] {
     return this.generateMinimalAlternatives(input);
   }
 }
+
+private generateUniqueEssentialDescription(input: ProposalInput, primaryKeyword: string): string {
+  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
+  return `Streamlined ${primaryKeyword} approach focusing on ${coreAspect} for immediate ${input.client.industry} impact at ${input.client.legalName}. Delivers core value while maintaining ${input.client.companySize} company operational efficiency.`;
+}
+
+private generateUniquePremiumDescription(input: ProposalInput, primaryKeyword: string): string {
+  const advancedAspects = this.identifyAdvancedProjectAspects(input.project.description);
+  return `Comprehensive ${primaryKeyword} solution with ${advancedAspects} for ${input.client.legalName}. Includes advanced ${input.client.industry} optimization, extended support, and strategic consulting tailored for ${input.client.companySize} organizations.`;
+}
+
+private generateUniquePhasedDescription(input: ProposalInput, primaryKeyword: string): string {
+  const phaseCount = this.calculateOptimalPhases(input);
+  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
+  return `Strategic ${phaseCount}-phase implementation of ${primaryKeyword} solution for ${input.client.legalName}. Each phase builds on ${coreAspect} with validation checkpoints and measurable ${input.client.industry} business outcomes.`;
+}
+
+private generateUniquePerformanceDescription(input: ProposalInput, primaryKeyword: string): string {
+  const outcomeMetrics = this.identifyOutcomeMetrics(input.client.industry);
+  return `Results-driven ${primaryKeyword} partnership with ${input.client.legalName} featuring shared risk/reward model. Success tied to measurable ${outcomeMetrics} and ${input.client.industry} performance improvements.`;
+}
+
+private generateProjectSpecificScopeChanges(input: ProposalInput, tier: 'essential' | 'premium' | 'phased' | 'performance'): string[] {
+  const changes = [];
+  const deliverableCount = input.project.deliverables?.length || 0;
+  const milestoneCount = input.project.milestones?.length || 0;
+  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
+  
+  switch (tier) {
+    case 'essential':
+      changes.push(`Focus on top ${Math.min(3, Math.max(1, Math.floor(deliverableCount * 0.6)))} priority deliverables from "${input.project.description}"`);
+      changes.push(`Streamlined ${coreAspect} implementation with essential ${input.client.industry} requirements only`);
+      if (milestoneCount > 2) {
+        changes.push(`Reduce to ${Math.ceil(milestoneCount * 0.5)} critical milestones for faster delivery`);
+      }
+      changes.push(`Standard ${input.client.industry} compliance documentation (reduced scope)`);
+      changes.push('Limited revision cycles (2 rounds maximum) to maintain timeline');
+      break;
+      
+    case 'premium':
+      changes.push(`All original deliverables plus ${Math.ceil(deliverableCount * 0.4)} enhanced ${input.client.industry} components`);
+      changes.push(`Advanced ${coreAspect} optimization with predictive analytics and reporting`);
+      changes.push(`Comprehensive ${input.client.industry} compliance audit and documentation`);
+      changes.push('Extended 90-day post-delivery support and optimization period');
+      changes.push(`Executive-level presentation materials for ${input.client.companySize} leadership teams`);
+      changes.push(`Staff training program tailored to ${input.client.legalName} workflows`);
+      break;
+      
+    case 'phased':
+      const phaseCount = this.calculateOptimalPhases(input);
+      changes.push(`Phase 1: Foundation ${coreAspect} setup (${Math.floor(40)}% scope) with immediate wins`);
+      changes.push(`Phase 2: Core ${input.project.description} implementation (${Math.floor(45)}% scope)`);
+      changes.push(`Phase 3: Advanced optimization and ${input.client.industry} integration (${Math.floor(15)}% scope)`);
+      changes.push('ROI validation and business impact measurement between each phase');
+      changes.push(`Go/no-go decision points with performance metrics specific to ${input.client.legalName}`);
+      break;
+      
+    case 'performance':
+      changes.push('Reduced upfront scope with performance-based expansion triggers');
+      changes.push(`Success metrics tied to ${input.client.industry} KPIs and business outcomes`);
+      changes.push(`Shared accountability framework for ${input.project.description} results`);
+      changes.push('Ongoing optimization partnership extending beyond initial delivery');
+      changes.push(`${input.client.industry} benchmarking and competitive performance tracking`);
+      break;
+  }
+  
+  return changes;
+}
+
+private generateContextualPros(input: ProposalInput, tier: 'essential' | 'premium' | 'phased' | 'performance'): string[] {
+  const pros = [];
+  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
+  const budgetRange = this.categorizeBudgetRange(input.pricing.totalAmount);
+  
+  switch (tier) {
+    case 'essential':
+      pros.push(`Lower initial investment ideal for ${budgetRange} ${input.client.companySize} company budgets`);
+      pros.push(`Faster time-to-value for core ${coreAspect} functionality`);
+      pros.push(`Reduced complexity while maintaining essential ${input.client.industry} compliance`);
+      pros.push(`Proven ${input.project.description} approach with minimal implementation risk`);
+      pros.push(`Quick wins demonstration before considering expanded scope`);
+      break;
+      
+    case 'premium':
+      pros.push(`Comprehensive solution addressing broader ${input.client.industry} business transformation needs`);
+      pros.push(`Advanced ${coreAspect} features providing competitive advantage in ${input.client.industry} market`);
+      pros.push(`Extended support period reduces post-implementation risks for ${input.client.legalName}`);
+      pros.push(`Executive-grade deliverables suitable for board presentations and strategic planning`);
+      pros.push(`Future-proof solution accommodating ${input.client.companySize} company growth trajectories`);
+      break;
+      
+    case 'phased':
+      pros.push(`Lower initial financial commitment with option to proceed based on demonstrated ${coreAspect} results`);
+      pros.push(`Validated business impact from ${input.project.description} before full scope investment`);
+      pros.push(`Reduced implementation risk through iterative validation and course correction`);
+      pros.push(`Flexibility to adjust approach based on ${input.client.legalName} business priorities and market changes`);
+      pros.push(`${input.client.industry} learnings from early phases incorporated into subsequent development`);
+      break;
+      
+    case 'performance':
+      pros.push(`Aligned incentives ensuring laser focus on ${input.client.legalName} business results rather than activity`);
+      pros.push(`Reduced upfront investment with outcome-based payment structure spreading financial risk`);
+      pros.push(`Continued optimization partnership ensuring sustained value from ${input.project.description} investment`);
+      pros.push(`Shared accountability model reducing ${input.client.legalName} implementation and adoption risks`);
+      pros.push(`${input.client.industry} performance benchmarking providing ongoing competitive intelligence`);
+      break;
+  }
+  
+  return pros;
+}
+
+private generateContextualCons(input: ProposalInput, tier: 'essential' | 'premium' | 'phased' | 'performance'): string[] {
+  const cons = [];
+  const coreAspect = this.identifyCoreProjectAspect(input.project.description);
+  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
+  
+  switch (tier) {
+    case 'essential':
+      cons.push(`May miss strategic optimization opportunities beyond core ${coreAspect} functionality`);
+      cons.push(`Limited scope may not address peripheral ${input.client.industry} business challenges`);
+      cons.push(`Reduced customization may not fully align with ${input.client.legalName} unique processes`);
+      cons.push(`Basic support model may require additional resources for complex ${input.project.description} issues`);
+      cons.push('Fewer strategic insights and recommendations for long-term business planning');
+      break;
+      
+    case 'premium':
+      cons.push(`Higher investment requirement may exceed ${input.client.legalName} allocated budget parameters`);
+      cons.push(`Extended ${timelineWeeks + Math.ceil(timelineWeeks * 0.35)} week timeline may delay immediate business results`);
+      cons.push(`Increased ${input.project.description} complexity requiring more stakeholder coordination and change management`);
+      cons.push(`Advanced features may include capabilities not immediately necessary for ${input.client.companySize} operations`);
+      cons.push(`Higher complexity may extend staff training and adoption timelines`);
+      break;
+      
+    case 'phased':
+      cons.push('Potential coordination delays between validation phases may extend overall project duration');
+      cons.push(`May require additional ${input.client.legalName} stakeholder alignment at each decision checkpoint`);
+      cons.push(`Slight overall cost increase due to phase transition management and restart activities`);
+      cons.push(`Risk of scope discontinuity if later phases are not approved based on ${coreAspect} performance`);
+      cons.push('Phase boundaries may create artificial constraints on integrated solution optimization');
+      break;
+      
+    case 'performance':
+      cons.push(`Complex performance measurement requiring detailed KPI tracking and ${input.client.industry} baseline establishment`);
+      cons.push(`Potential disputes over success criteria achievement and measurement methodologies`);
+      cons.push(`Extended engagement timeline required for full ROI realization and performance validation`);
+      cons.push(`Detailed baseline establishment and ongoing monitoring increases ${input.client.legalName} administrative overhead`);
+      cons.push(`${input.client.industry} market changes may affect performance metrics validity over time`);
+      break;
+  }
+  
+  return cons;
+}
+
+// Helper methods for unique content generation
+
+private extractProjectKeywords(description: string): string[] {
+  const words = description.toLowerCase().match(/\b\w{4,}\b/g) || [];
+  const stopWords = new Set(['this', 'that', 'with', 'from', 'they', 'have', 'will', 'been', 'their', 'said', 'each', 'which', 'want', 'need', 'help', 'work', 'make', 'take', 'come', 'could', 'would', 'should']);
+  const meaningful = words.filter(word => !stopWords.has(word));
+  
+  // Prioritize business/technical terms
+  const businessTerms = meaningful.filter(word => 
+    word.includes('system') || word.includes('process') || word.includes('manage') || 
+    word.includes('develop') || word.includes('implement') || word.includes('optimize') ||
+    word.includes('solution') || word.includes('platform') || word.includes('service')
+  );
+  
+  return [...businessTerms, ...meaningful].slice(0, 8);
+}
+
+// Add these missing methods to your ProposalCreatorService class
+
+private getIndustryPriceRange(industry: IndustryType, companySize: string): { min: number; max: number } {
+  const basePrices: Record<IndustryType, { min: number; max: number }> = {
+    'technology': { min: 5000, max: 200000 },
+    'healthcare': { min: 10000, max: 150000 },
+    'finance': { min: 15000, max: 300000 },
+    'consulting': { min: 8000, max: 100000 },
+    'marketing': { min: 3000, max: 80000 },
+    'ecommerce': { min: 5000, max: 120000 },
+    'manufacturing': { min: 10000, max: 180000 },
+    'real-estate': { min: 8000, max: 150000 },
+    'education': { min: 3000, max: 60000 },
+    'other': { min: 5000, max: 100000 }
+  };
+
+  const sizeMultipliers: Record<string, number> = {
+    'startup': 0.6,
+    'small': 0.8,
+    'medium': 1.0,
+    'large': 1.5,
+    'enterprise': 2.0
+  };
+
+  const baseRange = basePrices[industry] || basePrices['other'];
+  const multiplier = sizeMultipliers[companySize] || 1.0;
+
+  return {
+    min: Math.round(baseRange.min * multiplier),
+    max: Math.round(baseRange.max * multiplier)
+  };
+}
+
+private generateDynamicBenchmarks(input: ProposalInput): any {
+  const priceRange = this.getIndustryPriceRange(input.client.industry, input.client.companySize);
+  const timeline = input.project.timeline || '8-12 weeks';
+  
+  return {
+    pricingRange: {
+      min: Math.round(input.pricing.totalAmount * 0.7),
+      max: Math.round(input.pricing.totalAmount * 1.4)
+    },
+    typicalTimeline: timeline,
+    standardFeatures: [
+      `Professional ${input.client.industry} service delivery with quality assurance`,
+      'Regular progress reporting and stakeholder communication',
+      'Comprehensive documentation and knowledge transfer',
+      `Industry-specific ${input.client.industry} compliance and best practices`,
+      'Post-delivery support and optimization recommendations'
+    ]
+  };
+}
+
+private getMatchingAdvantages(specializations: string[], projectKeywords: string[], industry: IndustryType): string[] {
+  const advantages: string[] = [];
+  
+  // Find specializations that match project keywords
+  const relevantSpecs = specializations.filter(spec =>
+    projectKeywords.some(keyword => spec.toLowerCase().includes(keyword.toLowerCase()))
+  );
+  
+  if (relevantSpecs.length > 0) {
+    advantages.push(`Specialized expertise in ${relevantSpecs.slice(0, 2).join(' and ')} directly addressing project requirements`);
+  }
+  
+  // Find industry-specific specializations
+  const industryKeywords = this.getIndustryKeywords(industry);
+  const industrySpecs = specializations.filter(spec =>
+    industryKeywords.some(keyword => spec.toLowerCase().includes(keyword.toLowerCase()))
+  );
+  
+  if (industrySpecs.length > 0) {
+    advantages.push(`Deep ${industry} industry experience with ${industrySpecs.slice(0, 2).join(' and ')} specializations`);
+  }
+  
+  return advantages;
+}
+
+private getPricingModelAdvantage(pricingModel: string, companySize: string, totalAmount: number): string {
+  const modelAdvantages: Record<string, (size: string, amount: number) => string> = {
+    'fixed-price': (size, amount) => `Fixed-price model provides budget certainty ideal for ${size} company financial planning`,
+    'milestone-based': (size, amount) => `Milestone payments reduce risk and align with ${size} company cash flow management`,
+    'value-based': (size, amount) => `Value-based pricing aligns investment with business outcomes for ${size} organizations`,
+    'hourly': (size, amount) => `Hourly billing provides flexibility and transparency preferred by ${size} companies`,
+    'retainer': (size, amount) => `Retainer model ensures priority access and predictable costs for ${size} operations`
+  };
+  
+  const generator = modelAdvantages[pricingModel] || modelAdvantages['fixed-price'];
+  return generator(companySize, totalAmount);
+}
+
+private extractDifferentiationFromProject(description: string): string[] {
+  const differentiators: string[] = [];
+  const keywords = this.extractProjectKeywords(description);
+  
+  // Look for unique project aspects
+  const uniquePatterns = [
+    { pattern: /custom|bespoke|tailored/, diff: 'Custom-tailored approach specifically designed for unique requirements' },
+    { pattern: /integration|connect|sync/, diff: 'Seamless integration capabilities with existing systems and workflows' },
+    { pattern: /automation|efficient|optimize/, diff: 'Advanced automation and optimization expertise for enhanced efficiency' },
+    { pattern: /analytics|data|reporting/, diff: 'Comprehensive analytics and data-driven insights throughout engagement' },
+    { pattern: /strategy|strategic|planning/, diff: 'Strategic consulting approach combining tactical execution with long-term planning' }
+  ];
+  
+  for (const pattern of uniquePatterns) {
+    if (pattern.pattern.test(description.toLowerCase())) {
+      differentiators.push(pattern.diff);
+      break; // Only add one project-specific differentiator
+    }
+  }
+  
+  return differentiators;
+}
+
+private getCredentialDifferentiation(credentials: string[]): string[] {
+  const differentiators: string[] = [];
+  
+  if (credentials.length === 0) return [];
+  
+  // Group credentials by type
+  const certifications = credentials.filter(cred => 
+    cred.toLowerCase().includes('certified') || 
+    cred.toLowerCase().includes('certification') ||
+    cred.toLowerCase().includes('cert')
+  );
+  
+  const degrees = credentials.filter(cred =>
+    cred.toLowerCase().includes('mba') ||
+    cred.toLowerCase().includes('master') ||
+    cred.toLowerCase().includes('phd') ||
+    cred.toLowerCase().includes('bachelor')
+  );
+  
+  const professional = credentials.filter(cred => 
+    !certifications.includes(cred) && !degrees.includes(cred)
+  );
+  
+  if (certifications.length > 0) {
+    differentiators.push(`Professional certifications including ${certifications.slice(0, 2).join(' and ')}`);
+  }
+  
+  if (degrees.length > 0) {
+    differentiators.push(`Advanced academic credentials with ${degrees.slice(0, 2).join(' and ')}`);
+  }
+  
+  if (professional.length > 0) {
+    differentiators.push(`Specialized professional qualifications in ${professional.slice(0, 2).join(' and ')}`);
+  }
+  
+  return differentiators;
+}
+
+private getDeliveryDifferentiation(proposalType: ProposalType, deliverableCount: number): string {
+  const typeDescriptions: Record<ProposalType, string> = {
+    'retainer-agreement': 'Ongoing advisory model with continuous optimization and strategic guidance',
+    'consulting-proposal': 'Structured consulting methodology with proven frameworks and measurable outcomes',
+    'project-proposal': 'Milestone-driven project delivery with clear accountability and progress tracking',
+    'service-agreement': 'Comprehensive service delivery with performance monitoring and quality assurance',
+    'custom-proposal': 'Fully customized approach tailored to specific business requirements and constraints'
+  };
+  
+  const deliverableComplexity = deliverableCount > 5 ? 'comprehensive multi-faceted' : 
+                               deliverableCount > 2 ? 'structured multi-component' : 'focused';
+  
+  return `${typeDescriptions[proposalType]} with ${deliverableComplexity} deliverable framework`;
+}
+
+private identifyCoreProjectAspect(description: string): string {
+  const keywords = this.extractProjectKeywords(description);
+  const corePatterns = [
+    { pattern: /system|platform|solution/, aspect: 'system development' },
+    { pattern: /process|workflow|operation/, aspect: 'process optimization' },
+    { pattern: /manage|administration|control/, aspect: 'management enhancement' },
+    { pattern: /analy|report|data/, aspect: 'analytics and reporting' },
+    { pattern: /integration|connect|sync/, aspect: 'system integration' },
+    { pattern: /automat|efficien|stream/, aspect: 'automation and efficiency' },
+    { pattern: /training|education|learn/, aspect: 'training and development' }
+  ];
+  
+  for (const pattern of corePatterns) {
+    if (pattern.pattern.test(description.toLowerCase())) {
+      return pattern.aspect;
+    }
+  }
+  
+  return keywords[0] ? `${keywords[0]} enhancement` : 'business improvement';
+}
+
+private identifyAdvancedProjectAspects(description: string): string {
+  const coreAspect = this.identifyCoreProjectAspect(description);
+  const advancedFeatures = [
+    'predictive analytics',
+    'machine learning integration', 
+    'advanced reporting dashboards',
+    'real-time monitoring',
+    'automated optimization',
+    'strategic intelligence',
+    'performance forecasting'
+  ];
+  
+  return advancedFeatures[Math.floor(Math.random() * advancedFeatures.length)];
+}
+
+private calculateOptimalPhases(input: ProposalInput): number {
+  const deliverableCount = input.project.deliverables?.length || 0;
+  const complexity = this.calculateProjectComplexity(input);
+  
+  if (complexity === 'high' || deliverableCount > 8) return 4;
+  if (complexity === 'medium' || deliverableCount > 4) return 3;
+  return 2;
+}
+
+private identifyOutcomeMetrics(industry: IndustryType): string {
+  const metrics: Record<IndustryType, string> = {
+    'technology': 'system performance, user adoption, and operational efficiency metrics',
+    'healthcare': 'patient outcomes, compliance scores, and operational efficiency metrics', 
+    'finance': 'risk reduction, compliance ratings, and operational efficiency metrics',
+    'consulting': 'process improvement, cost reduction, and performance optimization metrics',
+    'marketing': 'engagement rates, conversion metrics, and brand awareness improvements',
+    'ecommerce': 'conversion rates, customer satisfaction, and revenue optimization metrics',
+    'manufacturing': 'productivity gains, quality improvements, and cost reduction metrics',
+    'real-estate': 'portfolio performance, market positioning, and investment return metrics',
+    'education': 'learning outcomes, engagement metrics, and performance improvement measures',
+    'other': 'operational efficiency, performance improvement, and business outcome metrics'
+  };
+  
+  return metrics[industry] || metrics['other'];
+}
+
+private categorizeBudgetRange(amount: number): string {
+  if (amount < 10000) return 'cost-conscious';
+  if (amount < 50000) return 'mid-range';
+  if (amount < 150000) return 'substantial';
+  return 'enterprise-level';
+}
+
+private calculateTimelineReduction(input: ProposalInput): string {
+  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
+  const reducedWeeks = Math.max(1, Math.floor(timelineWeeks * 0.7));
+  return `Reduced to ${reducedWeeks} weeks (${Math.round((timelineWeeks - reducedWeeks) / timelineWeeks * 100)}% faster delivery)`;
+}
+
+private calculateTimelineExtension(input: ProposalInput): string {
+  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
+  const extendedWeeks = Math.ceil(timelineWeeks * 1.35);
+  return `Extended to ${extendedWeeks} weeks for comprehensive implementation and optimization`;
+}
+
+private calculatePhasedTimelineAdjustment(input: ProposalInput): string {
+  const phaseCount = this.calculateOptimalPhases(input);
+  return `Same overall timeline organized into ${phaseCount} strategic phases with validation checkpoints`;
+}
+
+// Add these helper methods
+private getIndustrySpecificReduction(industry: IndustryType): string {
+  const reductions: Record<IndustryType, string> = {
+    'technology': 'Reduced technical integration complexity',
+    'healthcare': 'Streamlined compliance documentation',
+    'finance': 'Essential regulatory compliance only',
+    'consulting': 'Core methodology implementation',
+    'marketing': 'Primary campaign elements only',
+    'ecommerce': 'Essential conversion optimization',
+    'manufacturing': 'Core process improvements only',
+    'real-estate': 'Basic market analysis components',
+    'education': 'Essential curriculum elements',
+    'other': 'Core business requirements only'
+  };
+  return reductions[industry] || reductions.other;
+}
+
+private getIndustrySpecificAddons(industry: IndustryType): string {
+  const addons: Record<IndustryType, string> = {
+    'technology': 'Advanced API integration and scalability planning',
+    'healthcare': 'Comprehensive HIPAA compliance audit and optimization',
+    'finance': 'Advanced risk management and regulatory reporting',
+    'consulting': 'Strategic consulting methodology training program',
+    'marketing': 'Advanced analytics and attribution modeling',
+    'ecommerce': 'Conversion rate optimization and customer journey mapping',
+    'manufacturing': 'Lean manufacturing and Six Sigma implementation',
+    'real-estate': 'Advanced market analytics and investment modeling',
+    'education': 'Learning outcome measurement and curriculum optimization',
+    'other': 'Advanced business optimization and strategic consulting'
+  };
+  return addons[industry] || addons.other;
+}
+
 
 private generateMinimalAlternatives(input: ProposalInput): AlternativeOption[] {
   return [
@@ -3181,45 +3627,63 @@ private generateMinimalRiskAssessment(input: ProposalInput): RiskAssessment {
 private generateCompetitiveAnalysis(input: ProposalInput): CompetitiveAnalysis {
   try {
     const specializations = this.safeFilterArray(input.serviceProvider.specializations);
+    const projectKeywords = this.extractProjectKeywords(input.project.description);
     
     return {
       positioningAdvantages: [
-        `Specialized expertise in ${input.client.industry} industry with proven track record`,
-        `Comprehensive ${input.proposalType.replace('-', ' ')} approach with clear deliverables and measurable outcomes`,
-        `Professional team with relevant credentials: ${specializations.join(', ') || 'industry expertise'}`,
-        `Structured methodology with defined timelines and quality assurance protocols`
-      ],
-      potentialChallenges: [
-        'Market competition from established players with longer track records',
-        'Client budget constraints and cost-sensitivity in current economic environment', 
-        'Alternative solution providers offering different service models or pricing structures',
-        'Internal client capabilities that might compete with external service provision'
-      ],
+        // DYNAMIC: Based on actual project needs
+        `Specialized approach to ${input.project.description.substring(0, 50)}... addressing ${input.client.legalName}'s unique ${input.client.industry} challenges`,
+        // DYNAMIC: Based on actual specializations matching project
+        ...this.getMatchingAdvantages(specializations, projectKeywords, input.client.industry),
+        // DYNAMIC: Based on pricing model fit
+        this.getPricingModelAdvantage(input.pricing.model, input.client.companySize, input.pricing.totalAmount)
+      ].filter(Boolean).slice(0, 4),
+      
+      potentialChallenges: this.generateContextualChallenges(input),
+      
       differentiationPoints: [
-        ...specializations.slice(0, 3),
-        `${input.pricing.model} pricing model providing ${this.getPricingModelBenefit(input.pricing.model)}`,
-        'Industry-specific expertise with deep understanding of sector challenges and opportunities',
-        `Comprehensive ${input.proposalType} experience with similar organizations and use cases`
-      ],
-      marketBenchmarks: {
-        pricingRange: {
-          min: Math.round(input.pricing.totalAmount * 0.7),
-          max: Math.round(input.pricing.totalAmount * 1.4)
-        },
-        typicalTimeline: input.project.timeline || 'Industry standard timeline varies by complexity',
-        standardFeatures: [
-          'Professional project management and coordination throughout engagement',
-          'Regular progress reporting and stakeholder communication protocols',
-          'Quality assurance checkpoints and deliverable validation processes',
-          'Comprehensive documentation and knowledge transfer upon completion',
-          'Post-delivery support period for questions and minor adjustments'
-        ]
-      }
+        // DYNAMIC: Extract from actual project description
+        ...this.extractDifferentiationFromProject(input.project.description),
+        // DYNAMIC: Based on service provider's actual credentials
+        ...this.getCredentialDifferentiation(input.serviceProvider.credentials || []),
+        // DYNAMIC: Based on delivery approach
+        this.getDeliveryDifferentiation(input.proposalType, input.project.deliverables?.length || 0)
+      ].filter(Boolean).slice(0, 5),
+      
+      marketBenchmarks: this.generateDynamicBenchmarks(input)
     };
   } catch (error) {
     console.error('Error generating competitive analysis:', error);
     return this.generateMinimalCompetitiveAnalysis(input);
   }
+}
+
+
+private generateContextualChallenges(input: ProposalInput): string[] {
+  const challenges = [];
+  
+  // Challenge based on client size
+  if (input.client.companySize === 'enterprise') {
+    challenges.push(`Enterprise-level decision complexity at ${input.client.legalName} may extend approval cycles beyond typical ${input.client.industry} standards`);
+  } else if (input.client.companySize === 'startup') {
+    challenges.push(`Startup budget constraints may limit scope flexibility for comprehensive ${input.project.description} implementation`);
+  }
+  
+  // Challenge based on project timeline vs amount
+  const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '');
+  if (timelineWeeks > 0) {
+    const weeklyBudget = input.pricing.totalAmount / timelineWeeks;
+    if (weeklyBudget < 2000) {
+      challenges.push(`Limited weekly budget allocation may constrain resource availability for ${input.project.description}`);
+    }
+  }
+  
+  // Industry-specific challenges
+  if (input.client.industry === 'healthcare' && input.pricing.totalAmount > 50000) {
+    challenges.push('Healthcare compliance requirements may necessitate additional approval layers and documentation');
+  }
+  
+  return challenges.slice(0, 3);
 }
 
 private getPricingModelBenefit(pricingModel: string): string {

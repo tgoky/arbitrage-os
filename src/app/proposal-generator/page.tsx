@@ -1992,12 +1992,12 @@ function CompleteProposalTab({
       />
 
       <div className=" p-6 rounded border">
-        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border bg-white p-4 rounded">
+        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border  p-4 rounded">
           {completeProposalText}
         </div>
       </div>
       
-      <div className="mt-4 p-4 bg-blue-50 rounded">
+      <div className="mt-4 p-4  rounded">
         <Text strong>Document Statistics:</Text>
         <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
           <div>

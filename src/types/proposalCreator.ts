@@ -208,12 +208,12 @@ export interface GeneratedProposal {
   terms: string;
   nextSteps: string;
   appendices?: string[];
+  alternativeOptions?: AlternativeOption[]; // ADD THIS LINE
   contractTemplates: {
     serviceAgreement: string;
     statementOfWork: string;
     masterServiceAgreement?: string;
   };
-  // ADD THIS
   metadata?: {
     tokensUsed?: number;
     model?: string;
