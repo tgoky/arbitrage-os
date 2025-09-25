@@ -192,6 +192,198 @@ export default function ProposalGeneratorPage() {
     }
   });
 
+const handleTemplateSelect = (templateId: string) => {
+  const templates = getIndustryTemplates(clientInfo.industry);
+  const template = templates.find(t => t.id === templateId);
+  
+  if (template) {
+    // Since we don't have the actual template data structure,
+    // let's create some basic template data based on the template type
+    const templateData = generateTemplateData(template);
+    
+    if (templateData.client) {
+      setClientInfo(prev => ({ ...prev, ...templateData.client }));
+    }
+    if (templateData.project) {
+      setProjectScope(prev => ({ ...prev, ...templateData.project }));
+    }
+    if (templateData.pricing) {
+      setPricing(prev => ({ ...prev, ...templateData.pricing }));
+    }
+    
+    message.success(`Template "${template.name}" applied successfully!`);
+  }
+};
+
+// Add this helper function
+const generateTemplateData = (template: { id: string; name: string; description: string; proposalType: ProposalType }) => {
+  // Create basic template data based on proposal type and industry
+  const baseTemplateData = {
+    client: {
+      industry: clientInfo.industry,
+      companySize: 'medium' as const,
+      entityType: 'corporation' as const
+    },
+    project: {
+      objectives: getDefaultObjectives(template.proposalType, clientInfo.industry),
+      timeline: getDefaultTimeline(template.proposalType),
+      deliverables: getDefaultDeliverables(template.proposalType)
+    },
+    pricing: {
+      model: getDefaultPricingModel(template.proposalType),
+      totalAmount: getDefaultAmount(template.proposalType, clientInfo.industry)
+    }
+  };
+  
+  return baseTemplateData;
+};
+
+// Helper functions for template defaults
+const getDefaultObjectives = (proposalType: ProposalType, industry: IndustryType): string[] => {
+  const objectiveMap: Record<ProposalType, Record<IndustryType, string[]>> = {
+    'service-agreement': {
+      'technology': ['Implement scalable technical solution', 'Improve system performance', 'Enhance security protocols'],
+      'healthcare': ['Improve patient outcomes', 'Ensure regulatory compliance', 'Streamline operations'],
+      'finance': ['Enhance financial reporting', 'Improve risk management', 'Ensure compliance'],
+      'consulting': ['Optimize business processes', 'Improve operational efficiency', 'Drive strategic growth'],
+      'marketing': ['Increase brand awareness', 'Generate qualified leads', 'Improve conversion rates'],
+      'ecommerce': ['Increase online sales', 'Improve customer experience', 'Optimize conversion funnel'],
+      'manufacturing': ['Improve production efficiency', 'Reduce operational costs', 'Enhance quality control'],
+      'real-estate': ['Improve property value', 'Enhance market positioning', 'Streamline transactions'],
+      'education': ['Improve learning outcomes', 'Enhance student engagement', 'Modernize curriculum'],
+      'other': ['Achieve business objectives', 'Improve operational efficiency', 'Drive measurable results']
+    },
+    'project-proposal': {
+      'technology': ['Deliver technical project on time and budget', 'Meet all functional requirements', 'Provide comprehensive documentation'],
+      'healthcare': ['Complete project within compliance requirements', 'Ensure patient safety standards', 'Deliver measurable improvements'],
+      'finance': ['Meet regulatory requirements', 'Improve financial processes', 'Deliver secure solution'],
+      'consulting': ['Complete strategic analysis', 'Provide actionable recommendations', 'Enable successful implementation'],
+      'marketing': ['Launch successful campaign', 'Achieve target metrics', 'Build brand recognition'],
+      'ecommerce': ['Launch new online platform', 'Integrate payment systems', 'Optimize for mobile'],
+      'manufacturing': ['Implement new system', 'Improve production capacity', 'Reduce waste and costs'],
+      'real-estate': ['Complete property development', 'Meet zoning requirements', 'Achieve target returns'],
+      'education': ['Implement new program', 'Train staff effectively', 'Measure learning outcomes'],
+      'other': ['Complete project deliverables', 'Meet quality standards', 'Deliver on time and budget']
+    },
+    'retainer-agreement': {
+      'technology': ['Provide ongoing technical support', 'Monitor system performance', 'Implement regular updates'],
+      'healthcare': ['Ongoing compliance monitoring', 'Regular system maintenance', 'Continuous improvement'],
+      'finance': ['Monthly financial analysis', 'Regular compliance review', 'Ongoing risk assessment'],
+      'consulting': ['Strategic guidance', 'Monthly business reviews', 'Continuous optimization'],
+      'marketing': ['Ongoing campaign management', 'Monthly performance analysis', 'Continuous optimization'],
+      'ecommerce': ['Monthly platform optimization', 'Performance monitoring', 'Ongoing support'],
+      'manufacturing': ['Regular process optimization', 'Monthly performance review', 'Continuous improvement'],
+      'real-estate': ['Ongoing market analysis', 'Regular portfolio review', 'Investment optimization'],
+      'education': ['Monthly program review', 'Ongoing curriculum support', 'Performance monitoring'],
+      'other': ['Regular strategic review', 'Ongoing optimization', 'Monthly performance analysis']
+    },
+    'consulting-proposal': {
+      'technology': ['Analyze current technical architecture', 'Recommend optimization strategies', 'Create implementation roadmap'],
+      'healthcare': ['Assess current operations', 'Identify improvement opportunities', 'Develop compliance strategy'],
+      'finance': ['Review financial processes', 'Identify risk factors', 'Recommend improvements'],
+      'consulting': ['Conduct business analysis', 'Develop strategic recommendations', 'Create action plan'],
+      'marketing': ['Analyze current marketing effectiveness', 'Develop marketing strategy', 'Create implementation plan'],
+      'ecommerce': ['Assess online performance', 'Identify growth opportunities', 'Optimize customer journey'],
+      'manufacturing': ['Analyze production processes', 'Identify efficiency gains', 'Develop improvement plan'],
+      'real-estate': ['Market analysis', 'Investment strategy development', 'Risk assessment'],
+      'education': ['Assess current programs', 'Identify improvement areas', 'Develop enhancement plan'],
+      'other': ['Comprehensive business analysis', 'Strategic recommendations', 'Implementation roadmap']
+    },
+    'custom-proposal': {
+      'technology': ['Custom technical requirements', 'Specialized implementation', 'Tailored solution delivery'],
+      'healthcare': ['Custom healthcare solution', 'Specialized compliance requirements', 'Tailored patient outcomes'],
+      'finance': ['Custom financial solution', 'Specialized regulatory compliance', 'Tailored risk management'],
+      'consulting': ['Customized business solution', 'Specialized strategic guidance', 'Tailored implementation'],
+      'marketing': ['Custom marketing strategy', 'Specialized campaign approach', 'Tailored brand solutions'],
+      'ecommerce': ['Custom e-commerce solution', 'Specialized platform needs', 'Tailored customer experience'],
+      'manufacturing': ['Custom production solution', 'Specialized manufacturing needs', 'Tailored efficiency gains'],
+      'real-estate': ['Custom real estate solution', 'Specialized market approach', 'Tailored investment strategy'],
+      'education': ['Custom educational solution', 'Specialized learning approach', 'Tailored curriculum'],
+      'other': ['Custom business solution', 'Specialized requirements', 'Tailored approach']
+    }
+  };
+  
+  return objectiveMap[proposalType]?.[industry] || objectiveMap[proposalType]?.['other'] || ['Achieve project objectives', 'Deliver quality results'];
+};
+
+const getDefaultTimeline = (proposalType: ProposalType): string => {
+  const timelineMap: Record<ProposalType, string> = {
+    'service-agreement': '6-8 weeks',
+    'project-proposal': '8-12 weeks',
+    'retainer-agreement': 'Ongoing monthly',
+    'consulting-proposal': '4-6 weeks',
+    'custom-proposal': '8-10 weeks'
+  };
+  
+  return timelineMap[proposalType] || '8-10 weeks';
+};
+
+const getDefaultDeliverables = (proposalType: ProposalType): any[] => {
+  const deliverableMap: Record<ProposalType, any[]> = {
+    'service-agreement': [
+      { name: 'Service Delivery', description: 'Complete professional service as specified', format: 'Service', quantity: 1, acceptanceCriteria: ['Client approval', 'Quality standards met'] }
+    ],
+    'project-proposal': [
+      { name: 'Project Deliverable', description: 'Primary project outcome', format: 'Document', quantity: 1, acceptanceCriteria: ['Functional requirements met', 'Client acceptance'] },
+      { name: 'Documentation', description: 'Project documentation and user guides', format: 'Document', quantity: 1, acceptanceCriteria: ['Complete documentation', 'Training materials'] }
+    ],
+    'retainer-agreement': [
+      { name: 'Monthly Services', description: 'Ongoing monthly advisory services', format: 'Service', quantity: 12, acceptanceCriteria: ['Monthly deliveries', 'Performance standards'] }
+    ],
+    'consulting-proposal': [
+      { name: 'Analysis Report', description: 'Comprehensive business analysis', format: 'Report', quantity: 1, acceptanceCriteria: ['Thorough analysis', 'Actionable recommendations'] },
+      { name: 'Strategic Recommendations', description: 'Implementation roadmap and next steps', format: 'Presentation', quantity: 1, acceptanceCriteria: ['Clear action items', 'Timeline provided'] }
+    ],
+    'custom-proposal': [
+      { name: 'Custom Solution', description: 'Tailored solution for specific requirements', format: 'Custom', quantity: 1, acceptanceCriteria: ['Requirements met', 'Quality standards'] }
+    ]
+  };
+  
+  return deliverableMap[proposalType] || [];
+};
+
+const getDefaultPricingModel = (proposalType: ProposalType): PricingModel => {
+  const pricingMap: Record<ProposalType, PricingModel> = {
+    'service-agreement': 'fixed-price',
+    'project-proposal': 'milestone-based',
+    'retainer-agreement': 'retainer',
+    'consulting-proposal': 'value-based',
+    'custom-proposal': 'fixed-price'
+  };
+  
+  return pricingMap[proposalType] || 'fixed-price';
+};
+
+const getDefaultAmount = (proposalType: ProposalType, industry: IndustryType): number => {
+  const baseAmounts: Record<ProposalType, number> = {
+    'service-agreement': 15000,
+    'project-proposal': 25000,
+    'retainer-agreement': 5000, // Monthly
+    'consulting-proposal': 35000,
+    'custom-proposal': 20000
+  };
+  
+  const industryMultipliers: Record<IndustryType, number> = {
+    'technology': 1.3,
+    'healthcare': 1.4,
+    'finance': 1.5,
+    'consulting': 1.2,
+    'marketing': 1.0,
+    'ecommerce': 1.1,
+    'manufacturing': 1.2,
+    'real-estate': 1.1,
+    'education': 0.8,
+    'other': 1.0
+  };
+  
+  const baseAmount = baseAmounts[proposalType] || 15000;
+  const multiplier = industryMultipliers[industry] || 1.0;
+  
+  return Math.round(baseAmount * multiplier);
+};
+
+// Complete Proposal Tab - combines everything
+
   // Load proposals on mount
   useEffect(() => {
     if (isWorkspaceReady && currentWorkspace) {
@@ -303,6 +495,9 @@ useEffect(() => {
         break;
     }
   };
+
+
+  
 
   const addDeliverable = () => {
     const newDeliverable: Deliverable = {
@@ -617,12 +812,21 @@ useEffect(() => {
               </Form>
             </Card>
 
-            <Collapse 
-              activeKey={activePanels} 
-              onChange={setActivePanels} 
-              bordered={false} 
-              className="mb-6"
-            >
+            <Card title="Quick Start Templates" className="mb-6">
+        <Select
+          placeholder="Choose a template for your industry"
+          style={{ width: '100%' }}
+          onChange={handleTemplateSelect}
+        >
+          {getIndustryTemplates(clientInfo.industry).map(template => (
+            <Option key={template.id} value={template.id}>
+              {template.name} - {template.description}
+            </Option>
+          ))}
+        </Select>
+      </Card>
+
+                 <Collapse activeKey={activePanels} onChange={setActivePanels} bordered={false} className="mb-6">
               <Panel
                 header={
                   <div className="flex items-center">
@@ -723,26 +927,29 @@ useEffect(() => {
                   </Col>
                 </Row>
               </Panel>
+<Panel
+  header={
+    <div className="flex items-center">
+      <ProjectOutlined className="mr-2" />
+      <span className="font-medium">Service Provider (Your Company)</span>
+      {validationResults.errors['serviceProvider.name'] && 
+       <Badge status="error" style={{ marginLeft: 8 }} />}
+    </div>
+  }
+  key="2"
+  extra={<Badge status="processing" text="Required" />}
+>
 
-              <Panel
-                header={
-                  <div className="flex items-center">
-                    <ProjectOutlined className="mr-2" />
-                    <span className="font-medium">Service Provider (Your Company)</span>
-                  </div>
-                }
-                key="2"
-              >
                 <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item label="Company Name">
-                      <Input 
-                        value={serviceProvider.name}
-                        onChange={(e) => handleInputChange('serviceProvider', 'name', e.target.value)}
-                        placeholder="Your Company Name"
-                      />
-                    </Form.Item>
-                  </Col>
+                 <Col span={12}>
+      <Form.Item label="Company Name" required>
+        <Input 
+          value={serviceProvider.name}
+          onChange={(e) => handleInputChange('serviceProvider', 'name', e.target.value)}
+          placeholder="Your Company Name"
+        />
+      </Form.Item>
+    </Col>
                   <Col span={12}>
                     <Form.Item label="Legal Name">
                       <Input 
@@ -1669,6 +1876,149 @@ useEffect(() => {
   );
 }
 
+
+function CompleteProposalTab({ 
+  proposal, 
+  copyToClipboard 
+}: { 
+  proposal: ProposalPackage;
+  copyToClipboard: (content: string, type: string) => void;
+}) {
+  const generateCompleteProposal = () => {
+    const sections = [
+      "=".repeat(60),
+      "BUSINESS PROPOSAL",
+      "=".repeat(60),
+      "",
+      "EXECUTIVE SUMMARY",
+      "-".repeat(30),
+      proposal.proposal.executiveSummary || "Executive summary not included in this proposal.",
+      "",
+      "PROJECT OVERVIEW",
+      "-".repeat(30),
+      proposal.proposal.projectOverview,
+      "",
+      "SCOPE OF WORK",
+      "-".repeat(30),
+      proposal.proposal.scopeOfWork,
+      "",
+      "DELIVERABLES",
+      "-".repeat(30),
+      proposal.proposal.deliverables,
+      "",
+      "TIMELINE & MILESTONES",
+      "-".repeat(30),
+      proposal.proposal.timeline,
+      "",
+      "INVESTMENT & PRICING",
+      "-".repeat(30),
+      proposal.proposal.pricing,
+      "",
+      "TERMS & CONDITIONS",
+      "-".repeat(30),
+      proposal.proposal.terms,
+      "",
+      "NEXT STEPS",
+      "-".repeat(30),
+      proposal.proposal.nextSteps,
+      "",
+      "=".repeat(60),
+      "LEGAL CONTRACTS",
+      "=".repeat(60),
+      "",
+      "SERVICE AGREEMENT",
+      "-".repeat(30),
+      proposal.proposal.contractTemplates.serviceAgreement,
+      "",
+      "=".repeat(60),
+      "",
+      "STATEMENT OF WORK",
+      "-".repeat(30),
+      proposal.proposal.contractTemplates.statementOfWork,
+      "",
+      "=".repeat(60),
+      "END OF PROPOSAL",
+      "=".repeat(60)
+    ];
+
+    return sections.join("\n");
+  };
+
+  const completeProposalText = generateCompleteProposal();
+
+  return (
+    <Card>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <Title level={4}>Complete Proposal Document</Title>
+          <Text type="secondary">
+            Full proposal including business sections and legal contracts
+          </Text>
+        </div>
+        <Space>
+          <Button 
+            icon={<CopyOutlined />}
+            onClick={() => copyToClipboard(completeProposalText, 'Complete Proposal')}
+            type="primary"
+          >
+            Copy Complete Proposal
+          </Button>
+          <Button 
+            icon={<DownloadOutlined />}
+            onClick={() => {
+              const blob = new Blob([completeProposalText], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `proposal-${Date.now()}.txt`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              message.success('Proposal downloaded as text file!');
+            }}
+          >
+            Download as Text
+          </Button>
+        </Space>
+      </div>
+      
+      <Alert
+        message="Complete Proposal Ready"
+        description="This document contains your full business proposal including executive summary, project details, pricing, terms, service agreement, and statement of work. Perfect for sending to clients or saving as a complete reference."
+        type="info"
+        showIcon
+        className="mb-4"
+      />
+
+      <div className="bg-gray-50 p-6 rounded border">
+        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border bg-white p-4 rounded">
+          {completeProposalText}
+        </div>
+      </div>
+      
+      <div className="mt-4 p-4 bg-blue-50 rounded">
+        <Text strong>Document Statistics:</Text>
+        <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+          <div>
+            <Text type="secondary">Word Count: </Text>
+            <Text strong>{completeProposalText.split(/\s+/).length.toLocaleString()}</Text>
+          </div>
+          <div>
+            <Text type="secondary">Character Count: </Text>
+            <Text strong>{completeProposalText.length.toLocaleString()}</Text>
+          </div>
+          <div>
+            <Text type="secondary">Estimated Pages: </Text>
+            <Text strong>{Math.ceil(completeProposalText.split(/\s+/).length / 250)}</Text>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+
 // Proposal Preview Component
 function ProposalPreview({ 
   proposal, 
@@ -1683,13 +2033,16 @@ function ProposalPreview({
   savedProposalId: string | null;
   exportLoading: boolean;
 }) {
-  const [activeSection, setActiveSection] = useState<'overview' | 'agreement' | 'sow' | 'analysis'>('overview');
+
+const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'agreement' | 'sow' | 'analysis'>('overview');
 
   const copyToClipboard = (content: string, type: string) => {
     navigator.clipboard.writeText(content).then(() => {
       message.success(`${type} copied to clipboard!`);
     });
   };
+
+
 
   const getDocumentTitle = (proposalType: ProposalType) => {
   const titles = {
@@ -1741,6 +2094,47 @@ function ProposalPreview({
         </div>
       </Card>
 
+       {proposal.alternativeOptions?.length > 0 && (
+        <Card title="Alternative Options" className="mb-6">
+          {proposal.alternativeOptions.map((option, index) => (
+            <Card key={index} size="small" className="mb-4">
+              <Title level={5} className="text-blue-600">{option.title}</Title>
+              <Paragraph className="text-sm">{option.description}</Paragraph>
+              
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Text strong>Price Adjustment: </Text>
+                  <Tag color={option.pricingAdjustment < 0 ? 'green' : 'orange'}>
+                    {option.pricingAdjustment > 0 ? '+' : ''}{(option.pricingAdjustment * 100).toFixed(0)}%
+                  </Tag>
+                </Col>
+                <Col span={12}>
+                  <Text strong>Timeline: </Text>
+                  <Text>{option.timelineAdjustment}</Text>
+                </Col>
+              </Row>
+              
+              <Divider />
+              
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Text strong className="text-green-600">Pros:</Text>
+                  <ul className="text-sm">
+                    {option.pros.map((pro, i) => <li key={i}>• {pro}</li>)}
+                  </ul>
+                </Col>
+                <Col span={12}>
+                  <Text strong className="text-orange-600">Cons:</Text>
+                  <ul className="text-sm">
+                    {option.cons.map((con, i) => <li key={i}>• {con}</li>)}
+                  </ul>
+                </Col>
+              </Row>
+            </Card>
+          ))}
+        </Card>
+      )}
+
       <Tabs
         activeKey={activeSection}
         onChange={setActiveSection as any}
@@ -1761,6 +2155,11 @@ function ProposalPreview({
             label: 'Statement of Work',
             children: <StatementOfWorkTab proposal={proposal} copyToClipboard={copyToClipboard} />,
           },
+            {
+      key: 'complete', // ADD THIS NEW TAB
+      label: 'Complete Proposal',
+      children: <CompleteProposalTab proposal={proposal} copyToClipboard={copyToClipboard} />,
+    },
           {
             key: 'analysis',
             label: 'Analysis & Insights',
@@ -2006,6 +2405,68 @@ function AnalysisTab({ proposal }: { proposal: ProposalPackage }) {
           />
         </Card>
       </Col>
+         {proposal.riskAssessment && (
+        <Col xs={24}>
+          <Card title="Risk Assessment" size="small">
+            <div className="space-y-3">
+              <div>
+                <Text strong>Overall Risk: </Text>
+                <Tag color={
+                  proposal.riskAssessment?.overallRisk === 'low' ? 'green' :
+                  proposal.riskAssessment?.overallRisk === 'high' ? 'red' : 'orange'
+                }>
+                  {proposal.riskAssessment?.overallRisk?.toUpperCase()}
+                </Tag>
+              </div>
+              
+              {proposal.riskAssessment?.mitigationPlan && (
+                <div>
+                  <Text strong>Mitigation Strategies:</Text>
+                  <ul className="text-sm mt-1 space-y-1">
+                    {proposal.riskAssessment.mitigationPlan.map((strategy, index) => (
+                      <li key={index}>• {strategy}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+      )}
+
+      {/* ADD COMPETITIVE ANALYSIS HERE TOO */}
+      {proposal.competitiveAnalysis && (
+        <Col xs={24}>
+          <Card title="Competitive Analysis" size="small">
+            <Row gutter={16}>
+              <Col span={8}>
+                <Title level={5} className="text-green-600">Positioning Advantages</Title>
+                <ul className="text-sm space-y-1">
+                  {proposal.competitiveAnalysis.positioningAdvantages.map((advantage, index) => (
+                    <li key={index} className="text-green-600">• {advantage}</li>
+                  ))}
+                </ul>
+              </Col>
+              <Col span={8}>
+                <Title level={5} className="text-orange-600">Potential Challenges</Title>
+                <ul className="text-sm space-y-1">
+                  {proposal.competitiveAnalysis.potentialChallenges.map((challenge, index) => (
+                    <li key={index} className="text-orange-600">• {challenge}</li>
+                  ))}
+                </ul>
+              </Col>
+              <Col span={8}>
+                <Title level={5} className="text-blue-600">Differentiation Points</Title>
+                <ul className="text-sm space-y-1">
+                  {proposal.competitiveAnalysis.differentiationPoints.map((point, index) => (
+                    <li key={index} className="text-blue-600">• {point}</li>
+                  ))}
+                </ul>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      )}
     </Row>
   );
 }

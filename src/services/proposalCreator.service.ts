@@ -3546,7 +3546,7 @@ private generateHTMLExport(proposal: any): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Proposal - ${clientName}</title>
+    <title>Business Proposal - ${this.escapeHtml(clientName)}</title>
     <style>
         body { 
             font-family: 'Georgia', serif; 
@@ -3659,6 +3659,7 @@ private generateHTMLExport(proposal: any): string {
   }
 }
 
+
 private generateHTMLSection(title: string, content?: string): string {
   if (!content) return '';
   
@@ -3696,9 +3697,15 @@ private formatContentForHTML(content: string): string {
 }
 
 private escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;'
+  };
+  return text.replace(/[&<>"'/]/g, (m) => map[m]);
 }
 
 // ===== CACHE MANAGEMENT =====

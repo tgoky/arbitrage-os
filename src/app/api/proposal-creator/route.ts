@@ -143,31 +143,31 @@ function applyIntelligentPlaceholders(body: any, workspaceData?: any): ProposalI
   return {
     proposalType: body.proposalType || 'service-agreement',
     client: {
-      legalName: body.client?.legalName || '', // This should come from user input
-      stateOfIncorporation: body.client?.stateOfIncorporation, // Optional - can be undefined
-      entityType: body.client?.entityType, // Optional - can be undefined  
-      address: body.client?.address, // Optional - can be undefined
-      signatoryName: body.client?.signatoryName, // Optional - can be undefined
-      signatoryTitle: body.client?.signatoryTitle, // Optional - can be undefined
+      legalName: body.client?.legalName || '', // Required from user - service will validate
+      stateOfIncorporation: body.client?.stateOfIncorporation || 'Delaware', // Provide default
+      entityType: body.client?.entityType || 'corporation',
+      address: body.client?.address || '[CLIENT_ADDRESS]', // Service will replace with fallback
+      signatoryName: body.client?.signatoryName || '[CLIENT_SIGNATORY]', // Service will replace
+      signatoryTitle: body.client?.signatoryTitle || '[CLIENT_TITLE]', // Service will replace
       industry: body.client?.industry || 'other',
       companySize: body.client?.companySize || 'medium',
-      decisionMaker: body.client?.decisionMaker // Optional - can be undefined
+      decisionMaker: body.client?.decisionMaker || '[CLIENT_DECISION_MAKER]' // Service will replace
     },
     serviceProvider: {
-      name: body.serviceProvider?.name || workspaceData?.name, // Optional - can be undefined
-      legalName: body.serviceProvider?.legalName, // Optional - can be undefined
-      address: body.serviceProvider?.address, // Optional - can be undefined
-      signatoryName: body.serviceProvider?.signatoryName, // Optional - can be undefined
-      signatoryTitle: body.serviceProvider?.signatoryTitle, // Optional - can be undefined
-      businessStructure: body.serviceProvider?.businessStructure, // Optional - can be undefined
+      name: body.serviceProvider?.name || workspaceData?.name || '[SERVICE_PROVIDER]',
+      legalName: body.serviceProvider?.legalName || (workspaceData?.name ? `${workspaceData.name} LLC` : '[SERVICE_PROVIDER_LEGAL]'),
+      address: body.serviceProvider?.address || '[SERVICE_PROVIDER_ADDRESS]',
+      signatoryName: body.serviceProvider?.signatoryName || '[SERVICE_PROVIDER_SIGNATORY]',
+      signatoryTitle: body.serviceProvider?.signatoryTitle || '[SERVICE_PROVIDER_TITLE]',
+      businessStructure: body.serviceProvider?.businessStructure || 'LLC',
       credentials: body.serviceProvider?.credentials || [],
       specializations: body.serviceProvider?.specializations || []
     },
     project: {
-      description: body.project?.description || '', // This should come from user input
+      description: body.project?.description || '', // Required from user - service will validate
       objectives: body.project?.objectives || [],
       deliverables: body.project?.deliverables || [],
-      timeline: body.project?.timeline, // Optional - can be undefined
+      timeline: body.project?.timeline || '[PROJECT_TIMELINE]', // Service will replace
       milestones: body.project?.milestones || [],
       exclusions: body.project?.exclusions || [],
       assumptions: body.project?.assumptions || [],
@@ -175,11 +175,11 @@ function applyIntelligentPlaceholders(body: any, workspaceData?: any): ProposalI
     },
     pricing: {
       model: body.pricing?.model || 'fixed-price',
-      totalAmount: body.pricing?.totalAmount || 0, // This should come from user input
+      totalAmount: body.pricing?.totalAmount || 0, // Required from user - service will validate
       currency: body.pricing?.currency || 'USD',
       breakdown: body.pricing?.breakdown || [],
       paymentSchedule: body.pricing?.paymentSchedule || [],
-      expensePolicy: body.pricing?.expensePolicy, // Optional - can be undefined
+      expensePolicy: body.pricing?.expensePolicy || '[EXPENSE_POLICY]', // Service will replace
       lateFeePercentage: body.pricing?.lateFeePercentage || 1.5,
       discounts: body.pricing?.discounts || []
     },
@@ -190,11 +190,11 @@ function applyIntelligentPlaceholders(body: any, workspaceData?: any): ProposalI
       intellectualProperty: body.terms?.intellectualProperty || 'work-for-hire',
       confidentiality: body.terms?.confidentiality !== false,
       liabilityLimit: body.terms?.liabilityLimit || 0,
-      warranty: body.terms?.warranty, // Optional - can be undefined
-      governingLaw: body.terms?.governingLaw, // Optional - can be undefined
+      warranty: body.terms?.warranty || '[WARRANTY_TERMS]', // Service will replace
+      governingLaw: body.terms?.governingLaw || '[GOVERNING_LAW]', // Service will replace
       disputeResolution: body.terms?.disputeResolution || 'arbitration',
       forceMarjeure: body.terms?.forceMarjeure !== false,
-      amendments: body.terms?.amendments // Optional - can be undefined
+      amendments: body.terms?.amendments || '[AMENDMENTS_CLAUSE]' // Service will replace
     },
     customizations: body.customizations || {
       includeExecutiveSummary: true,

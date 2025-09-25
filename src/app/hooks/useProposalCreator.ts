@@ -45,10 +45,10 @@ export const useProposalCreator = () => {
       console.log('🚀 Sending proposal generation request...', input);
 
       // **UPDATED: Only check the absolute essentials (let API handle placeholders)**
-      if (!input.client?.legalName || input.client.legalName.length < 2) {
-        throw new Error('Client name is required (minimum 2 characters)');
-      }
-      
+   if (!input.client?.legalName?.trim()) {
+  throw new Error('Client name is required');
+}
+
       if (!input.project?.description || input.project.description.length < 20) {
         throw new Error('Project description is required (minimum 20 characters)');
       }
@@ -202,83 +202,65 @@ export const useProposalCreator = () => {
 // PROPOSAL VALIDATION HOOK - ULTRA RELAXED
 // ============================================================================
 export const useProposalValidation = () => {
-  const validateProposalProgressive = useCallback((
-    input: Partial<ProposalInput>, 
-    showAllErrors = false
-  ): ProposalValidationResult => {
-    const errors: Record<string, string> = {};
-    const warnings: Record<string, string> = {};
 
-    // **UPDATED: Only 3 essential fields**
-    const essentialFields = [
-      () => input.client?.legalName && input.client.legalName.length >= 2,
-      () => input.project?.description && input.project.description.length >= 20,
-      () => input.pricing?.totalAmount && input.pricing.totalAmount >= 100
-    ];
+  // In hooks/useProposalCreator.ts - update the validation:
+const validateProposalProgressive = useCallback((
+  input: Partial<ProposalInput>, 
+  showAllErrors = false
+): ProposalValidationResult => {
+  const errors: Record<string, string> = {};
+  const warnings: Record<string, string> = {};
 
-    const completedEssential = essentialFields.filter(field => field()).length;
-    const totalEssential = essentialFields.length;
+  // **MATCH SERVICE VALIDATION** - only these 4 fields are truly required
+  const essentialFields = [
+    () => input.client?.legalName && input.client.legalName.trim().length >= 2,
+    () => input.project?.description && input.project.description.trim().length >= 20,
+    () => input.pricing?.totalAmount && input.pricing.totalAmount >= 100,
+    () => input.serviceProvider?.name && input.serviceProvider.name.trim().length >= 2
+  ];
 
-    // **UPDATED: Only critical blocking errors**
-    if (showAllErrors || input.client?.legalName !== undefined) {
-      if (!input.client?.legalName || input.client.legalName.length < 2) {
-        errors['client.legalName'] = 'Client name is required (minimum 2 characters)';
-      }
-    }
+  const completedEssential = essentialFields.filter(field => field()).length;
 
-    if (showAllErrors || input.project?.description !== undefined) {
-      if (!input.project?.description || input.project.description.length < 20) {
-        errors['project.description'] = 'Project description required (minimum 20 characters)';
-      }
-    }
+  // Critical blocking errors (matches service validateInput method)
+  if (!input.client?.legalName?.trim()) {
+    errors['client.legalName'] = 'Client legal name is required';
+  }
+  if (!input.project?.description?.trim() || (input.project.description && input.project.description.length < 20)) {
+    errors['project.description'] = 'Project description required (minimum 20 characters)';
+  }
+  if (!input.pricing?.totalAmount || input.pricing.totalAmount < 100) {
+    errors['pricing.totalAmount'] = 'Total amount must be at least $100';
+  }
+  if (!input.serviceProvider?.name?.trim()) {
+    errors['serviceProvider.name'] = 'Service provider name is required';
+  }
 
-    if (showAllErrors || input.pricing?.totalAmount !== undefined) {
-      if (!input.pricing?.totalAmount || input.pricing.totalAmount < 100) {
-        errors['pricing.totalAmount'] = 'Total amount must be at least $100';
-      }
-    }
+  // Everything else becomes warnings (will be auto-filled)
+  if (!input.client?.address) {
+    warnings['client.address'] = 'Client address will be auto-filled if not provided';
+  }
+  if (!input.client?.signatoryName) {
+    warnings['client.signatoryName'] = 'Signatory information will be auto-filled if not provided';
+  }
+  if (!input.serviceProvider?.legalName) {
+    warnings['serviceProvider.legalName'] = 'Legal name will be derived from company name if not provided';
+  }
 
-    // **UPDATED: Everything else is just friendly suggestions**
-    if (!input.client?.address) {
-      warnings['client.address'] = 'Client address will improve contract professionalism';
-    }
+  const completionPercentage = Math.round((completedEssential / 4) * 100);
+  const isReadyToGenerate = Object.keys(errors).length === 0;
 
-    if (!input.serviceProvider?.name && !input.serviceProvider?.legalName) {
-      warnings['serviceProvider.name'] = 'Company name will be filled from workspace if not provided';
-    }
+  return {
+    isValid: completedEssential === 4 && Object.keys(errors).length === 0,
+    isReadyToGenerate,
+    errors,
+    warnings,
+    completionPercentage,
+    completedFields: completedEssential,
+    totalRequiredFields: 4, // Updated to match service
+    missingCriticalFields: Object.keys(errors)
+  };
+}, []);
 
-    if (!input.project?.deliverables || input.project.deliverables.length === 0) {
-      warnings['project.deliverables'] = 'Deliverables will be auto-generated if not specified';
-    }
-
-    if (!input.pricing?.paymentSchedule || input.pricing.paymentSchedule.length === 0) {
-      warnings['pricing.paymentSchedule'] = 'Payment schedule will be auto-created based on total amount';
-    }
-
-    if (!input.terms?.governingLaw) {
-      warnings['terms.governingLaw'] = 'Consider specifying governing law for your contracts';
-    }
-
-    const completionPercentage = Math.round((completedEssential / totalEssential) * 100);
-    const hasBlockingErrors = Object.keys(errors).length > 0;
-    const isReadyToGenerate = !hasBlockingErrors && completedEssential === 3; // Need all 3
-
-    const missingCriticalFields: string[] = [];
-    if (!input.client?.legalName) missingCriticalFields.push('Client Name');
-    if (!input.project?.description) missingCriticalFields.push('Project Description');
-    if (!input.pricing?.totalAmount) missingCriticalFields.push('Total Amount');
-
-    return {
-      isValid: !hasBlockingErrors && completedEssential === totalEssential,
-      isReadyToGenerate,
-      errors,
-      warnings,
-      completionPercentage,
-      completedFields: completedEssential,
-      totalRequiredFields: totalEssential,
-      missingCriticalFields
-    };
-  }, []);
 
   // **UPDATED: Safer pricing metrics calculation**
   const calculatePricingMetrics = useCallback((input: ProposalInput) => {
@@ -548,116 +530,44 @@ export const useProposalExport = () => {
 // PROPOSAL TEMPLATES HOOK - UNCHANGED
 // ============================================================================
 export const useProposalTemplates = () => {
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const getIndustryTemplates = (industry: IndustryType) => {
+    // Generate templates for each proposal type
+    const templates = [
+      {
+        id: `${industry}-service`,
+        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Service Agreement`,
+        description: 'Professional service delivery with defined scope',
+        proposalType: 'service-agreement' as ProposalType
+      },
+      {
+        id: `${industry}-project`,
+        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Project`,
+        description: 'Milestone-based project delivery',
+        proposalType: 'project-proposal' as ProposalType
+      },
+      {
+        id: `${industry}-consulting`,
+        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Consulting`,
+        description: 'Strategic analysis and recommendations',
+        proposalType: 'consulting-proposal' as ProposalType
+      },
+      {
+        id: `${industry}-retainer`,
+        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Retainer`,
+        description: 'Ongoing advisory services',
+        proposalType: 'retainer-agreement' as ProposalType
+      },
+      {
+        id: `${industry}-custom`,
+        name: `Custom ${industry.charAt(0).toUpperCase() + industry.slice(1)} Solution`,
+        description: 'Tailored approach for specific needs',
+        proposalType: 'custom-proposal' as ProposalType
+      }
+    ];
 
-  const getIndustryTemplates = useCallback((industry: IndustryType) => {
-    const industryTemplates: Record<IndustryType, Array<{
-      id: string;
-      name: string;
-      description: string;
-      proposalType: ProposalType;
-    }>> = {
-      technology: [
-        {
-          id: 'tech-software-dev',
-          name: 'Software Development Project',
-          description: 'Template for custom software development projects',
-          proposalType: 'project-proposal' as ProposalType
-        },
-        {
-          id: 'tech-consulting',
-          name: 'Technology Consulting',
-          description: 'Template for technology advisory services',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      marketing: [
-        {
-          id: 'marketing-campaign',
-          name: 'Marketing Campaign',
-          description: 'Template for marketing campaign projects',
-          proposalType: 'project-proposal' as ProposalType
-        },
-        {
-          id: 'marketing-retainer',
-          name: 'Marketing Retainer',
-          description: 'Template for ongoing marketing services',
-          proposalType: 'retainer-agreement' as ProposalType
-        }
-      ],
-      consulting: [
-        {
-          id: 'strategy-consulting',
-          name: 'Strategy Consulting',
-          description: 'Template for strategic consulting engagements',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      healthcare: [
-        {
-          id: 'healthcare-consulting',
-          name: 'Healthcare Consulting',
-          description: 'Template for healthcare consulting services',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      finance: [
-        {
-          id: 'financial-advisory',
-          name: 'Financial Advisory',
-          description: 'Template for financial advisory services',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      ecommerce: [
-        {
-          id: 'ecommerce-development',
-          name: 'E-commerce Development',
-          description: 'Template for e-commerce platform development',
-          proposalType: 'project-proposal' as ProposalType
-        }
-      ],
-      manufacturing: [
-        {
-          id: 'manufacturing-consulting',
-          name: 'Manufacturing Consulting',
-          description: 'Template for manufacturing process consulting',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      'real-estate': [
-        {
-          id: 'real-estate-consulting',
-          name: 'Real Estate Consulting',
-          description: 'Template for real estate consulting services',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      education: [
-        {
-          id: 'education-consulting',
-          name: 'Education Consulting',
-          description: 'Template for educational consulting services',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ],
-      other: [
-        {
-          id: 'general-consulting',
-          name: 'General Consulting',
-          description: 'Template for general consulting services',
-          proposalType: 'consulting-proposal' as ProposalType
-        }
-      ]
-    };
-
-    return industryTemplates[industry] || industryTemplates.other;
-  }, []);
-
-  return {
-    templates,
-    loading,
-    getIndustryTemplates
+    return templates;
   };
+
+  return { getIndustryTemplates };
 };
+  
