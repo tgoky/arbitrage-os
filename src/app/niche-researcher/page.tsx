@@ -148,6 +148,24 @@ const NicheResearcher = () => {
 
   const isLoading = loading;
 
+  // Add this useEffect to handle errors
+useEffect(() => {
+  if (error) {
+    console.error('Niche researcher error:', error);
+    notification.error({
+      message: 'Generation Error',
+      description: error,
+    });
+  }
+}, [error]);
+
+
+  useEffect(() => {
+    console.log('🔍 Current step:', currentStep);
+    console.log('🔍 Current form data:', formData);
+    console.log('🔍 Current form values:', form.getFieldsValue());
+  }, [currentStep, formData]);
+
   // Enhanced steps with icons
   const steps = [
     { title: 'Business Goals', icon: <RocketOutlined /> },
@@ -252,6 +270,25 @@ const NicheResearcher = () => {
       console.error('Failed to export report:', error);
     }
   };
+
+
+// Add this at the start of onFinish
+if (!isWorkspaceReady) {
+  notification.error({
+    message: 'Workspace Not Ready',
+    description: 'Please wait for workspace to load',
+  });
+  return;
+}
+
+if (!currentWorkspace) {
+  notification.error({
+    message: 'No Workspace Selected', 
+    description: 'Please select a workspace before generating reports',
+  });
+  return;
+}
+
 
   // Form submission
   const onFinish = async (values: FormValues) => {
@@ -466,11 +503,6 @@ const NicheResearcher = () => {
     }
   ];
 
-  useEffect(() => {
-    console.log('🔍 Current step:', currentStep);
-    console.log('🔍 Current form data:', formData);
-    console.log('🔍 Current form values:', form.getFieldsValue());
-  }, [currentStep, formData]);
 
   // Render detailed niche report using your existing structure
   const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {

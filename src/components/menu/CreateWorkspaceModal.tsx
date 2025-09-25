@@ -45,7 +45,13 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
         border rounded-lg max-w-md w-full p-6
       `}>
         <form onSubmit={handleSubmit}>
-          <h2 className="text-xl font-bold mb-4">Create New Workspace</h2>
+       <h2
+  className={`text-xl font-bold mb-4 ${
+    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+  }`}
+>
+  Create New Workspace
+</h2>
           
           <div className="mb-4">
             <label className={`block text-sm font-medium mb-2 ${
