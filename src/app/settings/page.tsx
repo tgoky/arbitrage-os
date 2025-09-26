@@ -2,17 +2,15 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Grid, Card, Form, Input, Button, Tag, Divider, Avatar, Upload, message } from 'antd';
+import { Grid, Card, Form, Input, Button, Tag, Divider, Avatar, message } from 'antd';
 import { 
   SaveOutlined, 
   ArrowLeftOutlined, 
-  UploadOutlined, 
   DeleteOutlined,
   PlusOutlined 
 } from '@ant-design/icons';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkspace } from '../hooks/useWorkspace';
-import { workspaceService } from '../../services/workspace.service';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
@@ -38,8 +36,6 @@ const WorkspaceSettings = () => {
   const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   // Update form when workspace data changes
   React.useEffect(() => {
@@ -49,44 +45,19 @@ const WorkspaceSettings = () => {
         description: currentWorkspace.description || '',
         color: currentWorkspace.color || '#3B82F6',
       });
-      
-      // Set logo preview if exists
-      if (currentWorkspace.image) {
-        setLogoPreview(currentWorkspace.image);
-      }
     }
   }, [currentWorkspace, form]);
 
-  // Handle form submission with image upload
+  // Handle form submission
   const handleSubmit = async (values: any) => {
     if (!currentWorkspace) return;
     
     setIsSubmitting(true);
     try {
-      let imageUrl = currentWorkspace.image; // Keep existing image by default
-      
-      // If a new logo file was selected, upload it first
-      if (logoFile) {
-        try {
-          imageUrl = await workspaceService.uploadImage(logoFile);
-          message.success('Image uploaded successfully!');
-        } catch (uploadError) {
-          console.error('Image upload failed:', uploadError);
-          message.error('Failed to upload image. Saving other changes...');
-          // Continue with update even if image upload fails
-        }
-      }
-      
-      // Update workspace with new values (including image if uploaded)
-      await updateWorkspace(currentWorkspace.id, {
-        ...values,
-        image: imageUrl
-      });
+      // Update workspace with new values
+      await updateWorkspace(currentWorkspace.id, values);
       
       message.success('Workspace updated successfully!');
-      
-      // Clear the logo file state since it's now saved
-      setLogoFile(null);
       
     } catch (error) {
       console.error('Error updating workspace:', error);
@@ -117,44 +88,8 @@ const WorkspaceSettings = () => {
     }
   };
 
-  // Handle logo upload
-  const handleLogoChange = (info: any) => {
-    const file = info.file;
-    const isImage = file.type.startsWith('image/');
-    
-    if (!isImage) {
-      message.error('You can only upload image files!');
-      return;
-    }
-    
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error('Image must be smaller than 2MB!');
-      return;
-    }
-    
-    // Set file for later upload
-    setLogoFile(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setLogoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    
-    message.info('Image selected. Click "Save Changes" to upload and save.');
-  };
-
-
-    const handleBack = () => {
+  const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
-  };
-  // Remove logo
-  const handleRemoveLogo = () => {
-    setLogoFile(null);
-    setLogoPreview(null);
-    message.info('Logo will be removed when you save changes.');
   };
 
   if (isLoading) {
@@ -224,56 +159,17 @@ const WorkspaceSettings = () => {
               >
                 <div className="flex flex-col md:flex-row gap-6 mb-6">
                   <div className="flex-shrink-0">
-                    <div className="text-sm font-medium mb-2">Workspace Logo</div>
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <Avatar
-                          size={64}
-                          src={logoPreview || currentWorkspace.image}
-                          style={{ 
-                            backgroundColor: form.getFieldValue('color') || currentWorkspace.color,
-                            fontSize: '24px',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {currentWorkspace.name.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Upload
-                          name="logo"
-                          showUploadList={false}
-                          beforeUpload={() => false}
-                          onChange={handleLogoChange}
-                          accept="image/*"
-                        >
-                          <Button 
-                            icon={<UploadOutlined />} 
-                            size="small" 
-                            className="absolute -bottom-1 -right-1"
-                            shape="circle"
-                          />
-                        </Upload>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                          JPG, PNG or GIF. Max 2MB.
-                        </div>
-                        {(logoPreview || currentWorkspace.image) && (
-                          <Button 
-                            size="small" 
-                            danger 
-                            type="link"
-                            onClick={handleRemoveLogo}
-                          >
-                            Remove Logo
-                          </Button>
-                        )}
-                        {logoFile && (
-                          <div className="text-xs text-amber-600">
-                            New image selected - save to upload
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    {/* <div className="text-sm font-medium mb-2">Workspace Logo</div> */}
+                    <Avatar
+                      size={64}
+                      style={{ 
+                        backgroundColor: form.getFieldValue('color') || currentWorkspace.color,
+                        fontSize: '24px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {currentWorkspace.name.charAt(0).toUpperCase()}
+                    </Avatar>
                   </div>
                   
                   <div className="flex-grow">
@@ -397,21 +293,21 @@ const WorkspaceSettings = () => {
                 <Divider className={theme === 'dark' ? 'bg-zinc-800' : ''} />
                 
                 <div>
-                  <div className={`text-xs font-medium uppercase ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
+                  {/* <div className={`text-xs font-medium uppercase ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
                     Members
-                  </div>
+                  </div> */}
                   <div className="flex -space-x-2">
-                    <Avatar size="small" style={{ backgroundColor: '#3B82F6' }}>U</Avatar>
+                    {/* <Avatar size="small" style={{ backgroundColor: '#3B82F6' }}>U</Avatar>
                     <Avatar size="small" style={{ backgroundColor: '#10B981' }}>T</Avatar>
-                    <Avatar size="small" style={{ backgroundColor: '#F59E0B' }}>H</Avatar>
-                    <Button 
+                    <Avatar size="small" style={{ backgroundColor: '#F59E0B' }}>H</Avatar> */}
+                    {/* <Button 
                       size="small" 
                       type="text" 
                       icon={<PlusOutlined />}
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         theme === 'dark' ? 'bg-zinc-800 text-gray-300' : 'bg-gray-200 text-gray-600'
                       }`}
-                    />
+                    /> */}
                   </div>
                 </div>
               </div>
