@@ -2,14 +2,132 @@
 
 import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { HardDrive, File, Trash2, Edit, Brush, Clock, Mail, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target } from "lucide-react";
 import Link from "next/link";
+
+// Animated Galaxy Background Component
+const GalaxyBackground = () => {
+  useEffect(() => {
+    const canvas = document.getElementById('galaxy-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Star properties
+    const stars: Array<{
+      x: number;
+      y: number;
+      size: number;
+      opacity: number;
+      speed: number;
+      twinkleSpeed: number;
+      twinklePhase: number;
+    }> = [];
+
+    // Create stars
+    const createStars = () => {
+      const numStars = Math.floor((canvas.width * canvas.height) / 8000);
+      stars.length = 0;
+      
+      for (let i = 0; i < numStars; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2 + 0.5,
+          opacity: Math.random() * 0.8 + 0.2,
+          speed: Math.random() * 0.2 + 0.05,
+          twinkleSpeed: Math.random() * 0.02 + 0.01,
+          twinklePhase: Math.random() * Math.PI * 2
+        });
+      }
+    };
+
+    createStars();
+
+    // Animation loop
+    let animationFrame: number;
+    const animate = () => {
+      // Create galaxy gradient background
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
+      );
+      gradient.addColorStop(0, '#4e9122');
+      gradient.addColorStop(0.3, '#1f4d11');
+      gradient.addColorStop(0.6, '#293d1b');
+      gradient.addColorStop(1, '#0a0a1a');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw and animate stars
+      stars.forEach((star, index) => {
+        // Update twinkle
+        star.twinklePhase += star.twinkleSpeed;
+        const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
+        
+        // Slow drift
+        star.x += star.speed * (Math.sin(index * 0.1) * 0.5);
+        star.y += star.speed * (Math.cos(index * 0.1) * 0.5);
+        
+        // Wrap around edges
+        if (star.x < 0) star.x = canvas.width;
+        if (star.x > canvas.width) star.x = 0;
+        if (star.y < 0) star.y = canvas.height;
+        if (star.y > canvas.height) star.y = 0;
+
+        // Draw star with glow
+        const finalOpacity = star.opacity * twinkle;
+        
+        // Outer glow
+        ctx.beginPath();
+        const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
+        glowGradient.addColorStop(0, `rgba(255, 255, 255, ${finalOpacity * 0.8})`);
+        glowGradient.addColorStop(0.5, `rgba(200, 220, 255, ${finalOpacity * 0.3})`);
+        glowGradient.addColorStop(1, 'rgba(200, 220, 255, 0)');
+        ctx.fillStyle = glowGradient;
+        ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core star
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${finalOpacity})`;
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
+  return (
+    <canvas
+      id="galaxy-canvas"
+      className="fixed inset-0 w-full h-full -z-10"
+      style={{ background: 'linear-gradient(135deg, #0f0f23 0%, #1a0f2e 50%, #0a0a1a 100%)' }}
+    />
+  );
+};
 
 export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const { mutate: login } = useLogin();
-  const [showCreds, setShowCreds] = useState(false);
-  const [activeWindow, setActiveWindow] = useState<string>("auth");
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -17,13 +135,14 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  });
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+    // Override body background for auth pages only
+    const originalBackground = document.body.style.background;
+    document.body.style.background = 'transparent';
+    
+    return () => {
+      document.body.style.background = originalBackground;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,437 +168,247 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     );
   };
 
-  const renderAuthContent = () => {
-    if (emailSent) {
-      return (
-        <div className="border-2 border-gray-400 bg-white p-6 space-y-4 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <Mail className="w-8 h-8 text-blue-600" />
-            </div>
-          </div>
-          
-          <h2 className="text-lg font-bold text-gray-800">Check Your Email</h2>
-          
-          <div className="space-y-3 text-sm text-gray-600">
-            <p>We have sent a magic link to:</p>
-            <div className="bg-gray-100 p-2 rounded border font-mono text-xs break-all">
-              {email}
-            </div>
-            <p>Please check your email and click the magic link to sign in.</p>
-          </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-xs text-yellow-800">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div className="space-y-1">
-                <p className="font-semibold">Important Notes:</p>
-                <ul className="list-disc list-inside space-y-1 text-left">
-                  <li>Check your spam/junk folder if you do not see the email</li>
-                  <li>The magic link expires after a few minutes for security</li>
-                  <li>You can request a new link if needed</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 pt-4">
-            <button
-              onClick={() => {
-                setEmailSent(false);
-                setMessage("");
-                setError("");
-                setEmail("");
-              }}
-              className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center justify-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Login
-            </button>
-          </div>
-
-          {message && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-              {message}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="border-2 border-gray-400 bg-white p-4 space-y-4">
-        <div className="text-center mb-4">
-          <h2 className="text-lg font-bold text-gray-800">
-            {type === "login" ? "Sign In" : "Sign Up"} to Arbitrage-OS
-          </h2>
-          <p className="text-sm text-gray-600 mt-2">
-            Enter your email to receive a magic link
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              className="w-full px-3 py-2 border-2 border-gray-400 focus:border-blue-500 focus:outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          {message && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-              <div className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>{message}</p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>{error}</p>
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2 px-4 bg-blue-600 text-white font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-              loading ? "opacity-75 cursor-not-allowed" : ""
-            }`}
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Sending...
-              </span>
-            ) : (
-              `Send magic link`
-            )}
-          </button>
-        </form>
-
-        <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs text-blue-800">
-          <div className="flex items-start gap-2">
-            <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-semibold mb-1">How it works:</p>
-              <p>We will send you a secure magic link via email. Click the link to instantly sign in - no password required!</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-center pt-4 border-t border-gray-300">
-          {type === "login" ? (
-            <p className="text-sm">
-              New to Arbitrage-OS?{" "}
-              <Link href="/register" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                Sign up
-              </Link>
-            </p>
-          ) : (
-            <p className="text-sm">
-              Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:text-blue-800 underline font-bold">
-                Sign in
-              </Link>
-            </p>
-          )}
-        </div>
-
-        {showCreds && (
-          <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded text-xs">
-            <p className="font-bold mb-2">Demo Email:</p>
-            <p>Email: demo@example.com</p>
-          </div>
-        )}
-
-        <div className="text-center">
-          <button
-            onClick={() => setShowCreds(!showCreds)}
-            className="text-xs text-gray-500 hover:text-gray-700 underline"
-          >
-            {showCreds ? "Hide" : "Show"} Demo Email
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
-      {/* Desktop Background */}
-      <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
-        {/* Desktop Icons Container */}
-        <div className="absolute left-0 top-0 p-6 space-y-8 flex flex-col">
-          {/* My Computer Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("my-computer")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <rect x="8" y="12" width="40" height="30" rx="2" fill="#1084D0" />
-                <rect x="12" y="16" width="32" height="22" fill="#000" />
-                <path d="M12 16 L44 16 L36 24 Z" fill="white" fillOpacity="0.2" />
-                <rect x="24" y="42" width="8" height="4" fill="#595959" />
-                <rect x="20" y="46" width="16" height="4" fill="#808080" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              My Computer
-            </span>
-          </div>
+    <div className="min-h-screen relative flex">
+      {/* Animated Galaxy Background */}
+      <GalaxyBackground />
+      
+      {/* Content Overlay */}
+      <div className="relative z-10 w-full flex">
+        {/* Left Panel - Feature Cards */}
+        <div className="flex-1 hidden lg:flex items-center justify-center p-12">
+          <div className="max-w-md">
+            <div className="space-y-6">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-blue-400/30">
+                    <Building2 className="w-4 h-4 text-blue-300" />
+                  </div>
+                  <h3 className="font-semibold text-white">Professional Workspaces</h3>
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Manage clients, projects, and team members in organized workspaces designed for business professionals.
+                </p>
+              </div>
 
-          {/* My Documents Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("documents")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <path
-                  d="M10 16H46V46H10V16Z"
-                  fill="#FFCC00"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M10 16L20 8H36L46 16"
-                  fill="#FFCC00"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <rect x="16" y="24" width="24" height="2" fill="#000" />
-                <rect x="16" y="28" width="20" height="2" fill="#000" />
-                <rect x="16" y="32" width="24" height="2" fill="#000" />
-                <rect x="16" y="36" width="18" height="2" fill="#000" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              My Documents
-            </span>
-          </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-green-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-green-400/30">
+                    <Shield className="w-4 h-4 text-green-300" />
+                  </div>
+                  <h3 className="font-semibold text-white">Enterprise Security</h3>
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Bank-level security with magic link authentication. No passwords to remember or manage.
+                </p>
+              </div>
 
-          {/* Recycle Bin Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("recycle-bin")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <path
-                  d="M14 20H42V44H14V20Z"
-                  fill="#C0C0C0"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M18 16H38V20H18V16Z"
-                  fill="#808080"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <rect x="26" y="12" width="4" height="4" fill="#000" />
-                <rect x="20" y="24" width="16" height="12" fill="#FFFFFF" stroke="#000" />
-                <rect x="24" y="28" width="8" height="1" fill="#000" />
-                <rect x="24" y="32" width="8" height="1" fill="#000" />
-              </svg>
+              <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-purple-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-purple-400/30">
+                    <Users className="w-4 h-4 text-purple-300" />
+                  </div>
+                  <h3 className="font-semibold text-white">Team Collaboration</h3>
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Invite team members, assign roles, and collaborate seamlessly across projects and clients.
+                </p>
+              </div>
             </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              Recycle Bin
-            </span>
           </div>
         </div>
 
-        {/* Auth Window */}
-        {activeWindow === "auth" && (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
-              <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-                <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                  </svg>
-                  <span className="font-bold">
-                    Arbitrage-OS {emailSent ? "Magic Link Sent" : (type === "login" ? "Login" : "Register")}
-                  </span>
-                </div>
-                <div className="flex space-x-1">
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">_</span>
-                  </div>
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">□</span>
-                  </div>
-                  <div
-                    className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                    onClick={() => setActiveWindow("")}
-                  >
-                    <span className="text-xs">×</span>
-                  </div>
-                </div>
+        {/* Center Panel - Login Form */}
+        <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-md mx-auto">
+          <div className="w-full max-w-sm">
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
-              <div className="p-4 bg-gray-200">
-                {renderAuthContent()}
-                <div className="mt-4 flex justify-between items-center">
-                  <button 
-                    className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
-                    onClick={() => {
-                      setActiveWindow("");
-                      setEmailSent(false);
-                      setMessage("");
-                      setError("");
-                      setEmail("");
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <div className="text-xs text-gray-600">Arbitrage-OS v1.0</div>
-                </div>
-              </div>
+              <span className="text-2xl font-semibold text-white">ArbitrageOS</span>
             </div>
-          </div>
-        )}
 
-        {/* Other Windows (My Computer, Documents, Recycle Bin) - keeping your existing code */}
-        {activeWindow === "my-computer" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <HardDrive className="w-4 h-4 mr-2" />
-                <span className="font-bold">My Computer</span>
-              </div>
-              <div className="flex space-x-1">
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
-                >
-                  <span className="text-xs">×</span>
+            {/* Content */}
+            {emailSent ? (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-500/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 border border-green-400/30">
+                    <CheckCircle className="w-8 h-8 text-green-300" />
+                  </div>
+                  <h1 className="text-2xl font-semibold text-white mb-2">
+                    Check your email
+                  </h1>
+                  <p className="text-gray-300">
+                    We sent a magic link to <strong className="text-white">{email}</strong>
+                  </p>
                 </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200 grid grid-cols-3 gap-4">
-              {["Local Disk (C:)", "Local Disk (D:)", "CD-ROM (E:)", "Network", "Control Panel", "Printers"].map(
-                (item) => (
-                  <div key={item} className="flex flex-col items-center cursor-pointer">
-                    <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
-                      <HardDrive className="w-6 h-6 text-white" />
+
+                <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-gray-300 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-gray-300">
+                      <p className="font-medium text-white mb-1">Did not receive the email?</p>
+                      <ul className="space-y-1">
+                        <li>• Check your spam folder</li>
+                        <li>• Make sure you entered the correct email</li>
+                        <li>• Wait a few minutes and try again</li>
+                      </ul>
                     </div>
-                    <span className="text-xs text-center">{item}</span>
                   </div>
-                )
-              )}
-            </div>
-          </div>
-        )}
+                </div>
 
-        {activeWindow === "documents" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <File className="w-4 h-4 mr-2" />
-                <span className="font-bold">My Documents</span>
-              </div>
-              <div className="flex space-x-1">
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
+                <button
+                  onClick={() => {
+                    setEmailSent(false);
+                    setMessage("");
+                    setError("");
+                    setEmail("");
+                  }}
+                  className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  <span className="text-xs">×</span>
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to sign in
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-semibold text-white mb-2">
+                    {type === "login" ? "Sign in to your account" : "Create your account"}
+                  </h1>
+                  <p className="text-gray-300">
+                    Enter your email to continue with ArbitrageOS
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                      Email address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                        placeholder="you@company.com"
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-red-500/10 backdrop-blur-md border border-red-400/30 rounded-lg flex items-center gap-2 text-red-300 text-sm">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Sending magic link...
+                      </>
+                    ) : (
+                      <>
+                        Continue with email
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <div className="border-t border-white/20 pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-sm text-gray-300">
+                      <Shield className="w-4 h-4 text-green-400" />
+                      <span>Secure passwordless authentication</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-300">
+                      <Users className="w-4 h-4 text-blue-400" />
+                      <span>Professional workspace management</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-gray-300">
+                  {type === "login" ? (
+                    <>
+                      Do not have an account?{" "}
+                      <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                        Sign up
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      Already have an account?{" "}
+                      <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                        Sign in
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
-            <div className="p-4 bg-gray-200">
-              <p className="text-sm">No documents found.</p>
-            </div>
+            )}
           </div>
-        )}
 
-        {activeWindow === "recycle-bin" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <Trash2 className="w-4 h-4 mr-2" />
-                <span className="font-bold">Recycle Bin</span>
-              </div>
-              <div className="flex space-x-1">
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
-                >
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200">
-              <p className="text-sm">Recycle Bin is empty.</p>
-            </div>
+          {/* Footer */}
+          <div className="mt-12 text-center text-xs text-gray-400">
+            <p>© 2024 ArbitrageOS. All rights reserved.</p>
           </div>
-        )}
-      </div>
-
-      {/* Taskbar */}
-      <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
-        <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
-          <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-          </svg>
-          Start
-        </button>
-
-        {/* Taskbar Programs */}
-        <div className="flex-1 flex space-x-1 mx-2">
-          {activeWindow === "auth" && (
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-              </svg>
-              Arbitrage-OS {emailSent ? "Magic Link" : (type === "login" ? "Login" : "Register")}
-            </button>
-          )}
         </div>
 
-        {/* System Tray */}
-        <div className="flex items-center space-x-1">
-          <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
-            <Clock className="w-4 h-4 mr-1" />
-            <span className="text-xs">{formatTime(currentTime)}</span>
+        {/* Right Panel - Platform Benefits */}
+        <div className="flex-1 hidden xl:flex items-center justify-center p-12">
+          <div className="max-w-md">
+            <div className="space-y-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-white mb-2">Arbitrage Intelligence</h2>
+                <p className="text-gray-300">Advanced analytics for market opportunities</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                  <div className="w-8 h-8 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-blue-400/30">
+                    <TrendingUp className="w-4 h-4 text-blue-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Real-time Analytics</h3>
+                    <p className="text-gray-300 text-sm">Monitor market conditions and identify opportunities as they emerge with live data feeds.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                  <div className="w-8 h-8 bg-green-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-green-400/30">
+                    <Target className="w-4 h-4 text-green-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Precision Targeting</h3>
+                    <p className="text-gray-300 text-sm">Advanced algorithms to pinpoint high-probability arbitrage opportunities across markets.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                  <div className="w-8 h-8 bg-purple-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-purple-400/30">
+                    <Zap className="w-4 h-4 text-purple-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Lightning Fast Execution</h3>
+                    <p className="text-gray-300 text-sm">Automated systems designed for rapid execution when opportunities are identified.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
