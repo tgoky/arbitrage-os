@@ -174,60 +174,53 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
       <GalaxyBackground />
       
       {/* Content Overlay */}
-      <div className="relative z-10 w-full flex">
+      <div className="relative z-10 w-full flex min-h-screen">
         {/* Left Panel - Feature Cards */}
-        <div className="flex-1 hidden lg:flex items-center justify-center p-12">
+        <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
           <div className="max-w-md">
-            <div className="space-y-6">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-blue-400/30">
-                    <Building2 className="w-4 h-4 text-blue-300" />
-                  </div>
-                  <h3 className="font-semibold text-white">Professional Workspaces</h3>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                <div className="w-8 h-8 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-blue-400/30">
+                  <Building2 className="w-4 h-4 text-blue-300" />
                 </div>
-                <p className="text-gray-300 text-sm">
-                  Manage clients, projects, and team members in organized workspaces designed for business professionals.
-                </p>
+                <div>
+                  <h3 className="font-semibold text-white mb-1"> Workspaces</h3>
+                  <p className="text-gray-300 text-sm">create and manage workspaces</p>
+                </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-green-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-green-400/30">
-                    <Shield className="w-4 h-4 text-green-300" />
-                  </div>
-                  <h3 className="font-semibold text-white">Enterprise Security</h3>
+              <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                <div className="w-8 h-8 bg-green-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-green-400/30">
+                  <Shield className="w-4 h-4 text-green-300" />
                 </div>
-                <p className="text-gray-300 text-sm">
-                  Bank-level security with magic link authentication. No passwords to remember or manage.
-                </p>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Tools </h3>
+                  <p className="text-gray-300 text-sm">Generate and automate with arbitrage tools</p>
+                </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-purple-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-purple-400/30">
-                    <Users className="w-4 h-4 text-purple-300" />
-                  </div>
-                  <h3 className="font-semibold text-white">Team Collaboration</h3>
+              <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                <div className="w-8 h-8 bg-purple-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-purple-400/30">
+                  <Users className="w-4 h-4 text-purple-300" />
                 </div>
-                <p className="text-gray-300 text-sm">
-                  Invite team members, assign roles, and collaborate seamlessly across projects and clients.
-                </p>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Submissions</h3>
+                  <p className="text-gray-300 text-sm">View all recent deliverables in real time</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Center Panel - Login Form */}
-        <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-md mx-auto">
-            <div className="flex items-center gap-3 mb-8">
-              
-              <span className="text-2xl font-semibold text-white">welcome to   <span style={{ color: '#5CC49D' }}>a</span>rb
-  <span style={{ color: '#5CC49D' }}>i</span>trageOS</span>
-            </div>
+        <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-lg mx-auto lg:max-w-none lg:translate-x-8 xl:translate-x-12">
           <div className="w-full max-w-sm">
-            {/* Logo */}
-          
+            {/* Title */}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <span className="text-2xl font-semibold text-white text-center">
+                welcome to <span style={{ color: '#5CC49D' }}>a</span>rb<span style={{ color: '#5CC49D' }}>i</span>trageOS
+              </span>
+            </div>
 
             {/* Content */}
             {emailSent ? (
@@ -369,40 +362,36 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
         </div>
 
         {/* Right Panel - Platform Benefits */}
-        <div className="flex-1 hidden xl:flex items-center justify-center p-12">
+<div className="hidden xl:flex xl:flex-1 items-center justify-center p-12 xl:translate-x-20">
           <div className="max-w-md">
-            <div className="space-y-8">
-            
-
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
-                  <div className="w-8 h-8 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-blue-400/30">
-                    <TrendingUp className="w-4 h-4 text-blue-300" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">Real-time Analytics</h3>
-                    <p className="text-gray-300 text-sm">Monitor market conditions and identify opportunities as they emerge with live data feeds.</p>
-                  </div>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                <div className="w-8 h-8 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-blue-400/30">
+                  <TrendingUp className="w-4 h-4 text-blue-300" />
                 </div>
-
-                <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
-                  <div className="w-8 h-8 bg-green-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-green-400/30">
-                    <Target className="w-4 h-4 text-green-300" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">Precision Targeting</h3>
-                    <p className="text-gray-300 text-sm">Advanced algorithms to pinpoint high-probability arbitrage opportunities across markets.</p>
-                  </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Activity Heatmaps</h3>
+                  <p className="text-gray-300 text-sm">Monitor activities and your usage stats.</p>
                 </div>
+              </div>
 
-                <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
-                  <div className="w-8 h-8 bg-purple-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-purple-400/30">
-                    <Zap className="w-4 h-4 text-purple-300" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">Lightning Fast Execution</h3>
-                    <p className="text-gray-300 text-sm">Automated systems designed for rapid execution when opportunities are identified.</p>
-                  </div>
+              <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                <div className="w-8 h-8 bg-green-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-green-400/30">
+                  <Target className="w-4 h-4 text-green-300" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Milestones</h3>
+                  <p className="text-gray-300 text-sm">Set milestones for yourself and achieve them</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
+                <div className="w-8 h-8 bg-purple-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 mt-1 border border-purple-400/30">
+                  <Zap className="w-4 h-4 text-purple-300" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Directories</h3>
+                  <p className="text-gray-300 text-sm">Access libraries & directories of various</p>
                 </div>
               </div>
             </div>
