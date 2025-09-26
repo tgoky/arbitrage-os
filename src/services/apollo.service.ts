@@ -45,8 +45,11 @@ export interface GeneratedLead {
     countryCode?: string;
     timezone?: string;
     currency?: string;
+    sourceIndustry?: string;        // Add this line
+    searchStrategy?: string;        // Add this line too for completeness
   };
 }
+
 
 export interface LeadGenerationResponse {
   leads: GeneratedLead[];
@@ -662,58 +665,77 @@ return {
   }
 
   // STEP 1: Enhance criteria with global intelligence
+  
   private enhanceCriteriaWithGlobalIntelligence(criteria: LeadGenerationCriteria): any {
-    const enhanced: any = { ...criteria };
+  const enhanced: any = { ...criteria };
+  
+  // ✅ FIXED: Properly combine all location inputs
+  const allLocationInputs = [
+    ...(criteria.country || []),
+    ...(criteria.state || []),
+    ...(criteria.city || [])
+  ];
+  
+  console.log('🌍 Processing locations:', {
+    countries: criteria.country?.length || 0,
+    states: criteria.state?.length || 0,
+    cities: criteria.city?.length || 0,
+    combined: allLocationInputs.length
+  });
+  
+  // GLOBAL LOCATION EXPANSION
+  if (allLocationInputs.length > 0) {
+    enhanced.expandedLocations = this.expandGlobalLocations(allLocationInputs);
+    enhanced.regionalClusters = this.identifyRegionalClusters(allLocationInputs);
+    enhanced.economicTiers = this.categorizeByEconomicTier(enhanced.expandedLocations);
     
-    // Combine all location inputs
-    const allLocationInputs = [
-      ...(criteria.country || []),
-      ...(criteria.state || []),
-      ...(criteria.city || [])
-    ];
-    
-    // GLOBAL LOCATION EXPANSION
-    if (allLocationInputs.length > 0) {
-      enhanced.expandedLocations = this.expandGlobalLocations(allLocationInputs);
-      enhanced.regionalClusters = this.identifyRegionalClusters(allLocationInputs);
-      enhanced.economicTiers = this.categorizeByEconomicTier(enhanced.expandedLocations);
-    } else {
-      // No location specified = global search
-      enhanced.isGlobalSearch = true;
-      enhanced.expandedLocations = this.getTopBusinessHubs();
-    }
-    
-    // INDUSTRY INTELLIGENCE
-    if (criteria.targetIndustry?.length) {
-      enhanced.industryKeywords = this.generateComprehensiveIndustryKeywords(criteria.targetIndustry);
-      enhanced.relatedIndustries = this.findRelatedIndustries(criteria.targetIndustry);
-    }
-    
-    // ROLE INTELLIGENCE
-    if (criteria.targetRole?.length) {
-      enhanced.expandedRoles = this.expandJobTitles(criteria.targetRole);
-      enhanced.seniorityLevels = this.categorizeRoleSeniority(criteria.targetRole);
-    }
-    
-    // GLOBAL COVERAGE METADATA
-    enhanced.globalCoverage = {
-      countries: enhanced.expandedLocations ? this.extractCountries(enhanced.expandedLocations) : [],
-      regions: enhanced.regionalClusters || [],
-      totalLocations: enhanced.expandedLocations?.length || 0,
-      economicTiers: enhanced.economicTiers || {},
-      industries: enhanced.industryKeywords || [],
-      isGlobal: enhanced.isGlobalSearch || false
-    };
-    
-    console.log('🌍 Global intelligence applied:', {
-      originalLocations: allLocationInputs.length,
-      expandedLocations: enhanced.expandedLocations?.length || 0,
-      regions: enhanced.regionalClusters?.length || 0,
-      industries: enhanced.industryKeywords?.length || 0
+    console.log('🌍 Location expansion results:', {
+      original: allLocationInputs.length,
+      expanded: enhanced.expandedLocations?.length || 0,
+      regions: enhanced.regionalClusters?.length || 0
     });
-    
-    return enhanced;
+  } else {
+    // No location specified = global search
+    enhanced.isGlobalSearch = true;
+    enhanced.expandedLocations = this.getTopBusinessHubs();
+    console.log('🌍 No locations specified - using global business hubs');
   }
+  
+  // INDUSTRY INTELLIGENCE
+  if (criteria.targetIndustry?.length) {
+    enhanced.industryKeywords = this.generateComprehensiveIndustryKeywords(criteria.targetIndustry);
+    enhanced.relatedIndustries = this.findRelatedIndustries(criteria.targetIndustry);
+    
+    console.log('🏭 Industry processing:', {
+      original: criteria.targetIndustry.length,
+      keywords: enhanced.industryKeywords?.length || 0,
+      related: enhanced.relatedIndustries?.length || 0
+    });
+  }
+  
+  // ROLE INTELLIGENCE
+  if (criteria.targetRole?.length) {
+    enhanced.expandedRoles = this.expandJobTitles(criteria.targetRole);
+    enhanced.seniorityLevels = this.categorizeRoleSeniority(criteria.targetRole);
+    
+    console.log('👔 Role processing:', {
+      original: criteria.targetRole.length,
+      expanded: enhanced.expandedRoles?.length || 0
+    });
+  }
+  
+  // GLOBAL COVERAGE METADATA
+  enhanced.globalCoverage = {
+    countries: enhanced.expandedLocations ? this.extractCountries(enhanced.expandedLocations) : [],
+    regions: enhanced.regionalClusters || [],
+    totalLocations: enhanced.expandedLocations?.length || 0,
+    economicTiers: enhanced.economicTiers || {},
+    industries: enhanced.industryKeywords || [],
+    isGlobal: enhanced.isGlobalSearch || false
+  };
+  
+  return enhanced;
+}
 
   // GLOBAL LOCATION EXPANSION ENGINE
 private expandGlobalLocations(inputs: string[]): string[] {
@@ -847,60 +869,230 @@ private expandGlobalLocations(inputs: string[]): string[] {
   }
 
   // STRATEGY 1: GLOBAL PRECISION SEARCH
-  private async executeGlobalPrecisionSearch(criteria: any): Promise<LeadGenerationResponse> {
-    console.log('🎯 Global Precision Search: Targeting specific locations with full criteria');
-    
-    const params: any = {
-      per_page: Math.min(criteria.leadCount, 100),
-      page: 1,
-      include_similar_titles: true
-    };
+private async executeGlobalPrecisionSearch(criteria: any): Promise<LeadGenerationResponse> {
+  console.log('🎯 Global Precision Search: Targeting specific locations with full criteria');
+  
+  // If multiple industries requested, do mixed search
+  if (criteria.targetIndustry?.length > 1 && criteria.leadCount > criteria.targetIndustry.length) {
+    return await this.executeMultiIndustryMixedSearch(criteria);
+  }
+  
+  const params: any = {
+    per_page: Math.min(criteria.leadCount, 100),
+    page: 1,
+    include_similar_titles: true
+  };
 
-    // Precise role targeting
-    if (criteria.expandedRoles?.length) {
-      params.person_titles = criteria.expandedRoles.slice(0, 4);
-    } else if (criteria.targetRole?.length) {
-      params.person_titles = criteria.targetRole.slice(0, 4);
+  // Precise role targeting
+  if (criteria.expandedRoles?.length) {
+    params.person_titles = criteria.expandedRoles.slice(0, 4);
+  } else if (criteria.targetRole?.length) {
+    params.person_titles = criteria.targetRole.slice(0, 4);
+  }
+
+  // Precise location targeting (top 6 most specific)
+  if (criteria.expandedLocations?.length) {
+    const sortedLocations = criteria.expandedLocations
+      .sort((a: string, b: string) => b.split(',').length - a.split(',').length) // More specific first
+      .slice(0, 6);
+    params.person_locations = sortedLocations;
+  }
+
+  // Comprehensive industry targeting
+  if (criteria.industryKeywords?.length) {
+    const topKeywords = criteria.industryKeywords.slice(0, 5);
+    params.q_keywords = topKeywords.join(' OR ');
+  }
+
+  // Smart company size (only if not too complex)
+  if (criteria.companySize?.length && 
+      criteria.targetIndustry?.length <= 2 && 
+      criteria.targetRole?.length <= 3) {
+    const ranges = this.convertCompanySizeRanges(criteria.companySize.slice(0, 2));
+    if (ranges.length > 0) {
+      params.organization_num_employees_ranges = ranges;
     }
+  }
 
-    // Precise location targeting (top 6 most specific)
-  // In executeGlobalPrecisionSearch method:
-if (criteria.expandedLocations?.length) {
-  const sortedLocations = criteria.expandedLocations
-    .sort((a: string, b: string) => b.split(',').length - a.split(',').length) // More specific first
-    .slice(0, 6);
-  params.person_locations = sortedLocations;
+  // Revenue constraints
+  if (criteria.revenueRange?.min || criteria.revenueRange?.max) {
+    if (criteria.revenueRange.min) params.revenue_range_min = criteria.revenueRange.min;
+    if (criteria.revenueRange.max) params.revenue_range_max = criteria.revenueRange.max;
+  }
+
+  // Contact requirements
+  if (criteria.requirements?.includes('email')) {
+    params.contact_email_status = ['verified'];
+  }
+
+  return await this.callGlobalApolloAPI(params, criteria, 'Global Precision');
 }
 
-    // Comprehensive industry targeting
-    if (criteria.industryKeywords?.length) {
-      const topKeywords = criteria.industryKeywords.slice(0, 5);
-      params.q_keywords = topKeywords.join(' OR ');
-    }
-
-    // Smart company size (only if not too complex)
-    if (criteria.companySize?.length && 
-        criteria.targetIndustry?.length <= 2 && 
-        criteria.targetRole?.length <= 3) {
-      const ranges = this.convertCompanySizeRanges(criteria.companySize.slice(0, 2));
-      if (ranges.length > 0) {
-        params.organization_num_employees_ranges = ranges;
+private async executeMultiIndustryMixedSearch(criteria: any): Promise<LeadGenerationResponse> {
+  console.log('🎯 Multi-Industry Mixed Search: Distributing leads across industries');
+  
+  const industries = criteria.targetIndustry;
+  const totalLeads = criteria.leadCount;
+  const leadsPerIndustry = Math.ceil(totalLeads / industries.length);
+  
+  const allLeads: GeneratedLead[] = [];
+  let totalFound = 0;
+  
+  for (const industry of industries) {
+    try {
+      // Generate industry-specific keywords
+      const industryKeywords = this.generateComprehensiveIndustryKeywords([industry]);
+      
+      const industryParams: any = {
+        per_page: Math.min(leadsPerIndustry, 100),
+        page: 1,
+        include_similar_titles: true,
+        // Target this specific industry with comprehensive keywords
+        q_keywords: industryKeywords.slice(0, 3).join(' OR '),
+      };
+      
+      // Keep role targeting
+      if (criteria.expandedRoles?.length) {
+        industryParams.person_titles = criteria.expandedRoles.slice(0, 4);
+      } else if (criteria.targetRole?.length) {
+        industryParams.person_titles = criteria.targetRole.slice(0, 4);
       }
+      
+      // Keep location targeting
+      if (criteria.expandedLocations?.length) {
+        const sortedLocations = criteria.expandedLocations
+          .sort((a: string, b: string) => b.split(',').length - a.split(',').length)
+          .slice(0, 6);
+        industryParams.person_locations = sortedLocations;
+      }
+      
+      // Keep company size constraints
+      if (criteria.companySize?.length && criteria.companySize.length <= 2) {
+        const ranges = this.convertCompanySizeRanges(criteria.companySize.slice(0, 2));
+        if (ranges.length > 0) {
+          industryParams.organization_num_employees_ranges = ranges;
+        }
+      }
+      
+      // Keep revenue constraints
+      if (criteria.revenueRange?.min || criteria.revenueRange?.max) {
+        if (criteria.revenueRange.min) industryParams.revenue_range_min = criteria.revenueRange.min;
+        if (criteria.revenueRange.max) industryParams.revenue_range_max = criteria.revenueRange.max;
+      }
+      
+      // Keep contact requirements
+      if (criteria.requirements?.includes('email')) {
+        industryParams.contact_email_status = ['verified'];
+      }
+      
+      console.log(`🏭 Searching for ${industry} industry with params:`, JSON.stringify(industryParams, null, 2));
+      
+      const industryResponse = await this.callGlobalApolloAPI(
+        industryParams, 
+        { ...criteria, targetIndustry: [industry] }, 
+        `Industry-${industry}`
+      );
+      
+      if (industryResponse.leads.length > 0) {
+        // Tag each lead with the source industry for tracking
+        const taggedLeads = industryResponse.leads.slice(0, leadsPerIndustry).map(lead => ({
+          ...lead,
+          metadata: {
+            ...lead.metadata,
+            sourceIndustry: industry,
+            searchStrategy: 'Multi-Industry Mixed'
+          }
+        }));
+        
+        allLeads.push(...taggedLeads);
+        totalFound += industryResponse.totalFound || industryResponse.leads.length;
+        console.log(`✅ Found ${industryResponse.leads.length} leads for ${industry}`);
+      } else {
+        console.log(`⚠️ No leads found for ${industry}`);
+      }
+      
+      // Stop if we have enough leads
+      if (allLeads.length >= totalLeads) break;
+      
+      // Add small delay between requests to avoid rate limiting
+      if (industries.indexOf(industry) < industries.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to search ${industry}:`, error);
+      // Continue with next industry instead of failing entirely
+      continue;
     }
-
-    // Revenue constraints
-    if (criteria.revenueRange?.min || criteria.revenueRange?.max) {
-      if (criteria.revenueRange.min) params.revenue_range_min = criteria.revenueRange.min;
-      if (criteria.revenueRange.max) params.revenue_range_max = criteria.revenueRange.max;
-    }
-
-    // Contact requirements
-    if (criteria.requirements?.includes('email')) {
-      params.contact_email_status = ['verified'];
-    }
-
-    return await this.callGlobalApolloAPI(params, criteria, 'Global Precision');
   }
+  
+  if (allLeads.length === 0) {
+    console.log('❌ No leads found across all industries');
+    // Fall back to original search strategy
+    console.log('🔄 Falling back to original precision search...');
+    return await this.executeOriginalPrecisionSearch(criteria);
+  }
+  
+  // Shuffle and limit to requested count for better distribution
+  const shuffledLeads = allLeads
+    .sort(() => Math.random() - 0.5)
+    .slice(0, totalLeads)
+    .sort((a, b) => b.score - a.score); // Sort by score after shuffling
+  
+  console.log(`🎯 Mixed search complete: ${shuffledLeads.length} leads from ${industries.length} industries`);
+  console.log(`📊 Industry distribution:`, this.getIndustryDistribution(shuffledLeads));
+  
+  return {
+    leads: shuffledLeads,
+    totalFound,
+    tokensUsed: 0,
+    generationTime: 1000,
+    searchStrategy: 'Multi-Industry Mixed'
+  };
+}
+
+// Helper method for fallback
+private async executeOriginalPrecisionSearch(criteria: any): Promise<LeadGenerationResponse> {
+  const params: any = {
+    per_page: Math.min(criteria.leadCount, 100),
+    page: 1,
+    include_similar_titles: true
+  };
+
+  if (criteria.expandedRoles?.length) {
+    params.person_titles = criteria.expandedRoles.slice(0, 4);
+  } else if (criteria.targetRole?.length) {
+    params.person_titles = criteria.targetRole.slice(0, 4);
+  }
+
+  if (criteria.expandedLocations?.length) {
+    const sortedLocations = criteria.expandedLocations
+      .sort((a: string, b: string) => b.split(',').length - a.split(',').length)
+      .slice(0, 6);
+    params.person_locations = sortedLocations;
+  }
+
+  if (criteria.industryKeywords?.length) {
+    const topKeywords = criteria.industryKeywords.slice(0, 5);
+    params.q_keywords = topKeywords.join(' OR ');
+  }
+
+  return await this.callGlobalApolloAPI(params, criteria, 'Fallback Precision');
+}
+
+// Helper method to analyze industry distribution
+private getIndustryDistribution(leads: GeneratedLead[]): Record<string, number> {
+  const distribution: Record<string, number> = {};
+  
+  leads.forEach(lead => {
+    const sourceIndustry = lead.metadata?.sourceIndustry || 'Unknown';
+    distribution[sourceIndustry] = (distribution[sourceIndustry] || 0) + 1;
+  });
+  
+  return distribution;
+}
+
+
 
   // STRATEGY 2: REGIONAL CLUSTER SEARCH
   private async executeRegionalClusterSearch(criteria: any): Promise<LeadGenerationResponse> {
