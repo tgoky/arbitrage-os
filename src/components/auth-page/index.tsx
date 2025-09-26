@@ -220,14 +220,14 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
         {/* Center Panel - Login Form */}
         <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-md mx-auto">
+            <div className="flex items-center gap-3 mb-8">
+              
+              <span className="text-2xl font-semibold text-white">welcome to   <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS</span>
+            </div>
           <div className="w-full max-w-sm">
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-semibold text-white">ArbitrageOS</span>
-            </div>
+          
 
             {/* Content */}
             {emailSent ? (
@@ -313,7 +313,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
+                    className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
                   >
                     {loading ? (
                       <>
@@ -372,10 +372,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
         <div className="flex-1 hidden xl:flex items-center justify-center p-12">
           <div className="max-w-md">
             <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-white mb-2">Arbitrage Intelligence</h2>
-                <p className="text-gray-300">Advanced analytics for market opportunities</p>
-              </div>
+            
 
               <div className="space-y-4">
                 <div className="flex items-start gap-4 p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20">
