@@ -19,28 +19,44 @@ import {
   Badge,
   Row,
   Col,
-  Empty
+  Empty,
+  Popover,
+  List
 } from 'antd';
 import { 
   PlusOutlined, 
   FolderOutlined, 
   ArrowRightOutlined, 
-  UserOutlined, 
   BellOutlined, 
   DownOutlined, 
   HistoryOutlined,
-  RiseOutlined
+  RiseOutlined,
+  CheckCircleOutlined, 
+  ExclamationCircleOutlined, 
+  InfoCircleOutlined,
+  TrophyOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 
-// Add interface for user profile
+// Interfaces
 interface UserProfile {
   id: string;
   email?: string;
   name?: string;
   avatar?: string;
+}
+
+interface Notification {
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'achievement';
+  title: string;
+  description: string;
+  timestamp: Date;
+  read: boolean;
+  actionable?: boolean;
+  workspaceId?: string;
 }
 
 const WorkspaceHomePage = () => {
@@ -53,15 +69,14 @@ const WorkspaceHomePage = () => {
     createWorkspace 
   } = useWorkspace();
 
-  // Get user profile for email display
   const { data: userProfile, isLoading: userLoading } = useUserProfile() as {
     data: UserProfile | undefined;
     isLoading: boolean;
   };
 
-  // Get work items for metrics calculation
-  const { data: workItems = [] } = useWorkItems(1000); // Get lots of items for metrics
+  const { data: workItems = [] } = useWorkItems(1000);
   
+  // State variables
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
@@ -80,7 +95,6 @@ const WorkspaceHomePage = () => {
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Filter items for this month and last month
     const thisMonthItems = workItems.filter(item => {
       if (!item.createdAt) return false;
       const itemDate = new Date(item.createdAt);
@@ -93,17 +107,16 @@ const WorkspaceHomePage = () => {
       return itemDate >= startOfLastMonth && itemDate <= endOfLastMonth;
     });
 
-    // Calculate productivity score based on different item types with weights
     const getItemScore = (item: any) => {
       const weights: Record<string, number> = {
-        'sales-call': 5,      // High value
-        'growth-plan': 8,     // Very high value
-        'pricing-calc': 4,    // Medium-high value
-        'niche-research': 6,  // High value
-        'cold-email': 3,      // Medium value
-        'offer-creator': 7,   // High value
-        'ad-writer': 4,       // Medium-high value
-        'n8n-workflow': 9     // Very high value (automation)
+        'sales-call': 5,
+        'growth-plan': 8,
+        'pricing-calc': 4,
+        'niche-research': 6,
+        'cold-email': 3,
+        'offer-creator': 7,
+        'ad-writer': 4,
+        'n8n-workflow': 9
       };
       return weights[item.type] || 3;
     };
@@ -111,12 +124,11 @@ const WorkspaceHomePage = () => {
     const thisMonthScore = thisMonthItems.reduce((sum, item) => sum + getItemScore(item), 0);
     const lastMonthScore = lastMonthItems.reduce((sum, item) => sum + getItemScore(item), 0);
 
-    // Calculate percentage change
     let changePercent = 0;
     if (lastMonthScore > 0) {
       changePercent = ((thisMonthScore - lastMonthScore) / lastMonthScore) * 100;
     } else if (thisMonthScore > 0) {
-      changePercent = 100; // First month with activity
+      changePercent = 100;
     }
 
     return {
@@ -127,11 +139,108 @@ const WorkspaceHomePage = () => {
     };
   }, [workItems]);
 
-  // Get most recent workspace from workspaces array
+  // Generate notifications
+  const notifications = React.useMemo(() => {
+    const notifs: Notification[] = [];
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const recentItems = workItems.filter(item => {
+      if (!item.createdAt) return false;
+      const itemDate = new Date(item.createdAt);
+      return itemDate >= yesterday && itemDate <= now;
+    });
+
+    if (recentItems.length > 0) {
+      const itemsByType = recentItems.reduce((acc, item) => {
+        acc[item.type] = (acc[item.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      Object.entries(itemsByType).forEach(([type, count]) => {
+        const typeNames: Record<string, string> = {
+          'sales-call': 'Sales Call Analysis',
+          'growth-plan': 'Growth Plan',
+          'pricing-calc': 'Pricing Calculator',
+          'niche-research': 'Niche Research',
+          'cold-email': 'Cold Email',
+          'offer-creator': 'Signature Offer',
+          'ad-writer': 'Ad Copy',
+          'n8n-workflow': 'Automation Workflow'
+        };
+
+        notifs.push({
+          id: `completion-${type}`,
+          type: 'success',
+          title: `${typeNames[type] || type} Completed`,
+          description: `${count} new ${typeNames[type]?.toLowerCase() || type}${count > 1 ? 's' : ''} generated successfully`,
+          timestamp: new Date(Math.max(...recentItems.filter(i => i.type === type).map(i => new Date(i.createdAt).getTime()))),
+          read: false,
+          actionable: true
+        });
+      });
+    }
+
+    if (metrics.changePercent > 20) {
+      notifs.push({
+        id: 'productivity-boost',
+        type: 'achievement',
+        title: 'Productivity Boost!',
+        description: `You're ${metrics.changePercent}% more productive this month. Keep it up!`,
+        timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+        read: false
+      });
+    }
+
+    const thisWeekItems = workItems.filter(item => {
+      if (!item.createdAt) return false;
+      const itemDate = new Date(item.createdAt);
+      return itemDate >= thisWeek;
+    });
+
+    if (thisWeekItems.length >= 5) {
+      notifs.push({
+        id: 'weekly-milestone',
+        type: 'achievement',
+        title: 'Weekly Milestone Reached!',
+        description: `${thisWeekItems.length} AI tools used this week. You're on fire!`,
+        timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+        read: false
+      });
+    }
+
+    if (workspaces.length === 1 && workItems.length > 3) {
+      notifs.push({
+        id: 'workspace-suggestion',
+        type: 'info',
+        title: 'Consider Creating More Workspaces',
+        description: 'You might want to organize your projects into separate workspaces for better management',
+        timestamp: new Date(now.getTime() - 45 * 60 * 1000),
+        read: false,
+        actionable: true
+      });
+    }
+
+    notifs.push({
+      id: 'system-update',
+      type: 'info',
+      title: 'New arbitrageOS tool Available !',
+      description: 'Check out the new proposal creator!',
+      timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+      read: false,
+      actionable: true
+    });
+
+    return notifs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [workItems, metrics, workspaces]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Get most recent workspace
   const mostRecentWorkspace = React.useMemo(() => {
     if (!workspaces || workspaces.length === 0) return null;
     
-    // Sort by updated_at or created_at to find most recent
     const sorted = [...workspaces].sort((a, b) => {
       const dateA = new Date(a.updated_at || a.created_at || 0);
       const dateB = new Date(b.updated_at || b.created_at || 0);
@@ -187,34 +296,156 @@ const WorkspaceHomePage = () => {
            "U";
   }, [displayName, userProfile]);
 
-  // Boot sequence effect
-  useEffect(() => {
-    const runBootSequence = async () => {
-      const interval = setInterval(() => {
-        setProgress(prev => {
-          const increment = Math.random() > 0.85 ? 0 : (Math.random() > 0.7 ? 2 : 1);
-          return Math.min(prev + increment, 100);
-        });
-      }, 200);
+  // Notification helpers
+  const getNotificationIcon = (type: Notification['type']) => {
+    const iconProps = { style: { fontSize: '14px' } };
+    switch (type) {
+      case 'success':
+        return <CheckCircleOutlined {...iconProps} style={{ ...iconProps.style, color: '#52c41a' }} />;
+      case 'warning':
+        return <ExclamationCircleOutlined {...iconProps} style={{ ...iconProps.style, color: '#faad14' }} />;
+      case 'achievement':
+        return <TrophyOutlined {...iconProps} style={{ ...iconProps.style, color: '#722ed1' }} />;
+      default:
+        return <InfoCircleOutlined {...iconProps} style={{ ...iconProps.style, color: '#1890ff' }} />;
+    }
+  };
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
+  const getRelativeTime = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
+// Notification dropdown content
+  const notificationContent = (
+    <div style={{ width: 350, maxHeight: 400, overflow: 'auto' }}>
+      <div style={{ 
+        padding: '12px 16px', 
+        borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#f0f0f0'}`,
+        background: theme === 'dark' ? '#1f2937' : '#fafafa'
+      }}>
+        <Text strong style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+          Notifications
+        </Text>
+        {unreadCount > 0 && (
+          <Badge 
+            count={unreadCount} 
+            size="small" 
+            style={{ marginLeft: 8 }}
+          />
+        )}
+      </div>
       
-      clearInterval(interval);
-      setProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setIsLoading(false);
-    };
+      {notifications.length === 0 ? (
+        <div style={{ padding: '24px', textAlign: 'center' }}>
+          <Text type="secondary">No notifications yet</Text>
+        </div>
+      ) : (
+        <List
+          size="small"
+          dataSource={notifications}
+          style={{ 
+            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff' 
+          }}
+          renderItem={(notification) => (
+            <List.Item
+              style={{
+                padding: '12px 16px',
+                borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#f0f0f0'}`,
+                backgroundColor: !notification.read 
+                  ? (theme === 'dark' ? '#1f2937' : '#f8fafc')
+                  : 'transparent',
+                cursor: notification.actionable ? 'pointer' : 'default'
+              }}
+              onClick={() => {
+                if (notification.actionable) {
+                  if (notification.id.includes('completion')) {
+                    router.push('/submissions');
+                  } else if (notification.id === 'workspace-suggestion') {
+                    setShowCreateModal(true);
+                  }
+                }
+              }}
+            >
+              <List.Item.Meta
+                avatar={getNotificationIcon(notification.type)}
+                title={
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text 
+                      strong 
+                      style={{ 
+                        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
+                        fontSize: '13px'
+                      }}
+                    >
+                      {notification.title}
+                    </Text>
+                    <Text 
+                      type="secondary" 
+                      style={{ fontSize: '11px' }}
+                    >
+                      {getRelativeTime(notification.timestamp)}
+                    </Text>
+                  </div>
+                }
+                description={
+                  <Text 
+                    style={{ 
+                      color: theme === 'dark' ? '#9ca3af' : '#666666',
+                      fontSize: '12px',
+                      lineHeight: 1.4
+                    }}
+                  >
+                    {notification.description}
+                  </Text>
+                }
+              />
+              {!notification.read && (
+                <div style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: '#1890ff',
+                  marginLeft: 8
+                }} />
+              )}
+            </List.Item>
+          )}
+        />
+      )}
+      
+      {notifications.length > 0 && (
+        <div style={{ 
+          padding: '8px 16px', 
+          borderTop: `1px solid ${theme === 'dark' ? '#374151' : '#f0f0f0'}`,
+          textAlign: 'center',
+          background: theme === 'dark' ? '#1f2937' : '#fafafa'
+        }}>
+          <Button 
+            type="text" 
+            size="small"
+            style={{ 
+              color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
+              fontSize: '12px'
+            }}
+          >
+            Mark all as read
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 
-    if (!workspaceLoading && !userLoading) {
-      runBootSequence();
-    }
-  }, [workspaceLoading, userLoading]);
-
+  // Event handlers
   const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName.trim()) {
-      return;
-    }
-
+    if (!newWorkspaceName.trim()) return;
     setIsCreating(true);
     
     try {
@@ -226,7 +457,6 @@ const WorkspaceHomePage = () => {
       setShowCreateModal(false);
       setNewWorkspaceName("");
       setNewWorkspaceDescription("");
-      
       router.push(`/dashboard/${newWorkspace.slug}`);
     } catch (error) {
       console.error('Error creating workspace:', error);
@@ -235,8 +465,51 @@ const WorkspaceHomePage = () => {
     }
   };
 
+  const handleWorkspaceClick = (workspace: any) => {
+    setSelectedWorkspace(workspace.name);
+    setNavigating(true);
+    setNavigationProgress(0);
+    
+    const interval = setInterval(() => {
+      setNavigationProgress(prev => {
+        const increment = Math.random() > 0.8 ? 0 : (Math.random() > 0.6 ? 4 : 2);
+        return Math.min(prev + increment, 100);
+      });
+    }, 100);
+    
+    const delay = 500 + Math.random() * 1000;
+    setTimeout(() => {
+      clearInterval(interval);
+      setNavigationProgress(100);
+      setTimeout(() => {
+        router.push(`/dashboard/${workspace.slug}`);
+      }, 300);
+    }, delay);
+  };
+
+  // Effects
   useEffect(() => {
-    // Add custom styles for glow effects
+    const runBootSequence = async () => {
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          const increment = Math.random() > 0.85 ? 0 : (Math.random() > 0.7 ? 2 : 1);
+          return Math.min(prev + increment, 100);
+        });
+      }, 200);
+
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      clearInterval(interval);
+      setProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setIsLoading(false);
+    };
+
+    if (!workspaceLoading && !userLoading) {
+      runBootSequence();
+    }
+  }, [workspaceLoading, userLoading]);
+
+  useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes glow-pulse {
@@ -263,28 +536,7 @@ const WorkspaceHomePage = () => {
     };
   }, []);
 
-  const handleWorkspaceClick = (workspace: any) => {
-    setSelectedWorkspace(workspace.name);
-    setNavigating(true);
-    setNavigationProgress(0);
-    
-    const interval = setInterval(() => {
-      setNavigationProgress(prev => {
-        const increment = Math.random() > 0.8 ? 0 : (Math.random() > 0.6 ? 4 : 2);
-        return Math.min(prev + increment, 100);
-      });
-    }, 100);
-    
-    const delay = 500 + Math.random() * 1000;
-    setTimeout(() => {
-      clearInterval(interval);
-      setNavigationProgress(100);
-      setTimeout(() => {
-        router.push(`/dashboard/${workspace.slug}`);
-      }, 300);
-    }, delay);
-  };
-
+  // Filter workspaces
   const filteredWorkspaces = workspaces.filter(workspace =>
     workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     workspace.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -296,6 +548,7 @@ const WorkspaceHomePage = () => {
     { key: 'logout', label: 'Logout' }
   ];
 
+  // Loading state
   if (isLoading || workspaceLoading || userLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center" style={{ 
@@ -359,6 +612,7 @@ const WorkspaceHomePage = () => {
     );
   }
 
+  // Main render
   return (
     <div className="min-h-screen w-full" style={{ 
       backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
@@ -423,9 +677,28 @@ const WorkspaceHomePage = () => {
 
           {/* User Menu */}
           <Space size="middle">
-            <Badge count={3} size="small">
-              <Button type="text" icon={<BellOutlined />} />
-            </Badge>
+            <Popover
+              content={notificationContent}
+              title={null}
+              trigger="click"
+              placement="bottomRight"
+              overlayStyle={{
+                borderRadius: '8px',
+                boxShadow: theme === 'dark' 
+                  ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                  : '0 4px 12px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              <Badge count={unreadCount} size="small">
+                <Button 
+                  type="text" 
+                  icon={<BellOutlined />} 
+                  style={{
+                    color: theme === 'dark' ? '#fff' : '#000'
+                  }}
+                />
+              </Badge>
+            </Popover>
             
             <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
               <Button type="text" className="flex items-center gap-2">
@@ -517,6 +790,7 @@ const WorkspaceHomePage = () => {
                 <div className="text-left">
                   <Text type="secondary" className="text-xs block mb-1">Recent Workspace</Text>
                   <Title 
+                    
                     level={4} 
                     className="mb-0" 
                     style={{ 
@@ -726,7 +1000,7 @@ const WorkspaceHomePage = () => {
         )}
       </main>
 
-      {/* Simplified Footer */}
+      {/* Footer */}
       <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
         <div className="flex items-center justify-center">
           <Text type="secondary" className="text-xs">
