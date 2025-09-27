@@ -62,10 +62,10 @@ const GalaxyBackground = () => {
         canvas.width / 2, canvas.height / 2, 0,
         canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
       );
-      gradient.addColorStop(0, '#4e9122');
-      gradient.addColorStop(0.3, '#1f4d11');
-      gradient.addColorStop(0.6, '#293d1b');
-      gradient.addColorStop(1, '#0a0a1a');
+      gradient.addColorStop(0, '#000000');
+      gradient.addColorStop(0.3, '#000000');
+      gradient.addColorStop(0.6, '#000000');
+      gradient.addColorStop(1, '#000000');
       
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -90,20 +90,22 @@ const GalaxyBackground = () => {
         const finalOpacity = star.opacity * twinkle;
         
         // Outer glow
-        ctx.beginPath();
-        const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
-        glowGradient.addColorStop(0, `rgba(255, 255, 255, ${finalOpacity * 0.8})`);
-        glowGradient.addColorStop(0.5, `rgba(200, 220, 255, ${finalOpacity * 0.3})`);
-        glowGradient.addColorStop(1, 'rgba(200, 220, 255, 0)');
-        ctx.fillStyle = glowGradient;
-        ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
-        ctx.fill();
+      // Outer glow
+ctx.beginPath();
+const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
+glowGradient.addColorStop(0, `rgba(92, 196, 157, ${finalOpacity * 0.9})`);  // strong green core glow
+glowGradient.addColorStop(0.5, `rgba(92, 196, 157, ${finalOpacity * 0.4})`); // softer mid glow
+glowGradient.addColorStop(1, 'rgba(92, 196, 157, 0)'); // fade out
+ctx.fillStyle = glowGradient;
+ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
+ctx.fill();
 
-        // Core star
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${finalOpacity})`;
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
+// Core star (green instead of white)
+ctx.beginPath();
+ctx.fillStyle = `rgba(92, 196, 157, ${finalOpacity})`;
+ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+ctx.fill();
+
       });
 
       animationFrame = requestAnimationFrame(animate);
@@ -121,7 +123,7 @@ const GalaxyBackground = () => {
     <canvas
       id="galaxy-canvas"
       className="fixed inset-0 w-full h-full -z-10"
-      style={{ background: 'linear-gradient(135deg, #0f0f23 0%, #1a0f2e 50%, #0a0a1a 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #0b2520 0%, #0f2e2c 50%, #062f23 100%)' }}
     />
   );
 };
@@ -147,12 +149,14 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
       }}
     >
       <div className="flex items-start gap-4">
-        <div className={`w-10 h-10 bg-${color}-500/20 backdrop-blur-sm rounded-xl 
-          flex items-center justify-center flex-shrink-0 mt-1 border border-${color}-400/30
-          group-hover:bg-${color}-500/40 group-hover:scale-110 transition-all duration-500
-          group-hover:shadow-lg group-hover:shadow-${color}-400/50`}>
-          <Icon className={`w-5 h-5 text-${color}-300 group-hover:text-${color}-200 transition-colors duration-300`} />
-        </div>
+       <div
+  className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl 
+             flex items-center justify-center flex-shrink-0 mt-1 
+             border border-white/20 group-hover:scale-110 
+             transition-all duration-500 group-hover:shadow-lg"
+>
+  <Icon className={`w-5 h-5 text-${color}-400 group-hover:text-${color}-300 transition-colors duration-300`} />
+</div>
         <div className="group-hover:translate-x-2 transition-transform duration-500">
           <h3 className="font-semibold text-white mb-2 group-hover:text-white/90">{title}</h3>
           <p className="text-gray-300 text-sm group-hover:text-gray-200">{description}</p>
@@ -168,59 +172,57 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
 // Animated Title Component
 const AnimatedTitle = () => {
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
   return (
     <div className="flex items-center justify-center gap-3 mb-8 perspective-1000">
-      <span className="text-3xl font-bold text-white text-center overflow-hidden">
+      <span className="text-3xl font-bold text-white text-center overflow-hidden leading-tight">
         {mounted && (
           <>
-            {['w', 'e', 'l', 'c', 'o', 'm', 'e', ' ', 't', 'o', ' '].map((char, i) => (
-              <span
-                key={i}
-                className="inline-block animate-bounce-in"
-                style={{ 
-                  animationDelay: `${i * 100}ms`,
-                  animationFillMode: 'both'
-                }}
-              >
-                {char === ' ' ? '\u00A0' : char}
-              </span>
-            ))}
-            <span 
-              className="inline-block animate-glow-pulse text-[#5CC49D]"
-              style={{ animationDelay: '1100ms', animationFillMode: 'both' }}
+            {["a", "r", "b", "i", "t", "r", "a", "g", "e", "O", "S"].map(
+              (char, i) => (
+                <span
+                  key={`arbos-${i}`}
+                  className={`inline-block ${
+                    (char === "a" && i === 0) || char === "i"
+                      ? "animate-glow-pulse text-[#5CC49D]"
+                      : "animate-bounce-in"
+                  }`}
+                  style={{
+                    animationDelay: `${i * 100}ms`,
+                    animationFillMode: "both",
+                  }}
+                >
+                  {char}
+                </span>
+              )
+            )}
+
+            {/* space + by */}
+            <span
+              className="inline-block animate-bounce-in"
+              style={{ animationDelay: "1200ms", animationFillMode: "both" }}
             >
-              a
+              &nbsp;b
             </span>
-            {['r', 'b'].map((char, i) => (
-              <span
-                key={`arb-${i}`}
-                className="inline-block animate-bounce-in"
-                style={{ 
-                  animationDelay: `${1200 + i * 100}ms`,
-                  animationFillMode: 'both'
-                }}
-              >
-                {char}
-              </span>
-            ))}
-            <span 
-              className="inline-block animate-glow-pulse text-[#5CC49D]"
-              style={{ animationDelay: '1400ms', animationFillMode: 'both' }}
+            <span
+              className="inline-block animate-bounce-in"
+              style={{ animationDelay: "1300ms", animationFillMode: "both" }}
             >
-              i
+              y&nbsp;
             </span>
-            {['t', 'r', 'a', 'g', 'e', 'O', 'S'].map((char, i) => (
+
+            {/* GrowAI (plain white) */}
+            {["G", "r", "o", "w", "A", "I"].map((char, i) => (
               <span
-                key={`trage-${i}`}
+                key={`grow-${i}`}
                 className="inline-block animate-bounce-in"
-                style={{ 
-                  animationDelay: `${1500 + i * 100}ms`,
-                  animationFillMode: 'both'
+                style={{
+                  animationDelay: `${1400 + i * 100}ms`,
+                  animationFillMode: "both",
                 }}
               >
                 {char}
@@ -233,6 +235,8 @@ const AnimatedTitle = () => {
   );
 };
 
+
+
 // Connecting Curves Component
 const ConnectingCurves = () => {
   return (
@@ -242,10 +246,10 @@ const ConnectingCurves = () => {
         {/* Branding text */}
         <div className="absolute top-4 left-12 z-20 animate-fade-in-up" style={{ animationDelay: '2s' }}>
           <div className="text-sm text-white/70 font-medium tracking-wider">
-            <span className="text-[#5CC49D] animate-glow-pulse" style={{ animationDelay: '2.5s' }}>arbitrage</span>
-            <span className="text-white/90">OS</span>
-            <span className="text-white/50 text-xs ml-2">by</span>
-            <span className="text-[#5CC49D] ml-1 font-bold">GrowAI</span>
+            <span className="text-[#5CC49D] animate-glow-pulse" style={{ animationDelay: '2.5s' }}>Automate</span>
+            <span className="text-white/90">&</span>
+
+            <span className="text-[#5CC49D] ml-1 font-bold ">Grow</span>
           </div>
         </div>
         
@@ -466,7 +470,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
               title="Workspaces"
               description="create and manage workspaces"
               delay={200}
-              color="blue"
+              color="green"
             />
             <FeatureCard
               icon={Shield}
@@ -480,7 +484,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
               title="Submissions"
               description="View all recent deliverables in real time"
               delay={600}
-              color="purple"
+              color="green"
             />
           </div>
         </div>
@@ -638,7 +642,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
               title="Activity Heatmaps"
               description="Monitor activities and your usage stats."
               delay={800}
-              color="blue"
+              color="green"
             />
             <FeatureCard
               icon={Target}
@@ -652,7 +656,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
               title="Directories"
               description="Access libraries & directories of various"
               delay={1200}
-              color="purple"
+              color="green"
             />
           </div>
         </div>

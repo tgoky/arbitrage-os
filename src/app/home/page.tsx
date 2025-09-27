@@ -6,6 +6,8 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useWorkItems } from '../hooks/useDashboardData';
+import Image from 'next/image';
+
 import { 
   Button, 
   Card, 
@@ -29,8 +31,11 @@ import {
   ArrowRightOutlined, 
   BellOutlined, 
   DownOutlined, 
+  LoadingOutlined,
+  ClockCircleOutlined,
   HistoryOutlined,
   RiseOutlined,
+  CheckCircleFilled,
   CheckCircleOutlined, 
   ExclamationCircleOutlined, 
   InfoCircleOutlined,
@@ -549,68 +554,115 @@ const WorkspaceHomePage = () => {
   ];
 
   // Loading state
-  if (isLoading || workspaceLoading || userLoading) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center" style={{ 
-        backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
-      }}>
+if (isLoading || workspaceLoading || userLoading) {
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center pt-20" style={{ 
+      backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
+    }}>
+      <div className="flex flex-col items-center">
+        {/* Logo above the card - reduced margin */}
+        <div className="mb-4"> {/* Changed from mb-1 to mb-4 for better spacing */}
+          <img
+            src="/aoswhite.png"
+            alt="ArbitrageOS Logo"
+            className="h-64" // Reduced height from 340px to h-64 (256px)
+            style={{ 
+              width: 'auto',
+              objectFit: 'contain'
+            }}
+          />
+        </div>
+        
         <Card 
-          className="w-80 text-center shadow-lg"
+          className="w-80 text-center shadow-lg -mt-2" // Added negative margin to pull card closer
           bodyStyle={{ padding: '32px' }}
         >
           <div className="flex items-center justify-center gap-2 mb-6">
-            <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
-              <span className="animate-glow-pulse" style={{ color: '#5CC49D' }}>arbitrage</span>
-              <span>OS</span>
-              <span className="text-sm font-normal ml-2" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                by
-              </span>
-              <span className="text-sm font-bold ml-1 " style={{ color: '#5CC49D' }}>
-                GrowAI
-              </span>
-            </Title>
+            {/* Empty div - removed title content */}
           </div>
           
           <div className="space-y-4">
             <div>
-              <Text className="text-sm">Initializing System</Text>
-              <div className="flex justify-between items-center mt-1">
+              <Text className="text-sm font-medium">Initializing System</Text>
+              <div className="flex justify-between items-center mt-2">
                 <Progress 
                   percent={progress} 
-                  strokeColor="#16a34a"
+                  strokeColor="#5CC49D"
+                  trailColor={theme === 'dark' ? '#374151' : '#e5e7eb'}
                   size="small"
                   showInfo={false}
                   className="flex-1 mr-3"
                 />
-                <Text className="text-xs font-mono" style={{ color: '#16a34a' }}>
+                <Text className="text-xs font-mono font-medium" style={{ color: '#5CC49D' }}>
                   {progress}%
                 </Text>
               </div>
             </div>
             
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <Text type="secondary">Loading workspaces</Text>
-                <Text>{progress >= 30 ? '✓' : '⏳'}</Text>
+            <div className="space-y-3 text-xs">
+              {/* Loading workspaces */}
+              <div className="flex justify-between items-center py-1">
+                <Text type="secondary" className="text-xs">Loading workspaces</Text>
+                <div className="flex items-center">
+                  {progress >= 30 ? (
+                    <CheckCircleFilled className="text-emerald-500 text-sm" />
+                  ) : progress >= 15 ? (
+                    <LoadingOutlined className="text-blue-500 text-sm" />
+                  ) : (
+                    <ClockCircleOutlined className="text-gray-400 text-sm" />
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <Text type="secondary">Loading user profile</Text>
-                <Text>{progress >= 50 ? '✓' : '⏳'}</Text>
+              
+              {/* Loading user profile */}
+              <div className="flex justify-between items-center py-1">
+                <Text type="secondary" className="text-xs">Loading user profile</Text>
+                <div className="flex items-center">
+                  {progress >= 50 ? (
+                    <CheckCircleFilled className="text-emerald-500 text-sm" />
+                  ) : progress >= 30 ? (
+                    <LoadingOutlined className="text-blue-500 text-sm" />
+                  ) : (
+                    <ClockCircleOutlined className="text-gray-400 text-sm" />
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <Text type="secondary">Preparing dashboard</Text>
-                <Text>{progress >= 70 ? '✓' : '⏳'}</Text>
+              
+              {/* Preparing dashboard */}
+              <div className="flex justify-between items-center py-1">
+                <Text type="secondary" className="text-xs">Preparing dashboard</Text>
+                <div className="flex items-center">
+                  {progress >= 70 ? (
+                    <CheckCircleFilled className="text-emerald-500 text-sm" />
+                  ) : progress >= 50 ? (
+                    <LoadingOutlined className="text-blue-500 text-sm" />
+                  ) : (
+                    <ClockCircleOutlined className="text-gray-400 text-sm" />
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <Text type="secondary">Ready</Text>
-                <Text>{progress >= 100 ? '✓' : '⏳'}</Text>
+              
+              {/* Ready status */}
+              <div className="flex justify-between items-center py-1">
+                <Text type="secondary" className="text-xs font-medium">Ready</Text>
+                <div className="flex items-center">
+                  {progress >= 100 ? (
+                    <div className="flex items-center gap-1">
+                      <CheckCircleFilled className="text-emerald-500 text-sm" />
+                      <Text className="text-emerlad-500 text-xs font-medium">Complete</Text>
+                    </div>
+                  ) : (
+                    <Text className="text-gray-400 text-xs">Pending</Text>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </Card>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Main render
   return (
@@ -618,52 +670,211 @@ const WorkspaceHomePage = () => {
       backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
     }}>
       {/* Navigation Loading Modal */}
-      <Modal
-        open={navigating}
-        footer={null}
-        closable={false}
-        centered
-        width={400}
-      >
-        <div className="text-center py-4">
-          <div className="flex items-center gap-3 mb-4 justify-center">
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-              <FolderOutlined className="text-white" />
-            </div>
-            <div>
-              <Title level={4} className="mb-0">Opening {selectedWorkspace}</Title>
-              <Text type="secondary">Loading workspace contents...</Text>
-            </div>
+    {/* Navigation Loading Modal */}
+<Modal
+  open={navigating}
+  footer={null}
+  closable={false}
+  centered
+  width={420}
+  styles={{
+    body: { 
+      padding: 0,
+      background: theme === 'dark' ? '#1a1a1a' : '#ffffff'
+    }
+  }}
+  className="navigation-loading-modal"
+  style={{
+    borderRadius: '16px',
+    overflow: 'hidden',
+    border: theme === 'dark' 
+      ? '1px solid rgba(255,255,255,0.1)'
+      : '1px solid rgba(0,0,0,0.1)',
+    boxShadow: theme === 'dark'
+      ? '0 20px 40px rgba(0,0,0,0.4)'
+      : '0 20px 40px rgba(0,0,0,0.15)'
+  }}
+>
+  <div className="relative overflow-hidden">
+    {/* Header with subtle background */}
+    <div className="relative z-10 p-6 border-b" style={{ 
+      borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      background: theme === 'dark' ? '#1f1f1f' : '#fafafa'
+    }}>
+      <div className="flex items-center gap-4">
+        {/* Clean workspace icon */}
+        <div className="relative">
+          <div className="w-12 h-12 bg-[#5CC49D] rounded-xl flex items-center justify-center shadow-lg">
+            <FolderOutlined className="text-white text-lg" />
           </div>
-          
-          <Progress 
-            percent={navigationProgress} 
-            strokeColor="#16a34a"
-            size="small"
+          {/* Subtle pulsing effect */}
+          <div 
+            className="absolute inset-0 border-2 border-[#5CC49D] rounded-xl animate-ping opacity-20"
+            style={{ animationDuration: '2s' }}
           />
-          
-          <Text type="secondary" className="mt-2 block">
-            {navigationProgress}% complete
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <Title 
+            level={4} 
+            className="mb-1 font-semibold truncate"
+            style={{ color: theme === 'dark' ? '#fff' : '#1a1a1a' }}
+          >
+            Opening {selectedWorkspace}
+          </Title>
+          <Text 
+            type="secondary"
+            className="text-sm"
+            style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+          >
+            Preparing your workspace environment...
           </Text>
         </div>
-      </Modal>
+      </div>
+    </div>
+
+    {/* Progress section */}
+    <div className="relative z-10 p-6">
+      {/* Progress stats */}
+      <div className="flex justify-between items-center mb-4">
+        <Text 
+          strong
+          className="text-sm"
+          style={{ color: theme === 'dark' ? '#e5e7eb' : '#4b5563' }}
+        >
+          Loading Progress
+        </Text>
+        <div className="flex items-center gap-2">
+          <Text 
+            strong
+            className="text-lg font-mono"
+            style={{ color: '#5CC49D' }}
+          >
+            {navigationProgress}%
+          </Text>
+          <Text 
+            type="secondary"
+            className="text-xs"
+          >
+            complete
+          </Text>
+        </div>
+      </div>
+
+      {/* Main progress bar */}
+      <div className="relative mb-2">
+        <div 
+          className="h-2 rounded-full overflow-hidden"
+          style={{ 
+            background: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+          }}
+        >
+          <div 
+            className="h-full rounded-full transition-all duration-300 ease-out"
+            style={{
+              width: `${navigationProgress}%`,
+              background: '#5CC49D',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Subtle shimmer effect */}
+            <div 
+              className="absolute inset-0 bg-white opacity-30"
+              style={{
+                transform: 'translateX(-100%)',
+                animation: 'shimmer 2s infinite'
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Progress indicators */}
+      <div className="grid grid-cols-3 gap-3 mt-4">
+        {[
+          { label: 'Files', complete: navigationProgress > 20 },
+          { label: 'Tools', complete: navigationProgress > 50 },
+          { label: 'AI Models', complete: navigationProgress > 80 }
+        ].map((item, index) => (
+          <div key={index} className="text-center">
+            <div className="flex items-center justify-center mb-1">
+              {item.complete ? (
+                <CheckCircleFilled className="text-[#5CC49D] text-base" />
+              ) : (
+                <div 
+                  className="w-3 h-3 rounded-full border-2"
+                  style={{ 
+                    borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db'
+                  }}
+                />
+              )}
+            </div>
+            <Text 
+              className="text-xs font-medium"
+              style={{ 
+                color: item.complete 
+                  ? '#5CC49D' 
+                  : (theme === 'dark' ? '#6b7280' : '#9ca3af')
+              }}
+            >
+              {item.label}
+            </Text>
+          </div>
+        ))}
+      </div>
+
+      {/* Loading animation */}
+      <div className="flex justify-center mt-4">
+        <div className="flex items-center gap-1">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full bg-[#5CC49D] opacity-60"
+              style={{
+                animation: `bounce 1.4s infinite ease-in-out`,
+                animationDelay: `${i * 0.16}s`
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Footer with status message */}
+    <div className="relative z-10 p-4 border-t text-center" style={{ 
+      borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      background: theme === 'dark' ? '#1f1f1f' : '#fafafa'
+    }}>
+      <Text 
+        className="text-xs font-medium"
+        style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+      >
+        {navigationProgress < 30 && 'Initializing workspace structure...'}
+        {navigationProgress >= 30 && navigationProgress < 60 && 'Loading AI tools and templates...'}
+        {navigationProgress >= 60 && navigationProgress < 90 && 'Preparing analytics dashboard...'}
+        {navigationProgress >= 90 && 'Finalizing workspace setup...'}
+      </Text>
+    </div>
+  </div>
+</Modal>
 
       {/* Header */}
-      <header className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-3`}>
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
-              <span className="animate-glow-pulse" style={{ color: '#5CC49D' }}>arbitrage</span>
-              <span>OS</span>
-              <span className="text-sm font-normal ml-2" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                by
-              </span>
-              <span className="text-sm font-bold ml-1 " style={{ color: '#5CC49D' }}>
-                GrowAI
-              </span>
-            </Title>
-          </div>
+ <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+  <div className="flex items-center justify-between h-12">
+    {/* Logo */}
+    <div className="flex items-center gap-3">
+      <img
+        src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+        alt="ArbitrageOS Logo"
+        style={{ 
+          height: '140px',
+          width: 'auto',
+          objectFit: 'contain',
+          marginRight: '16px'
+        }}
+      />
+    </div>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-md mx-8">
@@ -877,7 +1088,7 @@ const WorkspaceHomePage = () => {
               onClick={() => setShowCreateModal(true)}
             >
               <div className="flex flex-col items-center justify-center w-full text-center">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-[#063f48] rounded-lg flex items-center justify-center mb-2">
                   <PlusOutlined className="text-white text-sm" />
                 </div>
                 <Text className="text-sm font-medium">New Workspace</Text>
@@ -903,7 +1114,7 @@ const WorkspaceHomePage = () => {
               >
                 <div className="flex flex-col h-full">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
                       <FolderOutlined className="text-white text-sm" />
                     </div>
                     <ArrowRightOutlined className="text-gray-400 text-xs mt-1" />
@@ -974,7 +1185,7 @@ const WorkspaceHomePage = () => {
                 size="large" 
                 icon={<PlusOutlined />}
                 onClick={() => setShowCreateModal(true)}
-                style={{ backgroundColor: '#16a34a', borderColor: '#16a34a'  }}
+                style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D'  }}
               >
                 Create Workspace
               </Button>
@@ -1004,7 +1215,7 @@ const WorkspaceHomePage = () => {
       <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
         <div className="flex items-center justify-center">
           <Text type="secondary" className="text-xs">
-            <span className="animate-glow-pulse" style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+            <span className="" style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
             <span  style={{ color: '#5CC49D' }}>GrowAI</span>
             {' '}© 2025 • Automate & Grow
           </Text>
