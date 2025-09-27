@@ -309,7 +309,7 @@ const WorkspaceHomePage = () => {
         {/* Welcome Section */}
         <div className="mb-6">
           <Title level={3} className="mb-1" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
-            Your Workspaces
+            Workspace Environment
           </Title>
           <Text type="secondary" className="text-sm">
             Manage your arbitrage projects and team collaborations
@@ -522,13 +522,15 @@ const WorkspaceHomePage = () => {
       </main>
 
       {/* Simplified Footer */}
-      <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
-        <div className="flex items-center justify-center">
-          <Text type="secondary" className="text-xs">
-            arbitrageOS © 2025 • Streamlining your arbitrage workflows
-          </Text>
-        </div>
-      </footer>
+    <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
+  <div className="flex items-center justify-center">
+    <Text type="secondary" className="text-xs">
+      <span className="animate-glow-pulse" style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+      <span  style={{ color: '#5CC49D' }}>GrowAI</span>
+      {' '}© 2025 • Automate & Grow
+    </Text>
+  </div>
+</footer>
 
       {/* Create Workspace Modal */}
       <Modal
