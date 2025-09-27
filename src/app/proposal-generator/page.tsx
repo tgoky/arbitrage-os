@@ -1640,6 +1640,12 @@ const getDefaultAmount = (proposalType: ProposalType, industry: IndustryType): n
   loading={generating}
   disabled={!validationResults.isReadyToGenerate} // Changed from isFormValid
   block
+       style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
 >
   {generating ? 'Generating...' : 'Generate Proposal'}
 </Button>

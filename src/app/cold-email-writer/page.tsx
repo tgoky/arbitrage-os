@@ -792,14 +792,20 @@ const handleOptimizeEmail = async (
 <div className="mb-6">
   <div className="flex justify-center">
     <Space size="large">
-      <Button
-        type={activeTab === 'compose' ? 'primary' : 'default'}
-        icon={<MailOutlined />}
-        onClick={() => setActiveTab('compose')}
-        size="large"
-      >
-        Compose New Email
-      </Button>
+    <Button
+  type={activeTab === 'compose' ? 'primary' : 'default'}
+  icon={<MailOutlined />}
+  onClick={() => setActiveTab('compose')}
+  size="large"
+  style={{
+    backgroundColor: activeTab === 'compose' ? '#5CC49D' : undefined,
+    borderColor: activeTab === 'compose' ? '#5CC49D' : undefined,
+    color: activeTab === 'compose' ? '#020202' : undefined,
+  }}
+  className={activeTab === 'compose' ? 'active-compose-btn' : ''}
+>
+  Compose New Email
+</Button>
       <Badge count={savedEmails.length} showZero>
         <Button
           type={activeTab === 'saved' ? 'primary' : 'default'}
@@ -1413,13 +1419,20 @@ const handleOptimizeEmail = async (
         } 
         key="5"
       >
-        <Button
-          type="primary"
-          onClick={fetchTemplates}
-          loading={templatesLoading}
-        >
-          Load Saved Templates
-        </Button>
+       <Button
+  type="primary"
+  onClick={fetchTemplates}
+  loading={templatesLoading}
+  style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
+  className="template-load-btn"
+>
+  Load Saved Templates
+</Button>
       </Panel>
     </Collapse>
 
@@ -1432,6 +1445,12 @@ const handleOptimizeEmail = async (
         icon={<ArrowRightOutlined />}
         className="min-w-48"
         disabled={loading}
+         style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
       >
         {loading ? 'Generating AI Email...' : 'Generate AI Email'}
       </Button>

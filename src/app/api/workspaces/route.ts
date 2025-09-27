@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       : slug;
 
     const colors = [
-      "bg-blue-700", "bg-red-700", "bg-green-700", "bg-yellow-600",
+      "bg-blue-700", "bg-red-700", "bg-emerald-500", "bg-green-700", "bg-yellow-600",
       "bg-purple-700", "bg-teal-700", "bg-pink-700", "bg-indigo-700"
     ];
 

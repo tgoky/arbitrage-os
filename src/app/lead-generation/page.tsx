@@ -900,7 +900,12 @@ const leadColumns: ColumnsType<Lead> = [
             icon={<PlusOutlined />}
             onClick={() => router.push('/lead-generation/create')}
             size="large"
-              className="bg-darkGreen"
+                   style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
           >
             Generate New Leads
           </Button>

@@ -850,6 +850,12 @@ const CreateWorkflow = () => (
                     console.log('Validation failed:', info);
                   });
               }}
+                   style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
             >
               Next: Trigger Setup
             </Button>

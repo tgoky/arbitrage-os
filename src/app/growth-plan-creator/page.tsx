@@ -616,6 +616,12 @@ const onFinish = async (values: any) => {
               type="primary" 
               icon={<RocketOutlined />}
               onClick={() => setViewMode('create')}
+               style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
             >
               New Plan
             </Button>
@@ -987,6 +993,13 @@ const onFinish = async (values: any) => {
     icon={<ThunderboltOutlined />}
     className="min-w-48"
     disabled={isLoading} // Add this to disable during any loading operation
+         style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
+    
   >
     {generationLoading ? 'Generating Plan...' : 'Generate Growth Plan'}
   </Button>

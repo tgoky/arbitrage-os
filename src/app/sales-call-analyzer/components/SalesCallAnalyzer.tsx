@@ -445,6 +445,12 @@ export default function SalesCallAnalyzerPage() {
             type="primary" 
             icon={<PlusOutlined />}
             onClick={() => setIsModalVisible(true)}
+                 style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
           >
             New Call
           </Button>
@@ -702,6 +708,12 @@ export default function SalesCallAnalyzerPage() {
                     type="primary" 
                     icon={<PlusOutlined />}
                     onClick={() => setIsModalVisible(true)}
+                         style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
                   >
                     Create Your First Analysis
                   </Button>

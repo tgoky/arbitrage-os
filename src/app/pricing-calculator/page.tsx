@@ -823,6 +823,12 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
                   icon={<BulbOutlined />}
                   loading={isGenerating}
                   size="large"
+                       style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
                 >
                   {isGenerating ? 'Generating AI Insights...' : 'Generate Pricing Strategy'}
                 </Button>

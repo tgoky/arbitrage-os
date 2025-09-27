@@ -342,6 +342,12 @@ const steps = [
         loading={isAnalyzing}
         disabled={!form.getFieldValue('transcript') || form.getFieldValue('transcript')?.length < 50 || isAnalyzing}
         icon={<RobotOutlined />}
+             style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
       >
         {isAnalyzing ? 'Analyzing...' : 'Analyze Call'}
       </Button>
