@@ -139,6 +139,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     body: {
       backgroundColor: theme === 'dark' ? '#1F2937' : '#F9FAFB',
       padding: screens.xs ? '8px' : '10px',
+      
       borderRadius: '8px',
       minHeight: 'auto',
     },
@@ -365,10 +366,10 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
    <div style={{ 
   marginTop: '16px', 
   padding: '12px 16px',
-  backgroundColor: theme === 'dark' ? '#5CC49D' : '#F3F4F6',
+  backgroundColor: theme === 'dark' ? '#1F2937' : '#F3F4F6',
   borderRadius: '8px',
   fontSize: '12px',
-  color: theme === 'dark' ? '#020202' : '#6B7280',
+  color: theme === 'dark' ? '#5CC49D' : '#6B7280',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -380,7 +381,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
     <FolderOutlined style={{ 
       fontSize: '14px', 
-      color: theme === 'dark' ? '#020202' : '#5CC49D' 
+      color: theme === 'dark' ? '#5CC49D' : '#5CC49D' 
     }} />
     <span>Workspace: {workspaceName}</span>
     {workspaceId && (
@@ -398,7 +399,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <FileDoneOutlined style={{ 
         fontSize: '14px', 
-        color: theme === 'dark' ? '#020202' : '#5CC49D' 
+        color: theme === 'dark' ? '#5CC49D' : '#5CC49D' 
       }} />
       <span>{workItems.length} items</span>
     </div>

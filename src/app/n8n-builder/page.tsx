@@ -971,6 +971,12 @@ const CreateWorkflow = () => (
             <Button 
               type="primary"
               onClick={() => setActiveStep(2)}
+                    style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
             >
               Next: Integrations & Actions
             </Button>
@@ -1043,6 +1049,12 @@ const CreateWorkflow = () => (
               htmlType="submit"
               loading={isGenerating}
               icon={isGenerating ? undefined : <ThunderboltOutlined />}
+                     style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
             >
               {isGenerating ? 'Generating Workflow...' : 'Generate Workflow'}
             </Button>
@@ -1071,6 +1083,13 @@ const CreateWorkflow = () => (
                   setCurrentWorkflow(null);
                   form.resetFields();
                 }}
+                    style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
+        
               >
                 Create Another
               </Button>

@@ -42,6 +42,9 @@ import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import CreditsPurchaseModal from '../../../components/credits/CreditsDisplayModal';
 
+import LoadingOverlay from '../loadingOverlay'; 
+
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -1596,6 +1599,7 @@ const stepOneContent = (
       padding: 24,
       minHeight: '100vh'
     }}>
+       <LoadingOverlay visible={isGenerating} /> 
       <div className="mb-6">
         <Button 
           icon={<ArrowLeftOutlined />} 

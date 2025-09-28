@@ -1,29 +1,14 @@
-// src/components/OfferCreatorLoadingOverlay.tsx
+// src/components/ModernLoadingOverlay.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Progress, Typography, Button } from 'antd';
+import { Button } from 'antd';
 import { 
-  LoadingOutlined, 
-  MinusOutlined, 
-  ExpandOutlined, 
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  RocketOutlined,
   CloseOutlined,
-  FolderOutlined,
-  SettingOutlined,
-  FileTextOutlined,
-  FileImageOutlined,
-  FilePdfOutlined,
-  DesktopOutlined,
-  SaveOutlined,
-  EditOutlined
+  CheckCircleOutlined
 } from '@ant-design/icons';
 
-const { Text } = Typography;
-
-const offerCreatorLoadingTips = [
+const loadingTips = [
   'Calculating optimal pricing strategy...',
   'Analyzing ROI metrics...',
   'Generating pricing options...',
@@ -38,51 +23,41 @@ interface LoadingOverlayProps {
   visible: boolean;
   onComplete?: () => void;
   onClose?: () => void;
+  theme?: 'light' | 'dark';
 }
 
-const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, onComplete, onClose }) => {
-  const [currentTip, setCurrentTip] = useState(offerCreatorLoadingTips[0]);
+const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ 
+  visible, 
+  onComplete, 
+  onClose,
+  theme = 'light' 
+}) => {
+  const [currentTip, setCurrentTip] = useState(loadingTips[0]);
   const [progress, setProgress] = useState(0);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const [isClosed, setIsClosed] = useState(false);
-  const [fileManagerPosition, setFileManagerPosition] = useState({ x: 100, y: 100 });
-  const [settingsPosition, setSettingsPosition] = useState({ x: 300, y: 100 });
+  const [isVisible, setIsVisible] = useState(visible);
 
   const loadingSteps = [
     { id: 'validation', name: 'Validating inputs', duration: 800 },
     { id: 'headline', name: 'Crafting headline', duration: 1200 },
-    { id: 'pricing', name: 'Calculating pricing', duration: 1600 },
+    { id: 'pricing', name: 'Calculating nodes', duration: 1600 },
     { id: 'assets', name: 'Generating assets', duration: 2000 },
     { id: 'export', name: 'Preparing export', duration: 2400 },
-    { id: 'final', name: 'Finalizing offer', duration: 2800 },
+    { id: 'final', name: 'Finalizing workflow', duration: 2800 },
   ];
 
-  const fileManagerFiles = [
-    { name: 'calc_draft.docx', icon: <FileTextOutlined />, size: '2.4MB', type: 'document' },
-    { name: 'marketing_assets', icon: <FolderOutlined />, size: '15.7MB', type: 'folder' },
-    { name: 'pricing_sheet.xlsx', icon: <FileTextOutlined />, size: '1.2MB', type: 'spreadsheet' },
-    { name: 'brand_guidelines.pdf', icon: <FilePdfOutlined />, size: '8.9MB', type: 'document' },
-    { name: 'product_images', icon: <FolderOutlined />, size: '32.1MB', type: 'folder' },
-    { name: 'logo_final.png', icon: <FileImageOutlined />, size: '4.2MB', type: 'image' },
-  ];
-
-  const settingsOptions = [
-    { name: 'Auto-save', value: 'Enabled', icon: <SaveOutlined /> },
-    { name: 'Theme', value: 'Windows 98', icon: <DesktopOutlined /> },
-    { name: 'Notifications', value: 'On', icon: <SettingOutlined /> },
-    { name: 'Editor', value: 'Advanced', icon: <EditOutlined /> },
-  ];
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     if (!visible) {
       setProgress(0);
       setCompletedSteps([]);
-      setIsClosed(false);
+      setIsVisible(false);
       return;
     }
 
+    setIsVisible(true);
+    
     const progressIncrements = [
       { target: 15, delay: 300 },
       { target: 35, delay: 800 },
@@ -126,7 +101,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, onComplete, on
     startNextIncrement();
 
     const tipInterval = setInterval(() => {
-      setCurrentTip(offerCreatorLoadingTips[Math.floor(Math.random() * offerCreatorLoadingTips.length)]);
+      setCurrentTip(loadingTips[Math.floor(Math.random() * loadingTips.length)]);
     }, 2000);
 
     loadingSteps.forEach((step) => {
@@ -142,573 +117,165 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, onComplete, on
   }, [visible, onComplete]);
 
   const handleClose = () => {
-    setIsClosed(true);
+    setIsVisible(false);
     if (onClose) onClose();
   };
 
-  if (!visible || isClosed) return null;
-
-  const BrokenProgressBar = ({ percent }: { percent: number }) => {
-    const totalSegments = 20;
-    const filledSegments = Math.floor((percent / 100) * totalSegments);
-    
-    return (
-      <div style={{
-        display: 'flex',
-        width: '100%',
-        height: 16,
-        backgroundColor: '#c0c0c0',
-        border: '1px solid #808080',
-        boxShadow: 'inset 1px 1px #fff, inset -1px -1px #0a0a0a',
-        padding: 2,
-        gap: 2
-      }}>
-        {Array.from({ length: totalSegments }).map((_, index) => (
-          <div
-            key={index}
-            style={{
-              flex: 1,
-              backgroundColor: index < filledSegments ? 
-                (index < filledSegments - 2 ? '#000080' : '#008000') : 
-                'transparent',
-              border: index < filledSegments ? 'none' : '1px dotted #808080'
-            }}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  // Full File Manager Window
-  const FileManagerWindow = () => (
-    <div style={{
-      position: 'fixed',
-      top: fileManagerPosition.y,
-      left: fileManagerPosition.x,
-      width: 500,
-      height: 400,
-      background: '#c0c0c0',
-      border: '2px solid #000',
-      boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff',
-      zIndex: 999,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div style={{
-        background: '#000080',
-        color: '#fff',
-        padding: '2px 4px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        cursor: 'move'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <FolderOutlined style={{ fontSize: 14, color: '#fff' }} />
-          <Text strong style={{ fontSize: 14, color: '#fff' }}>File Manager</Text>
-        </div>
-        <div style={{ display: 'flex', gap: 2 }}>
-          <Button 
-            style={{ 
-              width: 20, 
-              height: 20, 
-              minWidth: 20, 
-              padding: 0, 
-              background: '#c0c0c0',
-              border: '1px solid #000',
-              boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-            }}
-            icon={<MinusOutlined style={{ fontSize: 10 }} />} 
-          />
-          <Button 
-            style={{ 
-              width: 20, 
-              height: 20, 
-              minWidth: 20, 
-              padding: 0, 
-              background: '#c0c0c0',
-              border: '1px solid #000',
-              boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-            }}
-            icon={<ExpandOutlined style={{ fontSize: 10 }} />} 
-          />
-          <Button 
-            style={{ 
-              width: 20, 
-              height: 20, 
-              minWidth: 20, 
-              padding: 0, 
-              background: '#c0c0c0',
-              border: '1px solid #000',
-              boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-            }}
-            icon={<CloseOutlined style={{ fontSize: 10 }} />} 
-            onClick={handleClose}
-          />
-        </div>
-      </div>
-
-      {/* Toolbar */}
-      <div style={{
-        background: '#c0c0c0',
-        padding: '4px',
-        borderBottom: '2px solid #808080',
-        display: 'flex',
-        gap: 4
-      }}>
-        <Button style={{ 
-          padding: '2px 8px', 
-          background: '#c0c0c0',
-          border: '2px solid #808080',
-          boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf',
-          fontSize: 12
-        }}>
-          File
-        </Button>
-        <Button style={{ 
-          padding: '2px 8px', 
-          background: '#c0c0c0',
-          border: '2px solid #808080',
-          boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf',
-          fontSize: 12
-        }}>
-          Edit
-        </Button>
-        <Button style={{ 
-          padding: '2px 8px', 
-          background: '#c0c0c0',
-          border: '2px solid #808080',
-          boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf',
-          fontSize: 12
-        }}>
-          View
-        </Button>
-      </div>
-
-      {/* Content Area */}
-      <div style={{ 
-        flex: 1, 
-        padding: '8px',
-        background: '#fff',
-        margin: '4px',
-        border: '2px solid #808080',
-        boxShadow: 'inset 1px 1px #fff, inset -1px -1px #0a0a0a',
-        overflow: 'auto'
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
-          {fileManagerFiles.map((file, index) => (
-            <div key={index} style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px',
-              cursor: 'pointer',
-              textAlign: 'center'
-            }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                background: '#c0c0c0',
-                border: '2px solid #808080',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '4px'
-              }}>
-                {file.icon}
-              </div>
-              <span style={{ fontSize: 11, wordBreak: 'break-word' }}>{file.name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Status Bar */}
-      <div style={{
-        background: '#c0c0c0',
-        padding: '2px 4px',
-        borderTop: '2px solid #808080',
-        fontSize: 11,
-        display: 'flex',
-        justifyContent: 'space-between'
-      }}>
-        <span>6 objects</span>
-        <span>127MB used</span>
-      </div>
-    </div>
-  );
-
-  // Full Settings Window
-  const SettingsWindow = () => (
-    <div style={{
-      position: 'fixed',
-      top: settingsPosition.y,
-      left: settingsPosition.x,
-      width: 400,
-      height: 300,
-      background: '#c0c0c0',
-      border: '2px solid #000',
-      boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff',
-      zIndex: 999,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div style={{
-        background: '#000080',
-        color: '#fff',
-        padding: '2px 4px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        cursor: 'move'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <SettingOutlined style={{ fontSize: 14, color: '#fff' }} />
-          <Text strong style={{ fontSize: 14, color: '#fff' }}>Settings</Text>
-        </div>
-        <div style={{ display: 'flex', gap: 2 }}>
-          <Button 
-            style={{ 
-              width: 20, 
-              height: 20, 
-              minWidth: 20, 
-              padding: 0, 
-              background: '#c0c0c0',
-              border: '1px solid #000',
-              boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-            }}
-            icon={<MinusOutlined style={{ fontSize: 10 }} />} 
-          />
-          <Button 
-            style={{ 
-              width: 20, 
-              height: 20, 
-              minWidth: 20, 
-              padding: 0, 
-              background: '#c0c0c0',
-              border: '1px solid #000',
-              boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-            }}
-            icon={<ExpandOutlined style={{ fontSize: 10 }} />} 
-          />
-          <Button 
-            style={{ 
-              width: 20, 
-              height: 20, 
-              minWidth: 20, 
-              padding: 0, 
-              background: '#c0c0c0',
-              border: '1px solid #000',
-              boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-            }}
-            icon={<CloseOutlined style={{ fontSize: 10 }} />} 
-            onClick={handleClose}
-          />
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div style={{ 
-        flex: 1, 
-        padding: '16px',
-        background: '#fff',
-        margin: '4px',
-        border: '2px solid #808080',
-        boxShadow: 'inset 1px 1px #fff, inset -1px -1px #0a0a0a'
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {settingsOptions.map((option, index) => (
-            <div key={index} style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px',
-              background: '#c0c0c0',
-              border: '2px solid #808080'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {option.icon}
-                <span style={{ fontSize: 12 }}>{option.name}</span>
-              </div>
-              <select style={{
-                padding: '2px 4px',
-                background: '#fff',
-                border: '2px solid #808080',
-                boxShadow: 'inset 1px 1px #fff, inset -1px -1px #0a0a0a',
-                fontSize: 12
-              }}>
-                <option>{option.value}</option>
-                <option>Disabled</option>
-                <option>Basic</option>
-              </select>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Buttons */}
-      <div style={{
-        padding: '8px',
-        background: '#c0c0c0',
-        borderTop: '2px solid #808080',
-        display: 'flex',
-        justifyContent: 'flex-end',
-        gap: '8px'
-      }}>
-        <Button style={{ 
-          padding: '4px 12px', 
-          background: '#c0c0c0',
-          border: '2px solid #808080',
-          boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf',
-          fontSize: 12
-        }}>
-          OK
-        </Button>
-        <Button style={{ 
-          padding: '4px 12px', 
-          background: '#c0c0c0',
-          border: '2px solid #808080',
-          boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf',
-          fontSize: 12
-        }}>
-          Cancel
-        </Button>
-        <Button style={{ 
-          padding: '4px 12px', 
-          background: '#c0c0c0',
-          border: '2px solid #808080',
-          boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf',
-          fontSize: 12
-        }}>
-          Apply
-        </Button>
-      </div>
-    </div>
-  );
-
-  if (isMinimized) {
-    return (
-      <>
-        {/* <FileManagerWindow />
-        <SettingsWindow /> */}
-        
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 20,
-            right: 20,
-            width: 300,
-            background: '#c0c0c0',
-            borderRadius: 0,
-            padding: 4,
-            boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff',
-            border: '1px solid #000',
-            zIndex: 1000,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <RocketOutlined style={{ color: '#000' }} />
-              <Text strong style={{ fontSize: 12 }}>Generating Calculation</Text>
-            </div>
-            <div style={{ display: 'flex', gap: 2 }}>
-              <Button 
-                style={{ 
-                  width: 20, 
-                  height: 20, 
-                  minWidth: 20, 
-                  padding: 0, 
-                  background: '#c0c0c0',
-                  border: '1px solid #000',
-                  boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-                }}
-                icon={<ExpandOutlined style={{ fontSize: 10 }} />} 
-                onClick={() => setIsMinimized(false)}
-                size="small"
-              />
-              <Button 
-                style={{ 
-                  width: 20, 
-                  height: 20, 
-                  minWidth: 20, 
-                  padding: 0, 
-                  background: '#c0c0c0',
-                  border: '1px solid #000',
-                  boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-                }}
-                icon={<CloseOutlined style={{ fontSize: 10 }} />} 
-                onClick={handleClose}
-                size="small"
-              />
-            </div>
-          </div>
-          <BrokenProgressBar percent={progress} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text type="secondary" style={{ fontSize: 10, color: '#000' }}>
-              {currentTip}
-            </Text>
-            <Text style={{ fontSize: 10, color: '#000', fontWeight: 'bold' }}>
-              {progress}%
-            </Text>
-          </div>
-        </div>
-      </>
-    );
-  }
+  if (!visible || !isVisible) return null;
 
   return (
-    <>
-      {/* <FileManagerWindow />
-      <SettingsWindow /> */}
-      
-      <div
-        style={{
-          position: 'fixed',
-          bottom: isMaximized ? 0 : 20,
-          right: isMaximized ? 0 : 20,
-          width: isMaximized ? '100%' : 400,
-          height: isMaximized ? '100%' : 'auto',
-          background: '#c0c0c0',
-          borderRadius: 0,
-          padding: 4,
-          boxShadow: isMaximized ? 'none' : 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px grey, inset 2px 2px #fff',
-          border: '1px solid #000',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
-        aria-busy={visible}
-        role="alert"
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      {/* Premium Floating Loader - Theme Aware */}
+      <div 
+        className={`fixed bottom-8 right-8 rounded-2xl shadow-2xl backdrop-blur-md border p-5 z-50 pointer-events-auto min-w-96 ${
+          isDark 
+            ? 'bg-[#063f48] border-[#5CC49D]/20' 
+            : 'bg-white border-gray-200/70'
+        }`}
       >
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          background: '#000080',
-          color: '#fff',
-          padding: '2px 4px',
-          margin: -4,
-          marginBottom: 4
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <LoadingOutlined style={{ fontSize: 14, color: '#fff' }} spin />
-            <Text strong style={{ fontSize: 14, color: '#fff' }}>Generating Calculation</Text>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            {/* Enhanced Animated Spinner */}
+            <div className="relative">
+              <div className={`animate-spin rounded-full h-5 w-5 border-2 ${
+                isDark ? 'border-[#5CC49D]' : 'border-[#063f48]'
+              } border-t-transparent`}></div>
+              <div 
+                className={`absolute inset-0 animate-spin rounded-full h-5 w-5 border-2 ${
+                  isDark ? 'border-[#5CC49D]/20' : 'border-[#063f48]/20'
+                } border-t-transparent`} 
+                style={{ animationDirection: 'reverse', animationDuration: '3s' }} 
+              />
+            </div>
+            
+            <div className="flex flex-col">
+              <span className={`text-sm font-semibold ${
+                isDark ? 'text-white' : 'text-[#063f48]'
+              }`}>
+             Generating Calculation
+              </span>
+              <span className={`text-xs mt-0.5 ${
+                isDark ? 'text-[#5CC49D]' : 'text-gray-600'
+              }`}>
+                {currentTip}
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 2 }}>
-            <Button 
-              style={{ 
-                width: 20, 
-                height: 20, 
-                minWidth: 20, 
-                padding: 0, 
-                background: '#c0c0c0',
-                border: '1px solid #000',
-                boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-              }}
-              icon={<MinusOutlined style={{ fontSize: 10 }} />} 
-              onClick={() => setIsMinimized(true)}
-            />
-            <Button 
-              style={{ 
-                width: 20, 
-                height: 20, 
-                minWidth: 20, 
-                padding: 0, 
-                background: '#c0c0c0',
-                border: '1px solid #000',
-                boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-              }}
-              icon={<ExpandOutlined style={{ fontSize: 10 }} />} 
-              onClick={() => setIsMaximized(!isMaximized)}
-            />
-            <Button 
-              style={{ 
-                width: 20, 
-                height: 20, 
-                minWidth: 20, 
-                padding: 0, 
-                background: '#c0c0c0',
-                border: '1px solid #000',
-                boxShadow: 'inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf'
-              }}
-              icon={<CloseOutlined style={{ fontSize: 10 }} />} 
-              onClick={handleClose}
-            />
-          </div>
+          
+          <Button
+            type="text"
+            size="small"
+            icon={<CloseOutlined className="text-xs" />}
+            onClick={handleClose}
+            className={`flex-shrink-0 ${
+              isDark 
+                ? 'text-[#5CC49D] hover:text-white hover:bg-[#5CC49D]/20' 
+                : 'text-gray-500 hover:text-[#063f48] hover:bg-gray-100'
+            }`}
+          />
         </div>
 
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: isMaximized ? 'column' : 'row', 
-          alignItems: 'center', 
-          gap: 8,
-          flex: isMaximized ? 1 : 'none'
-        }}>
-          <div style={{ flex: isMaximized ? 'none' : 1, width: isMaximized ? '100%' : 'auto' }}>
-            <BrokenProgressBar percent={progress} />
+        {/* Clean Progress Bar */}
+        <div className="mb-3">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className={`text-xs font-medium ${
+              isDark ? 'text-[#5CC49D]' : 'text-gray-600'
+            }`}>
+              Progress
+            </span>
+            <span className={`text-xs font-semibold ${
+              isDark ? 'text-[#5CC49D]' : 'text-[#063f48]'
+            }`}>
+              {progress}%
+            </span>
           </div>
-          <Text strong style={{ fontSize: 12, color: '#000', minWidth: 40 }}>
-            {progress}%
-          </Text>
-        </div>
-
-        <div style={{ marginTop: 4, flex: isMaximized ? 1 : 'none' }}>
-          <Text type="secondary" style={{ fontStyle: 'italic', fontSize: 12, color: '#000' }}>
-            {currentTip}
-          </Text>
-        </div>
-
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: isMaximized ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-          gap: 8,
-          flex: isMaximized ? 1 : 'none'
-        }}>
-          {loadingSteps.map((step) => (
+          <div className={`relative h-1.5 rounded-full overflow-hidden ${
+            isDark ? 'bg-[#5CC49D]/20' : 'bg-gray-200'
+          }`}>
             <div 
-              key={step.id} 
+              className={`absolute top-0 left-0 h-full transition-all duration-300 ease-out ${
+                isDark ? 'bg-[#5CC49D]' : 'bg-[#063f48]'
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+            {/* Subtle shine effect */}
+            <div 
+              className={`absolute top-0 left-0 h-full w-6 transform -skew-x-12 transition-all duration-1000 ${
+                isDark ? 'bg-white/20' : 'bg-white/40'
+              }`}
               style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 4,
-                opacity: completedSteps.includes(step.id) ? 0.7 : 1
+                left: progress > 0 ? `${progress - 8}%` : '-8%',
+                opacity: progress > 0 && progress < 100 ? 1 : 0
               }}
-            >
-              {completedSteps.includes(step.id) ? (
-                <CheckCircleOutlined style={{ color: '#008000', fontSize: 12 }} />
-              ) : (
-                <ClockCircleOutlined style={{ color: '#ff8c00', fontSize: 12 }} />
-              )}
-              <Text 
-                style={{ 
-                  fontSize: 12,
-                  color: '#000',
-                  textDecoration: completedSteps.includes(step.id) ? 'line-through' : 'none'
-                }}
-              >
+            />
+          </div>
+        </div>
+
+        {/* Compact Progress Steps */}
+        <div className="grid grid-cols-3 gap-1.5 mb-3">
+          {loadingSteps.map((step, index) => (
+            <div key={step.id} className="flex items-center space-x-1.5">
+              <div className={`flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center ${
+                completedSteps.includes(step.id)
+                  ? isDark ? 'bg-[#5CC49D]' : 'bg-[#063f48]'
+                  : isDark 
+                    ? 'bg-[#5CC49D]/30' 
+                    : 'bg-gray-300'
+              }`}>
+                {completedSteps.includes(step.id) && (
+                  <CheckCircleOutlined className={`text-xs ${
+                    isDark ? 'text-[#063f48]' : 'text-white'
+                  }`} />
+                )}
+              </div>
+              <span className={`text-[10px] truncate ${
+                completedSteps.includes(step.id)
+                  ? isDark 
+                    ? 'text-[#5CC49D] font-medium' 
+                    : 'text-[#063f48] font-medium'
+                  : isDark 
+                    ? 'text-[#5CC49D]/80' 
+                    : 'text-gray-500'
+              }`}>
                 {step.name}
-              </Text>
+              </span>
             </div>
           ))}
         </div>
 
-        {!isMaximized && (
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            marginTop: 4 
-          }}>
-            <Text type="secondary" style={{ fontSize: 10, color: '#000' }}>
-              You can continue using the app while we generate your calculations
-            </Text>
-          </div>
-        )}
+        {/* Subtle Progress Dots */}
+        <div className="flex justify-center space-x-1">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className={`w-1.5 h-1.5 rounded-full ${
+                progress > (i + 1) * 30 
+                  ? isDark ? 'bg-[#5CC49D]' : 'bg-[#063f48]'
+                  : isDark ? 'bg-[#5CC49D]/30' : 'bg-gray-300'
+              }`}
+              style={{
+                animation: progress < 100 ? `bounce 1.4s infinite ease-in-out` : 'none',
+                animationDelay: `${i * 0.16}s`
+              }}
+            />
+          ))}
+        </div>
       </div>
-    </>
+
+      {/* Add CSS for animations */}
+      <style jsx>{`
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+          }
+          40% {
+            transform: scale(1.1);
+            opacity: 1;
+          }
+        }
+      `}</style>
+    </div>
   );
 };
 

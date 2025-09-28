@@ -12,6 +12,7 @@ import {
   BulbOutlined,
   MailOutlined,
   EditOutlined,
+
   TagOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
@@ -431,6 +432,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       data-tour="activity-feed"
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          
           Activity Feed
           {activities.some(a => a.status === 'processing') && (
             <Badge status="processing" />

@@ -60,6 +60,8 @@
   }
 }
 
+
+
 .animate-gradient-x {
   background-size: 200% 200%;
   animation: gradient-x 6s ease infinite;

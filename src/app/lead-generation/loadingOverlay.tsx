@@ -9,13 +9,13 @@ import {
 } from '@ant-design/icons';
 
 const loadingTips = [
-  'Analyzing workflow requirements...',
-  'Mapping integration connections...',
-  'Generating n8n node configurations...',
-  'Optimizing workflow execution paths...',
-  'Creating credential setup instructions...',
-  'Building automation logic...',
-  'Finalizing workflow package...'
+'Analyzing target criteria...',
+'Searching global prospect database...',
+'Filtering by industry and location...',
+'Validating contact information...',
+'Scoring lead quality and relevance...',
+'Cross-referencing company data...',
+'Compiling final lead list...'
 ];
 
 interface LoadingOverlayProps {
@@ -151,7 +151,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
               <span className={`text-sm font-semibold ${
                 isDark ? 'text-white' : 'text-[#063f48]'
               }`}>
-                Generating n8n Workflow
+              Generating leads
               </span>
               <span className={`text-xs mt-0.5 ${
                 isDark ? 'text-[#5CC49D]' : 'text-gray-600'

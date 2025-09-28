@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useMemo } from 'react';
 import { Card, Typography, Grid, Button, Select, Space, Spin, message } from 'antd';
-import { BarChartOutlined, LineChartOutlined, PieChartOutlined, ReloadOutlined } from '@ant-design/icons';
+import { BarChartOutlined, LineChartOutlined, PieChartOutlined, ReloadOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
@@ -314,10 +314,13 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     <Card
       data-tour="quick-actions"
       title={
+        
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <Text strong style={{ fontSize: '18px', color: theme === 'dark' ? '#f9fafb' : '#111827' }}>
-            Submissions Analytics
-          </Text>
+         <Text strong style={{ fontSize: '18px', color: theme === 'dark' ? '#f9fafb' : '#111827' }}>
+  <CalendarOutlined style={{ color: '#5CC49D', marginRight: 8 }} /> 
+  Submissions Analytics
+</Text>
+
           <Space>
             <Select
               value={chartType}
