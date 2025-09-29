@@ -60,6 +60,8 @@ import {
   Checkbox
 } from "antd";
 
+
+
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { useRouter } from 'next/navigation';
 import {
@@ -634,19 +636,19 @@ const onFinish = async () => {
     message.success("All fields cleared successfully!");
   };
 
-  const handleExport = async (format: 'json' | 'html') => {
-    if (!savedProposalId) {
-      message.error("No proposal to export. Please generate a proposal first.");
-      return;
-    }
+const handleExport = async (format: 'json' | 'html' | 'pdf') => { // Add 'pdf' here
+  if (!savedProposalId) {
+    message.error("No proposal to export. Please generate a proposal first.");
+    return;
+  }
 
-    try {
-      await exportProposal(savedProposalId, format);
-    } catch (error) {
-      console.error("Export error:", error);
-      message.error(`Failed to export as ${format.toUpperCase()}`);
-    }
-  };
+  try {
+    await exportProposal(savedProposalId, format);
+  } catch (error) {
+    console.error("Export error:", error);
+    message.error(`Failed to export as ${format.toUpperCase()}`);
+  }
+};
 
   const handleDeleteProposal = async (proposalId: string) => {
     Modal.confirm({
@@ -2018,7 +2020,7 @@ function ProposalPreview({
 }: { 
   proposal: ProposalPackage;
   clientInfo: ClientInformation;
-  onExport: (format: 'json' | 'html') => void;
+  onExport: (format: 'json' | 'html' | 'pdf') => void; // Add 'pdf' here
   savedProposalId: string | null;
   exportLoading: boolean;
 }) {
@@ -2031,18 +2033,16 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
     });
   };
 
-
-
   const getDocumentTitle = (proposalType: ProposalType) => {
-  const titles = {
-    'service-agreement': 'Service Agreement',
-    'project-proposal': 'Project Proposal', 
-    'retainer-agreement': 'Retainer Agreement',
-    'consulting-proposal': 'Consulting Proposal',
-    'custom-proposal': 'Custom Proposal'
+    const titles = {
+      'service-agreement': 'Service Agreement',
+      'project-proposal': 'Project Proposal', 
+      'retainer-agreement': 'Retainer Agreement',
+      'consulting-proposal': 'Consulting Proposal',
+      'custom-proposal': 'Custom Proposal'
+    };
+    return titles[proposalType] || 'Service Agreement';
   };
-  return titles[proposalType] || 'Service Agreement';
-};
 
   return (
     <div className="space-y-6">
@@ -2065,6 +2065,21 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
             >
               Copy JSON
             </Button>
+            
+            {/* ADD THESE UPDATED EXPORT BUTTONS */}
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={() => onExport('pdf')}
+              loading={exportLoading}
+              type="primary"
+              style={{
+                backgroundColor: '#ff4d4f',
+                borderColor: '#ff4d4f'
+              }}
+            >
+              Download PDF
+            </Button>
+            
             <Button 
               icon={<DownloadOutlined />} 
               onClick={() => onExport('html')}
@@ -2072,8 +2087,9 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
             >
               Export HTML
             </Button>
+            
             <Button 
-              type="primary" 
+              type="default" 
               icon={<SaveOutlined />}
               disabled={!savedProposalId}
             >

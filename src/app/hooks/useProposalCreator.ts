@@ -475,48 +475,54 @@ export const useProposalExport = () => {
     }
   };
 
-  const exportProposal = useCallback(async (
-    proposalId: string, 
-    format: 'json' | 'html' | 'pdf' = 'html'
-  ) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/proposal-creator/${proposalId}/export?format=${format}`);
+  // In hooks/useProposalCreator.ts - update exportProposal method:
+
+const exportProposal = useCallback(async (
+  proposalId: string, 
+  format: 'json' | 'html' | 'pdf' = 'html'
+) => {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    if (format === 'html') {
+      // Open HTML directly in new tab
+      const url = `/api/proposal-creator/${proposalId}/export?format=html`;
+      window.open(url, '_blank');
+      message.success('Proposal opened in new tab!');
+      return true;
+    } else if (format === 'json') {
+      // Download JSON
+      const response = await fetch(`/api/proposal-creator/${proposalId}/export?format=json`);
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to export proposal');
+        throw new Error(errorData.error || 'Export failed');
       }
 
-      if (format === 'html' || format === 'pdf') {
-        const contentDisposition = response.headers.get('content-disposition');
-        const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-        const filename = filenameMatch?.[1] || `proposal-${proposalId}.${format}`;
-
-        const blob = await response.blob();
-        downloadFile(blob, filename);
-        message.success(`Proposal exported as ${format.toUpperCase()} successfully`);
-        return true;
-      } else {
-        const data = await response.json() as ApiResponseOptional<any>;
-        if (data.success && data.data) {
-          return data.data;
-        } else {
-          throw new Error(data.error || 'Export failed');
-        }
-      }
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      message.error(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.meta.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      message.success('JSON exported successfully');
+      return true;
     }
-  }, []);
+    
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    setError(errorMessage);
+    message.error(errorMessage);
+    return null;
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   return {
     loading,

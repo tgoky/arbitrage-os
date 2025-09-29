@@ -1,0 +1,330 @@
+// app/api/proposal-creator/[proposalId]/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { ProposalCreatorService } from '../../../../services/proposalCreator.service';
+import { rateLimit } from '@/lib/rateLimit';
+import { logUsage } from '@/lib/usage';
+import { ApiResponseOptional } from '../../../../types/proposalCreator';
+
+const RATE_LIMITS = {
+  PROPOSAL_GET: {
+    limit: 100,
+    window: 3600 // 1 hour
+  },
+  PROPOSAL_DELETE: {
+    limit: 50,
+    window: 3600 // 1 hour
+  }
+};
+
+// Authentication function
+async function getAuthenticatedUser(request: NextRequest) {
+  try {
+    const cookieStore = cookies();
+    
+    try {
+      const supabase = createRouteHandlerClient({ 
+        cookies: () => cookieStore 
+      });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (!error && user) {
+        return { user, error: null };
+      }
+    } catch (helperError) {
+      console.warn('Route handler client failed:', helperError);
+    }
+    
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              get: () => undefined,
+            },
+          }
+        );
+        
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (!error && user) {
+          return { user, error: null };
+        }
+      } catch (tokenError) {
+        console.warn('Token auth error:', tokenError);
+      }
+    }
+    
+    const supabaseSSR = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            try {
+              const cookie = cookieStore.get(name);
+              if (!cookie?.value) return undefined;
+              
+              if (cookie.value.startsWith('base64-')) {
+                try {
+                  const decoded = atob(cookie.value.substring(7));
+                  JSON.parse(decoded);
+                  return cookie.value;
+                } catch (e) {
+                  return undefined;
+                }
+              }
+              return cookie.value;
+            } catch (error) {
+              return undefined;
+            }
+          },
+        },
+      }
+    );
+    
+    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    return { user, error };
+    
+  } catch (error) {
+    console.error('All authentication methods failed:', error);
+    return { user: null, error };
+  }
+}
+
+// GET method for retrieving a specific proposal
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { proposalId: string } }
+) {
+  console.log('🚀 Get Proposal API Route called for ID:', params.proposalId);
+  
+  try {
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    
+    if (authError || !user) {
+      console.error('❌ Auth failed:', authError);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Authentication required.',
+          code: 'AUTH_REQUIRED'
+        },
+        { status: 401 }
+      );
+    }
+
+    console.log('✅ User authenticated:', user.id);
+
+    // Rate limiting
+    const rateLimitResult = await rateLimit(
+      `proposal_get:${user.id}`, 
+      RATE_LIMITS.PROPOSAL_GET.limit, 
+      RATE_LIMITS.PROPOSAL_GET.window
+    );
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Too many requests. Please try again later.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
+    console.log(`📄 Fetching proposal ${params.proposalId} for user ${user.id}`);
+    
+    try {
+      const proposalService = new ProposalCreatorService();
+      const proposal = await proposalService.getProposal(user.id, params.proposalId);
+
+      if (!proposal) {
+        console.error('❌ Proposal not found:', params.proposalId);
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Proposal not found or access denied.'
+          },
+          { status: 404 }
+        );
+      }
+      
+      console.log('✅ Proposal retrieved successfully');
+
+      // Usage logging
+      try {
+        await logUsage({
+          userId: user.id,
+          feature: 'proposal_get',
+          tokens: 0,
+          timestamp: new Date(),
+          metadata: {
+            proposalId: params.proposalId
+          }
+        });
+      } catch (logError) {
+        console.error('⚠️ Usage logging failed (non-critical):', logError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: proposal,
+        meta: {
+          remaining: rateLimitResult.remaining
+        }
+      });
+
+    } catch (getError) {
+      console.error('💥 Error retrieving proposal:', getError);
+      console.error('💥 Error details:', {
+        proposalId: params.proposalId,
+        userId: user.id,
+        errorName: getError instanceof Error ? getError.constructor.name : 'Unknown',
+        errorMessage: getError instanceof Error ? getError.message : 'Unknown error'
+      });
+      
+      return NextResponse.json(
+        { 
+          success: false,
+          error: getError instanceof Error ? getError.message : 'Failed to retrieve proposal. Please try again.',
+          debug: process.env.NODE_ENV === 'development' ? {
+            errorType: getError instanceof Error ? getError.constructor.name : 'Unknown',
+            errorMessage: getError instanceof Error ? getError.message : 'Unknown',
+            proposalId: params.proposalId
+          } : undefined
+        },
+        { status: 500 }
+      );
+    }
+
+  } catch (error) {
+    console.error('💥 Unexpected Get Proposal Error:', error);
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
+    
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Failed to retrieve proposal. Please try again.',
+        debug: process.env.NODE_ENV === 'development' ? {
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          errorMessage: error instanceof Error ? error.message : 'Unknown'
+        } : undefined
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE method for deleting a specific proposal
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { proposalId: string } }
+) {
+  console.log('🚀 Delete Proposal API Route called for ID:', params.proposalId);
+  
+  try {
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Authentication required.',
+          code: 'AUTH_REQUIRED'
+        },
+        { status: 401 }
+      );
+    }
+
+    // Rate limiting
+    const rateLimitResult = await rateLimit(
+      `proposal_delete:${user.id}`, 
+      RATE_LIMITS.PROPOSAL_DELETE.limit, 
+      RATE_LIMITS.PROPOSAL_DELETE.window
+    );
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Too many delete requests. Please try again later.',
+          retryAfter: rateLimitResult.reset 
+        },
+        { status: 429 }
+      );
+    }
+
+    console.log(`🗑️ Deleting proposal ${params.proposalId} for user ${user.id}`);
+    
+    try {
+      const proposalService = new ProposalCreatorService();
+      const deleted = await proposalService.deleteProposal(user.id, params.proposalId);
+
+      if (!deleted) {
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Proposal not found or already deleted.'
+          },
+          { status: 404 }
+        );
+      }
+      
+      console.log('✅ Proposal deleted successfully');
+
+      // Usage logging
+      try {
+        await logUsage({
+          userId: user.id,
+          feature: 'proposal_delete',
+          tokens: 0,
+          timestamp: new Date(),
+          metadata: {
+            proposalId: params.proposalId
+          }
+        });
+      } catch (logError) {
+        console.error('⚠️ Usage logging failed (non-critical):', logError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: { deleted: true },
+        meta: {
+          remaining: rateLimitResult.remaining
+        }
+      });
+
+    } catch (deleteError) {
+      console.error('💥 Error deleting proposal:', deleteError);
+      
+      return NextResponse.json(
+        { 
+          success: false,
+          error: deleteError instanceof Error ? deleteError.message : 'Failed to delete proposal. Please try again.'
+        },
+        { status: 500 }
+      );
+    }
+
+  } catch (error) {
+    console.error('💥 Unexpected Delete Proposal Error:', error);
+    
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Failed to delete proposal. Please try again.'
+      },
+      { status: 500 }
+    );
+  }
+}

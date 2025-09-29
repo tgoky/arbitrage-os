@@ -371,17 +371,17 @@ private async generateProposalWithRetry(input: ProposalInput): Promise<Generated
   // return this.generateFallbackProposal(input);
 }
 
- private async generateProposalFromAI(input: ProposalInput): Promise<GeneratedProposal> {
+// In services/proposalCreator.service.ts - update generateProposalFromAI:
+
+private async generateProposalFromAI(input: ProposalInput): Promise<GeneratedProposal> {
   console.log('🚀 Starting AI generation...');
   console.log('📝 Project description:', input.project.description);
   console.log('🏢 Client:', input.client.legalName);
   
   const prompt = this.buildProposalPrompt(input);
-  console.log('📄 Prompt generated, length:', prompt.length);
+  console.log('📄 Prompt length:', prompt.length);
   
   try {
-    console.log('🤖 Making OpenRouter API call...');
-    
     const response = await Promise.race([
       this.openRouterClient.complete({
         model: 'openai/gpt-4o',
@@ -396,32 +396,40 @@ private async generateProposalWithRetry(input: ProposalInput): Promise<Generated
           }
         ],
         temperature: 0.7,
-      max_tokens: 16000 
+        max_tokens: 32000  // INCREASED from 16000
       }),
       new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('AI generation timeout')), this.AI_TIMEOUT);
       })
     ]);
 
-    console.log('✅ AI response received, length:', response.content.length);
-    console.log('🔍 First 500 chars:', response.content.substring(0, 500));
+    console.log('✅ AI response received');
+    console.log('📏 Response length:', response.content.length);
+    console.log('🔍 First 1000 chars:', response.content.substring(0, 1000));
+    console.log('🔍 Last 500 chars:', response.content.substring(response.content.length - 500));
     
     const parsed = this.parseProposalResponse(response.content, input);
     
-    // Add metadata about generation
+    // CRITICAL: Log what we actually parsed
+    console.log('✅ Parsed proposal structure:');
+    console.log('  - projectOverview:', parsed.projectOverview?.substring(0, 100) + '...');
+    console.log('  - scopeOfWork:', parsed.scopeOfWork?.substring(0, 100) + '...');
+    console.log('  - pricing:', parsed.pricing?.substring(0, 100) + '...');
+    console.log('  - timeline:', parsed.timeline?.substring(0, 100) + '...');
+    console.log('  - deliverables:', parsed.deliverables?.substring(0, 100) + '...');
+    console.log('  - contractTemplates.serviceAgreement:', parsed.contractTemplates?.serviceAgreement?.substring(0, 100) + '...');
+    console.log('  - contractTemplates.statementOfWork:', parsed.contractTemplates?.statementOfWork?.substring(0, 100) + '...');
+    
     parsed.metadata = {
       tokensUsed: response.usage.total_tokens,
       model: 'openai/gpt-4o',
       generatedAt: new Date().toISOString()
     };
 
-    console.log('✅ Proposal parsed successfully');
     return parsed;
     
   } catch (error) {
-    console.error('❌ AI generation failed with error:', error);
-    // console.error('❌ Error type:', error.constructor.name);
-    // console.error('❌ Error message:', error.message);
+    console.error('❌ AI generation failed:', error);
     throw error;
   }
 }
@@ -646,48 +654,35 @@ CRITICAL: Make this proposal so specific to ${input.client.legalName} and "${inp
 
 private parseProposalResponse(content: string, input: ProposalInput): GeneratedProposal {
   console.log('🔧 Parsing AI response...');
+  console.log('📏 Content length:', content.length);
   
   try {
-    let jsonString = '';
+    let jsonString = this.extractJSONFromResponse(content);
+    console.log('📦 Extracted JSON length:', jsonString.length);
     
-    const jsonBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonBlockMatch) {
-      jsonString = jsonBlockMatch[1];
-      console.log('📦 Found JSON in code block');
-    } else {
-      const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonObjectMatch) {
-        jsonString = jsonObjectMatch[0];
-        console.log('📦 Found raw JSON object');
-      } else {
-        console.log('❌ No JSON found in AI response');
-        throw new Error('No JSON found in AI response');
+    const parsed = JSON.parse(jsonString);
+    
+    // Log missing fields BEFORE validation
+    const missingFields = this.getMissingFields(parsed);
+    if (missingFields.length > 0) {
+      console.error('❌ Missing fields in AI response:', missingFields);
+      console.error('📄 Full parsed object keys:', Object.keys(parsed));
+      
+      // Log the actual content of each field
+      for (const field of Object.keys(parsed)) {
+        console.log(`  ${field}:`, typeof parsed[field], parsed[field]?.length || 'N/A');
       }
     }
     
-    console.log('🔍 JSON string length:', jsonString.length);
-    
-    // Check if JSON appears truncated (ends abruptly)
-    if (!jsonString.trim().endsWith('}')) {
-      console.log('⚠️ JSON appears truncated, attempting to fix...');
-      jsonString = this.attemptJSONRepair(jsonString);
+    if (!this.validateProposalStructure(parsed)) {
+      console.log('❌ Structure validation failed');
+      throw new ProposalGenerationError('Invalid proposal structure from AI response');
     }
-    
-    const cleanedJson = jsonString
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-      .replace(/,\s*}/g, '}')
-      .replace(/,\s*]/g, ']');
-    
-    const parsed = JSON.parse(cleanedJson);
-    
-    // If structure is incomplete, throw for retry (AI-first approach)
-if (!this.validateProposalStructure(parsed)) {
-  console.log(' Structure incomplete, throwing error for retry');
-  throw new ProposalGenerationError('Invalid proposal structure from AI response');
-}
 
-return parsed;  } catch (error) {
-    console.error(' JSON parsing failed:', error);
+    return parsed;
+  } catch (error) {
+    console.error('❌ JSON parsing failed:', error);
+    console.error('📄 Content sample:', content.substring(0, 2000));
     throw new ProposalGenerationError(
       'Failed to parse AI response into valid proposal structure',
       error instanceof Error ? error : new Error(String(error))
@@ -695,6 +690,29 @@ return parsed;  } catch (error) {
   }
 }
 
+// Add this helper method:
+private getMissingFields(proposal: any): string[] {
+  const required = [
+    'projectOverview',
+    'scopeOfWork', 
+    'pricing',
+    'timeline',
+    'deliverables',
+    'terms',
+    'nextSteps',
+    'contractTemplates',
+    'alternativeOptions'
+  ];
+  
+  return required.filter(field => {
+    if (!proposal[field]) return true;
+    if (typeof proposal[field] === 'string' && proposal[field].trim().length === 0) return true;
+    if (field === 'contractTemplates') {
+      return !proposal[field].serviceAgreement || !proposal[field].statementOfWork;
+    }
+    return false;
+  });
+}
 
 
 private attemptJSONRepair(truncatedJson: string): string {
@@ -1419,11 +1437,25 @@ async deleteProposal(userId: string, proposalId: string): Promise<boolean> {
 
 async exportProposal(userId: string, proposalId: string, format: 'json' | 'html' | 'pdf' = 'html') {
   try {
+    console.log(`Starting export: userId=${userId}, proposalId=${proposalId}, format=${format}`);
+    
     const proposal = await this.getProposal(userId, proposalId);
     if (!proposal) {
+      console.error('Proposal not found:', { userId, proposalId });
       throw new ProposalGenerationError('Proposal not found or access denied');
     }
 
+    console.log('Proposal found, checking data integrity...');
+    
+    // Check data integrity before export
+    const hasMainContent = proposal.proposal?.proposal?.projectOverview || 
+                          proposal.proposal?.proposal?.scopeOfWork ||
+                          proposal.proposal?.proposal?.pricing;
+    
+    if (!hasMainContent) {
+      console.warn('Proposal appears to have missing main content');
+    }
+    
     const clientName = this.sanitizeFilename((proposal.metadata as any)?.clientName || 'export');
     
     if (format === 'json') {
@@ -1436,7 +1468,15 @@ async exportProposal(userId: string, proposalId: string, format: 'json' | 'html'
     }
 
     if (format === 'html') {
+      console.log('Generating HTML content...');
       const htmlContent = this.generateHTMLExport(proposal);
+      console.log('HTML content generated, length:', htmlContent.length);
+      
+      // Validate HTML has minimum content
+      if (htmlContent.length < 1000) {
+        console.warn('Generated HTML seems too short, may indicate missing data');
+      }
+      
       return {
         format: 'html',
         content: htmlContent,
@@ -1445,15 +1485,100 @@ async exportProposal(userId: string, proposalId: string, format: 'json' | 'html'
       };
     }
 
-    throw new ProposalGenerationError('PDF export not yet implemented');
+    if (format === 'pdf') {
+      console.log('Generating PDF content...');
+      const htmlContent = this.generateHTMLExport(proposal);
+      
+      // Additional check for PDF generation
+      if (htmlContent.includes('Export Error')) {
+        throw new ProposalGenerationError('Cannot generate PDF due to data formatting issues. Try JSON export instead.');
+      }
+      
+      const pdfBuffer = await this.generatePDFFromHTML(htmlContent);
+      
+      return {
+        format: 'pdf',
+        content: pdfBuffer,
+        filename: `proposal-${clientName}.pdf`,
+        mimeType: 'application/pdf'
+      };
+    }
+
+    throw new ProposalGenerationError(`Unsupported export format: ${format}`);
+    
   } catch (error) {
-    console.error('Error exporting proposal:', error);
+    console.error('Export service error:', error);
+    console.error('Export error details:', {
+      userId,
+      proposalId,
+      format,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : 'No stack'
+    });
+    
     if (error instanceof ProposalGenerationError) {
       throw error;
     }
-    throw new ProposalGenerationError('Failed to export proposal', error instanceof Error ? error : new Error(String(error)));
+    throw new ProposalGenerationError(
+      'Failed to export proposal', 
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
 }
+
+private async generatePDFFromHTML(htmlContent: string): Promise<Buffer> {
+  const puppeteer = await import('puppeteer');
+  
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    
+    // Set content and wait for fonts/styles to load
+    await page.setContent(htmlContent, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
+    
+    // Generate PDF with professional formatting
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: {
+        top: '1in',
+        right: '1in',
+        bottom: '1in',
+        left: '1in'
+      },
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: `
+        <div style="font-size: 10px; color: #666; text-align: center; width: 100%;">
+          Business Proposal - Confidential
+        </div>
+      `,
+      footerTemplate: `
+        <div style="font-size: 10px; color: #666; text-align: center; width: 100%;">
+          Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+        </div>
+      `
+    });
+    
+    return Buffer.from(pdfBuffer);
+    
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw new ProposalGenerationError('Failed to generate PDF', error instanceof Error ? error : new Error(String(error)));
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
 
 private sanitizeFilename(filename: string): string {
   return filename
@@ -1466,16 +1591,26 @@ private sanitizeFilename(filename: string): string {
 
 private generateHTMLExport(proposal: any): string {
   try {
-    const proposalData = proposal.proposal;
+    const proposalContent = proposal.proposal?.proposal;
     const metadata = proposal.metadata || {};
-    const currentDate = new Date().toLocaleDateString();
+    const originalInput = proposal.proposal?.originalInput;
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
-    // Safe access to nested properties
-    const clientName = metadata?.clientName || 'Client';
-    const totalValue = metadata?.totalValue || 0;
-    const winProbability = metadata?.winProbability || 'Not calculated';
-    const riskLevel = metadata?.riskLevel || 'Not assessed';
-    const tokensUsed = proposalData?.tokensUsed || 0;
+    const clientName = metadata?.clientName || originalInput?.client?.legalName || 'Client Name';
+    const totalValue = metadata?.totalValue || originalInput?.pricing?.totalAmount || 0;
+    const providerName = originalInput?.serviceProvider?.name || 'Service Provider';
+    const providerLegalName = originalInput?.serviceProvider?.legalName || providerName;
+    const providerAddress = originalInput?.serviceProvider?.address || '[Service Provider Address]';
+    const clientAddress = originalInput?.client?.address || '[Client Address]';
+    const clientEntity = originalInput?.client?.entityType || 'Corporation';
+    const signatoryName = originalInput?.serviceProvider?.signatoryName || '[Authorized Signatory]';
+    const signatoryTitle = originalInput?.serviceProvider?.signatoryTitle || 'Authorized Representative';
+    
+    const serviceAgreement = proposalContent?.contractTemplates?.serviceAgreement || 
+      this.generateDefaultServiceAgreement(providerName, providerLegalName, providerAddress, clientName, clientAddress, clientEntity, currentDate);
+    
+    const statementOfWork = proposalContent?.contractTemplates?.statementOfWork || 
+      this.generateDefaultSOW(providerName, clientName, proposalContent, originalInput, currentDate);
     
     return `
 <!DOCTYPE html>
@@ -1485,115 +1620,391 @@ private generateHTMLExport(proposal: any): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Proposal - ${this.escapeHtml(clientName)}</title>
     <style>
+        @page { margin: 0.75in; size: letter; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Georgia', serif; 
-            line-height: 1.6; 
-            margin: 0; 
-            padding: 40px; 
-            color: #333; 
-            background: #f9f9f9; 
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #000;
+            background: #fff;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.5in;
         }
-        .container { 
-            max-width: 900px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 60px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        .document-title {
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 30px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .header { 
-            text-align: center; 
-            margin-bottom: 50px; 
-            padding-bottom: 30px; 
-            border-bottom: 3px solid #2c5aa0; 
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+            text-transform: uppercase;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
         }
-        .section { 
-            margin: 40px 0; 
-            page-break-inside: avoid; 
+        .content {
+            text-align: justify;
+            margin: 10px 0;
+            white-space: pre-wrap;
         }
-        .section h2 { 
-            color: #2c5aa0; 
-            border-bottom: 2px solid #e9ecef; 
-            padding-bottom: 10px; 
-            margin-bottom: 20px; 
+        .signature-block {
+            margin-top: 60px;
+            page-break-inside: avoid;
         }
-        .contract-section { 
-            background: #f8f9fa; 
-            padding: 30px; 
-            border-radius: 6px; 
-            margin: 30px 0; 
-            border-left: 4px solid #2c5aa0; 
+        .signature-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            gap: 40px;
         }
-        h1 { color: #2c5aa0; margin-bottom: 10px; }
-        .meta-info { 
-            background: #e9ecef; 
-            padding: 15px; 
-            border-radius: 6px; 
-            margin: 20px 0; 
-            font-size: 0.9em; 
+        .signature-box {
+            flex: 1;
+            min-width: 250px;
         }
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 6px;
+        .signature-line {
+            border-top: 1px solid #000;
+            margin: 40px 0 5px 0;
+            padding-top: 5px;
+        }
+        .signature-label {
+            font-size: 10pt;
+            margin: 3px 0;
+        }
+        .page-break {
+            page-break-before: always;
+            margin-top: 40px;
+        }
+        .legal-text {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        .contract-header {
+            text-align: center;
             margin: 20px 0;
+            font-size: 16pt;
+            font-weight: bold;
+        }
+        .proposal-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-bottom: 3px solid #000;
+        }
+        .proposal-metadata {
+            text-align: right;
+            font-size: 10pt;
+            color: #666;
+            margin-bottom: 20px;
         }
         @media print {
-            body { background: white; padding: 20px; }
-            .container { box-shadow: none; padding: 20px; }
+            body { padding: 0; }
             .page-break { page-break-before: always; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Business Proposal</h1>
-            <p><strong>Client:</strong> ${this.escapeHtml(clientName)}</p>
-            <p><strong>Total Value:</strong> $${totalValue.toLocaleString()}</p>
-            <p><strong>Date:</strong> ${currentDate}</p>
+    <!-- BUSINESS PROPOSAL HEADER -->
+    <div class="proposal-header">
+        <div class="document-title">BUSINESS PROPOSAL</div>
+        <div style="font-size: 14pt; margin-top: 10px;">For ${this.escapeHtml(clientName)}</div>
+        <div class="proposal-metadata">
+            Prepared by ${this.escapeHtml(providerName)}<br>
+            ${currentDate}<br>
+            Total Investment: $${totalValue.toLocaleString()}
         </div>
+    </div>
 
-        ${this.generateHTMLSection('Executive Summary', proposalData?.executiveSummary)}
-        ${this.generateHTMLSection('Project Overview', proposalData?.projectOverview)}
-        ${this.generateHTMLSection('Scope of Work', proposalData?.scopeOfWork)}
-        ${this.generateHTMLSection('Timeline & Milestones', proposalData?.timeline)}
-        ${this.generateHTMLSection('Investment & Payment Terms', proposalData?.pricing)}
-        ${this.generateHTMLSection('Deliverables', proposalData?.deliverables)}
-        ${this.generateHTMLSection('Terms & Conditions', proposalData?.terms)}
-        ${this.generateHTMLSection('Next Steps', proposalData?.nextSteps)}
+    <!-- EXECUTIVE SUMMARY (if included) -->
+    ${proposalContent?.executiveSummary ? `
+    <div class="section-title">EXECUTIVE SUMMARY</div>
+    <div class="content">${this.escapeHtml(proposalContent.executiveSummary)}</div>
+    ` : ''}
 
-        <div class="page-break"></div>
+    <!-- PROJECT OVERVIEW -->
+    <div class="section-title">PROJECT OVERVIEW</div>
+    <div class="content">${this.escapeHtml(proposalContent?.projectOverview || 'Project overview not available')}</div>
 
-        ${this.generateHTMLContractSection('Service Agreement', proposalData?.contractTemplates?.serviceAgreement)}
+    <!-- SCOPE OF WORK -->
+    <div class="section-title">SCOPE OF WORK</div>
+    <div class="content">${this.escapeHtml(proposalContent?.scopeOfWork || 'Scope details not available')}</div>
+
+    <!-- DELIVERABLES -->
+    <div class="section-title">DELIVERABLES</div>
+    <div class="content">${this.escapeHtml(proposalContent?.deliverables || 'Deliverables not specified')}</div>
+
+    <!-- TIMELINE -->
+    <div class="section-title">PROJECT TIMELINE</div>
+    <div class="content">${this.escapeHtml(proposalContent?.timeline || 'Timeline not specified')}</div>
+
+    <!-- INVESTMENT & PRICING -->
+    <div class="section-title">INVESTMENT & PRICING</div>
+    <div class="content">${this.escapeHtml(proposalContent?.pricing || 'Pricing details not available')}</div>
+
+    <!-- TERMS & CONDITIONS -->
+    <div class="section-title">TERMS & CONDITIONS</div>
+    <div class="content">${this.escapeHtml(proposalContent?.terms || 'Terms not specified')}</div>
+
+    <!-- NEXT STEPS -->
+    <div class="section-title">NEXT STEPS</div>
+    <div class="content">${this.escapeHtml(proposalContent?.nextSteps || 'Next steps not specified')}</div>
+
+    <!-- SERVICE AGREEMENT (NEW PAGE) -->
+    <div class="page-break"></div>
+    <div class="document-title">SERVICE AGREEMENT</div>
+    
+    <div class="legal-text">${this.escapeHtml(serviceAgreement)}</div>
+    
+    <div class="signature-block">
+        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.</p>
         
-        <div class="page-break"></div>
+        <div class="signature-container">
+            <div class="signature-box">
+                <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
+                ${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName)}</div>` : ''}
+                <div class="signature-line"></div>
+                <div class="signature-label">By: _________________________</div>
+                <div class="signature-label">Name: ${this.escapeHtml(signatoryName)}</div>
+                <div class="signature-label">Title: ${this.escapeHtml(signatoryTitle)}</div>
+                <div class="signature-label">Date: _________________________</div>
+            </div>
+            
+            <div class="signature-box">
+                <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
+                <div class="signature-line"></div>
+                <div class="signature-label">By: _________________________</div>
+                <div class="signature-label">Name: _________________________</div>
+                <div class="signature-label">Title: _________________________</div>
+                <div class="signature-label">Date: _________________________</div>
+            </div>
+        </div>
+    </div>
 
-        ${this.generateHTMLContractSection('Statement of Work', proposalData?.contractTemplates?.statementOfWork)}
-
-        <div class="meta-info">
-            <h3>Proposal Analysis</h3>
-            <p><strong>Win Probability:</strong> ${winProbability}${typeof winProbability === 'number' ? '%' : ''}</p>
-            <p><strong>Risk Level:</strong> ${this.escapeHtml(String(riskLevel))}</p>
-            <p><strong>Generated with:</strong> ${tokensUsed} AI tokens</p>
-            <p><strong>Export Date:</strong> ${currentDate}</p>
+    <!-- STATEMENT OF WORK (NEW PAGE) -->
+    <div class="page-break"></div>
+    <div class="contract-header">SCHEDULE A<br>STATEMENT OF WORK</div>
+    
+    <div class="legal-text">${this.escapeHtml(statementOfWork)}</div>
+    
+    <div class="signature-block">
+        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Statement of Work.</p>
+        
+        <div class="signature-container">
+            <div class="signature-box">
+                <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
+                <div class="signature-line"></div>
+                <div class="signature-label">By: _________________________</div>
+                <div class="signature-label">Name: ${this.escapeHtml(signatoryName)}</div>
+                <div class="signature-label">Title: ${this.escapeHtml(signatoryTitle)}</div>
+                <div class="signature-label">Date: _________________________</div>
+            </div>
+            
+            <div class="signature-box">
+                <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
+                <div class="signature-line"></div>
+                <div class="signature-label">By: _________________________</div>
+                <div class="signature-label">Name: _________________________</div>
+                <div class="signature-label">Title: _________________________</div>
+                <div class="signature-label">Date: _________________________</div>
+            </div>
         </div>
     </div>
 </body>
 </html>`;
   } catch (error) {
-    console.error('Error generating HTML export:', error);
-    return `
+    console.error('HTML generation error:', error);
+    throw new ProposalGenerationError('Failed to generate HTML export');
+  }
+}
+
+
+// Add these helper methods for fallback contracts:
+
+private generateDefaultServiceAgreement(provider: string, providerLegal: string, providerAddr: string, client: string, clientAddr: string, clientEntity: string, date: string): string {
+  return `This Service Agreement (the "Agreement") is entered into as of ${date} (the "Effective Date"), by and between:
+
+${provider}, ${providerLegal ? `${providerLegal}, ` : ''}with its principal place of business at ${providerAddr} ("Service Provider"),
+
+and
+
+${client}, a ${clientEntity} with its principal place of business at ${clientAddr} ("Client").
+
+Together referred to as the "Parties" and individually as a "Party."
+
+1. SERVICES
+
+1.1 Scope of Services.
+Service Provider shall provide the services set forth in the attached Statement of Work.
+
+1.2 Standard of Performance.
+Service Provider shall perform the Services in a professional and workmanlike manner consistent with industry standards.
+
+2. TERM
+
+This Agreement shall commence on the Effective Date and continue until completion of services or earlier termination.
+
+3. FEES & PAYMENT
+
+3.1 Fees.
+Client shall pay Service Provider the fees set forth in the Statement of Work.
+
+3.2 Payment Terms.
+Payment shall be made according to the schedule outlined in the Statement of Work.
+
+4. INTELLECTUAL PROPERTY
+
+All deliverables created specifically for Client under this Agreement shall be deemed "work made for hire" and owned by Client upon full payment.
+
+5. CONFIDENTIALITY
+
+Each Party agrees to maintain in strict confidence any non-public, proprietary, or confidential information disclosed by the other Party.
+
+6. TERMINATION
+
+Either Party may terminate upon thirty (30) days' written notice.
+
+7. GOVERNING LAW
+
+This Agreement shall be governed by and construed under the laws of Delaware.`;
+}
+
+private generateDefaultSOW(provider: string, client: string, content: any, input: any, date: string): string {
+  const description = content?.projectOverview || input?.project?.description || 'Professional services as agreed';
+  const scope = content?.scopeOfWork || 'Services to be performed as outlined in this agreement';
+  const timeline = content?.timeline || input?.project?.timeline || 'To be determined';
+  const pricing = content?.pricing || `Total: $${input?.pricing?.totalAmount?.toLocaleString() || '0'}`;
+  
+  return `This Statement of Work ("SOW") is issued pursuant to the Service Agreement entered into between ${provider} ("Service Provider") and ${client} ("Client").
+
+1. Project Description
+
+${description}
+
+2. Scope of Services
+
+${scope}
+
+3. Timeline & Milestones
+
+${timeline}
+
+4. Fees & Payment
+
+${pricing}
+
+5. Acceptance Criteria
+
+Deliverables shall be deemed accepted upon Client's written approval or five (5) business days after delivery if no objections are raised.`;
+}
+
+
+// Add this helper method for missing contract sections
+private generateMissingContractSection(title: string): string {
+  return `
+        <div class="contract-section">
+            <h2>${this.escapeHtml(title)}</h2>
+            <div class="warning-box">
+                <h3>⚠️ Contract Template Missing</h3>
+                <p>The ${title} template was not generated during proposal creation. This may occur if:</p>
+                <ul>
+                    <li>The AI generation was interrupted</li>
+                    <li>There was insufficient context to generate legal documents</li>
+                    <li>The proposal was created with incomplete data</li>
+                </ul>
+                <p><strong>Recommended Action:</strong> Regenerate the proposal with complete information to include all contract templates.</p>
+                <p><strong>Alternative:</strong> Contact support to obtain standard ${title} templates for your industry.</p>
+            </div>
+        </div>`;
+}
+
+
+// Add this helper method for better error handling
+private generateErrorHTML(error: any): string {
+  return `
 <!DOCTYPE html>
-<html><head><title>Export Error</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Error</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+        .error-container { max-width: 600px; margin: 0 auto; }
+        .error-box { background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; }
+        .error-title { color: #721c24; font-size: 24px; margin-bottom: 10px; }
+        .error-message { color: #721c24; margin-bottom: 20px; }
+        .suggestions { background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; }
+        .suggestions h3 { color: #0c5460; margin-top: 0; }
+    </style>
+</head>
 <body>
-    <h1>Export Error</h1>
-    <p>Unable to generate HTML export due to data formatting issues.</p>
-    <p>Please contact support if this problem persists.</p>
+    <div class="error-container">
+        <div class="error-box">
+            <h1 class="error-title">🚫 Export Error</h1>
+            <p class="error-message">Unable to generate PDF due to data formatting issues.</p>
+            <p><strong>Error Details:</strong> ${this.escapeHtml(error?.message || 'Unknown error')}</p>
+        </div>
+        
+        <div class="suggestions">
+            <h3>💡 Suggestions to Fix This Issue:</h3>
+            <ul>
+                <li>Try regenerating the proposal with complete information</li>
+                <li>Ensure all required fields are filled before generation</li>
+                <li>Contact support if the issue persists</li>
+                <li>Try exporting as JSON format as an alternative</li>
+            </ul>
+        </div>
+    </div>
 </body>
 </html>`;
+}
+
+
+private generatePDFSection(title: string, content?: string): string {
+  // Skip empty sections entirely
+  if (!content || content.trim() === '' || content === 'Content not available') {
+    return '';
   }
+  
+  return `
+        <div class="section no-break">
+            <h2>${this.escapeHtml(title)}</h2>
+            <div>${this.formatContentForPDF(content)}</div>
+        </div>`;
+}
+
+
+private generatePDFContractSection(title: string, content?: string): string {
+  if (!content || content.trim() === '') {
+    return this.generateMissingContractSection(title);
+  }
+  
+  return `
+        <div class="contract-section">
+            <h2>${this.escapeHtml(title)}</h2>
+            <div class="contract-content">${this.escapeHtml(content)}</div>
+        </div>`;
+} 
+
+
+private formatContentForPDF(content: string): string {
+  if (!content || content.trim() === '') {
+    return '<p>Content not available.</p>';
+  }
+  
+  return this.escapeHtml(content)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/•/g, '&bull;')
+    .replace(/^\s*/, '<p>')
+    .replace(/\s*$/, '</p>');
 }
 
 
@@ -1657,6 +2068,7 @@ async clearProposalCache(input: ProposalInput): Promise<void> {
   }
 }
 
+
 async clearAllProposalCaches(userId: string): Promise<void> {
   try {
     const pattern = `proposal:${userId}:*`;
@@ -1686,7 +2098,5 @@ async cleanup(): Promise<void> {
 
 // ===== END OF SERVICE CLASS =====
 }
-
-
 
 
