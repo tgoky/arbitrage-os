@@ -168,6 +168,7 @@ export interface ProposalCustomizations {
   includeNextSteps: boolean;
   customSections: CustomSection[];
   branding: BrandingOptions;
+  
 }
 
 export interface CustomSection {

@@ -1557,7 +1557,7 @@ private async generatePDFFromHTML(htmlContent: string): Promise<Buffer> {
       displayHeaderFooter: true,
       headerTemplate: `
         <div style="font-size: 10px; color: #666; text-align: center; width: 100%;">
-          Business Proposal - Confidential
+          Project Proposal - Confidential
         </div>
       `,
       footerTemplate: `
@@ -1618,7 +1618,7 @@ private generateHTMLExport(proposal: any): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Proposal - ${this.escapeHtml(clientName)}</title>
+    <title>Project Proposal - ${this.escapeHtml(clientName)}</title>
     <style>
         @page { margin: 0.75in; size: letter; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1713,7 +1713,7 @@ private generateHTMLExport(proposal: any): string {
 <body>
     <!-- BUSINESS PROPOSAL HEADER -->
     <div class="proposal-header">
-        <div class="document-title">BUSINESS PROPOSAL</div>
+        <div class="document-title">PROJECT PROPOSAL</div>
         <div style="font-size: 14pt; margin-top: 10px;">For ${this.escapeHtml(clientName)}</div>
         <div class="proposal-metadata">
             Prepared by ${this.escapeHtml(providerName)}<br>
@@ -1768,16 +1768,17 @@ private generateHTMLExport(proposal: any): string {
         <div class="signature-container">
             <div class="signature-box">
                 <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
-                ${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName)}</div>` : ''}
+${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName)}</div>` : ''}
                 <div class="signature-line"></div>
                 <div class="signature-label">By: _________________________</div>
-                <div class="signature-label">Name: ${this.escapeHtml(signatoryName)}</div>
-                <div class="signature-label">Title: ${this.escapeHtml(signatoryTitle)}</div>
+                <div class="signature-label">Name: ________________________</div>
+                <div class="signature-label">Title: ________________________</div>
                 <div class="signature-label">Date: _________________________</div>
             </div>
             
             <div class="signature-box">
                 <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
+                  <div>&nbsp;</div> 
                 <div class="signature-line"></div>
                 <div class="signature-label">By: _________________________</div>
                 <div class="signature-label">Name: _________________________</div>
@@ -1801,8 +1802,8 @@ private generateHTMLExport(proposal: any): string {
                 <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
                 <div class="signature-line"></div>
                 <div class="signature-label">By: _________________________</div>
-                <div class="signature-label">Name: ${this.escapeHtml(signatoryName)}</div>
-                <div class="signature-label">Title: ${this.escapeHtml(signatoryTitle)}</div>
+                <div class="signature-label">Name: ______________________________</div>
+                <div class="signature-label">Title: ______________________________</div>
                 <div class="signature-label">Date: _________________________</div>
             </div>
             

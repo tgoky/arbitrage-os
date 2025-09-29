@@ -816,6 +816,8 @@ const handleExport = async (format: 'json' | 'html' | 'pdf') => { // Add 'pdf' h
           </Row>
         </Card>
 
+        
+
         <Card title="Quick Start Templates" className="mb-6">
           <Select
             placeholder="Choose a template for your industry"
@@ -1878,12 +1880,8 @@ function CompleteProposalTab({
   const generateCompleteProposal = () => {
     const sections = [
       "=".repeat(60),
-      "BUSINESS PROPOSAL",
+      "PROJECT PROPOSAL",
       "=".repeat(60),
-      "",
-      "EXECUTIVE SUMMARY",
-      "-".repeat(30),
-      proposal.proposal.executiveSummary || "Executive summary not included in this proposal.",
       "",
       "PROJECT OVERVIEW",
       "-".repeat(30),
@@ -2069,25 +2067,25 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
             {/* ADD THESE UPDATED EXPORT BUTTONS */}
             <Button 
               icon={<DownloadOutlined />} 
-              onClick={() => onExport('pdf')}
+                   onClick={() => onExport('html')}
               loading={exportLoading}
               type="primary"
               style={{
-                backgroundColor: '#ff4d4f',
-                borderColor: '#ff4d4f'
+                backgroundColor: '#5CC49D',
+         
               }}
             >
-              Download PDF
+              Download & Export 
             </Button>
             
-            <Button 
+            {/* <Button 
               icon={<DownloadOutlined />} 
               onClick={() => onExport('html')}
               loading={exportLoading}
             >
               Export HTML
             </Button>
-            
+             */}
             <Button 
               type="default" 
               icon={<SaveOutlined />}
