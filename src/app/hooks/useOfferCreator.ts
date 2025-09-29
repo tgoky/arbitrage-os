@@ -254,6 +254,19 @@ export const useOfferValidation = () => {
       }
     };
 
+    if (input.business?.acv) {
+  const value = parseInt(input.business.acv.replace(/[^0-9]/g, '') || '0');
+  const period = input.business.acvPeriod || 'annual';
+  
+  // Warn if numbers seem backwards
+  if (period === 'monthly' && value > 50000) {
+    warnings['business.acv'] = 'Monthly deal size over $50k is unusual for most service businesses - did you mean annual?';
+  }
+  if (period === 'annual' && value < 5000) {
+    warnings['business.acv'] = 'Annual deal size under $5k is very low - did you mean monthly?';
+  }
+}
+
     // HARD ERRORS - Only truly essential fields prevent generation
     // Founder validation - Only check if showAllErrors OR if we have some founder data
     if (showAllErrors || (input.founder?.signatureResults?.length || input.founder?.coreStrengths?.length)) {
@@ -293,6 +306,20 @@ export const useOfferValidation = () => {
         warnings['market.outcomes'] = 'Adding desired outcomes will improve your offers';
       }
     }
+
+    if (input.business?.acv) {
+  const value = parseInt(input.business.acv.replace(/[^0-9]/g, '') || '0');
+  const period = input.business.acvPeriod || 'monthly';
+  
+  // Warn if numbers seem unusual
+  if (period === 'monthly' && value > 100000) {
+    warnings['business.acv'] = 'Monthly deal size over $100k is unusual - did you mean annual?';
+  }
+  if (period === 'annual' && value < 1000) {
+    warnings['business.acv'] = 'Annual deal size under $1k is unusual - did you mean monthly?';
+  }
+}
+
 
     // Business validation - Only check if showAllErrors OR if we have some business data
     if (showAllErrors || input.business?.deliveryModel?.length || input.business?.capacity) {
@@ -476,37 +503,45 @@ export const useOfferValidation = () => {
 
 
   const calculateCapacityMetrics = useCallback((input: OfferCreatorInput) => {
-    const capacity = parseInt(input.business.capacity);
-    const monthlyHours = parseInt(input.business.monthlyHours);
-    const acvMatch = input.business.acv.match(/[\d,]+/);
-    const acvValue = acvMatch ? parseInt(acvMatch[0].replace(/,/g, '')) : 0;
+  const capacity = parseInt(input.business.capacity);
+  const monthlyHours = parseInt(input.business.monthlyHours);
+  const acvMatch = input.business.acv.match(/[\d,]+/);
+  const acvValue = acvMatch ? parseInt(acvMatch[0].replace(/,/g, '')) : 0;
+  const period = input.business.acvPeriod || 'annual';
 
-    if (isNaN(capacity) || isNaN(monthlyHours) || acvValue === 0) {
-      return null;
+  if (isNaN(capacity) || isNaN(monthlyHours) || acvValue === 0) {
+    return null;
+  }
+
+  // OPTION A: acvValue is TOTAL revenue, not per-client
+  const annualTotal = period === 'monthly' ? acvValue * 12 : acvValue;
+  const monthlyTotal = period === 'monthly' ? acvValue : Math.round(acvValue / 12);
+  
+  const monthlyPerClient = Math.round(monthlyTotal / capacity);
+  const hoursPerClient = monthlyHours / capacity;
+  const hourlyRate = monthlyPerClient / hoursPerClient;
+  
+  // Potential revenue is the TOTAL, not multiplied by capacity
+  const potentialRevenue = annualTotal;
+
+  return {
+    hoursPerClient: Math.round(hoursPerClient * 10) / 10,
+    monthlyRate: Math.round(hourlyRate * 100) / 100,
+    potentialRevenue,
+    utilizationRate: Math.round((monthlyHours / (capacity * 40)) * 100),
+    recommendations: {
+      hoursPerClient: hoursPerClient < 10 ? 'Consider increasing hours per client' :
+                     hoursPerClient > 50 ? 'Consider reducing hours per client or increasing capacity' :
+                     'Good balance',
+      monthlyRate: hourlyRate < 50 ? 'Consider increasing total revenue target' :
+                  hourlyRate > 200 ? 'Premium rate - ensure value delivery matches' :
+                  'Competitive rate',
+      potentialRevenue: potentialRevenue < 50000 ? 'Consider increasing revenue target' :
+                       potentialRevenue > 500000 ? 'Excellent target - focus on delivery scalability' :
+                       'Good revenue target'
     }
-
-    const hoursPerClient = monthlyHours / capacity;
-    const monthlyRate = (acvValue / 12) / monthlyHours;
-    const potentialRevenue = acvValue * capacity;
-
-    return {
-      hoursPerClient: Math.round(hoursPerClient * 10) / 10,
-      monthlyRate: Math.round(monthlyRate * 100) / 100,
-      potentialRevenue,
-      utilizationRate: Math.round((monthlyHours / (capacity * 40)) * 100),
-      recommendations: {
-        hoursPerClient: hoursPerClient < 10 ? 'Consider increasing hours per client' :
-                       hoursPerClient > 50 ? 'Consider reducing hours per client or increasing capacity' :
-                       'Good balance',
-        monthlyRate: monthlyRate < 100 ? 'Consider increasing pricing' :
-                    monthlyRate > 500 ? 'Premium rate - ensure value delivery matches' :
-                    'Competitive rate',
-        potentialRevenue: potentialRevenue < 500000 ? 'Consider increasing ACV or capacity' :
-                         potentialRevenue > 2000000 ? 'Excellent potential - focus on delivery scalability' :
-                         'Good revenue potential'
-      }
-    };
-  }, []);
+  };
+}, []);
 
   return {
     validateInput,

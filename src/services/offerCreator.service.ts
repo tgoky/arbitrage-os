@@ -107,14 +107,21 @@ Your goal is to create offers that make prospects think "I need this" immediatel
 
 private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
   // Calculate per-client pricing targets
-  const targetACV = this.parseACV(input.business.acv);
+
   const capacity = parseInt(input.business.capacity) || 5;
   const monthlyHours = parseInt(input.business.monthlyHours) || 160;
   
+const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'annual');
+
+ console.log('🔍 DEBUG parseACV result:', acvData);
+
+ 
+  // OPTION A: Divide by capacity to get per-client pricing
+  const monthlyPerClient = Math.round(acvData.monthly / capacity);
+  const annualPerClient = Math.round(acvData.annual / capacity);
+  
   // PER-CLIENT MONTHLY CALCULATIONS
   const hoursPerClient = Math.round(monthlyHours / capacity);
-  const acvPerClient = targetACV;
-  const monthlyPerClient = Math.round(acvPerClient / 12);
   
   // TIERED PER-CLIENT PRICING
   const starterPerClient = Math.round(monthlyPerClient * 0.65);
@@ -155,7 +162,9 @@ private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
 **Capacity:** ${capacity} clients simultaneously
 **Total Monthly Hours:** ${monthlyHours} hours
 **Hours per Client:** ${hoursPerClient} hours/month per client
-**Target ACV per Client:** ${input.business.acv}
+**Total Target Revenue:** $${acvData.annual.toLocaleString()}/year ($${acvData.monthly.toLocaleString()}/month)
+**Target Annual Revenue per Client:** $${annualPerClient.toLocaleString()}/year
+**Target Monthly Revenue per Client:** $${monthlyPerClient.toLocaleString()}/month
 
 **Per-Client Monthly Pricing Targets:**
 - **Starter:** $${starterPerClient.toLocaleString()}/month per client (${Math.round(hoursPerClient * 0.7)} hours allocated)
@@ -497,10 +506,16 @@ private getStrengthSpecificExamples(primaryStrength: string, primaryProcess: str
   }
 
 private generateEnhancedFallbackOffer(input: OfferCreatorInput): GeneratedOffer {
-  const targetACV = this.parseACV(input.business.acv);
-  const starterPrice = Math.round(targetACV * 0.65 / 12);
-  const corePrice = Math.round(targetACV / 12);
-  const premiumPrice = Math.round(targetACV * 1.75 / 12);
+ const capacity = parseInt(input.business.capacity) || 5;
+const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'annual');
+
+    const monthlyPerClient = Math.round(acvData.monthly / capacity);
+
+  
+
+const starterPrice = Math.round(monthlyPerClient * 0.65); 
+const corePrice = monthlyPerClient;               
+const premiumPrice = Math.round(monthlyPerClient * 1.75); 
 
   const primaryIndustry = input.founder.industries[0] || 'Business';
   const primaryPain = input.market.pains[0] || 'operational inefficiency';
@@ -747,13 +762,27 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
   return guarantees[guaranteeType]?.[tier] || fallbackText;
 }
 
-  private parseACV(acvString: string): number {
-    const match = acvString.match(/[\d,]+/);
-    if (match) {
-      return parseInt(match[0].replace(/,/g, ''));
-    }
-    return 120000; // Default fallback
+private parseACV(acvString: string, period: 'monthly' | 'annual' = 'annual'): { monthly: number; annual: number } {
+  const match = acvString.match(/[\d,]+/);
+  if (!match) {
+    return { monthly: 10000, annual: 120000 }; // Sensible defaults
   }
+  
+  const number = parseInt(match[0].replace(/,/g, ''));
+  
+  if (period === 'monthly') {
+    return { 
+      monthly: number, 
+      annual: number * 12 
+    };
+  } else {
+    return { 
+      monthly: Math.round(number / 12), 
+      annual: number 
+    };
+  }
+}
+
 
   private generateOfferAnalysis(input: OfferCreatorInput, offer: GeneratedOffer): OfferAnalysis {
     const strengths = this.calculateOfferStrengths(input);

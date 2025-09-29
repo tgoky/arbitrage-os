@@ -127,6 +127,7 @@ const { validateInput, validateInputProgressive, getOfferInsights, calculateCapa
     capacity: "",
     monthlyHours: "",
     acv: "",
+      acvPeriod: "annual", 
     fulfillmentStack: [],
   });
 
@@ -379,6 +380,7 @@ const handleClearAll = () => {
       capacity: "",
       monthlyHours: "",
       acv: "",
+            acvPeriod: "annual", 
       fulfillmentStack: [],
     });
     
@@ -456,13 +458,14 @@ const handleClearAll = () => {
             pains: [],
             outcomes: [],
           });
-          setBusinessInputs(input.business || {
-            deliveryModel: [],
-            capacity: "",
-            monthlyHours: "",
-            acv: "",
-            fulfillmentStack: [],
-          });
+         setBusinessInputs({
+  deliveryModel: input.business?.deliveryModel || [],
+  capacity: input.business?.capacity || "",
+  monthlyHours: input.business?.monthlyHours || "",
+  acv: input.business?.acv || "",
+  acvPeriod: input.business?.acvPeriod || "annual",  // ✅ Correct - checks the specific field
+  fulfillmentStack: input.business?.fulfillmentStack || [],
+});
           setPricingInputs(input.pricing || {
             pricePosture: "value-priced",
             contractStyle: "month-to-month",
@@ -671,7 +674,7 @@ const handleClearAll = () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Biggest Buyer Problems: Required</Text>
+                      <Text strong>Biggest Buyer Problems (pain points): Required</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
@@ -688,7 +691,7 @@ const handleClearAll = () => {
                       )}
                     </div>
                     <div>
-                      <Text strong>Results Buyers Want: Required</Text>
+                      <Text strong>Results Buyers Want (outcomes): Required</Text>
                       <Select
                         mode="tags"
                         style={{ width: "100%" }}
@@ -706,126 +709,161 @@ const handleClearAll = () => {
                   </div>
                 </Panel>
 
-                <Panel
-                  header={
-                    <div className="flex items-center">
-                      <SettingOutlined className="mr-2" />
-                      <span className="font-medium">Business Model & Capacity: Required Fields</span>
-                      {(validationResults.errors['business.deliveryModel'] || validationResults.errors['business.capacity']) && 
-                       <Badge status="error" style={{ marginLeft: 8 }} />}
-                    </div>
-                  }
-                  key="3"
-                >
-                  <div className="space-y-4">
-                    <div>
-                      <Text strong>How You Deliver</Text>
-                      <Select
-                        mode="multiple"
-                        style={{ width: "100%" }}
-                        placeholder="Select your service model (e.g done-for-you, coaching, SaaS, hybrid) "
-                        value={businessInputs.deliveryModel}
-                        onChange={(value) => handleInputChange("business", "deliveryModel", value)}
-                        // status={validationResults.errors['business.deliveryModel'] ? 'error' : undefined}
-                      >
-                        <Option value="productized-service">Productized Service</Option>
-                        <Option value="monthly-retainer">Monthly Retainer</Option>
-                        <Option value="one-time-project">One-time Project</Option>
-                        <Option value="training">Training</Option>
-                        <Option value="advisory">Advisory</Option>
-                        <Option value="licensing">Licensing</Option>
-                      </Select>
-                      {validationResults.errors['business.deliveryModel'] && (
-                        <Text type="danger" className="text-sm">
-                          {validationResults.errors['business.deliveryModel']}
-                        </Text>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Text strong>Max Clients You Can Handle</Text>
-                        <Input
-                          placeholder="What's your concurrent client capacity (e.g 5 at once, 20 at once)?"
-                          value={businessInputs.capacity}
-                          onChange={(e) => handleInputChange("business", "capacity", e.target.value)}
-                          // status={validationResults.errors['business.capacity'] ? 'error' : undefined}
-                        />
-                        {validationResults.errors['business.capacity'] && (
-                          <Text type="danger" className="text-sm">
-                            {validationResults.errors['business.capacity']}
-                          </Text>
-                        )}
-                      </div>
-                      <div>
-                        <Text strong>Monthly Hours You will invest</Text>
-                        <Input
-                          placeholder="Roughly how many hours per month can your team put into delivery?"
-                          value={businessInputs.monthlyHours}
-                          onChange={(e) => handleInputChange("business", "monthlyHours", e.target.value)}
-                          // status={validationResults.errors['business.monthlyHours'] ? 'error' : undefined}
-                        />
-                        {validationResults.errors['business.monthlyHours'] && (
-                          <Text type="danger" className="text-sm">
-                            {validationResults.errors['business.monthlyHours']}
-                          </Text>
-                        )}
-                      </div>
-                      <div>
-                        <Text strong>Your Target Deal Size</Text>
-                        <Input
-                          placeholder="What's your ideal annual contract value per client (e.g $20k, $50k)? "
-                          value={businessInputs.acv}
-                          onChange={(e) => handleInputChange("business", "acv", e.target.value)}
-                          // status={validationResults.errors['business.acv'] ? 'error' : undefined}
-                        />
-                        {validationResults.errors['business.acv'] && (
-                          <Text type="danger" className="text-sm">
-                            {validationResults.errors['business.acv']}
-                          </Text>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Text strong>Your Fulfillment Tools</Text>
-                      <Select
-                        mode="tags"
-                        style={{ width: "100%" }}
-                        placeholder="List the main tools/softwate you'll use to deliver (e.g., HubSpot, Zapier, Figma). "
-                        value={businessInputs.fulfillmentStack}
-                        onChange={(value) => handleInputChange("business", "fulfillmentStack", value)}
-                      />
-                    </div>
+               <Panel
+  header={
+    <div className="flex items-center">
+      <SettingOutlined className="mr-2" />
+      <span className="font-medium">Business Model & Capacity: Required Fields</span>
+      {(validationResults.errors['business.deliveryModel'] || validationResults.errors['business.capacity']) && 
+       <Badge status="error" style={{ marginLeft: 8 }} />}
+    </div>
+  }
+  key="3"
+>
+  <div className="space-y-4">
+    <div>
+      <Text strong>How You Deliver</Text>
+      <Select
+        mode="multiple"
+        style={{ width: "100%" }}
+        placeholder="Select your service model (e.g done-for-you, coaching, SaaS, hybrid) "
+        value={businessInputs.deliveryModel}
+        onChange={(value) => handleInputChange("business", "deliveryModel", value)}
+      >
+        <Option value="productized-service">Productized Service</Option>
+        <Option value="monthly-retainer">Monthly Retainer</Option>
+        <Option value="one-time-project">One-time Project</Option>
+        <Option value="training">Training</Option>
+        <Option value="advisory">Advisory</Option>
+        <Option value="licensing">Licensing</Option>
+      </Select>
+      {validationResults.errors['business.deliveryModel'] && (
+        <Text type="danger" className="text-sm">
+          {validationResults.errors['business.deliveryModel']}
+        </Text>
+      )}
+    </div>
+    
+   <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+  <div className="md:col-span-3">
+    <Text strong>Max Clients</Text>
+    <Input
+      placeholder="e.g., 5"
+      value={businessInputs.capacity}
+      onChange={(e) => handleInputChange("business", "capacity", e.target.value)}
+      type="number"
+    />
+    {validationResults.errors['business.capacity'] && (
+      <Text type="danger" className="text-sm">
+        {validationResults.errors['business.capacity']}
+      </Text>
+    )}
+  </div>
+  
+  <div className="md:col-span-3">
+    <Text strong>Monthly Hours</Text>
+    <Input
+      placeholder="e.g., 160"
+      value={businessInputs.monthlyHours}
+      onChange={(e) => handleInputChange("business", "monthlyHours", e.target.value)}
+      type="number"
+    />
+    {validationResults.errors['business.monthlyHours'] && (
+      <Text type="danger" className="text-sm">
+        {validationResults.errors['business.monthlyHours']}
+      </Text>
+    )}
+  </div>
 
-                    {/* Show capacity metrics if available */}
-                    {capacityMetrics && (
-                      <div className="mt-4 p-4  rounded-lg">
-                        <Text strong>Capacity Analysis:</Text>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                          <div>
-                            <Text className="text-sm">Hours/Client</Text>
-                            <div className="font-bold">{capacityMetrics.hoursPerClient}h</div>
-                            <div className="text-xs text-gray-500">{capacityMetrics.recommendations.hoursPerClient}</div>
-                          </div>
-                          <div>
-                            <Text className="text-sm">Monthly Rate</Text>
-                            <div className="font-bold">${capacityMetrics.monthlyRate}</div>
-                            <div className="text-xs text-gray-500">{capacityMetrics.recommendations.monthlyRate}</div>
-                          </div>
-                          <div>
-                            <Text className="text-sm">Potential Revenue</Text>
-                            <div className="font-bold">${capacityMetrics.potentialRevenue.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{capacityMetrics.recommendations.potentialRevenue}</div>
-                          </div>
-                          <div>
-                            <Text className="text-sm">Utilization</Text>
-                            <div className="font-bold">{capacityMetrics.utilizationRate}%</div>
-                            <div className="text-xs text-gray-500">Target: 80-90%</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Panel>
+  <div className="md:col-span-6">
+    <Text strong>Total Target Revenue</Text>
+    <div className="flex gap-2">
+      <Input
+        placeholder="5000"
+        value={businessInputs.acv}
+        onChange={(e) => handleInputChange("business", "acv", e.target.value)}
+        prefix="$"
+        type="number"
+        style={{ flex: '1 1 65%' }}
+      />
+      <Select
+         value={businessInputs.acvPeriod || 'annual'}
+        onChange={(value) => handleInputChange("business", "acvPeriod", value)}
+        style={{ flex: '1 1 35%', minWidth: '90px' }}
+      >
+        <Option value="monthly">monthly</Option>
+        <Option value="annual">yearly</Option>
+      </Select>
+    </div>
+    {validationResults.errors['business.acv'] && (
+      <Text type="danger" className="text-sm">
+        {validationResults.errors['business.acv']}
+      </Text>
+    )}
+  </div>
+</div>
+
+    {/* Calculated display - full width below the grid */}
+ {businessInputs.acv && businessInputs.capacity && (
+  <div className="p-2 bg-emerald-500 font-black rounded text-sm text-black">
+    <strong>Calculated:</strong>{' '}
+    {(() => {
+      const totalAcv = parseInt(businessInputs.acv.replace(/[^0-9]/g, '') || '0');
+      const capacity = parseInt(businessInputs.capacity) || 1;
+      
+      if (businessInputs.acvPeriod === 'monthly') {
+        const perClient = Math.round(totalAcv / capacity);
+        return `$${totalAcv.toLocaleString()}/month total ($${perClient.toLocaleString()}/month per client)`;
+      } else {
+        const monthlyTotal = Math.round(totalAcv / 12);
+        const perClient = Math.round(totalAcv / 12 / capacity);
+        return `$${totalAcv.toLocaleString()}/year total ($${monthlyTotal.toLocaleString()}/month = $${perClient.toLocaleString()}/month per client)`;
+      }
+    })()}
+  </div>
+)}
+
+    <div>
+      <Text strong>Your Fulfillment Tools</Text>
+      <Select
+        mode="tags"
+        style={{ width: "100%" }}
+        placeholder="List the main tools/software you'll use to deliver (e.g., HubSpot, Zapier, Figma). "
+        value={businessInputs.fulfillmentStack}
+        onChange={(value) => handleInputChange("business", "fulfillmentStack", value)}
+      />
+    </div>
+
+    {/* Show capacity metrics if available */}
+    {capacityMetrics && (
+      <div className="mt-4 p-4 bg-emerald-500 font-black  text-sm text-black rounded-lg">
+        <Text strong className="text-black">Capacity Analysis:</Text>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+          <div>
+            <Text className="text-sm">Hours/Client</Text>
+            <div className="font-bold">{capacityMetrics.hoursPerClient}h</div>
+            <div className="text-xs text-gray-600">{capacityMetrics.recommendations.hoursPerClient}</div>
+          </div>
+          <div>
+            <Text className="text-sm">Monthly Rate</Text>
+            <div className="font-bold">${capacityMetrics.monthlyRate}</div>
+            <div className="text-xs text-gray-600">{capacityMetrics.recommendations.monthlyRate}</div>
+          </div>
+          <div>
+            <Text className="text-sm">Potential Revenue</Text>
+            <div className="font-bold">${capacityMetrics.potentialRevenue.toLocaleString()}</div>
+            <div className="text-xs text-gray-600">{capacityMetrics.recommendations.potentialRevenue}</div>
+          </div>
+          <div>
+            <Text className="text-sm">Utilization</Text>
+            <div className="font-bold">{capacityMetrics.utilizationRate}%</div>
+            <div className="text-xs text-gray-600">Target: 80-90%</div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</Panel>
 
                 <Panel
                   header={
@@ -976,23 +1014,23 @@ const handleClearAll = () => {
     {/* Show warnings if they exist but allow generation */}
  {/* Show warnings if they exist but allow generation */}
 {Object.keys(validationResults.warnings || {}).length > 0 && (
-  <div className="mb-4 p-4 border-l-4 border-yellow-400 bg-yellow-50 rounded-lg shadow-sm animate-fadeIn">
+  <div className="mb-4 p-4 border-l-4 border-yellow-400 bg-emerald-500 text-black  font-black rounded-lg shadow-sm animate-fadeIn">
     <div className="flex">
       <div className="flex-shrink-0">
-        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+        <svg className="h-5 w-5 text-black" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
       </div>
       <div className="ml-3">
-        <h3 className="text-sm font-medium text-yellow-800">Suggestions to improve your offers</h3>
-        <div className="mt-2 text-sm text-yellow-700">
+        <h3 className="text-sm font-medium text-black font-black ">Suggestions to improve your offers</h3>
+        <div className="mt-2 text-sm text-black">
           <ul className="list-disc pl-5 space-y-1">
             {Object.entries(validationResults.warnings || {}).slice(0, 3).map(([field, warning]) => (
               <li key={field}>{warning}</li>
             ))}
           </ul>
         </div>
-        <div className="mt-3 text-xs text-yellow-600 italic">
+        <div className="mt-3 text-xs text-gray-600 font-black italic">
           These are suggestions - you can still generate offers.
         </div>
       </div>

@@ -22,6 +22,8 @@ export interface BusinessInputs {
   monthlyHours: string;
   acv: string;
   fulfillmentStack: string[];
+    acvPeriod?: 'monthly' | 'annual'; 
+
 }
 
 export interface ProgressiveValidationResult {
