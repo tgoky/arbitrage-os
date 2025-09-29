@@ -1883,6 +1883,7 @@ function CompleteProposalTab({
       "PROJECT PROPOSAL",
       "=".repeat(60),
       "",
+     
       "PROJECT OVERVIEW",
       "-".repeat(30),
       proposal.proposal.projectOverview,
@@ -1915,14 +1916,15 @@ function CompleteProposalTab({
       "LEGAL CONTRACTS",
       "=".repeat(60),
       "",
-      "SERVICE AGREEMENT",
+ 
       "-".repeat(30),
       proposal.proposal.contractTemplates.serviceAgreement,
       "",
       "=".repeat(60),
       "",
-      "STATEMENT OF WORK",
+ 
       "-".repeat(30),
+      
       proposal.proposal.contractTemplates.statementOfWork,
       "",
       "=".repeat(60),
@@ -1949,6 +1951,13 @@ function CompleteProposalTab({
             icon={<CopyOutlined />}
             onClick={() => copyToClipboard(completeProposalText, 'Complete Proposal')}
             type="primary"
+                 style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
+
           >
             Copy Complete Proposal
           </Button>
@@ -2072,10 +2081,11 @@ const [activeSection, setActiveSection] = useState<'overview' | 'complete' | 'ag
               type="primary"
               style={{
                 backgroundColor: '#5CC49D',
+                   color: '#000000',
          
               }}
             >
-              Download & Export 
+              View Full Proposal & Download
             </Button>
             
             {/* <Button 
