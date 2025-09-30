@@ -78,24 +78,26 @@ class WorkspaceService {
   }
 
   async createWorkspace(input: CreateWorkspaceInput): Promise<Workspace> {
-    console.log('🆕 Creating workspace with input:', input);
-    
-    if (!input.name || input.name.trim() === '') {
-      throw new Error('Workspace name is required');
-    }
-
-    try {
-      const workspace = await this.fetchWithAuth('/api/workspaces', {
-        method: 'POST',
-        body: JSON.stringify(input)
-      });
-      console.log('✅ Workspace created successfully:', workspace);
-      return workspace;
-    } catch (error) {
-      console.error('❌ Error creating workspace:', error);
-      throw error;
-    }
+  console.log('🆕 Creating workspace with input:', input);
+  
+  if (!input.name || input.name.trim() === '') {
+    throw new Error('Workspace name is required');
   }
+
+  try {
+    const workspace = await this.fetchWithAuth('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+    console.log('✅ Workspace created successfully:', workspace);
+    return workspace;
+  } catch (error: any) {
+    console.error('❌ Error creating workspace:', error);
+    console.error('Error details:', error.message);
+    throw error;
+  }
+}
+
 
   async updateWorkspace(id: string, updates: Partial<CreateWorkspaceInput>): Promise<Workspace> {
     console.log('📝 Updating workspace:', id, updates);
