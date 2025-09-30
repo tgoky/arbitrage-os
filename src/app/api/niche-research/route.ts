@@ -8,6 +8,7 @@ import { NicheResearcherService } from '@/services/nicheResearcher.service';
 import { validateNicheResearchInput } from '../../validators/nicheResearcher.validator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+import { createNotification } from '@/lib/notificationHelper';
 
 // ✅ IMPROVED AUTH FUNCTION WITH BETTER ERROR HANDLING
 async function getAuthenticatedUser(request: NextRequest) {
@@ -280,6 +281,29 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspace.id,
+    workspaceSlug: workspace.slug,
+    type: 'niche_research',
+    itemId: result.reportId,
+    metadata: {
+      nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name,
+      primaryObjective: validation.data.primaryObjective,
+      marketType: validation.data.marketType,
+      budget: validation.data.budget,
+      recommendedNicheIndex: result.report.recommendedNiche,
+      totalNiches: result.report.niches.length
+    }
+  });
+  
+  console.log('✅ Notification created for niche research:', result.reportId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the request if notification fails
+}
 
     // ✅ LOG USAGE
     console.log('📊 Logging usage...');

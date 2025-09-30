@@ -15,6 +15,7 @@ import {
   ListGrowthPlansResponse,
   GrowthPlanServiceResponse 
 } from '@/types/growthPlan';
+import { createNotification } from '@/lib/notificationHelper';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -390,6 +391,28 @@ console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWor
         { status: 500 }
       );
     }
+
+    try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspaceId,
+    workspaceSlug: workspace.slug,
+    type: 'growth_plan',
+    itemId: planId,
+    metadata: {
+      clientCompany: validation.data.clientCompany,
+      industry: validation.data.industry,
+      timeframe: validation.data.timeframe,
+      consultantName: validation.data.name,
+      consultantExpertise: validation.data.expertise
+    }
+  });
+  
+  console.log('✅ Notification created for growth plan:', planId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the request if notification fails
+}
 
     // ✅ LOG USAGE: Track AI token consumption
     console.log('📊 Logging growth plan usage...');
