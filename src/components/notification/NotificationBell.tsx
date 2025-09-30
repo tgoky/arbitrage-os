@@ -13,8 +13,10 @@ import {
   RocketOutlined,
   BulbOutlined,
   MailOutlined,
+  FileTextOutlined,
   EditOutlined,
   TagOutlined,
+  TeamOutlined,
   ThunderboltOutlined
 } from '@ant-design/icons';
 import {
@@ -47,7 +49,9 @@ const getNotificationIcon = (type: NotificationType) => {
     'cold_email': <MailOutlined style={{ color: '#eb2f96' }} />,
     'offer_creator': <EditOutlined style={{ color: '#13c2c2' }} />,
     'ad_writer': <TagOutlined style={{ color: '#faad14' }} />,
-    'n8n_workflow': <ThunderboltOutlined style={{ color: '#fa541c' }} />
+    'n8n_workflow': <ThunderboltOutlined style={{ color: '#fa541c' }} />,
+      'proposal': <FileTextOutlined  style={{ color: '#9254de' }}/>,        
+       'lead-generation': <TeamOutlined style={{ color: '#52c41a' }}/>  
   };
   return icons[type];
 };

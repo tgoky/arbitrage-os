@@ -6,7 +6,7 @@ export type NotificationType =
   | 'growth_plan'
   | 'niche_research'
   | 'cold_email'
-  |  'lead_generation'
+  |  'lead-generation'
   |  'proposal'
   | 'offer_creator'
   | 'ad_writer'
