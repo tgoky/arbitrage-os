@@ -155,11 +155,12 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/workspaces
+
+// POST /api/workspaces
 export async function POST(request: NextRequest) {
   try {
     console.log('=== WORKSPACES POST API START ===');
     
-    // Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser(request);
     
     if (authError || !user) {
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest) {
 
     const selectedColor = color || colors[Math.floor(Math.random() * colors.length)];
 
+    // Create workspace - let Prisma/Postgres handle ID generation
     const workspace = await prisma.workspace.create({
       data: {
         user_id: user.id,
@@ -217,16 +219,40 @@ export async function POST(request: NextRequest) {
         slug: finalSlug,
         description: description?.trim() || null,
         color: selectedColor
+        // Don't include created_at/updated_at - they're auto-generated
       }
     });
 
-    console.log(`Created workspace ${workspace.id} for user ${user.id}`);
+    console.log(`✅ Created workspace ${workspace.id} for user ${user.id}`);
     
     return NextResponse.json(workspace, { status: 201 });
-  } catch (error) {
-    console.error('Error creating workspace:', error);
+  } catch (error: any) {
+    console.error('❌ DETAILED ERROR creating workspace:');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error stack:', error.stack);
+    
+    // Prisma-specific error handling
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'A workspace with this name already exists' },
+        { status: 409 }
+      );
+    }
+    
+    if (error.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Invalid user reference' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create workspace' },
+      { 
+        error: 'Failed to create workspace',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     );
   }
