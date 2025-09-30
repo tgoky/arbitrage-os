@@ -142,6 +142,23 @@ export const aiTools: AITool[] = [
   affiliateStatus: 'Waiting for lemonsqueezy approval'
 },
 {
+"id": "heyreach",
+"name": "HeyReach",
+"description": "AI-powered outreach and sales automation platform",
+"category": "Sales & Marketing",
+"subcategory": "Outreach Automation",
+"imageUrl": "https://logo.clearbit.com/heyreach.io",
+"url": "https://heyreach.io/?via=growai",
+"pricing": "Freemium",
+"rating": 4.4,
+"features": ["AI-powered messaging", "Multi-channel outreach", "Lead management", "Analytics"],
+"useCase": "Sales outreach, lead generation, cold email campaigns",
+"pros": ["Easy to use", "Multi-channel", "AI optimization"],
+"cons": ["Learning curve", "Limited free tier"],
+"tags": ["Sales", "Outreach", "Automation", "Email"],
+"affiliateStatus": "Active"
+},
+{
   id: 'deel',
   name: 'Deel',
   description: 'AI-powered global payroll and compliance platform',
