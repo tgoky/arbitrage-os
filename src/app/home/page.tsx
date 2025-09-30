@@ -563,7 +563,7 @@ if (isLoading || workspaceLoading || userLoading) {
         {/* Logo above the card - reduced margin */}
         <div className="mb-4"> {/* Changed from mb-1 to mb-4 for better spacing */}
           <img
-            src="/aoswhite.png"
+               src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
             alt="ArbitrageOS Logo"
             className="h-64" // Reduced height from 340px to h-64 (256px)
             style={{ 
