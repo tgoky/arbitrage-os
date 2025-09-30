@@ -485,6 +485,43 @@ export async function POST(req: NextRequest) {
       console.warn('⚠️ Using temporary ID - proposal not saved to database');
     }
 
+
+    // After successful proposal generation and saving
+// After successful proposal generation and saving
+try {
+  // Fetch workspace to get the slug
+  const { prisma } = await import('@/lib/prisma');
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { slug: true }
+  });
+
+  if (!workspace) {
+    console.warn('Workspace not found for notification:', workspaceId);
+  } else {
+    await createNotification({
+      userId: user.id,
+      workspaceId: workspaceId,
+      workspaceSlug: workspace.slug,
+      type: 'proposal',
+      itemId: proposalId,
+      metadata: {
+        proposalType: validatedData.proposalType,
+        clientName: validatedData.client.legalName,
+        clientIndustry: validatedData.client.industry,
+        totalValue: validatedData.pricing.totalAmount,
+        winProbability: generatedProposal.analysis?.winProbability?.score,
+        saved: saveSuccess
+      }
+    });
+    
+    console.log('✅ Notification created for proposal generation:', proposalId);
+  }
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the entire request if notification fails
+}
+    
     
 
     // Usage logging

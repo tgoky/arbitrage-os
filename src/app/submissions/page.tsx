@@ -19,6 +19,7 @@ import {
   DownloadOutlined,
   DeleteOutlined,
   ShareAltOutlined,
+  TeamOutlined,
   ReloadOutlined,
   ThunderboltOutlined
 } from '@ant-design/icons';
@@ -58,7 +59,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 // Define proper types
-type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
+type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' |  'proposal' | 'lead-generation';
 type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
 
 // Unified work item interface
@@ -165,7 +166,9 @@ const IntegratedWorkDashboard = () => {
       'cold-email': <MailOutlined />,
       'offer-creator': <EditOutlined />,
       'ad-writer': <TagOutlined />,
-      'n8n-workflow': <ThunderboltOutlined /> 
+      'n8n-workflow': <ThunderboltOutlined />,
+      'proposal': <FileTextOutlined />,        
+    'lead-generation': <TeamOutlined />  
     };
     return icons[type] || <FileTextOutlined />;
   };
@@ -180,7 +183,9 @@ const IntegratedWorkDashboard = () => {
       'cold-email': 'Cold Email',
       'offer-creator': 'Offer Creator',
       'ad-writer': 'Ad Copy Writer',
-      'n8n-workflow': 'n8n Workflow' 
+      'n8n-workflow': 'n8n Workflow' ,
+        'proposal': 'Proposal',           
+    'lead-generation': 'Lead Generation' 
     };
     return names[type] || type;
   };
@@ -207,7 +212,9 @@ const IntegratedWorkDashboard = () => {
       'cold-email': '#eb2f96',
       'offer-creator': '#13c2c2',
       'ad-writer': '#faad14',
-      'n8n-workflow': '#fa541c' 
+      'n8n-workflow': '#fa541c',
+       'proposal': '#9254de',           
+    'lead-generation': '#52c41a'   
     };
     return colors[type] || '#666';
   };
@@ -282,7 +289,9 @@ const IntegratedWorkDashboard = () => {
               'niche-research': `/dashboard/${currentWorkspace.slug}/niche-research/${item.metadata.deliverableId}`,
               'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
               'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
-              'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`
+              'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`,
+               'proposal': `/dashboard/${currentWorkspace.slug}/proposal-creator/view/${item.metadata.deliverableId}`, 
+             'lead-generation': `/dashboard/${currentWorkspace.slug}/lead-generation/view/${item.metadata.deliverableId}`
             };
             
             const viewUrl = viewUrls[item.type];
@@ -600,6 +609,14 @@ const IntegratedWorkDashboard = () => {
             tab={<Badge count={getTabCount('n8n-workflow')} offset={[8, 0]}>Workflows</Badge>} 
             key="n8n-workflow" 
           />
+          <Tabs.TabPane 
+  tab={<Badge count={getTabCount('proposal')} offset={[8, 0]}>Proposals</Badge>} 
+  key="proposal" 
+/>
+<Tabs.TabPane 
+  tab={<Badge count={getTabCount('lead-generation')} offset={[8, 0]}>Leads</Badge>} 
+  key="lead-generation" 
+/>
         </Tabs>
 
         {/* Work Items List */}

@@ -6,6 +6,8 @@ export type NotificationType =
   | 'growth_plan'
   | 'niche_research'
   | 'cold_email'
+  |  'lead_generation'
+  |  'proposal'
   | 'offer_creator'
   | 'ad_writer'
   | 'n8n_workflow';

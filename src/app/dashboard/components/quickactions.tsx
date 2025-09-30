@@ -33,7 +33,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     isFetching
   } = useWorkItems();
 
-  // Helper functions
+  // Helper functions - UPDATED with proposals and lead generation
   const getTypeName = (type: string) => {
     const names: Record<string, string> = {
       'sales-call': 'Sales Call Analysis',
@@ -43,7 +43,9 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       'cold-email': 'Cold Email',
       'offer-creator': 'Offer Creator',
       'ad-writer': 'Ad Copy Writer',
-      'n8n-workflow': 'n8n Workflow'
+      'n8n-workflow': 'n8n Workflow',
+      'proposal': 'Proposal',                    // ✅ ADDED
+      'lead-generation': 'Lead Generation'       // ✅ ADDED
     };
     return names[type] || type;
   };
@@ -57,7 +59,9 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       'Cold Email': '#eb2f96',
       'Offer Creator': '#13c2c2',
       'Ad Copy Writer': '#faad14',
-      'n8n Workflow': '#fa541c'
+      'n8n Workflow': '#fa541c',
+      'Proposal': '#9254de',                     // ✅ ADDED
+      'Lead Generation': '#52c41a'               // ✅ ADDED
     };
     return colors[type] || '#666';
   };
@@ -120,7 +124,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     },
   });
 
-  const chartColors = ['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#eb2f96', '#13c2c2', '#faad14', '#fa541c'];
+  const chartColors = ['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#eb2f96', '#13c2c2', '#faad14', '#fa541c', '#9254de'];
 
   const renderChart = () => {
     if (!chartData.length) {
@@ -314,13 +318,11 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     <Card
       data-tour="quick-actions"
       title={
-        
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-         <Text strong style={{ fontSize: '18px', color: theme === 'dark' ? '#f9fafb' : '#111827' }}>
-  <CalendarOutlined style={{ color: '#5CC49D', marginRight: 8 }} /> 
-  Submissions Analytics
-</Text>
-
+          <Text strong style={{ fontSize: '18px', color: theme === 'dark' ? '#f9fafb' : '#111827' }}>
+            <CalendarOutlined style={{ color: '#5CC49D', marginRight: 8 }} /> 
+            Submissions Analytics
+          </Text>
           <Space>
             <Select
               value={chartType}

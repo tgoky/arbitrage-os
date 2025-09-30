@@ -173,6 +173,30 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
           };
           break;
 
+          case 'proposal':
+  action = 'Generated business proposal';
+  user = 'Proposal AI';
+  metadata = {
+    duration: '15-25 min',
+    tokensUsed: item.metadata?.tokensUsed || Math.floor(Math.random() * 5000) + 3000,
+    outputSize: `$${item.metadata?.totalValue?.toLocaleString() || '0'}`,
+    confidence: item.metadata?.winProbability || 75,
+    priority: 'high' as const
+  };
+  break;
+
+case 'lead-generation':
+  action = 'Generated lead list';
+  user = 'Apollo AI';
+  metadata = {
+    duration: '5-15 min',
+    tokensUsed: item.metadata?.tokensUsed || item.metadata?.leadCount || 0,
+    outputSize: `${item.metadata?.leadCount || 0} leads`,
+    confidence: item.metadata?.averageScore || 80,
+    priority: item.metadata?.searchStrategy === 'Global Precision' ? 'high' as const : 'medium' as const
+  };
+  break;
+
         default:
           action = `Generated ${item.type}`;
           user = 'AI Assistant';

@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 
 interface WorkItem {
   id: string;
- type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow';
+ type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation';
   title: string;
   subtitle: string;
   status: 'completed' | 'processing' | 'failed' | 'draft';
@@ -169,7 +169,9 @@ async function fetchAllWorkItemsFromDeliverables(userId: string, workspaceId?: s
           'cold_email_generation',
           'ad_writer',
           'n8n_workflow',
-          'signature_offers' 
+          'signature_offers' ,
+          'proposal',       
+      'lead_generation' 
         ]
       }
     };
@@ -278,6 +280,22 @@ case 'n8n_workflow':
   subtitle = `${metadata.triggerType || 'Webhook'} • ${metadata.integrationCount || 0} nodes`;
   actions = ['view', 'export', 'optimize', 'delete'];
   break;
+
+   case 'proposal':
+        workItemType = 'proposal';
+        const clientName = metadata.clientName || 'Unknown Client';
+        const totalValue = metadata.totalValue || 0;
+        subtitle = `${clientName} • $${totalValue.toLocaleString()}`;
+        actions = ['view', 'export', 'delete'];
+        break;
+
+          case 'lead_generation':
+        workItemType = 'lead-generation';
+        const leadCount = metadata.leadCount || 0;
+        const industries = metadata.criteria?.targetIndustry?.slice(0, 2).join(', ') || 'Multiple';
+        subtitle = `${leadCount} leads • ${industries}`;
+        actions = ['view', 'export', 'delete'];
+        break;
 
       default:
         console.warn('Unknown deliverable type:', deliverable.type);

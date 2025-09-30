@@ -64,6 +64,7 @@ export interface LeadGenerationResponse {
     countries: string[];
     regions: string[];
     totalLocations: number;
+     isGlobal?: boolean; 
   };
 }
 
@@ -503,6 +504,7 @@ export class EnhancedGlobalApolloService {
     countries: string[];
     regions: string[];
     totalLocations: number;
+       isGlobal?: boolean; 
   };
   totalFound?: number;
 }> {

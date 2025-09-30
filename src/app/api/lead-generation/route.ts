@@ -9,6 +9,8 @@ import { CreditsService } from '@/services/credits.service';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
+import { createNotification } from '@/lib/notificationHelper';
+
 // Enhanced Lead interface matching the global service
 interface GeneratedLead {
   id: string;
@@ -380,6 +382,41 @@ export async function POST(req: NextRequest) {
       globalCoverage: response.globalCoverage
     });
 
+// Create notification after successful lead generation
+    try {
+      // Fetch workspace for slug
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { slug: true }
+      });
+
+
+     if (workspace) {
+        await createNotification({
+          userId: user.id,
+          workspaceId: workspaceId,
+          workspaceSlug: workspace.slug,
+          type: 'lead_generation',
+          itemId: response.deliverableId,
+          metadata: {
+            leadCount: response.leads.length,
+            industries: criteria.targetIndustry,
+            roles: criteria.targetRole,
+            searchStrategy: response.searchStrategy,
+            isGlobal: response.globalCoverage?.isGlobal || false,
+            countries: response.globalCoverage?.countries || []
+          }
+        });
+        
+        console.log('✅ Notification created for lead generation:', response.deliverableId);
+      } else {
+        console.warn('Workspace not found for notification:', workspaceId);
+      }
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+      // Don't fail the entire request if notification fails
+    }
+    
     // Enhanced usage logging with global metadata
     await logUsage({
       userId: user.id,

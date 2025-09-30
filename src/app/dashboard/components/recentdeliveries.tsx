@@ -12,6 +12,7 @@ import {
   TagOutlined,
   CalendarOutlined,
   EyeOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
@@ -54,7 +55,9 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'cold-email': <MailOutlined />,
       'offer-creator': <EditOutlined />,
       'ad-writer': <TagOutlined />,
-      'n8n-workflow': <FileTextOutlined />
+      'n8n-workflow': <FileTextOutlined />,
+         'proposal': <FileTextOutlined />,           // ✅ ADD THIS
+    'lead-generation': <TeamOutlined />  
     };
     return icons[type] || <FileTextOutlined />;
   };
@@ -69,7 +72,9 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'cold-email': '#eb2f96',
       'offer-creator': '#13c2c2',
       'ad-writer': '#faad14',
-      'n8n-workflow': '#fa541c'
+      'n8n-workflow': '#fa541c',
+         'proposal': '#9254de',            
+    'lead-generation': '#52c41a'  
     };
     return colors[type] || '#666';
   };
@@ -84,7 +89,9 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'cold-email': 'Cold Email',
       'offer-creator': 'Offers',
       'ad-writer': 'Ads',
-      'n8n-workflow': 'Workflow'
+      'n8n-workflow': 'Workflow',
+        'proposal': 'Proposal',                
+    'lead-generation': 'Lead Generation'  
     };
     return names[type] || type;
   };
@@ -370,6 +377,17 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                         {item.type === 'offer-creator' && item.metadata.packages && (
                           <Tag style={{ fontSize: 9 }}>{item.metadata.packages} packages</Tag>
                         )}
+
+                        {item.type === 'proposal' && item.metadata.winProbability && (
+  <Tag color="green" style={{ fontSize: 9 }}>
+    {item.metadata.winProbability}% win
+  </Tag>
+)}
+{item.type === 'lead-generation' && item.metadata.leadCount && (
+  <Tag color="blue" style={{ fontSize: 9 }}>
+    {item.metadata.leadCount} leads
+  </Tag>
+)}
                         
                         {/* Workspace indicator */}
                         {currentWorkspace && (
