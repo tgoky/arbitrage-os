@@ -27,6 +27,7 @@ model User {
   aiToolFavorites    AIToolFavorite[]
   userCredits        UserCredit?
   creditTransactions CreditTransaction[]
+  notifications        Notification[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -48,6 +49,7 @@ model Workspace {
   user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   deliverables       Deliverable[]
   creditTransactions CreditTransaction[]
+  notifications        Notification[]
   
   @@unique([user_id, slug])
   @@index([slug], map: "idx_workspaces_slug")
@@ -153,5 +155,34 @@ model CreditTransaction {
   @@index([transaction_type], map: "idx_credit_transactions_type")
   @@index([created_at], map: "idx_credit_transactions_created_at")
   @@map("credit_transactions")
+  @@schema("public")
+}
+
+// ------------------ NOTIFICATION MODEL ------------------
+model Notification {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String   @db.Uuid
+  workspace_id String   @db.Uuid
+  type         String   @db.VarChar(50)  // 'pricing_calculation', 'sales_call', etc.
+  title        String   @db.VarChar(255)
+  message      String   @db.Text
+  status       String   @default("unread") @db.VarChar(20) // 'unread', 'read', 'archived'
+  item_id      String   @db.Uuid  // ID of the generated item (deliverable, calculation, etc.)
+  route        String   @db.Text  // The URL route to navigate to
+  metadata     Json?
+  read_at      DateTime? @map("read_at") @db.Timestamptz(6)
+  created_at   DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
+  updated_at   DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "idx_notifications_user_id")
+  @@index([workspace_id], map: "idx_notifications_workspace_id")
+  @@index([user_id, workspace_id, status], map: "idx_notifications_user_workspace_status")
+  @@index([status], map: "idx_notifications_status")
+  @@index([created_at], map: "idx_notifications_created_at")
+  @@map("notifications")
   @@schema("public")
 }

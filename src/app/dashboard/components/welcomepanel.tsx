@@ -14,6 +14,8 @@ import {
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkItems } from '../../hooks/useDashboardData';
 
+ import { NotificationBell } from '../../../components/notification/NotificationBell';
+
 const { Title } = Typography;
 const { useBreakpoint } = Grid;
 
@@ -294,6 +296,8 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           gap: '12px',
           flexShrink: 0
         }}>
+
+             <NotificationBell />
           <Button
             type="default"
             size={screens.xs ? 'small' : 'middle'}

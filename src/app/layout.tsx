@@ -10,6 +10,7 @@ import { dataProvider } from "@providers/data-provider";
 import "@styles/global.css";
 
 import { ThemeProvider } from "../providers/ThemeProvider";
+import { NotificationProvider } from "../providers/NotificationProvider"; 
 import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
 import { WorkspaceProvider } from "../app/hooks/useWorkspace";
 import { TutorialProvider } from "@providers/tutorial-provider/TutorialProvider";
@@ -35,6 +36,7 @@ export default function RootLayout({
             <ThemeProvider>
             
               <WorkspaceProvider> 
+                        <NotificationProvider>
                 <SidebarProvider>
                         <TutorialProvider>
                   <div className="min-h-screen flex">
@@ -81,7 +83,7 @@ export default function RootLayout({
                           show: "/niche-researcher/show/:id",
                           meta: {
                             canDelete: true,
-                          },
+                          }, 
                         },
                         {
                           name: "Top_50_Niches",
@@ -354,6 +356,7 @@ export default function RootLayout({
                   </div>
                       </TutorialProvider>
                 </SidebarProvider>
+                </NotificationProvider>
               </WorkspaceProvider> {/* ✅ Close WorkspaceProvider */}
 
             </ThemeProvider>

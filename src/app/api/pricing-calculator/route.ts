@@ -1,4 +1,4 @@
-// app/api/pricing-calculator/route.ts - UPDATED WITH WORKSPACE VALIDATION
+// app/api/pricing-calculator/route.ts - COMPLETE WITH NOTIFICATIONS
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
@@ -8,24 +8,23 @@ import { PricingCalculatorService } from '@/services/pricingCalculator.service';
 import { validatePricingCalculatorInput } from '../../validators/pricingCalculator.validator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+import { createNotification } from '@/lib/notificationHelper';
 
 const RATE_LIMITS = {
   CALCULATION: {
-    limit: 10, // 10 calculations per hour (expensive AI operation)
+    limit: 10,
     window: 3600
   },
   LIST: {
-    limit: 100, // 100 list requests per hour
+    limit: 100,
     window: 3600
   }
 };
 
-// Robust authentication function
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
-    // Method 1: Try with route handler client
     try {
       const supabase = createRouteHandlerClient({ 
         cookies: () => cookieStore 
@@ -42,7 +41,6 @@ async function getAuthenticatedUser(request: NextRequest) {
       console.warn('Route handler client failed:', helperError);
     }
     
-    // Method 2: Try with authorization header
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
@@ -70,7 +68,6 @@ async function getAuthenticatedUser(request: NextRequest) {
       }
     }
     
-    // Method 3: Try with cookie validation
     const supabaseSSR = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -81,11 +78,10 @@ async function getAuthenticatedUser(request: NextRequest) {
               const cookie = cookieStore.get(name);
               if (!cookie?.value) return undefined;
               
-              // Validate base64 cookies
               if (cookie.value.startsWith('base64-')) {
                 try {
                   const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded); // Validate JSON
+                  JSON.parse(decoded);
                   return cookie.value;
                 } catch (e) {
                   console.warn(`Invalid cookie ${name}, skipping...`);
@@ -111,7 +107,6 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-// Validate workspace access
 async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
   try {
     const workspace = await prisma.workspace.findFirst({
@@ -129,13 +124,11 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
 
 export async function POST(req: NextRequest) {
   try {
-    // Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
       console.error('Auth failed in pricing calculator:', authError);
       
-      // Clear corrupted cookies in response
       const response = NextResponse.json(
         { 
           error: 'Authentication required. Please clear your browser cookies and sign in again.',
@@ -144,7 +137,6 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
       
-      // Clear potentially corrupted cookies
       const cookiesToClear = [
         'sb-access-token',
         'sb-refresh-token',
@@ -161,7 +153,6 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    // GET WORKSPACE ID FROM REQUEST
     const body = await req.json();
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
@@ -173,7 +164,6 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // VALIDATE WORKSPACE ACCESS
     const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
     if (!hasAccess) {
       return NextResponse.json({ 
@@ -182,7 +172,6 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // RATE LIMITING for pricing calculations
     const rateLimitResult = await rateLimit(
       `pricing_calculation:${user.id}`, 
       RATE_LIMITS.CALCULATION.limit, 
@@ -198,7 +187,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse and validate request body
     const validation = validatePricingCalculatorInput(body);
         
     if (!validation.success) {
@@ -215,7 +203,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // VERIFY WORKSPACE EXISTS
     let workspace;
     try {
       workspace = await prisma.workspace.findFirst({
@@ -239,7 +226,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // SERVICE HANDLES BOTH GENERATION AND STORAGE with workspace context
     let generatedPackage;
     let deliverableId;
     
@@ -249,13 +235,11 @@ export async function POST(req: NextRequest) {
       
       console.log('Generating pricing package for workspace:', workspaceId);
       
-      // Generate the package
       generatedPackage = await pricingService.generatePricingPackage(calculatorInput);
       
-      // Save it with the correct workspace ID
       deliverableId = await pricingService.savePricingCalculation(
         user.id,
-        workspaceId, // Use the validated workspace ID
+        workspaceId,
         generatedPackage,
         calculatorInput
       );
@@ -270,7 +254,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // LOG USAGE for analytics/billing with workspace context
+    try {
+      await createNotification({
+        userId: user.id,
+        workspaceId: workspaceId,
+        workspaceSlug: workspace.slug,
+        type: 'pricing_calculation',
+        itemId: deliverableId,
+        metadata: {
+          clientName: validation.data.clientName,
+          recommendedRetainer: generatedPackage.calculations.recommendedRetainer,
+          roiPercentage: generatedPackage.calculations.roiPercentage,
+          projectValue: generatedPackage.calculations.totalProjectValue
+        }
+      });
+      
+      console.log('✅ Notification created for pricing calculation:', deliverableId);
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+    }
+
     try {
       await logUsage({
         userId: user.id,
@@ -292,7 +295,6 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (logError) {
-      // Don't fail the request if logging fails
       console.error('Usage logging failed:', logError);
     }
 
@@ -301,7 +303,7 @@ export async function POST(req: NextRequest) {
       data: {
         calculationId: deliverableId,
         package: generatedPackage,
-        workspaceId: workspaceId, // Return workspace ID for confirmation
+        workspaceId: workspaceId,
         workspaceName: workspace.name
       },
       meta: {
