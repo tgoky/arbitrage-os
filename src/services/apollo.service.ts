@@ -1999,7 +1999,7 @@ async saveLeadGeneration(
       data: {
         title: campaignName || `Global Lead Generation - ${criteria.targetIndustry.join(', ')}`,
         content: JSON.stringify(response),
-        type: 'lead_generation',
+        type: 'lead-generation',
         user_id: userId,
         workspace_id: workspaceId,
         metadata: {

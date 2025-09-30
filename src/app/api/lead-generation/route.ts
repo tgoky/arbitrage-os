@@ -396,7 +396,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           workspaceId: workspaceId,
           workspaceSlug: workspace.slug,
-          type: 'lead_generation',
+          type: 'lead-generation',
           itemId: response.deliverableId,
           metadata: {
             leadCount: response.leads.length,
