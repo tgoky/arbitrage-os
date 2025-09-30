@@ -9,6 +9,7 @@ import { validateAdWriterInput } from '@/app/validators/adWriter.validator';
 import { rateLimit } from '../../../lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { convertToPlatforms, type Platform } from '@/types/adWriter';
+import { createNotification } from '@/lib/notificationHelper';
 
 // MOVED INSIDE: Authentication function (no longer exported)
 async function getAuthenticatedUser(request: NextRequest) {
@@ -252,6 +253,30 @@ export async function POST(req: NextRequest) {
       tokensUsed: result.tokensUsed,
       generationTime: result.generationTime
     });
+
+    // After successful ad generation and saving
+try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspace.id,
+    workspaceSlug: workspace.slug,
+    type: 'ad_writer',
+    itemId: result.deliverableId,
+    metadata: {
+      adCount: result.ads.length,
+      platforms: validation.data.activePlatforms || [],
+      businessName: validation.data.businessName,
+      offerName: validation.data.offerName,
+      adLength: validation.data.adLength,
+      adType: validation.data.adType
+    }
+  });
+  
+  console.log('✅ Notification created for ad generation:', result.deliverableId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the request if notification fails
+}
 
     // Log usage for analytics/billing
     try {

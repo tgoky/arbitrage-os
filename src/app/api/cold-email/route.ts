@@ -8,6 +8,8 @@ import { ColdEmailService } from '@/services/coldEmail.service';
 import { validateColdEmailInput } from '../../validators/coldEmail.validator';
 import { rateLimit } from '../../../lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+import { createNotification } from '@/lib/notificationHelper';
+
 
 // ✅ Exact same robust authentication function as pricing calculator
 // Use this IMPROVED 3-method approach in ALL routes
@@ -323,6 +325,28 @@ console.log('🔍 Backend body sample:', {
         { status: 500 }
       );
     }
+
+    try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspace.id, // Use existing workspace variable
+    workspaceSlug: workspace.slug,
+    type: 'cold_email',
+    itemId: result.deliverableId,
+    metadata: {
+      emailCount: result.emails.length,
+      method: validation.data.method,
+      targetCompany: validation.data.targetCompany,
+      targetRole: validation.data.targetRole,
+      tone: validation.data.tone
+    }
+  });
+  
+  console.log('✅ Notification created for cold email generation:', result.deliverableId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the request if notification fails
+}
 
     // ✅ LOG USAGE for analytics/billing with error handling
     console.log('📊 Logging usage...');

@@ -7,6 +7,7 @@ import { N8nWorkflowBuilderService } from '../../../services/n8n-workflow-builde
 import { validateN8nWorkflowInput } from '../../validators/n8nWorkflowBuildervalidator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+import { createNotification } from '@/lib/notificationHelper';
 
 // ✅ ROBUST AUTHENTICATION (same pattern as sales call analyzer)
 async function getAuthenticatedUser(request: NextRequest) {
@@ -276,6 +277,28 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // After successful workflow generation
+try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspace.id,
+    workspaceSlug: workspace.slug,
+    type: 'n8n_workflow',
+    itemId: deliverableId,
+    metadata: {
+      workflowName: validation.data.workflowName,
+      triggerType: validation.data.triggerType,
+      integrations: validation.data.integrations,
+      complexity: workflowPackage.analysis.complexity,
+      nodeCount: workflowPackage.analysis.nodeCount
+    }
+  });
+  
+  console.log('✅ Notification created for workflow generation:', deliverableId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+}
 
     // ✅ LOG USAGE for billing/analytics
     console.log('📊 Logging n8n workflow generation usage...');

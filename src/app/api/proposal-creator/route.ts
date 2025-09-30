@@ -18,6 +18,7 @@ import {
   ApiResponseOptional,
   SavedProposal
 } from '../../../types/proposalCreator'; 
+import { createNotification } from '@/lib/notificationHelper';
 
 const RATE_LIMITS = {
   PROPOSAL_GENERATION: {
@@ -483,6 +484,8 @@ export async function POST(req: NextRequest) {
       saveSuccess = false;
       console.warn('⚠️ Using temporary ID - proposal not saved to database');
     }
+
+    
 
     // Usage logging
     console.log('📊 Logging usage...');

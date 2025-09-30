@@ -7,6 +7,7 @@ import { SalesCallAnalyzerService } from '@/services/salesCallAnalyzer.service';
 import { validateSalesCallInput } from '../../validators/salesCallAnalyzer.validator';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
+import { createNotification } from '@/lib/notificationHelper';
 
 // ROBUST AUTHENTICATION (same as pricing calculator)
 async function getAuthenticatedUser(request: NextRequest) {
@@ -297,6 +298,29 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // After successful call analysis and saving
+try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspaceId,
+    workspaceSlug: workspace.slug,
+    type: 'sales_call',
+    itemId: deliverableId,
+    metadata: {
+      callType: validation.data.callType,
+      companyName: validation.data.companyName,
+      prospectName: validation.data.prospectName,
+      overallScore: analysisPackage.callResults.analysis.overallScore,
+      sentiment: analysisPackage.callResults.analysis.sentiment
+    }
+  });
+  
+  console.log('✅ Notification created for call analysis:', deliverableId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+}
+
 
     // LOG USAGE for billing/analytics with workspace context
     console.log('📊 Logging sales call analysis usage...');
