@@ -4,6 +4,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { ensureUserExists } from '@/lib/auth-helper';
 
 // Robust authentication function (same as ad-writer)
 async function getAuthenticatedUser(request?: NextRequest) {
@@ -156,7 +157,6 @@ export async function GET(request: NextRequest) {
 
 // POST /api/workspaces
 
-// POST /api/workspaces
 export async function POST(request: NextRequest) {
   try {
     console.log('=== WORKSPACES POST API START ===');
@@ -174,7 +174,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('User authenticated for workspace creation:', user.id);
+    console.log('User authenticated:', user.id);
+
+    // ✅ CRITICAL: Ensure user exists in database
+    await ensureUserExists(user);
+    console.log('User verified in database');
 
     const body = await request.json();
     const { name, description, color } = body;
@@ -186,7 +190,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate slug
     const slug = name
       .toLowerCase()
       .trim()
@@ -195,7 +198,6 @@ export async function POST(request: NextRequest) {
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '') || 'workspace';
 
-    // Check if slug exists and make it unique if needed
     const existing = await prisma.workspace.findFirst({
       where: { user_id: user.id, slug }
     });
@@ -211,7 +213,6 @@ export async function POST(request: NextRequest) {
 
     const selectedColor = color || colors[Math.floor(Math.random() * colors.length)];
 
-    // Create workspace - let Prisma/Postgres handle ID generation
     const workspace = await prisma.workspace.create({
       data: {
         user_id: user.id,
@@ -219,7 +220,6 @@ export async function POST(request: NextRequest) {
         slug: finalSlug,
         description: description?.trim() || null,
         color: selectedColor
-        // Don't include created_at/updated_at - they're auto-generated
       }
     });
 
@@ -231,19 +231,10 @@ export async function POST(request: NextRequest) {
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error code:', error.code);
-    console.error('Error stack:', error.stack);
-    
-    // Prisma-specific error handling
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'A workspace with this name already exists' },
-        { status: 409 }
-      );
-    }
     
     if (error.code === 'P2003') {
       return NextResponse.json(
-        { error: 'Invalid user reference' },
+        { error: 'Invalid user reference. Please try logging out and back in.' },
         { status: 400 }
       );
     }
