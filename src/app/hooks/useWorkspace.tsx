@@ -169,24 +169,30 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   }, [params?.workspace, workspaces, currentWorkspace, pathname]);
 
   const createWorkspace = async (name: string, description?: string): Promise<Workspace> => {
-    try {
-      setValidationError(null);
-      const newWorkspace = await workspaceService.createWorkspace({
-        name,
-        description
-      });
-      
-      // Update local state
-      setWorkspaces(prev => [newWorkspace, ...prev]);
-      setCurrentWorkspace(newWorkspace);
-      
-      return newWorkspace;
-    } catch (error) {
-      console.error('Error creating workspace:', error);
-      setValidationError('Failed to create workspace');
-      throw error;
-    }
-  };
+  try {
+    setValidationError(null);
+    console.log('📝 Creating workspace via service:', name);
+    
+    const newWorkspace = await workspaceService.createWorkspace({
+      name,
+      description
+    });
+    
+    console.log('✅ Workspace created in service:', newWorkspace);
+    
+    // Update local state - add to beginning of array
+    setWorkspaces(prev => [newWorkspace, ...prev]);
+    
+    // DON'T set as current workspace yet - let the navigation handle it
+    // setCurrentWorkspace(newWorkspace); // REMOVE THIS LINE
+    
+    return newWorkspace;
+  } catch (error: any) {
+    console.error('❌ Error creating workspace:', error);
+    setValidationError(error.message || 'Failed to create workspace');
+    throw error;
+  }
+};
 
   const updateWorkspace = async (id: string, updates: Partial<CreateWorkspaceInput>): Promise<Workspace> => {
     try {

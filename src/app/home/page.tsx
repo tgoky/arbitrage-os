@@ -449,26 +449,44 @@ const WorkspaceHomePage = () => {
   );
 
   // Event handlers
-  const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName.trim()) return;
-    setIsCreating(true);
+const handleCreateWorkspace = async () => {
+  if (!newWorkspaceName.trim()) return;
+  setIsCreating(true);
+  
+  try {
+    console.log('🆕 Creating workspace:', newWorkspaceName);
     
-    try {
-      const newWorkspace = await createWorkspace(
-        newWorkspaceName.trim(),
-        newWorkspaceDescription.trim() || undefined
-      );
+    const newWorkspace = await createWorkspace(
+      newWorkspaceName.trim(),
+      newWorkspaceDescription.trim() || undefined
+    );
 
-      setShowCreateModal(false);
-      setNewWorkspaceName("");
-      setNewWorkspaceDescription("");
-      router.push(`/dashboard/${newWorkspace.slug}`);
-    } catch (error) {
-      console.error('Error creating workspace:', error);
-    } finally {
-      setIsCreating(false);
-    }
-  };
+    console.log('✅ Workspace created successfully:', newWorkspace);
+
+    // Close modal and clear form
+    setShowCreateModal(false);
+    setNewWorkspaceName("");
+    setNewWorkspaceDescription("");
+    
+    // Small delay to ensure state updates have propagated
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Navigate to new workspace
+    console.log('🔄 Navigating to new workspace:', newWorkspace.slug);
+    router.push(`/dashboard/${newWorkspace.slug}`);
+    
+  } catch (error: any) {
+    console.error('❌ Error creating workspace:', error);
+    
+    // Show error to user
+    const errorMessage = error.message || 'Failed to create workspace';
+    alert(`Error: ${errorMessage}`);
+    
+  } finally {
+    setIsCreating(false);
+  }
+};
+
 
   const handleWorkspaceClick = (workspace: any) => {
     setSelectedWorkspace(workspace.name);
