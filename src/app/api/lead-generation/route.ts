@@ -416,7 +416,7 @@ export async function POST(req: NextRequest) {
       console.error('Failed to create notification:', notifError);
       // Don't fail the entire request if notification fails
     }
-    
+
     // Enhanced usage logging with global metadata
     await logUsage({
       userId: user.id,
@@ -526,7 +526,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/lead-generation - Get user's lead generations with enhanced metadata
+// GET /api/lead-generation - Get user's lead generations with proper format for detail page
 export async function GET(req: NextRequest) {
   console.log('🚀 Global Lead Generation GET API Route called');
   
@@ -569,12 +569,105 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // Get generations using enhanced global service
-    const apolloService = new ApolloLeadService();
-    const generations = await apolloService.getUserLeadGenerations(
-      user.id,
-      workspaceId || undefined
-    );
+    // Build where clause
+    const whereClause: any = {
+      user_id: user.id,
+      type: 'lead_generation'
+    };
+
+    if (workspaceId) {
+      whereClause.workspace_id = workspaceId;
+    }
+
+    // Fetch generations directly from database to ensure proper format
+    const generations = await prisma.deliverable.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      include: {
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
+      }
+    });
+
+    console.log(`📋 Found ${generations.length} lead generations for user ${user.id}`);
+
+    
+const formattedGenerations = generations.map(gen => {
+  // Parse the content to get leads and metadata
+  let contentData = { leads: [], totalFound: 0 };
+  let metadata = gen.metadata as any;
+  
+  try {
+    if (gen.content) {
+      contentData = JSON.parse(gen.content);
+    }
+  } catch (parseError) {
+    console.warn(`Failed to parse content for generation ${gen.id}:`, parseError);
+  }
+
+  const leads = contentData.leads || [];
+  
+  // FIX: Calculate accurate metrics (same logic as detail page)
+  const emailCount = leads.filter((lead: any) => 
+    lead.email && 
+    lead.email !== "email_not_unlocked@domain.com" && 
+    !lead.email.includes('example.com')
+  ).length;
+
+  const phoneCount = leads.filter((lead: any) => 
+    lead.phone && lead.phone.trim() !== ''
+  ).length;
+
+  const linkedinCount = leads.filter((lead: any) => 
+    lead.linkedinUrl && lead.linkedinUrl.trim() !== ''
+  ).length;
+
+  const countriesRepresented = new Set(
+    leads
+      .map((lead: any) => lead.metadata?.countryCode)
+      .filter(Boolean)
+      .map((code: string) => code.toLowerCase())
+  ).size;
+
+  const totalEmployeeCount = leads.reduce((sum: number, lead: any) => 
+    sum + (lead.metadata?.employeeCount || 0), 0);
+  const avgEmployeeCount = leads.length > 0 ? totalEmployeeCount / leads.length : 0;
+
+  const averageScore = leads.length > 0 
+    ? Math.round(leads.reduce((sum: number, lead: any) => sum + (lead.score || 0), 0) / leads.length)
+    : 0;
+
+  return {
+    id: gen.id,
+    title: gen.title,
+    content: gen.content,
+    metadata: {
+      ...metadata,
+      leadCount: leads.length,
+      totalFound: contentData.totalFound || leads.length,
+      averageScore, // Use calculated score
+      generationTime: metadata?.generationTime || 0,
+      searchStrategy: metadata?.searchStrategy,
+      globalCoverage: metadata?.globalCoverage,
+      qualityMetrics: {
+        emailCount, // Use calculated count
+        phoneCount, // Use calculated count
+        linkedinCount, // Use calculated count
+        avgEmployeeCount: Math.round(avgEmployeeCount),
+        countriesRepresented // Use calculated count
+      }
+    },
+    criteria: metadata?.criteria || {},
+    createdAt: gen.created_at,
+    updatedAt: gen.updated_at,
+    workspace: gen.workspace
+  };
+});
 
     // Log usage for list access
     await logUsage({
@@ -584,19 +677,20 @@ export async function GET(req: NextRequest) {
       timestamp: new Date(),
       metadata: {
         workspaceId,
-        resultCount: generations.length,
+        resultCount: formattedGenerations.length,
         action: 'list',
-        hasGlobalGenerations: generations.some(g => g.globalCoverage?.isGlobal)
+        hasGlobalGenerations: formattedGenerations.some(g => g.metadata?.globalCoverage?.isGlobal)
       }
     });
 
+    // Return in the exact format the detail page expects
     return NextResponse.json({
       success: true,
-      data: generations,
+      data: formattedGenerations,
       meta: {
         remaining: rateLimitResult.limit - rateLimitResult.count,
-        totalGenerations: generations.length,
-        globalGenerations: generations.filter(g => g.globalCoverage?.isGlobal).length
+        totalGenerations: formattedGenerations.length,
+        globalGenerations: formattedGenerations.filter(g => g.metadata?.globalCoverage?.isGlobal).length
       }
     });
 

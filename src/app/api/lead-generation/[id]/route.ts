@@ -96,6 +96,9 @@ async function getAuthenticatedUser(request: NextRequest) {
 }
 
 // GET /api/lead-generation/[id] - Get specific lead generation
+// In app/api/lead-generation/[id]/route.ts - UPDATE the metadata calculation:
+
+// GET /api/lead-generation/[id] - Get specific lead generation
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -156,10 +159,9 @@ export async function GET(
     }
 
     // Parse the stored content (leads)
-    let leads = [];
+    let parsedContent;
     try {
-      const parsedContent = JSON.parse(generation.content);
-      leads = parsedContent.leads || [];
+      parsedContent = JSON.parse(generation.content);
     } catch (parseError) {
       console.error('Error parsing generation content:', parseError);
       return NextResponse.json(
@@ -172,7 +174,52 @@ export async function GET(
       );
     }
 
+    const leads = parsedContent.leads || [];
+    const metadata = generation.metadata as any;
+
     console.log('✅ Found generation with', leads.length, 'leads');
+
+    // FIX: Calculate accurate metrics from the actual leads
+    const emailCount = leads.filter((lead: any) => 
+      lead.email && 
+      lead.email !== "email_not_unlocked@domain.com" && 
+      !lead.email.includes('example.com')
+    ).length;
+
+    const phoneCount = leads.filter((lead: any) => 
+      lead.phone && lead.phone.trim() !== ''
+    ).length;
+
+    const linkedinCount = leads.filter((lead: any) => 
+      lead.linkedinUrl && lead.linkedinUrl.trim() !== ''
+    ).length;
+
+    // Calculate countries represented
+    const countriesRepresented = new Set(
+      leads
+        .map((lead: any) => lead.metadata?.countryCode)
+        .filter(Boolean)
+        .map((code: string) => code.toLowerCase())
+    ).size;
+
+    // Calculate average employee count
+    const totalEmployeeCount = leads.reduce((sum: number, lead: any) => 
+      sum + (lead.metadata?.employeeCount || 0), 0);
+    const avgEmployeeCount = leads.length > 0 ? totalEmployeeCount / leads.length : 0;
+
+    // Calculate average score
+    const totalScore = leads.reduce((sum: number, lead: any) => 
+      sum + (lead.score || 0), 0);
+    const averageScore = leads.length > 0 ? Math.round(totalScore / leads.length) : 0;
+
+    console.log('📊 Calculated metrics:', {
+      emailCount,
+      phoneCount, 
+      linkedinCount,
+      countriesRepresented,
+      averageScore,
+      leadCount: leads.length
+    });
 
     return NextResponse.json({
       success: true,
@@ -180,9 +227,26 @@ export async function GET(
         id: generation.id,
         title: generation.title,
         leads,
-        metadata: generation.metadata,
+        criteria: metadata?.criteria || {},
         createdAt: generation.created_at,
         updatedAt: generation.updated_at,
+        workspaceId: generation.workspace_id,
+        status: 'completed',
+        metadata: {
+          leadCount: leads.length,
+          totalFound: parsedContent.totalFound || leads.length,
+          averageScore, // Use calculated score
+          generationTime: metadata?.generationTime || 0,
+          searchStrategy: metadata?.searchStrategy,
+          globalCoverage: metadata?.globalCoverage,
+          qualityMetrics: {
+            emailCount, // Use calculated count
+            phoneCount, // Use calculated count  
+            linkedinCount, // Use calculated count
+            avgEmployeeCount: Math.round(avgEmployeeCount),
+            countriesRepresented // Use calculated count
+          }
+        },
         workspace: generation.workspace
       }
     });
@@ -199,6 +263,7 @@ export async function GET(
     );
   }
 }
+
 
 // DELETE /api/lead-generation/[id] - Delete lead generation
 export async function DELETE(

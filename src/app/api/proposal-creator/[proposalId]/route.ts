@@ -101,7 +101,7 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-// GET method for retrieving a specific proposal
+// GET method for fetching a specific proposal
 export async function GET(
   req: NextRequest,
   { params }: { params: { proposalId: string } }
@@ -112,7 +112,6 @@ export async function GET(
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -122,8 +121,6 @@ export async function GET(
         { status: 401 }
       );
     }
-
-    console.log('✅ User authenticated:', user.id);
 
     // Rate limiting
     const rateLimitResult = await rateLimit(
@@ -142,30 +139,29 @@ export async function GET(
       );
     }
 
-    console.log(`📄 Fetching proposal ${params.proposalId} for user ${user.id}`);
+    console.log(`📋 Fetching proposal ${params.proposalId} for user ${user.id}`);
     
     try {
       const proposalService = new ProposalCreatorService();
       const proposal = await proposalService.getProposal(user.id, params.proposalId);
 
       if (!proposal) {
-        console.error('❌ Proposal not found:', params.proposalId);
         return NextResponse.json(
           { 
             success: false,
-            error: 'Proposal not found or access denied.'
+            error: 'Proposal not found.'
           },
           { status: 404 }
         );
       }
       
-      console.log('✅ Proposal retrieved successfully');
+      console.log('✅ Proposal found');
 
       // Usage logging
       try {
         await logUsage({
           userId: user.id,
-          feature: 'proposal_get',
+          feature: 'proposal_view',
           tokens: 0,
           timestamp: new Date(),
           metadata: {
@@ -176,32 +172,43 @@ export async function GET(
         console.error('⚠️ Usage logging failed (non-critical):', logError);
       }
 
-      return NextResponse.json({
-        success: true,
-        data: proposal,
-        meta: {
-          remaining: rateLimitResult.remaining
-        }
-      });
+      // Format response to match what the detail page expects
+    // Format response to match what the detail page expects
+const metadata = proposal.metadata as any; // Type assertion
 
-    } catch (getError) {
-      console.error('💥 Error retrieving proposal:', getError);
-      console.error('💥 Error details:', {
-        proposalId: params.proposalId,
-        userId: user.id,
-        errorName: getError instanceof Error ? getError.constructor.name : 'Unknown',
-        errorMessage: getError instanceof Error ? getError.message : 'Unknown error'
-      });
+return NextResponse.json({
+  success: true,
+  data: {
+    id: proposal.id,
+    title: proposal.title,
+    proposalData: proposal.proposal,
+    proposalType: metadata?.proposalType || 'service-agreement',
+    clientName: metadata?.clientName || 'Unknown Client',
+    status: 'draft',
+    totalValue: metadata?.totalValue || 0,
+    createdAt: proposal.createdAt,
+    updatedAt: proposal.updatedAt,
+    metadata: {
+      industry: metadata?.clientIndustry || 'other',
+      projectSize: 'medium',
+      complexity: 'moderate',
+      winProbability: metadata?.winProbability || 50,
+      version: metadata?.version || '1.0'
+    },
+    workspace: proposal.workspace
+  },
+  meta: {
+    remaining: rateLimitResult.remaining
+  }
+});
+
+    } catch (serviceError) {
+      console.error('💥 Error fetching proposal:', serviceError);
       
       return NextResponse.json(
         { 
           success: false,
-          error: getError instanceof Error ? getError.message : 'Failed to retrieve proposal. Please try again.',
-          debug: process.env.NODE_ENV === 'development' ? {
-            errorType: getError instanceof Error ? getError.constructor.name : 'Unknown',
-            errorMessage: getError instanceof Error ? getError.message : 'Unknown',
-            proposalId: params.proposalId
-          } : undefined
+          error: serviceError instanceof Error ? serviceError.message : 'Failed to fetch proposal. Please try again.'
         },
         { status: 500 }
       );
@@ -209,16 +216,11 @@ export async function GET(
 
   } catch (error) {
     console.error('💥 Unexpected Get Proposal Error:', error);
-    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to retrieve proposal. Please try again.',
-        debug: process.env.NODE_ENV === 'development' ? {
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          errorMessage: error instanceof Error ? error.message : 'Unknown'
-        } : undefined
+        error: 'Failed to fetch proposal. Please try again.'
       },
       { status: 500 }
     );

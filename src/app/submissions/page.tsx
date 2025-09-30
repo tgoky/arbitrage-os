@@ -290,8 +290,8 @@ const IntegratedWorkDashboard = () => {
               'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
               'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
               'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`,
-               'proposal': `/dashboard/${currentWorkspace.slug}/proposal-creator/view/${item.metadata.deliverableId}`, 
-             'lead-generation': `/dashboard/${currentWorkspace.slug}/lead-generation/view/${item.metadata.deliverableId}`
+               'proposal': `/dashboard/${currentWorkspace.slug}/proposal-creator/${item.metadata.deliverableId}`, 
+             'lead-generation': `/dashboard/${currentWorkspace.slug}/lead-generation/${item.metadata.deliverableId}`
             };
             
             const viewUrl = viewUrls[item.type];
