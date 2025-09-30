@@ -73,6 +73,22 @@ const notificationConfig: Record<NotificationType, {
       ? `Your workflow with ${meta.integrationCount} integrations is ready.`
       : 'Your automation workflow has been created.',
     routeTemplate: (slug, id) => `/dashboard/${slug}/n8n-builder/${id}`
+  },
+   'lead-generation': {
+    titleTemplate: () => 'Lead Generation Report Ready!',
+    messageTemplate: (meta) => meta?.leadCount
+      ? `Generated ${meta.leadCount} qualified leads for your review.`
+      : 'Your lead generation results are ready to review.',
+    routeTemplate: (slug, id) => `/dashboard/${slug}/lead-generation/${id}`
+  },
+  proposal: {
+    titleTemplate: (meta) => meta?.clientName
+      ? `Proposal for ${meta.clientName} Ready!`
+      : 'Proposal Generated!',
+    messageTemplate: (meta) => meta?.proposalValue
+      ? `Your $${meta.proposalValue} proposal is ready to send.`
+      : 'Your professional proposal has been generated.',
+    routeTemplate: (slug, id) => `/dashboard/${slug}/proposals/${id}`
   }
 };
 
