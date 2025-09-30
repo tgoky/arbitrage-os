@@ -20,6 +20,8 @@ import {
   GuaranteeType
 } from '@/types/offerCreator'; 
 
+import { createNotification } from '@/lib/notificationHelper';
+
 const RATE_LIMITS = {
   OFFER_GENERATION: {
     limit: 50,
@@ -123,7 +125,8 @@ async function getAuthenticatedUser(request: NextRequest) {
 }
 
 // Workspace validation function
-async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
+// Update the validateWorkspaceAccess function to return the workspace
+async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<{ valid: boolean; workspace?: any }> {
   try {
     const { prisma } = await import('@/lib/prisma');
     const workspace = await prisma.workspace.findFirst({
@@ -132,10 +135,14 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
         user_id: userId
       }
     });
-    return !!workspace;
+    
+    return { 
+      valid: !!workspace, 
+      workspace: workspace || undefined 
+    };
   } catch (error) {
     console.error('Error validating workspace access:', error);
-    return false;
+    return { valid: false };
   }
 }
 
@@ -191,17 +198,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate workspace access
-    const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
-    if (!hasAccess) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Workspace not found or access denied.',
-        code: 'WORKSPACE_ACCESS_DENIED'
-      }, { status: 403 });
-    }
+    const { valid: hasAccess, workspace } = await validateWorkspaceAccess(user.id, workspaceId);
+if (!hasAccess || !workspace) {
+  return NextResponse.json({ 
+    success: false,
+    error: 'Workspace not found or access denied.',
+    code: 'WORKSPACE_ACCESS_DENIED'
+  }, { status: 403 });
+}
 
-    // Rate limiting
-    console.log('🔍 Checking rate limits for user:', user.id);
+console.log('✅ Workspace validated:', workspace.name);
+
+
     const rateLimitResult = await rateLimit(
       `signature_offer_generation:${user.id}`,
       RATE_LIMITS.OFFER_GENERATION.limit,
@@ -350,6 +358,7 @@ export async function POST(req: NextRequest) {
     try {
       const offerService = new OfferCreatorService();
       offerId = await offerService.saveOffer(user.id, workspaceId, generatedOffer, validation.data);
+      
       saveSuccess = true;
       console.log('✅ Signature offers AUTO-SAVED with ID:', offerId);
     } catch (saveError) {
@@ -362,6 +371,8 @@ export async function POST(req: NextRequest) {
           name: saveError.name
         });
       }
+
+
       
       // Try simplified save approach
       try {
@@ -381,6 +392,7 @@ export async function POST(req: NextRequest) {
         offerId = await retryOfferService.saveOffer(user.id, workspaceId, simplifiedOffer, validation.data);
         saveSuccess = true;
         console.log('✅ Offers saved with simplified approach:', offerId);
+      
       } catch (retryError) {
         console.error('💥 Retry save also failed:', retryError);
         offerId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -388,6 +400,28 @@ export async function POST(req: NextRequest) {
         console.warn('⚠️ Using temporary ID - offers not saved to database');
       }
     }
+
+      try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspaceId,
+    workspaceSlug: workspace.slug,
+    type: 'offer_creator',
+    itemId: offerId,
+    metadata: {
+      targetMarket: validation.data.market.targetMarket,
+      industries: validation.data.founder.industries,
+      conversionScore: generatedOffer.analysis?.conversionPotential?.score,
+      pricePosture: validation.data.pricing.pricePosture,
+      deliveryModels: validation.data.business.deliveryModel
+    }
+  });
+  
+  console.log('✅ Notification created for offer:', offerId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the request if notification fails
+}
 
     // Usage logging
     console.log('📊 Logging usage...');
@@ -517,17 +551,18 @@ export async function GET(req: NextRequest) {
 
     // Validate workspace access if provided
     if (workspaceId) {
-      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
-      if (!hasAccess) {
-        return NextResponse.json({ 
-          success: false,
-          error: 'Workspace access denied.',
-          code: 'WORKSPACE_ACCESS_DENIED'
-        }, { status: 403 });
-      }
-    }
+     const { valid: hasAccess, workspace } = await validateWorkspaceAccess(user.id, workspaceId);
+     if (!hasAccess || !workspace) {
+  return NextResponse.json({ 
+    success: false,
+    error: 'Workspace not found or access denied.',
+    code: 'WORKSPACE_ACCESS_DENIED'
+  }, { status: 403 });
+}
 
-    console.log('📋 Fetching signature offers for user:', user.id);
+console.log('✅ Workspace validated:', workspace.name);
+ } // <-- ADD THIS CLOSING BRACE
+    
     
     let offers: UserOffer[];
     try {
