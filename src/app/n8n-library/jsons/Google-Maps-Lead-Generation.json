@@ -1,5 +1,5 @@
 {
-  "name": "Google Maps Automatic Email Scraper",
+  "name": "Google Maps Leads Generation",
   "nodes": [
     {
       "parameters": {},
@@ -11,123 +11,291 @@
     },
     {
       "parameters": {
-        "functionCode": "return [\n  { json: { query: \"real estate agent in Salt Lake City\" } },\n  { json: { query: \"law firm in New York\" } },\n  { json: { query: \"coffee shops in San Francisco\" } }\n];"
+        "operation": "read",
+        "documentId": "={{ $env.QUERIES_SHEET_ID }}",
+        "sheetName": "={{ $env.QUERIES_SHEET_NAME || 'Queries' }}",
+        "range": "A:A",
+        "options": {
+          "valueRenderOption": "UNFORMATTED_VALUE"
+        }
       },
-      "id": "2",
-      "name": "Define Queries",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [400, 200]
+      "id": "17",
+      "name": "Read Queries",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [400, 200],
+      "credentials": {
+        "googleSheetsOAuth2": {
+          "__rl": true,
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIALS_ID",
+          "name": "Google Sheets account"
+        }
+      }
     },
     {
       "parameters": {
-        "fieldToSplitOut": "query"
+        "functionCode": "const queries = [];\nfor (const row of items) {\n  if (row.json.A && row.json.A.trim()) {\n    queries.push({ json: { query: row.json.A.trim() } });\n  }\n}\nreturn queries;"
       },
-      "id": "3",
-      "name": "Loop Over Queries",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 1,
+      "id": "18",
+      "name": "Format Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [600, 200]
     },
     {
       "parameters": {
-        "url": "={{`https://www.google.com/maps/search/${$json[\"query\"]}`}}",
-        "responseFormat": "string"
+        "fieldToSplitOut": "query",
+        "batchSize": 1,
+        "options": {}
       },
-      "id": "4",
-      "name": "Search Google Maps",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
+      "id": "3",
+      "name": "Loop Over Queries",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
       "position": [800, 200]
     },
     {
       "parameters": {
-        "extractionValues": [
-          {
-            "key": "urls",
-            "cssSelector": "a",
-            "returnValue": "attribute",
-            "attribute": "href"
-          }
-        ]
+        "url": "={{`https://www.google.com/maps/search/${$json[\"query\"]}`}}",
+        "responseFormat": "string",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "5",
-      "name": "Extract URLs",
-      "type": "n8n-nodes-base.htmlExtract",
-      "typeVersion": 1,
+      "id": "4",
+      "name": "Search Google Maps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [1000, 200]
     },
     {
       "parameters": {
-        "functionCode": "items[0].json.urls = items[0].json.urls.filter(url => url.includes('http') && !url.includes('google.'));\nreturn items[0].json.urls.map(u => ({ json: { url: u } }));"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "query-preserve",
+              "name": "Query",
+              "value": "={{ $input.item.json.query }}",
+              "type": "string"
+            }
+          ]
+        }
       },
-      "id": "6",
-      "name": "Filter Irrelevant URLs",
-      "type": "n8n-nodes-base.function",
+      "id": "24",
+      "name": "Preserve Query After Search",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1180, 200]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $env.WAIT_TIME_SECONDS || 3 }}",
+        "unit": "seconds"
+      },
+      "id": "19",
+      "name": "Wait After Maps Search",
+      "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [1200, 200]
     },
     {
       "parameters": {
-        "property": "url"
+        "extractionValues": {
+          "values": [
+            {
+              "key": "urls",
+              "cssSelector": "a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            }
+          ]
+        }
       },
-      "id": "7",
-      "name": "Remove Duplicate URLs",
-      "type": "n8n-nodes-base.removeDuplicates",
+      "id": "5",
+      "name": "Extract URLs",
+      "type": "n8n-nodes-base.htmlExtract",
       "typeVersion": 1,
       "position": [1400, 200]
     },
     {
       "parameters": {
-        "url": "={{$json[\"url\"]}}",
-        "responseFormat": "string"
+        "jsCode": "const urls = $input.all()[0].json.urls || [];\nconst filtered = urls.filter(url => url && url.includes('http') && !url.includes('google.') && !url.includes('maps.'));\nreturn filtered.map(u => ({ json: { url: u } }));"
       },
-      "id": "8",
-      "name": "Fetch Web Page",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
+      "id": "6",
+      "name": "Filter Irrelevant URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [1600, 200]
     },
     {
       "parameters": {
-        "functionCode": "const emails = [];\nconst regex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\nconst matches = items[0].json[\"body\"].match(regex);\nif (matches) {\n  matches.forEach(e => emails.push(e));\n}\nreturn emails.map(e => ({ json: { email: e, source: $json.url } }));"
+        "propertyName": "url"
       },
-      "id": "9",
-      "name": "Extract Emails",
-      "type": "n8n-nodes-base.function",
+      "id": "7",
+      "name": "Remove Duplicate URLs",
+      "type": "n8n-nodes-base.removeDuplicates",
       "typeVersion": 1,
       "position": [1800, 200]
     },
     {
       "parameters": {
-        "property": "email"
+        "url": "={{$json[\"url\"]}}",
+        "responseFormat": "string",
+        "options": {
+          "timeout": 15000,
+          "ignoreHttpStatusErrors": true
+        }
+      },
+      "id": "8",
+      "name": "Fetch Web Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "query-preserve",
+              "name": "Query",
+              "value": "={{ $input.item.json.query }}",
+              "type": "string"
+            },
+            {
+              "id": "url-preserve",
+              "name": "URL",
+              "value": "={{ $input.item.json.url }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "25",
+      "name": "Preserve Data After Fetch",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2180, 200]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $env.WAIT_TIME_SECONDS || 3 }}",
+        "unit": "seconds"
+      },
+      "id": "20",
+      "name": "Wait After Page Fetch",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [2200, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItem = $input.first();\nconst body = inputItem.json.body || '';\nconst query = inputItem.json.Query;\nconst url = inputItem.json.URL;\nconst regex = /\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b/g;\nconst matches = body.match(regex) || [];\nconst uniqueMatches = [...new Set(matches)];\nconst emails = uniqueMatches.map(e => e.toLowerCase());\nif (emails.length === 0) {\n  return [{ json: { query, source: url } }];\n} else {\n  return emails.map(e => ({ json: { email: e, query, source: url } }));\n}"
+      },
+      "id": "9",
+      "name": "Extract Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          }
+        }
+      },
+      "id": "22",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2600, 200]
+    },
+    {
+      "parameters": {
+        "propertyName": "email"
       },
       "id": "10",
       "name": "Remove Duplicate Emails",
       "type": "n8n-nodes-base.removeDuplicates",
       "typeVersion": 1,
-      "position": [2000, 200]
+      "position": [2800, 300]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            { "name": "Email", "value": "={{$json[\"email\"]}}" },
-            { "name": "Source", "value": "={{$json[\"source\"]}}" }
-          ]
+        "operation": "appendOrUpdate",
+        "documentId": "={{ $env.RESULTS_SHEET_ID }}",
+        "sheetName": "={{ $env.RESULTS_SHEET_NAME || 'Results' }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $json.email }}",
+            "Source": "={{ $json.source }}",
+            "Query": "={{ $json.query }}",
+            "Timestamp": "={{ new Date().toISOString() }}"
+          }
         },
-        "options": { "value": "={{$json}}" }
+        "options": {}
       },
       "id": "11",
       "name": "Save to Google Sheets",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
-      "position": [2200, 200],
-      "credentials": { "googleSheetsOAuth2": "YOUR_GOOGLE_SHEETS_CREDENTIALS" }
+      "typeVersion": 4.4,
+      "position": [3000, 300],
+      "credentials": {
+        "googleSheetsOAuth2": {
+          "__rl": true,
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIALS_ID",
+          "name": "Google Sheets account"
+        }
+      }
     },
     {
       "parameters": {
-        "content": "# Setup Guide\n1. Enter your queries in **Define Queries**.\n2. Connect your Google Sheets credentials.\n3. Run the workflow."
+        "operation": "append",
+        "documentId": "={{ $env.ERRORS_SHEET_ID }}",
+        "sheetName": "={{ $env.ERRORS_SHEET_NAME || 'Errors' }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Error": "=No emails extracted for Query: {{ $json.query }}, Source: {{ $json.source }}",
+            "URL": "={{ $json.source }}",
+            "Query": "={{ $json.query }}",
+            "Timestamp": "={{ new Date().toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "23",
+      "name": "Log Errors",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [3000, 100],
+      "credentials": {
+        "googleSheetsOAuth2": {
+          "__rl": true,
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIALS_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Production Setup Guide\n1. Set Env Vars: QUERIES_SHEET_ID, RESULTS_SHEET_ID, ERRORS_SHEET_ID, *_SHEET_NAME, WAIT_TIME_SECONDS (default 3).\n2. Create Sheets: Queries (col A: queries), Results (cols: Email,Source,Query,Timestamp), Errors (cols: Error,URL,Query,Timestamp).\n3. Connect Google Sheets OAuth2 credentials.\n4. Test with 2-3 queries; monitor executions.\n5. Compliance: Respect ToS, GDPR; use proxies for scale.\n6. Schedule via Cron if automated."
       },
       "id": "12",
       "name": "Sticky Note - Setup",
@@ -137,37 +305,37 @@
     },
     {
       "parameters": {
-        "content": "## Scraper\nLoops through queries, fetches Google Maps results, extracts URLs, fetches each page, and scrapes emails."
+        "content": "## Enhanced Scraper\nDynamically reads queries from sheet, adds waits, preserves data, logs no-results."
       },
       "id": "13",
       "name": "Sticky Note - Scraper",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [1000, 100]
-    },
-    {
-      "parameters": {
-        "content": "### Optional Filters\nYou can adjust regex in **Extract Emails** or modify URL filtering in **Filter Irrelevant URLs**."
-      },
-      "id": "14",
-      "name": "Sticky Note - Filters",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [1400, 100]
     },
     {
       "parameters": {
-        "content": "### Save Instructions\nAll results are appended into the connected Google Sheet.\n\nFields: `Email` + `Source`"
+        "content": "### Filters & Logging\nImproved URL/email filters; logs empty scrapes for monitoring."
+      },
+      "id": "14",
+      "name": "Sticky Note - Filters",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2000, 100]
+    },
+    {
+      "parameters": {
+        "content": "### Output & Monitoring\nAppends enriched results; errors/no-emails logged separately."
       },
       "id": "15",
       "name": "Sticky Note - Save",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [2200, 100]
+      "position": [3000, 100]
     },
     {
       "parameters": {
-        "content": "⚠️ Note: This workflow scrapes public data. Respect terms of service and local regulations."
+        "content": "⚠️ Production Note: Rate limit respected; monitor for blocks. Not for spam—use ethically."
       },
       "id": "16",
       "name": "Sticky Note - Note",
@@ -178,38 +346,221 @@
   ],
   "connections": {
     "Run Workflow Trigger": {
-      "main": [[{ "node": "Define Queries", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Define Queries": {
-      "main": [[{ "node": "Loop Over Queries", "type": "main", "index": 0 }]]
+    "Read Queries": {
+      "main": [
+        [
+          {
+            "node": "Format Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Queries": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Over Queries": {
-      "main": [[{ "node": "Search Google Maps", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Search Google Maps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Search Google Maps": {
-      "main": [[{ "node": "Extract URLs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Preserve Query After Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve Query After Search": {
+      "main": [
+        [
+          {
+            "node": "Wait After Maps Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait After Maps Search": {
+      "main": [
+        [
+          {
+            "node": "Extract URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract URLs": {
-      "main": [[{ "node": "Filter Irrelevant URLs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Filter Irrelevant URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Filter Irrelevant URLs": {
-      "main": [[{ "node": "Remove Duplicate URLs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Remove Duplicate URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Remove Duplicate URLs": {
-      "main": [[{ "node": "Fetch Web Page", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Web Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Web Page": {
-      "main": [[{ "node": "Extract Emails", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Preserve Data After Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve Data After Fetch": {
+      "main": [
+        [
+          {
+            "node": "Wait After Page Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait After Page Fetch": {
+      "main": [
+        [
+          {
+            "node": "Extract Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Emails": {
-      "main": [[{ "node": "Remove Duplicate Emails", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Log Errors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Remove Duplicate Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Remove Duplicate Emails": {
-      "main": [[{ "node": "Save to Google Sheets", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Errors": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "active": false
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-01T00:00:00.000Z",
+  "versionId": "1"
 }

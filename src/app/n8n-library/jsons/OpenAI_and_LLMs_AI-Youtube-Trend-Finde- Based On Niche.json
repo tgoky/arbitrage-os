@@ -32,7 +32,7 @@
           "position": [400, 400],
           "credentials": {
             "openAiApi": {
-              "id": "YOUR_OPENAI_API_ID",
+              "id": "={{ $env.OPENAI_API_ID }}",
               "name": "OpenAI Production Key"
             }
           }
@@ -117,7 +117,7 @@
             "sendQuery": true,
             "queryParameters": {
               "parameters": [
-                { "name": "key", "value": "={{ $env[\"GOOGLE_API_KEY\"] }}" },
+                { "name": "key", "value": "={{ $env.GOOGLE_API_KEY }}" },
                 { "name": "id", "value": "={{ $json.id.videoId }}" },
                 { "name": "part", "value": "contentDetails,snippet,statistics" }
               ]
@@ -131,6 +131,17 @@
         },
         {
           "parameters": {
+            "amount": 2,
+            "unit": "seconds"
+          },
+          "id": "wait_api",
+          "name": "wait_between_calls",
+          "type": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "position": [600, 400]
+        },
+        {
+          "parameters": {
             "conditions": {
               "conditions": [
                 {
@@ -138,7 +149,7 @@
                     "type": "boolean",
                     "operation": "true"
                   },
-                  "leftValue": "={{ (() => { const dur = $json.items[0].contentDetails.duration; const m = dur.match(/PT(?:(\\d+)M)?(?:(\\d+)S)?/); const min = parseInt(m[1]||0,10); const sec = parseInt(m[2]||0,10); return (min*60+sec) > 210; })() }}"
+                  "leftValue": "={{ (() => { const dur = $json.items[0]?.contentDetails?.duration || 'PT0S'; const m = dur.match(/PT(?:(\\d+)M)?(?:(\\d+)S)?/); const min = parseInt(m?.[1]||0,10); const sec = parseInt(m?.[2]||0,10); return (min*60+sec) > 210; })() }}"
                 }
               ]
             }
@@ -153,14 +164,15 @@
           "parameters": {
             "assignments": {
               "assignments": [
-                { "name": "videoId", "value": "={{ $json.items[0].id }}" },
-                { "name": "title", "value": "={{ $json.items[0].snippet.title }}" },
-                { "name": "channelId", "value": "={{ $json.items[0].snippet.channelId }}" },
-                { "name": "channelTitle", "value": "={{ $json.items[0].snippet.channelTitle }}" },
-                { "name": "tags", "value": "={{ $json.items[0].snippet.tags.join(', ') }}" },
-                { "name": "viewCount", "value": "={{ $json.items[0].statistics.viewCount }}" },
-                { "name": "likeCount", "value": "={{ $json.items[0].statistics.likeCount }}" },
-                { "name": "commentCount", "value": "={{ $json.items[0].statistics.commentCount }}" }
+                { "name": "videoId", "value": "={{ $json.items[0]?.id || '' }}" },
+                { "name": "title", "value": "={{ $json.items[0]?.snippet?.title || '' }}" },
+                { "name": "channelId", "value": "={{ $json.items[0]?.snippet?.channelId || '' }}" },
+                { "name": "channelTitle", "value": "={{ $json.items[0]?.snippet?.channelTitle || '' }}" },
+                { "name": "tags", "value": "={{ ($json.items[0]?.snippet?.tags || []).join(', ') }}" },
+                { "name": "viewCount", "value": "={{ $json.items[0]?.statistics?.viewCount || 0 }}" },
+                { "name": "likeCount", "value": "={{ $json.items[0]?.statistics?.likeCount || 0 }}" },
+                { "name": "commentCount", "value": "={{ $json.items[0]?.statistics?.commentCount || 0 }}" },
+                { "name": "timestamp", "value": "={{ new Date().toISOString() }}" }
               ]
             }
           },
@@ -179,7 +191,10 @@
           "main": [[{ "node": "find_video_data", "type": "main", "index": 0 }]]
         },
         "find_video_data": {
-          "main": [[{ "node": "if_longer_than_3min", "type": "main", "index": 0 }]]
+          "main": [
+            [{ "node": "wait_between_calls", "type": "main", "index": 0 }],
+            [{ "node": "if_longer_than_3min", "type": "main", "index": 0 }]
+          ]
         },
         "if_longer_than_3min": {
           "main": [[{ "node": "group_data", "type": "main", "index": 0 }]]
