@@ -20,7 +20,7 @@ import { Power } from "lucide-react";
 const getGroupForMenuItem = (itemKey: string): string | null => {
   const itemName = itemKey.startsWith('/') ? itemKey.substring(1) : itemKey;
   const contentItems = ["Client_Profiles", "Submissions", "AI_Tools", "Playbooks", "Lead_Generation", "Agents_Flow", "Work_Flow"];
-  const overviewItems = ["Niche_Researcher", "Top_50_Niches", "Offer_Creator", "Cold_Email_Writer", "Ad_Writer", "Growth_Plan_Creator", "Pricing_Calculator", "Sales_Call_Analyzer", "categories"];
+  const overviewItems = ["Top_50_Niches", "Niche_Researcher",  "Offer_Creator", "Pricing_Calculator", "Ad_Writer", "Cold_Email_Writer", "Sales_Call_Analyzer",  "Growth_Plan_Creator",  "categories"];
   const automationItems = ["Automations", "N8n_Builder", "N8n_Library"];
   
   if (contentItems.includes(itemName)) return "content";

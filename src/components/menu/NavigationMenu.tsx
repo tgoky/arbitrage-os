@@ -79,8 +79,6 @@ const menuGroups: MenuGroupConfig[] = [
       "Cold_Email_Writer",
     "Sales_Call_Analyzer",
       "Growth_Plan_Creator",
-   
-    
       "categories",
     ],
   },
