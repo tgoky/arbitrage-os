@@ -1,773 +1,215 @@
 {
-  "name": "Google Maps Lead Generation",
+  "name": "Google Maps Automatic Email Scraper",
   "nodes": [
     {
       "parameters": {},
-      "id": "03659be3-4873-4d19-8b67-b23dd5e9f18b",
+      "id": "1",
+      "name": "Run Workflow Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [\n  { json: { query: \"real estate agent in Salt Lake City\" } },\n  { json: { query: \"law firm in New York\" } },\n  { json: { query: \"coffee shops in San Francisco\" } }\n];"
+      },
+      "id": "2",
+      "name": "Define Queries",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "query"
+      },
+      "id": "3",
+      "name": "Loop Over Queries",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{`https://www.google.com/maps/search/${$json[\"query\"]}`}}",
+        "responseFormat": "string"
+      },
+      "id": "4",
+      "name": "Search Google Maps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "extractionValues": [
+          {
+            "key": "urls",
+            "cssSelector": "a",
+            "returnValue": "attribute",
+            "attribute": "href"
+          }
+        ]
+      },
+      "id": "5",
+      "name": "Extract URLs",
+      "type": "n8n-nodes-base.htmlExtract",
+      "typeVersion": 1,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "items[0].json.urls = items[0].json.urls.filter(url => url.includes('http') && !url.includes('google.'));\nreturn items[0].json.urls.map(u => ({ json: { url: u } }));"
+      },
+      "id": "6",
+      "name": "Filter Irrelevant URLs",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "property": "url"
+      },
+      "id": "7",
       "name": "Remove Duplicate URLs",
       "type": "n8n-nodes-base.removeDuplicates",
-      "position": [
-        1504,
-        752
-      ],
-      "typeVersion": 1.1
+      "typeVersion": 1,
+      "position": [1400, 200]
     },
     {
       "parameters": {
-        "options": {}
+        "url": "={{$json[\"url\"]}}",
+        "responseFormat": "string"
       },
-      "id": "54ad5c26-dc74-4e52-8739-e732c720a304",
-      "name": "Loop over queries",
-      "type": "n8n-nodes-base.splitInBatches",
-      "position": [
-        1200,
-        272
-      ],
-      "typeVersion": 3
-    },
-    {
-      "parameters": {
-        "url": "=https://www.google.com/maps/search/{{ $json.query }}",
-        "options": {
-          "allowUnauthorizedCerts": false
-        }
-      },
-      "id": "0a4a959b-e551-4bf8-b042-3bf487072e86",
-      "name": "Search Google Maps with query",
+      "id": "8",
+      "name": "Fetch Web Page",
       "type": "n8n-nodes-base.httpRequest",
-      "position": [
-        912,
-        752
-      ],
-      "executeOnce": false,
-      "typeVersion": 4.2,
-      "alwaysOutputData": false
+      "typeVersion": 1,
+      "position": [1600, 200]
     },
     {
       "parameters": {
-        "jsCode": "const data = $input.first().json.data\n\nconst regex = /https?:\\/\\/[^\\/]+/g\n\nconst urls = data.match(regex)\n\nreturn urls.map(url => ({json: {url: url}}))"
+        "functionCode": "const emails = [];\nconst regex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\nconst matches = items[0].json[\"body\"].match(regex);\nif (matches) {\n  matches.forEach(e => emails.push(e));\n}\nreturn emails.map(e => ({ json: { email: e, source: $json.url } }));"
       },
-      "id": "3fb8aec5-5255-41ab-b081-0838dce03aa2",
-      "name": "Scrape URLs from results",
-      "type": "n8n-nodes-base.code",
-      "position": [
-        1104,
-        752
-      ],
-      "typeVersion": 2
+      "id": "9",
+      "name": "Extract Emails",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1800, 200]
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "version": 2,
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
-          },
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "041797f2-2fe2-41dc-902a-d34050b9b304",
-              "operator": {
-                "type": "string",
-                "operation": "notRegex"
-              },
-              "leftValue": "={{ $json.url }}",
-              "rightValue": "=(google|gstatic|ggpht|schema\\.org|example\\.com|sentry-next\\.wixpress\\.com|imli\\.com|sentry\\.wixpress\\.com|ingest\\.sentry\\.io)"
-            },
-            {
-              "id": "eb499a7e-17bc-453c-be08-a47286f726dd",
-              "operator": {
-                "name": "filter.operator.equals",
-                "type": "string",
-                "operation": "equals"
-              },
-              "leftValue": "",
-              "rightValue": ""
-            }
-          ]
-        },
-        "options": {}
+        "property": "email"
       },
-      "id": "b15d20a5-1f5b-4220-9da0-1264ae84579e",
-      "name": "Filter irrelevant URLs",
-      "type": "n8n-nodes-base.filter",
-      "position": [
-        1312,
-        752
-      ],
-      "typeVersion": 2.2
-    },
-    {
-      "parameters": {
-        "url": "={{ $json.url }}",
-        "options": {}
-      },
-      "id": "a40fc1e8-3d1c-4bd6-9784-2dd7a4b82bf2",
-      "name": "Request web page for URL",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [
-        1904,
-        832
-      ],
-      "typeVersion": 4.2,
-      "alwaysOutputData": false,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "options": {
-          "reset": false
-        }
-      },
-      "id": "a1d1b45e-7f02-402d-bc91-7be17ac7f794",
-      "name": "Loop over URLs",
-      "type": "n8n-nodes-base.splitInBatches",
-      "position": [
-        1712,
-        752
-      ],
-      "typeVersion": 3,
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "bd864640-2eb2-4f9d-abcd-f01625251fad",
-      "name": "Loop over pages",
-      "type": "n8n-nodes-base.splitInBatches",
-      "position": [
-        1920,
-        480
-      ],
-      "typeVersion": 3,
-      "alwaysOutputData": false,
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const data = $json.data\n\nconst emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.(?!png|jpg|gif|jpeg)[a-zA-Z]{2,}/g\n\nconst emails = data.match(emailRegex)\n\nreturn {json: {emails: emails}}"
-      },
-      "id": "931485bf-c264-4ef1-8e6e-c6f7c037bc2a",
-      "name": "Scrape emails from page",
-      "type": "n8n-nodes-base.code",
-      "position": [
-        2080,
-        592
-      ],
-      "typeVersion": 2,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "fieldsToAggregate": {
-          "fieldToAggregate": [
-            {
-              "fieldToAggregate": "emails"
-            }
-          ]
-        },
-        "options": {
-          "mergeLists": true
-        }
-      },
-      "id": "5ebefd9e-6e02-403f-a41b-2ad984f5e1e7",
-      "name": "Aggregate arrays of emails",
-      "type": "n8n-nodes-base.aggregate",
-      "position": [
-        2240,
-        464
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "emails",
-        "options": {}
-      },
-      "id": "23a2e1ee-3171-4042-a896-3538117e989b",
-      "name": "Split out into default data structure",
-      "type": "n8n-nodes-base.splitOut",
-      "position": [
-        2464,
-        464
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "compare": "selectedFields",
-        "fieldsToCompare": "emails",
-        "options": {}
-      },
-      "id": "e36e4aa3-db31-414c-af4b-63e1bcb2854d",
-      "name": "Remove duplicate emails",
+      "id": "10",
+      "name": "Remove Duplicate Emails",
       "type": "n8n-nodes-base.removeDuplicates",
-      "position": [
-        2688,
-        464
-      ],
-      "typeVersion": 1.1
+      "typeVersion": 1,
+      "position": [2000, 200]
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "version": 2,
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
-          },
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "041797f2-2fe2-41dc-902a-d34050b9b304",
-              "operator": {
-                "type": "string",
-                "operation": "notRegex"
-              },
-              "leftValue": "={{ $json.emails }}",
-              "rightValue": "=(google|gstatic|ggpht|schema\\.org|example\\.com|sentry\\.wixpress\\.com|sentry-next\\.wixpress\\.com|ingest\\.sentry\\.io|sentry\\.io|imli\\.com)"
-            }
+        "values": {
+          "string": [
+            { "name": "Email", "value": "={{$json[\"email\"]}}" },
+            { "name": "Source", "value": "={{$json[\"source\"]}}" }
           ]
         },
-        "options": {}
+        "options": { "value": "={{$json}}" }
       },
-      "id": "9395baa4-ddaf-4e81-8ca6-eb78ee8f7f76",
-      "name": "Filter irrelevant emails",
-      "type": "n8n-nodes-base.filter",
-      "position": [
-        2880,
-        464
-      ],
-      "typeVersion": 2.2
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "documentId": {
-          "__rl": true,
-          "value": "1MDMbYUDqNWtNqZIaGO1YR2ojX3Vqfuo-ZXlt9XwpQps",
-          "mode": "list",
-          "cachedResultName": "Roofing",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MDMbYUDqNWtNqZIaGO1YR2ojX3Vqfuo-ZXlt9XwpQps/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MDMbYUDqNWtNqZIaGO1YR2ojX3Vqfuo-ZXlt9XwpQps/edit#gid=0"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "Emails": "={{ $json.emails }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "Emails",
-              "displayName": "Emails",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "5f6b4bd9-2319-4f43-9fc6-777beadbafc2",
-      "name": "Save emails to Google Sheet",
+      "id": "11",
+      "name": "Save to Google Sheets",
       "type": "n8n-nodes-base.googleSheets",
-      "position": [
-        3088,
-        464
-      ],
-      "typeVersion": 4.5
-    },
-    {
-      "parameters": {},
-      "id": "9e15d431-debe-42dc-a969-e031b0e2a335",
-      "name": "Starts scraper workflow",
-      "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "position": [
-        688,
-        752
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {},
-      "id": "bcf78dd8-90d1-47c6-ae69-0f3780f86d26",
-      "name": "Run workflow",
-      "type": "n8n-nodes-base.manualTrigger",
-      "position": [
-        960,
-        272
-      ],
-      "typeVersion": 1
+      "typeVersion": 3,
+      "position": [2200, 200],
+      "credentials": { "googleSheetsOAuth2": "YOUR_GOOGLE_SHEETS_CREDENTIALS" }
     },
     {
       "parameters": {
-        "amount": 2
+        "content": "# Setup Guide\n1. Enter your queries in **Define Queries**.\n2. Connect your Google Sheets credentials.\n3. Run the workflow."
       },
-      "id": "641cd53b-20e5-49d6-bbe9-093aa3418dc0",
-      "name": "Wait between executions",
-      "type": "n8n-nodes-base.wait",
-      "position": [
-        1648,
-        400
-      ],
-      "webhookId": "40eb11a9-0f7d-4932-993e-0052b69dbf9b",
-      "typeVersion": 1.1
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "mode": "id",
-          "value": "={{ $workflow.id }}"
-        },
-        "mode": "each",
-        "options": {
-          "waitForSubWorkflow": false
-        }
-      },
-      "id": "4a6d6780-fb0d-4405-823d-f96643985788",
-      "name": "Execute scraper for query",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "position": [
-        1408,
-        368
-      ],
-      "typeVersion": 1.1
-    },
-    {
-      "parameters": {
-        "content": "## 🛠 Setup\n1. Setup your list of queries in the \"Run workflow\" manual trigger node. Watch  this [video](https://youtu.be/HaiO-UeiKBA) on how to generate the queries with ChatGPT.\n3. Choose a sheet to populate with data in the **Google Sheets node**\n4. Run the workflow and start getting leads into your Google Sheets document",
-        "height": 180,
-        "width": 740,
-        "color": 5
-      },
-      "id": "c3cbbb24-ecd8-4e98-8573-79ac30015f40",
-      "name": "Sticky Note",
+      "id": "12",
+      "name": "Sticky Note - Setup",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        0,
-        224
-      ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "position": [200, 40]
     },
     {
       "parameters": {
-        "content": "**Optional** 👇\nSet wait time between each query workflow execution. Default is 2 seconds.",
-        "height": 100,
-        "color": 6
+        "content": "## Scraper\nLoops through queries, fetches Google Maps results, extracts URLs, fetches each page, and scrapes emails."
       },
-      "id": "e000ccd5-5e4a-44b5-8a73-92a9b529d755",
-      "name": "Sticky Note2",
+      "id": "13",
+      "name": "Sticky Note - Scraper",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        1584,
-        240
-      ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "position": [1000, 100]
     },
     {
       "parameters": {
-        "content": "### Scraper 👇\nThis workflow will be executed in the background for each query. Click the **All executions** tab in the left sidebar to see the executions running.",
-        "height": 100,
-        "width": 480
+        "content": "### Optional Filters\nYou can adjust regex in **Extract Emails** or modify URL filtering in **Filter Irrelevant URLs**."
       },
-      "id": "b0d84753-52ad-47fd-8031-56ad4cb2df11",
-      "name": "Sticky Note3",
+      "id": "14",
+      "name": "Sticky Note - Filters",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        688,
-        624
-      ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "position": [1400, 100]
     },
     {
       "parameters": {
-        "content": "👆 \n1. Setup your **credentials**. Here's a [video tutorial](https://youtu.be/O5RnWDM27M8) on how to do that.\n\n2. Choose which document and sheet to save the scraped emails to. ",
-        "height": 180,
-        "color": 4
+        "content": "### Save Instructions\nAll results are appended into the connected Google Sheet.\n\nFields: `Email` + `Source`"
       },
-      "id": "f6522239-7bf1-443c-a62e-1334039f2262",
-      "name": "Sticky Note4",
+      "id": "15",
+      "name": "Sticky Note - Save",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        3104,
-        672
-      ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "position": [2200, 100]
     },
     {
       "parameters": {
-        "content": " ## ⚠️ Note\n\nA [video tutorial](https://youtu.be/HaiO-UeiKBA) for this workflow guide is available on my [Youtube channel](https://www.youtube.com/channel/UCn8xmUBunez1SsDVRfZDUGA)",
-        "color": 3
+        "content": "⚠️ Note: This workflow scrapes public data. Respect terms of service and local regulations."
       },
-      "id": "706fd7fe-126f-462f-b3ab-710e1062861d",
-      "name": "Sticky Note5",
+      "id": "16",
+      "name": "Sticky Note - Note",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        528,
-        0
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "content": "## Google Maps Automatic Email Scraper\n\nThis workflow automatically scrapes emails from businesses on Google Maps based on a list of queries that you provide.",
-        "height": 140,
-        "width": 480,
-        "color": 7
-      },
-      "id": "43f8c246-e4f2-4f74-8098-54a63d40f8bd",
-      "name": "Sticky Note6",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        0,
-        0
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "content": "**Optional** 👆\nAdd or change the regex for filtering irrelevant URLs.",
-        "height": 100,
-        "width": 160,
-        "color": 6
-      },
-      "id": "f52f92a9-fb1c-4c5f-b0ea-7bfdd6ab3cda",
-      "name": "Sticky Note7",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        1280,
-        912
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "content": "**Optional** 👆\nAdd or change the regex for filtering irrelevant/incorrect email addresses.",
-        "height": 100,
-        "width": 200,
-        "color": 6
-      },
-      "id": "41ef2758-e673-4b54-949c-7ff9a74f5437",
-      "name": "Sticky Note8",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        2864,
-        624
-      ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "position": [400, 40]
     }
   ],
-  "pinData": {
-    "Run workflow": [
-      {
-        "json": {
-          "query": "sugar+house+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "downtown+salt+lake+city+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "millcreek+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "university+district+salt+lake+city+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "west+valley+city+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "murray+utah+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "rose+park+salt+lake+city+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "holladay+utah+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "south+salt+lake+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "glendale+salt+lake+city+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "avenues+salt+lake+city+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "east+bountiful+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "taylorsville+utah+real+estate+agent"
-        }
-      },
-      {
-        "json": {
-          "query": "kearns+utah+real+estate+agent"
-        }
-      }
-    ],
-    "Starts scraper workflow": [
-      {
-        "json": {
-          "query": "east+bountiful+roofing"
-        }
-      }
-    ]
-  },
   "connections": {
-    "Run workflow": {
-      "main": [
-        [
-          {
-            "node": "Loop over queries",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Run Workflow Trigger": {
+      "main": [[{ "node": "Define Queries", "type": "main", "index": 0 }]]
     },
-    "Loop over URLs": {
-      "main": [
-        [
-          {
-            "node": "Loop over pages",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Request web page for URL",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Define Queries": {
+      "main": [[{ "node": "Loop Over Queries", "type": "main", "index": 0 }]]
     },
-    "Loop over pages": {
-      "main": [
-        [
-          {
-            "node": "Aggregate arrays of emails",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Scrape emails from page",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Loop Over Queries": {
+      "main": [[{ "node": "Search Google Maps", "type": "main", "index": 0 }]]
     },
-    "Loop over queries": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Execute scraper for query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Search Google Maps": {
+      "main": [[{ "node": "Extract URLs", "type": "main", "index": 0 }]]
+    },
+    "Extract URLs": {
+      "main": [[{ "node": "Filter Irrelevant URLs", "type": "main", "index": 0 }]]
+    },
+    "Filter Irrelevant URLs": {
+      "main": [[{ "node": "Remove Duplicate URLs", "type": "main", "index": 0 }]]
     },
     "Remove Duplicate URLs": {
-      "main": [
-        [
-          {
-            "node": "Loop over URLs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Fetch Web Page", "type": "main", "index": 0 }]]
     },
-    "Filter irrelevant URLs": {
-      "main": [
-        [
-          {
-            "node": "Remove Duplicate URLs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Fetch Web Page": {
+      "main": [[{ "node": "Extract Emails", "type": "main", "index": 0 }]]
     },
-    "Remove duplicate emails": {
-      "main": [
-        [
-          {
-            "node": "Filter irrelevant emails",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Extract Emails": {
+      "main": [[{ "node": "Remove Duplicate Emails", "type": "main", "index": 0 }]]
     },
-    "Scrape emails from page": {
-      "main": [
-        [
-          {
-            "node": "Loop over pages",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Starts scraper workflow": {
-      "main": [
-        [
-          {
-            "node": "Search Google Maps with query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait between executions": {
-      "main": [
-        [
-          {
-            "node": "Loop over queries",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filter irrelevant emails": {
-      "main": [
-        [
-          {
-            "node": "Save emails to Google Sheet",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Request web page for URL": {
-      "main": [
-        [
-          {
-            "node": "Loop over URLs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Scrape URLs from results": {
-      "main": [
-        [
-          {
-            "node": "Filter irrelevant URLs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute scraper for query": {
-      "main": [
-        [
-          {
-            "node": "Wait between executions",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate arrays of emails": {
-      "main": [
-        [
-          {
-            "node": "Split out into default data structure",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Search Google Maps with query": {
-      "main": [
-        [
-          {
-            "node": "Scrape URLs from results",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split out into default data structure": {
-      "main": [
-        [
-          {
-            "node": "Remove duplicate emails",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Remove Duplicate Emails": {
+      "main": [[{ "node": "Save to Google Sheets", "type": "main", "index": 0 }]]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "dd6aab9d-0d13-494f-82bc-93f11cf97bdf",
-  "meta": {
-    "instanceId": "edc6b29440a8527b40ab7b686d557a3f22ba638eac75ae01f4cebc40fffb5604"
-  },
-  "id": "uLToXnwrjAakmwoQ",
-  "tags": []
+  "active": false
 }

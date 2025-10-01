@@ -766,115 +766,134 @@ export const workflowDetails: WorkflowDetailData[] = [
 },
 {
   id: 10,
-  title: "AI Agent Development Platform",
-  description: "Build and deploy custom AI agents with no-code development tools and pre-built templates.",
-  tags: ["AI Development", "No-Code", "Automation"],
+  title: "AI Agent Development Agent",
+  description: "An AI-powered development environment combining GPT, Claude, memory, and tools to build, test, and deploy workflows automatically.",
+  tags: ["AI Agent", "Automation", "Workflow Builder", "n8n"],
   downloads: 156,
   demoUrl: "#",
-  integrations: ["OpenAI", "Custom APIs", "Webhook"],
+  integrations: ["OpenAI", "Anthropic (Claude)", "n8n", "Custom APIs", "File Upload"],
   jsonTemplate: aiagentDev,
   featured: true,
-  overview: "This workflow provides a framework for developing and deploying custom AI agents without coding. It includes tools for designing agent behaviors, integrating with various APIs, and testing agent performance.\n\n1. Users define agent objectives and parameters through a form interface.\n2. The system generates agent code based on the specifications.\n3. Agents are deployed to a testing environment for validation.\n4. Successful agents are promoted to production environments.\n5. Performance metrics are collected and analyzed for continuous improvement.\n\nDemocratize AI agent development with a no-code approach.",
-  useCase: "Enable non-technical users to create custom AI agents, streamline agent development processes, and accelerate deployment of AI solutions.",
+  overview: "This workflow brings together a **Developer Agent** and a **Workflow Builder** to create, test, and link custom workflows.\n\n1. **Developer Agent** responds to chat messages, with GPT 4.1 mini as the primary brain, memory for context, and a developer tool.\n2. **Workflow Builder** fetches n8n documentation, extracts knowledge from files, and leverages Claude Opus 4 for reasoning.\n3. Agents automatically create workflows in n8n and return live workflow links.\n4. Both GPT and Claude can be combined for hybrid reasoning across steps.\n5. Enables collaborative AI agent development and workflow deployment with minimal setup.",
+  useCase: "Empower developers and no-code users to design, test, and deploy AI-driven workflows using both GPT and Claude models, with built-in memory and file-based knowledge extraction.",
   setupInstructions: [
     {
       step: 1,
-      title: "Configure OpenAI integration",
-      description: "Set up your OpenAI API credentials in the workflow settings."
+      title: "Configure LLM Integrations",
+      description: "Set up your OpenAI and Anthropic API keys in the workflow settings."
     },
     {
       step: 2,
-      title: "Define agent templates",
-      description: "Create or modify agent templates based on your use cases."
+      title: "Enable Memory + Tools",
+      description: "Activate simple memory for persistent context and connect the Developer Tool."
     },
     {
       step: 3,
-      title: "Set up deployment environments",
-      description: "Configure testing and production environments for agent deployment."
+      title: "Connect Workflow Builder",
+      description: "Configure the Workflow Builder to fetch n8n docs and extract data from files."
     },
     {
       step: 4,
-      title: "Test agent creation",
-      description: "Create a test agent to verify the workflow functions correctly."
+      title: "Test Workflow Generation",
+      description: "Send a chat command and verify the workflow link is generated correctly."
     }
   ],
   keyBenefits: [
-    "No-code AI agent development",
-    "Rapid prototyping and deployment",
-    "Customizable agent behaviors",
-    "Scalable agent management"
+    "Hybrid GPT + Claude reasoning",
+    "Automated workflow creation in n8n",
+    "Memory-enabled development agent",
+    "File and docs knowledge extraction",
+    "End-to-end AI agent + builder pipeline"
   ],
   requirements: [
     "OpenAI API Key",
-    "Webhook endpoints",
-    "Testing environment"
+    "Anthropic API Key",
+    "n8n instance",
+    "Webhook endpoint (for workflow link)"
   ],
   workflowNodes: [
-    "Form Trigger",
-    "OpenAI",
-    "Code Generator",
-    "HTTP Request",
-    "Webhook"
-  ],
-  setupTime: "45-60 minutes",
-  difficulty: "Advanced",
-  videoTutorial: "https://drive.google.com/file/d/1ZVkHpZmVYANEv33TXNWhFcqEf1Fg0iIE/view?usp=sharing"
-},
-{
-  id: 11,
-  title: "AI Blog Post Research & Development",
-  description: "Automatically research topics and generate SEO-optimized blog posts with AI-powered content creation.",
-  tags: ["Content Creation", "SEO", "Blogging"],
-  downloads: 134,
-  demoUrl: "#",
-  integrations: ["OpenAI", "SEO Tools", "CMS APIs"],
-  jsonTemplate: aiblogPost,
-  featured: false,
-  overview: "This workflow automates the research and creation of SEO-optimized blog content. It identifies trending topics, conducts research, generates outlines, creates full articles, and optimizes them for search engines.\n\n1. Topic discovery based on search trends and keywords.\n2. Comprehensive research using various data sources.\n3. Outline generation with SEO considerations.\n4. Full article creation with AI writing assistance.\n5. Optimization for target keywords and readability.\n6. Export to CMS platforms for publishing.\n\nStreamline content creation with AI-powered research and writing.",
-  useCase: "Accelerate content production, improve SEO performance, and maintain consistent blogging schedules with automated research and writing.",
-  setupInstructions: [
-    {
-      step: 1,
-      title: "Configure SEO tools",
-      description: "Connect your preferred SEO analysis tools to the workflow."
-    },
-    {
-      step: 2,
-      title: "Set up content sources",
-      description: "Configure data sources for topic research and trend analysis."
-    },
-    {
-      step: 3,
-      title: "Integrate with CMS",
-      description: "Connect your content management system for automatic publishing."
-    },
-    {
-      step: 4,
-      title: "Test content generation",
-      description: "Run a test to generate a sample blog post and verify quality."
-    }
-  ],
-  keyBenefits: [
-    "Automated topic research",
-    "SEO-optimized content",
-    "Consistent publishing schedule",
-    "Reduced content creation time"
-  ],
-  requirements: [
-    "OpenAI API Key",
-    "SEO Tool Access",
-    "CMS API Access"
-  ],
-  workflowNodes: [
-    "Schedule Trigger",
-    "HTTP Request (Research)",
-    "OpenAI",
-    "SEO Analysis",
-    "CMS Integration"
+    "Chat Trigger",
+    "GPT 4.1 Mini (Brain)",
+    "Simple Memory",
+    "Developer Tool",
+    "Claude Opus 4",
+    "Docs Fetch",
+    "Extract File",
+    "n8n Builder",
+    "Workflow Link"
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://drive.google.com/file/d/1ZVkHpZmVYANEv33TXNWhFcqEf1Fg0iIE/view?usp=sharing"
+  videoTutorial: "https://drive.google.com/file/d/16qLEUFf_hSIxdWDNrj55bul26Hm2QNMG/view?usp=sharing"
+}
+,
+{
+  id: 17,
+  title: "Google Maps Lead Generation",
+  description: "Automatically scrape business emails from Google Maps queries and save them directly into Google Sheets.",
+  tags: ["Lead Generation", "Scraping", "Google Maps", "Automation"],
+  downloads: 243,
+  demoUrl: "#",
+  integrations: ["Google Maps", "Google Sheets", "Webhook"],
+  jsonTemplate: googleMaps,
+  featured: true,
+  overview: "This workflow scrapes emails from businesses listed on Google Maps, based on custom queries you provide.\n\n1. User provides a list of queries (e.g., 'real estate agent in Salt Lake City').\n2. The workflow runs each query in the background.\n3. Business URLs are scraped and cleaned using regex filters.\n4. Each website is scanned for email addresses.\n5. Emails are deduplicated, filtered, and saved into Google Sheets.\n\nEasily generate business leads without manual copy-pasting.",
+  useCase: "Perfect for marketers, sales teams, and agencies looking to quickly gather business leads from Google Maps into a structured format.",
+  setupInstructions: [
+    {
+      step: 1,
+      title: "Setup queries",
+      description: "Enter your list of business queries inside the **Run workflow** node."
+    },
+    {
+      step: 2,
+      title: "Connect Google Sheets",
+      description: "Choose a document and sheet in the **Google Sheets** node to save scraped emails."
+    },
+    {
+      step: 3,
+      title: "Adjust filters (optional)",
+      description: "Modify regex in the **URL filter** or **email filter** nodes to refine results."
+    },
+    {
+      step: 4,
+      title: "Run the scraper",
+      description: "Trigger the workflow and monitor executions in the n8n sidebar."
+    }
+  ],
+  keyBenefits: [
+    "Hands-free Google Maps lead generation",
+    "Customizable regex filtering",
+    "Saves results directly into Google Sheets",
+    "Removes duplicate and irrelevant emails",
+    "Scalable multi-query scraping"
+  ],
+  requirements: [
+    "Google Sheets API credentials",
+    "Google Maps access (no API key needed, uses scraping)",
+    "n8n instance"
+  ],
+  workflowNodes: [
+    "Run Workflow Trigger",
+    "Loop over Queries",
+    "Execute Scraper for Query",
+    "Wait between Executions",
+    "Search Google Maps with Query",
+    "Scrape URLs from Results",
+    "Filter Irrelevant URLs",
+    "Remove Duplicate URLs",
+    "Loop over URLs",
+    "Request Web Page",
+    "Scrape Emails from Page",
+    "Aggregate Emails",
+    "Split into Default Data Structure",
+    "Remove Duplicate Emails",
+    "Filter Irrelevant Emails",
+    "Save to Google Sheets"
+  ],
+  setupTime: "20-30 minutes",
+  difficulty: "Beginner",
+  videoTutorial: "https://drive.google.com/file/d/1p8lyoGdjeIWUNybiWv2M0BbGGs4-XDSp/view?usp=sharing"
 },
 {
   id: 12,
@@ -1445,58 +1464,63 @@ videoTutorial: "https://drive.google.com/file/d/1wAXTCbCbHUho4MXORLWCT04o8dyOA2c
 {
   id: 22,
   title: "AI YouTube Trend Finder",
-  description: "Discover trending YouTube topics in your niche using AI analysis of current trends.",
-  tags: ["YouTube", "Trend Analysis", "Content Research"],
+  description: "Use an AI Agent with a connected YouTube Search tool to discover trending videos and topics in your niche.",
+  tags: ["YouTube", "AI Agent", "Content Research"],
   downloads: 118,
   demoUrl: "#",
-  integrations: ["YouTube API", "OpenAI", "Google Trends"],
+  integrations: ["OpenAI", "YouTube API"],
   jsonTemplate: openais,
-  featured: false,
-  overview: "This workflow uses AI to analyze YouTube trends and identify emerging topics within specific niches. It combines data from multiple sources to predict content opportunities and suggest video ideas with high potential.\n\n1. Monitoring of YouTube trends across specified categories and regions.\n2. Analysis of view patterns, engagement metrics, and growth signals.\n3. Cross-referencing with social media and search trends.\n4. AI-powered prediction of emerging topics and content opportunities.\n5. Generation of video ideas and content strategies.\n6. Performance tracking of predictions versus actual trends.\n\nStay ahead of YouTube trends with AI-powered content opportunity identification.",
-  useCase: "Content creators and marketers can identify trending topics early, plan content strategies around emerging trends, and maximize video visibility and engagement.",
+  featured: true,
+  overview: "This workflow combines an **AI Agent** with a dedicated YouTube Search sub-workflow. The agent receives a niche from the user, queries YouTube up to 3 times, and returns structured insights on trending videos.\n\n1. User provides a content niche (e.g., 'crypto news').\n2. The AI Agent (powered by GPT) calls the `youtube_search` tool.\n3. The tool fetches recent YouTube videos using the API, filters by relevance and duration, and extracts stats.\n4. The AI Agent summarizes patterns, engagement metrics, and provides video/channel links.\n5. Creators receive actionable content insights based on emerging trends.",
+  useCase: "Content creators and marketers can discover trending YouTube topics in their niche, identify high-engagement opportunities, and plan videos with greater reach potential.",
   setupInstructions: [
     {
       step: 1,
-      title: "Set up YouTube API",
-      description: "Configure YouTube Data API access for trend monitoring."
+      title: "Configure API Keys",
+      description: "Add your OpenAI and YouTube Data API credentials in n8n."
     },
     {
       step: 2,
-      title: "Configure trend sources",
-      description: "Connect additional trend data sources like Google Trends and social media APIs."
+      title: "Enable Memory + Agent",
+      description: "Activate the AI Agent node with GPT model and Simple Memory for contextual conversation."
     },
     {
       step: 3,
-      title: "Define niche parameters",
-      description: "Set your content niche, target audience, and competitive landscape."
+      title: "Connect YouTube Search Tool",
+      description: "Attach the `youtube_search` tool to the agent, linking it to the YouTube Search sub-workflow."
     },
     {
       step: 4,
-      title: "Test trend analysis",
-      description: "Run analysis on historical data to verify prediction accuracy."
+      title: "Test the Trend Finder",
+      description: "Run a query (e.g., 'AI startups') and confirm the AI returns video links, channel insights, and engagement stats."
     }
   ],
   keyBenefits: [
-    "Early trend identification",
-    "Data-driven content planning",
-    "Competitive advantage",
-    "Maximized engagement potential"
+    "Hybrid AI + API-powered analysis",
+    "Automated YouTube trend detection",
+    "Context-aware insights via memory",
+    "Structured video and channel data",
+    "Faster content planning"
   ],
   requirements: [
-    "YouTube API Access",
-    "Trend Analysis APIs",
-    "Niche Definition"
+    "OpenAI API Key",
+    "YouTube API Key",
+    "n8n instance"
   ],
   workflowNodes: [
-    "Data Collection",
-    "Trend Analysis",
-    "AI Prediction",
-    "Content Suggestions",
-    "Performance Tracking"
+    "Chat Trigger",
+    "AI Agent (OpenAI GPT)",
+    "Simple Memory",
+    "youtube_search Tool",
+    "YouTube API Query",
+    "Video Stats Extraction",
+    "Duration Filter",
+    "Insights Aggregation",
+    "Structured Results"
   ],
   setupTime: "30-45 minutes",
   difficulty: "Intermediate",
-  videoTutorial: "https://drive.google.com/file/d/1FWchw9vJo7YoRMgUpjt3PfnlFLyLXmEc/view?usp=sharing"
+  videoTutorial: "https://drive.google.com/file/d/1j7MEPDu01sTKd6f2BxySy9KdOUiYeU9F/view?usp=sharing"
 },
 {
   id: 23,

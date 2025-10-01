@@ -1,488 +1,190 @@
 {
-  "name": "OpenAI_and_LLMs/AI Youtube Trend Finder Based On Niche",
-  "nodes": [
+  "exportedWorkflows": [
     {
-      "parameters": {
-        "options": {
-          "systemMessage": "=You help youtube creators find trending videos based on a specific niche.\n\nVerify if the user informed a niche before doing anything. If not, then ask him for one by giving him suggestions for him to select from.\n\nAfter you know what type of content the user might produce, use the \"youtube_search\" tool up to 3 times with different search terms based on the user's content type and niche.\n\nThe tool will answer with a list of videos from the last 2 days that had the most amount of relevancy. It returns a list of json's covering each video's id, view count, like count, comment count, description, channel title, tags and channel id. Each video is separated by \"### NEXT VIDEO FOUND: ###\".\n\nYou should then proceed to understand the data received then provide the user with insightful data of what could be trending from the past 2 days. Provide the user links to the trending videos which should be in this structure:\n\nhttps://www.youtube.com/watch?v={video_id}\n\nto reach the channel's link you should use:\n\nhttps://www.youtube.com/channel/{channel_id}\n\nFind patterns in the tags, titles and especially in the related content for the videos found.\n\nYour mission isn't to find the trending videos. It's to provide the user with valuable information of what is trending in that niche in terms of content news. Remember to provide the user with the numbers of views, likes and comments while commenting about any video. So you should not talk about any particular video, focus rather in explaining the overall senario of all that was found.\n\nExample of response:\n\n\"It seems like what is trending in digital marketing right now is talking about mental triggers, since 3 of the most trending videos in the last 2 days were about...\""
-        }
-      },
-      "id": "25087183-6462-4adb-91fd-cf8b2106b5bf",
-      "name": "AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "position": [
-        192,
-        96
-      ],
-      "typeVersion": 1.6
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "94540fcb-c8fa-4f43-91c7-0eb4432171b3",
-      "name": "chat_message_received",
-      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-      "position": [
-        -32,
-        96
-      ],
-      "webhookId": "ff9622a4-a6ec-4396-b9de-c95bd834c23c",
-      "typeVersion": 1.1
-    },
-    {
-      "parameters": {
-        "name": "youtube_search",
-        "description": "Call this tool to search for trending videos based on a query.",
-        "workflowId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "N9DveO781xbNf8qs",
-          "cachedResultName": "Youtube Search Workflow"
+      "name": "AI Youtube Trend Finder (Main)",
+      "nodes": [
+        {
+          "parameters": {},
+          "id": "trigger_chat",
+          "name": "chat_message_received",
+          "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1.1,
+          "position": [100, 200]
         },
-        "specifyInputSchema": true,
-        "jsonSchemaExample": "{\n\t\"search_term\": \"some_value\"\n}"
-      },
-      "id": "662f1cfd-57ac-46ec-a357-bc40ce56e885",
-      "name": "youtube_search",
-      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-      "position": [
-        432,
-        224
+        {
+          "parameters": {
+            "options": {
+              "systemMessage": "You help YouTube creators find trending videos based on a specific niche.\n\n1. Verify if the user provided a niche. If not, ask them for one with suggestions.\n2. Use the youtube_search tool up to 3 times with different queries based on niche.\n3. The tool returns recent videos with stats.\n4. Summarize insights, identify content patterns, and provide structured links.\n\nExample response:\n\"In the last 2 days, digital marketing content about 'mental triggers' is trending, with 3 high-engagement videos surpassing 50K views each...\"\n\nAlways give:\n- Trends summary\n- Links: https://www.youtube.com/watch?v={id}\n- Channels: https://www.youtube.com/channel/{channelId}\n- Stats: views, likes, comments"
+            }
+          },
+          "id": "ai_agent",
+          "name": "AI Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.6,
+          "position": [400, 200]
+        },
+        {
+          "parameters": {},
+          "id": "openai_llm",
+          "name": "openai_llm",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [400, 400],
+          "credentials": {
+            "openAiApi": {
+              "id": "YOUR_OPENAI_API_ID",
+              "name": "OpenAI Production Key"
+            }
+          }
+        },
+        {
+          "parameters": {},
+          "id": "memory",
+          "name": "window_buffer_memory",
+          "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1.2,
+          "position": [400, 600]
+        },
+        {
+          "parameters": {
+            "name": "youtube_search",
+            "description": "Search trending YouTube videos by niche",
+            "workflowId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "WORKFLOW_ID_YOUTUBE_SEARCH",
+              "cachedResultName": "YouTube Search Workflow"
+            },
+            "specifyInputSchema": true,
+            "jsonSchemaExample": "{ \"search_term\": \"crypto news\" }"
+          },
+          "id": "youtube_tool",
+          "name": "youtube_search",
+          "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+          "typeVersion": 1.2,
+          "position": [700, 200]
+        }
       ],
-      "typeVersion": 1.2
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "64a65bc9-647a-4951-b47c-6cdb9f200c57",
-      "name": "openai_llm",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "position": [
-        160,
-        224
-      ],
-      "typeVersion": 1,
-      "credentials": {
-        "openAiApi": {
-          "id": "5TL40KY3QpSYJLsO",
-          "name": "OpenAi account 2"
+      "connections": {
+        "chat_message_received": {
+          "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+        },
+        "openai_llm": {
+          "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+        },
+        "window_buffer_memory": {
+          "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]]
+        },
+        "youtube_search": {
+          "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
         }
       }
     },
     {
-      "parameters": {},
-      "id": "cd4a1fc4-a02c-4ece-ad07-d7739586b796",
-      "name": "window_buffer_memory",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "position": [
-        288,
-        224
-      ],
-      "typeVersion": 1.2
-    },
-    {
-      "parameters": {
-        "content": "Main Workflow",
-        "height": 354.53098948245656,
-        "width": 693.2572054941234,
-        "color": 7
-      },
-      "id": "99301dec-1b1f-4364-8e83-151206478dd4",
-      "name": "Sticky Note1",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        -112,
-        32
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "url": "https://www.googleapis.com/youtube/v3/videos?",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "key",
-              "value": "={{ $env[\"GOOGLE_API_KEY\"] }}"
+      "name": "YouTube Search Workflow",
+      "nodes": [
+        {
+          "parameters": {
+            "resource": "video",
+            "limit": 5,
+            "filters": {
+              "publishedAfter": "={{ new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }}",
+              "q": "={{ $json.search_term }}",
+              "regionCode": "US"
             },
-            {
-              "name": "id",
-              "value": "={{ $json.id.videoId }}"
-            },
-            {
-              "name": "part",
-              "value": "contentDetails, snippet, statistics"
+            "options": {
+              "order": "relevance",
+              "safeSearch": "moderate"
             }
-          ]
-        },
-        "options": {}
-      },
-      "id": "20492758-285d-467b-a4a9-c7c1630999db",
-      "name": "find_video_data1",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [
-        592,
-        752
-      ],
-      "typeVersion": 4.2
-    },
-    {
-      "parameters": {
-        "resource": "video",
-        "limit": 3,
-        "filters": {
-          "publishedAfter": "={{ new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }}",
-          "q": "={{ $json.query.search_term }}",
-          "regionCode": "US"
-        },
-        "options": {
-          "order": "relevance",
-          "safeSearch": "moderate"
-        }
-      },
-      "id": "a163593c-7be1-4b73-a36d-78c1ae150fcd",
-      "name": "get_videos1",
-      "type": "n8n-nodes-base.youTube",
-      "position": [
-        176,
-        592
-      ],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "b9b9117b-ea14-482e-a13b-e68b8e6b441d",
-              "name": "response",
-              "type": "string",
-              "value": "={{ $input.all() }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "47bbbafd-1b4e-4472-bef1-4771e4a198ee",
-      "name": "response1",
-      "type": "n8n-nodes-base.set",
-      "position": [
-        992,
-        544
-      ],
-      "typeVersion": 3.4
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "47c172ad-90c8-4cf6-a9f5-50607e04cc90",
-              "name": "id",
-              "type": "string",
-              "value": "={{ $json.items[0].id }}"
-            },
-            {
-              "id": "9e639efa-0714-4b06-9847-f7b4b2fbef59",
-              "name": "viewCount",
-              "type": "string",
-              "value": "={{ $json.items[0].statistics.viewCount }}"
-            },
-            {
-              "id": "93328f00-91b8-425b-ad0f-a330b2f95242",
-              "name": "likeCount",
-              "type": "string",
-              "value": "={{ $json.items[0].statistics.likeCount }}"
-            },
-            {
-              "id": "015b0fb2-2a98-464c-a21b-51100616f26a",
-              "name": "commentCount",
-              "type": "string",
-              "value": "={{ $json.items[0].statistics.commentCount }}"
-            },
-            {
-              "id": "cf1e1ec3-a138-42b8-8747-d249afa58dd3",
-              "name": "description",
-              "type": "string",
-              "value": "={{ $json.items[0].snippet.description }}"
-            },
-            {
-              "id": "c5c9a3a2-b820-4932-a38a-e21102992215",
-              "name": "title",
-              "type": "string",
-              "value": "={{ $json.items[0].snippet.title }}"
-            },
-            {
-              "id": "38216ead-1f8d-4f93-b6ad-5ef709a1ad2a",
-              "name": "channelTitle",
-              "type": "string",
-              "value": "={{ $json.items[0].snippet.channelTitle }}"
-            },
-            {
-              "id": "ff34194d-3d46-43a8-9127-84708987f536",
-              "name": "tags",
-              "type": "string",
-              "value": "={{ $json.items[0].snippet.tags.join(', ') }}"
-            },
-            {
-              "id": "e50b0f7b-3e37-4557-8863-d68d4fa505c8",
-              "name": "channelId",
-              "type": "string",
-              "value": "={{ $json.items[0].snippet.channelId }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "666942e6-ee31-4b6c-a7fc-615512bfb9e4",
-      "name": "group_data1",
-      "type": "n8n-nodes-base.set",
-      "position": [
-        1056,
-        736
-      ],
-      "typeVersion": 3.4
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const workflowStaticData = $getWorkflowStaticData('global');\n\nif (typeof workflowStaticData.lastExecution !== 'object') {\n workflowStaticData.lastExecution = {\n response: \"\"\n };\n}\n\nfunction removeEmojis(text) {\n return text.replace(/[\\u{1F600}-\\u{1F64F}|\\u{1F300}-\\u{1F5FF}|\\u{1F680}-\\u{1F6FF}|\\u{2600}-\\u{26FF}|\\u{2700}-\\u{27BF}]/gu, '');\n}\n\nfunction cleanDescription(description) {\n return description\n .replace(/https?:\\/\\/\\S+/g, '')\n .replace(/www\\.\\S+/g, '')\n .replace(/ +/g, ' ')\n .trim();\n}\n\nconst currentItem = { ...$input.item };\n\nif (currentItem.description) {\n currentItem.description = cleanDescription(currentItem.description);\n}\n\nlet sanitizedItem = JSON.stringify(currentItem)\n .replace(/\\\\r/g, ' ')\n .replace(/https?:\\/\\/\\S+/g, '')\n .replace(/www\\.\\S+/g, '')\n .replace(/\\\\n/g, ' ')\n .replace(/\\n/g, ' ')\n .replace(/\\\\/g, '')\n .replace(/ +/g, ' ')\n .trim();\n\nif (workflowStaticData.lastExecution.response) {\n workflowStaticData.lastExecution.response += ' ### NEXT VIDEO FOUND: ### ';\n}\n\nworkflowStaticData.lastExecution.response += removeEmojis(sanitizedItem);\n\nreturn workflowStaticData.lastExecution;\n"
-      },
-      "id": "733c921b-7d38-4669-9b4a-a4a39081d739",
-      "name": "save_data_to_memory1",
-      "type": "n8n-nodes-base.code",
-      "position": [
-        1248,
-        736
-      ],
-      "typeVersion": 2
-    },
-    {
-      "parameters": {
-        "jsCode": "const workflowStaticData = $getWorkflowStaticData('global');\n\nconst lastExecution = workflowStaticData.lastExecution;\n\nreturn lastExecution;"
-      },
-      "id": "719f2137-a82e-441b-a804-39a51f86f33b",
-      "name": "retrieve_data_from_memory1",
-      "type": "n8n-nodes-base.code",
-      "position": [
-        672,
-        544
-      ],
-      "typeVersion": 2
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "3944f5cd-601f-444a-8b3c-ffbcb403d71f",
-      "name": "loop_over_items1",
-      "type": "n8n-nodes-base.splitInBatches",
-      "position": [
-        400,
-        592
-      ],
-      "typeVersion": 3
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "version": 2,
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
           },
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "08ba3db9-6bcf-47f8-a74d-9e26f28cb08f",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              },
-              "leftValue": "={{ \n (() => {\n const duration = $json.items[0].contentDetails.duration;\n\n // Helper function to convert ISO 8601 duration to seconds\n const iso8601ToSeconds = iso8601 => {\n const match = iso8601.match(/PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?/);\n const hours = parseInt(match[1] || 0, 10);\n const minutes = parseInt(match[2] || 0, 10);\n const seconds = parseInt(match[3] || 0, 10);\n return hours * 3600 + minutes * 60 + seconds;\n };\n\n // Convert duration to seconds\n const durationInSeconds = iso8601ToSeconds(duration);\n\n // Check if greater than 210 seconds (3 minutes 30 seconds)\n return durationInSeconds > 210;\n })() \n}}",
-              "rightValue": ""
-            }
-          ]
+          "id": "youtube_api",
+          "name": "get_videos",
+          "type": "n8n-nodes-base.youTube",
+          "typeVersion": 1,
+          "position": [200, 200]
         },
-        "options": {}
-      },
-      "id": "eb6210f5-7a8a-41f2-a4c2-ce56f85505c3",
-      "name": "if_longer_than_3_",
-      "type": "n8n-nodes-base.if",
-      "position": [
-        768,
-        752
+        {
+          "parameters": {},
+          "id": "split_batch",
+          "name": "loop_over_items",
+          "type": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 3,
+          "position": [400, 200]
+        },
+        {
+          "parameters": {
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                { "name": "key", "value": "={{ $env[\"GOOGLE_API_KEY\"] }}" },
+                { "name": "id", "value": "={{ $json.id.videoId }}" },
+                { "name": "part", "value": "contentDetails,snippet,statistics" }
+              ]
+            }
+          },
+          "id": "http_details",
+          "name": "find_video_data",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [600, 200]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true"
+                  },
+                  "leftValue": "={{ (() => { const dur = $json.items[0].contentDetails.duration; const m = dur.match(/PT(?:(\\d+)M)?(?:(\\d+)S)?/); const min = parseInt(m[1]||0,10); const sec = parseInt(m[2]||0,10); return (min*60+sec) > 210; })() }}"
+                }
+              ]
+            }
+          },
+          "id": "if_duration",
+          "name": "if_longer_than_3min",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [800, 200]
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                { "name": "videoId", "value": "={{ $json.items[0].id }}" },
+                { "name": "title", "value": "={{ $json.items[0].snippet.title }}" },
+                { "name": "channelId", "value": "={{ $json.items[0].snippet.channelId }}" },
+                { "name": "channelTitle", "value": "={{ $json.items[0].snippet.channelTitle }}" },
+                { "name": "tags", "value": "={{ $json.items[0].snippet.tags.join(', ') }}" },
+                { "name": "viewCount", "value": "={{ $json.items[0].statistics.viewCount }}" },
+                { "name": "likeCount", "value": "={{ $json.items[0].statistics.likeCount }}" },
+                { "name": "commentCount", "value": "={{ $json.items[0].statistics.commentCount }}" }
+              ]
+            }
+          },
+          "id": "set_data",
+          "name": "group_data",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [1000, 200]
+        }
       ],
-      "typeVersion": 2.2
-    },
-    {
-      "parameters": {
-        "content": "This part should be abstracted to another workflow and called inside the \"youtube_search\" tool of the main AI Agent.",
-        "height": 520,
-        "width": 1607,
-        "color": 5
-      },
-      "id": "36ffff08-6de1-42d7-bf37-eee94d309db8",
-      "name": "Sticky Note2",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        -128,
-        480
-      ],
-      "typeVersion": 1
+      "connections": {
+        "get_videos": {
+          "main": [[{ "node": "loop_over_items", "type": "main", "index": 0 }]]
+        },
+        "loop_over_items": {
+          "main": [[{ "node": "find_video_data", "type": "main", "index": 0 }]]
+        },
+        "find_video_data": {
+          "main": [[{ "node": "if_longer_than_3min", "type": "main", "index": 0 }]]
+        },
+        "if_longer_than_3min": {
+          "main": [[{ "node": "group_data", "type": "main", "index": 0 }]]
+        }
+      }
     }
-  ],
-  "pinData": {},
-  "connections": {
-    "openai_llm": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "get_videos1": {
-      "main": [
-        [
-          {
-            "node": "loop_over_items1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "group_data1": {
-      "main": [
-        [
-          {
-            "node": "save_data_to_memory1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "youtube_search": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "find_video_data1": {
-      "main": [
-        [
-          {
-            "node": "if_longer_than_3_",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "loop_over_items1": {
-      "main": [
-        [
-          {
-            "node": "retrieve_data_from_memory1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "find_video_data1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "if_longer_than_3_": {
-      "main": [
-        [
-          {
-            "node": "group_data1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "loop_over_items1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "save_data_to_memory1": {
-      "main": [
-        [
-          {
-            "node": "loop_over_items1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "window_buffer_memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "chat_message_received": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "retrieve_data_from_memory1": {
-      "main": [
-        [
-          {
-            "node": "response1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "58692c6f-ce78-423f-a647-e2d71121b4a8",
-  "meta": {
-    "instanceId": "edc6b29440a8527b40ab7b686d557a3f22ba638eac75ae01f4cebc40fffb5604"
-  },
-  "id": "vGwfG2M9593doroS",
-  "tags": []
+  ]
 }

@@ -358,7 +358,7 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
             }} 
           /> */}
           <Title level={4} style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-            Start Your AI Journey
+            Start Your  Journey
           </Title>
           <Text style={{ color: theme === 'dark' ? '#6b7280' : '#999999' }}>
             Use any AI tool to unlock achievements and milestones
