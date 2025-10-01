@@ -668,36 +668,39 @@ const handleExport = async (format: 'json' | 'html' | 'pdf') => { // Add 'pdf' h
       },
     });
   };
-
-  const handleLoadProposal = async (proposalId: string) => {
-    try {
-      const proposalData = await getProposal(proposalId);
-      if (proposalData && proposalData.proposal) {
-        const originalInput = proposalData.proposal.originalInput;
-        
-        if (originalInput) {
-          setProposalType(originalInput.proposalType || 'service-agreement');
-          setClientInfo(originalInput.client || clientInfo);
-          setServiceProvider(originalInput.serviceProvider || serviceProvider);
-          setProjectScope(originalInput.project || projectScope);
-          setPricing(originalInput.pricing || pricing);
-          setTerms(originalInput.terms || terms);
-          setCustomizations(originalInput.customizations || customizations);
-        }
-        
-        setGeneratedProposal(proposalData.proposal);
-        setSavedProposalId(proposalId);
-        setActiveTab("preview");
-        
-        message.success("Proposal loaded successfully");
-      } else {
-        message.error("Proposal data not found");
+const handleLoadProposal = async (proposalId: string) => {
+  try {
+    const proposalData = await getProposal(proposalId);
+    
+    // Check the correct nested structure
+    if (proposalData && proposalData.proposalData) {
+      const proposalPackage = proposalData.proposalData;
+      const originalInput = proposalPackage.originalInput;
+      
+      if (originalInput) {
+        setProposalType(originalInput.proposalType || 'service-agreement');
+        setClientInfo(originalInput.client || clientInfo);
+        setServiceProvider(originalInput.serviceProvider || serviceProvider);
+        setProjectScope(originalInput.project || projectScope);
+        setPricing(originalInput.pricing || pricing);
+        setTerms(originalInput.terms || terms);
+        setCustomizations(originalInput.customizations || customizations);
       }
-    } catch (error) {
-      console.error("Load proposal error:", error);
-      message.error("Failed to load proposal");
+      
+      setGeneratedProposal(proposalPackage);
+      setSavedProposalId(proposalId);
+      setActiveTab("preview");
+      
+      message.success("Proposal loaded successfully");
+    } else {
+      console.error('Unexpected data structure:', proposalData);
+      message.error("Proposal data not found - unexpected structure");
     }
-  };
+  } catch (error) {
+    console.error("Load proposal error:", error);
+    message.error("Failed to load proposal");
+  }
+};
 
   const isFormValid = validationResults.isReadyToGenerate;
   const hasMinimumData = clientInfo.legalName && projectScope.description && pricing.totalAmount > 0;
