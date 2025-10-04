@@ -401,53 +401,69 @@ export class CreditsService {
   }
 
   // Get credit packages for purchase - Updated with Stripe price IDs
-  static getCreditPackages(): CreditPackage[] {
-    return [
-      {
-        id: 'starter',
-        name: 'Starter',
-        credits: 100,
-        price: 29,
-        stripePriceId: process.env.STRIPE_STARTER_PRICE_ID!, // Add to .env.local
-        features: [
-          '100 lead generations',
-          'Basic targeting',
-          'Email & LinkedIn data',
-          'CSV export'
-        ]
-      },
-      {
-        id: 'professional',
-        name: 'Professional',
-        credits: 500,
-        price: 99,
-        stripePriceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID!, // Add to .env.local
-        popular: true,
-        features: [
-          '500 lead generations',
-          'Advanced targeting',
-          'Priority support',
-          'Phone numbers included',
-          'Analytics dashboard'
-        ]
-      },
-      {
-        id: 'enterprise',
-        name: 'Enterprise',
-        credits: 2000,
-        price: 299,
-        stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID!, // Add to .env.local
-        features: [
-          '2000 lead generations',
-          'Custom targeting',
-          'Dedicated support',
-          'API access',
-          'Custom integrations',
-          'Bulk export tools'
-        ]
-      }
-    ];
-  }
+static getCreditPackages(): CreditPackage[] {
+  return [
+    {
+      id: 'starter',
+      name: 'Starter',
+      credits: 40,
+      price: 10,
+      stripePriceId: process.env.STRIPE_STARTER_PRICE_ID!,
+      features: [
+        '40 lead generations',
+        'Basic targeting',
+        'Email,Phone &  LinkedIn data',
+        'CSV export',
+      ]
+    },
+    {
+      id: 'growth',
+      name: 'Growth',
+      credits: 125,
+      price: 25,
+      stripePriceId: process.env.STRIPE_GROWTH_PRICE_ID!,
+      features: [
+        '125 lead generations',
+        'Advanced targeting',
+        'Email,Phone & LinkedIn data',
+        'Priority support',
+       
+      ]
+    },
+    {
+      id: 'professional',
+      name: 'Professional',
+      credits: 300,
+      price: 50,
+      stripePriceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID!,
+      popular: true,
+      features: [
+        '300 lead generations',
+        'Premium targeting',
+        'Full contact data',
+        'Priority support',
+        'Advanced analytics',
+        'Bulk export tools'
+      ]
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      credits: 800,
+      price: 100,
+      stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID!,
+      features: [
+        '800 lead generations',
+        'Custom targeting',
+          'Premium targeting',
+           'Priority support',
+        'Dedicated support',
+        'Bulk export tools',
+        'Bulk export tools'
+      ]
+    }
+  ];
+}
 
   // Get package by ID
   static getPackageById(packageId: string): CreditPackage | null {
