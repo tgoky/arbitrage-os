@@ -657,7 +657,6 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
 }
 
 // Proposal Preview Component
-// Proposal Preview Component
 function ProposalPreview({ 
   proposal, 
   clientInfo, 
@@ -677,15 +676,96 @@ function ProposalPreview({
   savedProposalId: string | null;
   exportLoading: boolean;
 }) {
+  const [activeDocTab, setActiveDocTab] = useState<'complete' | 'agreement' | 'sow'>('complete');
+  
   const copyToClipboard = (content: string, type: string) => {
     navigator.clipboard.writeText(content).then(() => {
       message.success(`${type} copied to clipboard!`);
     });
   };
 
-  // Extract the generated contracts from the proposal
-  const serviceAgreement = proposal?.contracts?.serviceAgreement;
-  const statementOfWork = proposal?.contracts?.statementOfWork;
+  // Get contracts from the generated proposal
+  const contracts = proposal?.contracts;
+  const serviceAgreementBase = contracts?.serviceAgreement;
+  const statementOfWorkBase = contracts?.statementOfWork;
+
+  // Function to generate HTML with side-by-side signatures
+  const generateDocumentHTML = (documentText: string, documentType: 'agreement' | 'sow') => {
+    if (!documentText) return '';
+
+    const title = documentType === 'agreement' ? 'Service Agreement' : 'Statement of Work';
+    
+    return `
+      <div style="font-family: 'Times New Roman', Times, serif; line-height: 1.6; white-space: pre-wrap;">
+        ${documentText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+      </div>
+      
+      <div style="margin-top: 60px;">
+        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this ${title} as of the Effective Date.</p>
+        
+        <div style="display: table; width: 100%; margin-top: 40px;">
+          <div style="display: table-cell; width: 50%; vertical-align: top; padding-right: 20px;">
+            <div><strong>${(serviceProvider.name || 'SERVICE PROVIDER').toUpperCase()}</strong></div>
+            <div style="font-size: 10pt; margin-top: 5px;">${serviceProvider.address || ''}</div>
+            <div style="border-top: 1px solid #000; margin: 40px 0 5px 0; padding-top: 5px;"></div>
+            <div style="font-size: 10pt; margin: 3px 0;">By: _________________________</div>
+            <div style="font-size: 10pt; margin: 3px 0;">Name: ${serviceProvider.signatoryName || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0;">Title: ${serviceProvider.signatoryTitle || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0;">Date: _________________________</div>
+          </div>
+          
+          <div style="display: table-cell; width: 50%; vertical-align: top; padding-left: 20px;">
+            <div><strong>${(clientInfo.legalName || 'CLIENT').toUpperCase()}</strong></div>
+            <div style="font-size: 10pt; margin-top: 5px;">${clientInfo.address || ''}</div>
+            <div style="border-top: 1px solid #000; margin: 40px 0 5px 0; padding-top: 5px;"></div>
+            <div style="font-size: 10pt; margin: 3px 0;">By: _________________________</div>
+            <div style="font-size: 10pt; margin: 3px 0;">Name: ${clientInfo.signatoryName || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0;">Title: ${clientInfo.signatoryTitle || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0;">Date: _________________________</div>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // Generate HTML versions for display
+  const serviceAgreementHTML = serviceAgreementBase ? generateDocumentHTML(serviceAgreementBase, 'agreement') : null;
+  const statementOfWorkHTML = statementOfWorkBase ? generateDocumentHTML(statementOfWorkBase, 'sow') : null;
+
+  // For copying - add plain text signatures
+  const addSignatureBlocksPlainText = (documentText: string, documentType: 'agreement' | 'sow') => {
+    if (!documentText) return documentText;
+
+    const signatureBlock = `
+
+IN WITNESS WHEREOF, the Parties have executed this ${documentType === 'agreement' ? 'Service Agreement' : 'Statement of Work'} as of the Effective Date.
+
+${serviceProvider.name?.toUpperCase() || 'SERVICE PROVIDER'}
+${serviceProvider.address || ''}
+
+By: _________________________
+Name: ${serviceProvider.signatoryName || '_________________________'}
+Title: ${serviceProvider.signatoryTitle || '_________________________'}
+Date: _________________________
+
+
+${clientInfo.legalName?.toUpperCase() || 'CLIENT'}
+${clientInfo.address || ''}
+
+By: _________________________
+Name: ${clientInfo.signatoryName || '_________________________'}
+Title: ${clientInfo.signatoryTitle || '_________________________'}
+Date: _________________________`;
+
+    return documentText + signatureBlock;
+  };
+
+  const serviceAgreementPlainText = serviceAgreementBase ? addSignatureBlocksPlainText(serviceAgreementBase, 'agreement') : null;
+  const statementOfWorkPlainText = statementOfWorkBase ? addSignatureBlocksPlainText(statementOfWorkBase, 'sow') : null;
+
+  const completeProposalPlainText = serviceAgreementPlainText && statementOfWorkPlainText
+    ? `${serviceAgreementPlainText}\n\n${'='.repeat(80)}\n\n${statementOfWorkPlainText}`
+    : "Contracts not available. Please regenerate the proposal.";
 
   return (
     <div className="space-y-6">
@@ -699,6 +779,12 @@ function ProposalPreview({
           </div>
           <Space>
             <Button 
+              icon={<CopyOutlined />}
+              onClick={() => copyToClipboard(completeProposalPlainText, 'Complete Proposal')}
+            >
+              Copy Complete
+            </Button>
+            <Button 
               icon={<DownloadOutlined />} 
               onClick={() => onExport('html')}
               loading={exportLoading}
@@ -706,7 +792,6 @@ function ProposalPreview({
             >
               Export Proposal
             </Button>
-            
             <Button 
               type="default" 
               icon={<SaveOutlined />}
@@ -718,69 +803,107 @@ function ProposalPreview({
         </div>
       </Card>
 
-      {/* Service Agreement Display */}
-      {serviceAgreement ? (
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <Title level={3}>Service Agreement</Title>
-            <Button 
-              icon={<CopyOutlined />}
-              onClick={() => copyToClipboard(serviceAgreement, 'Service Agreement')}
-              size="small"
-            >
-              Copy
-            </Button>
-          </div>
-          <div 
-            className="whitespace-pre-wrap font-serif text-sm leading-relaxed border rounded p-6 "
-            style={{ maxHeight: '600px', overflowY: 'auto' }}
-          >
-            {serviceAgreement}
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <Alert
-            message="Service Agreement Not Available"
-            description="The service agreement could not be generated. Please try regenerating the proposal."
-            type="warning"
-            showIcon
-          />
-        </Card>
-      )}
+      <Card>
+        <Tabs
+          activeKey={activeDocTab}
+          onChange={(key) => setActiveDocTab(key as 'complete' | 'agreement' | 'sow')}
+          type="card"
+          items={[
+            {
+              key: 'complete',
+              label: 'Complete Proposal',
+              children: (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <Title level={4}>Complete Proposal Document</Title>
+                    <Button 
+                      icon={<CopyOutlined />}
+                      onClick={() => copyToClipboard(completeProposalPlainText, 'Complete Proposal')}
+                      size="small"
+                    >
+                      Copy Complete
+                    </Button>
+                  </div>
+                  <div 
+                    className="border rounded p-6 bg-white"
+                    style={{ maxHeight: '600px', overflowY: 'auto' }}
+                  >
+                    {serviceAgreementHTML && (
+                      <div dangerouslySetInnerHTML={{ __html: serviceAgreementHTML }} />
+                    )}
+                    <div style={{ margin: '40px 0', borderTop: '2px solid #000' }}></div>
+                    {statementOfWorkHTML && (
+                      <div dangerouslySetInnerHTML={{ __html: statementOfWorkHTML }} />
+                    )}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'agreement',
+              label: 'Service Agreement',
+              children: serviceAgreementHTML ? (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <Title level={4}>Service Agreement</Title>
+                    <Button 
+                      icon={<CopyOutlined />}
+                      onClick={() => copyToClipboard(serviceAgreementPlainText || '', 'Service Agreement')}
+                      size="small"
+                    >
+                      Copy Agreement
+                    </Button>
+                  </div>
+                  <div 
+                    className="border rounded p-6 bg-white"
+                    style={{ maxHeight: '600px', overflowY: 'auto' }}
+                    dangerouslySetInnerHTML={{ __html: serviceAgreementHTML }}
+                  />
+                </div>
+              ) : (
+                <Alert
+                  message="Service Agreement Not Available"
+                  description="The service agreement could not be generated. Please try regenerating the proposal."
+                  type="warning"
+                  showIcon
+                />
+              ),
+            },
+            {
+              key: 'sow',
+              label: 'Statement of Work',
+              children: statementOfWorkHTML ? (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <Title level={4}>Statement of Work</Title>
+                    <Button 
+                      icon={<CopyOutlined />}
+                      onClick={() => copyToClipboard(statementOfWorkPlainText || '', 'Statement of Work')}
+                      size="small"
+                    >
+                      Copy SOW
+                    </Button>
+                  </div>
+                  <div 
+                    className="border rounded p-6 bg-white"
+                    style={{ maxHeight: '600px', overflowY: 'auto' }}
+                    dangerouslySetInnerHTML={{ __html: statementOfWorkHTML }}
+                  />
+                </div>
+              ) : (
+                <Alert
+                  message="Statement of Work Not Available"
+                  description="The statement of work could not be generated. Please try regenerating the proposal."
+                  type="warning"
+                  showIcon
+                />
+              ),
+            },
+          ]}
+        />
+      </Card>
 
-      {/* Statement of Work Display */}
-      {statementOfWork ? (
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <Title level={3}>Statement of Work</Title>
-            <Button 
-              icon={<CopyOutlined />}
-              onClick={() => copyToClipboard(statementOfWork, 'Statement of Work')}
-              size="small"
-            >
-              Copy
-            </Button>
-          </div>
-          <div 
-            className="whitespace-pre-wrap font-serif text-sm leading-relaxed border rounded p-6"
-            style={{ maxHeight: '600px', overflowY: 'auto' }}
-          >
-            {statementOfWork}
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <Alert
-            message="Statement of Work Not Available"
-            description="The statement of work could not be generated. Please try regenerating the proposal."
-            type="warning"
-            showIcon
-          />
-        </Card>
-      )}
-
-      {/* Summary Card */}
+      {/* Summary Card stays the same */}
       <Card>
         <Title level={4}>Proposal Summary</Title>
         <Divider />
@@ -804,6 +927,20 @@ function ProposalPreview({
             <Text strong>Status:</Text>
             <br />
             <Tag color="blue">Draft</Tag>
+          </Col>
+          <Col span={12}>
+            <Text strong>Service Agreement:</Text>
+            <br />
+            <Tag color={serviceAgreementHTML ? "green" : "red"}>
+              {serviceAgreementHTML ? "Generated" : "Not Available"}
+            </Tag>
+          </Col>
+          <Col span={12}>
+            <Text strong>Statement of Work:</Text>
+            <br />
+            <Tag color={statementOfWorkHTML ? "green" : "red"}>
+              {statementOfWorkHTML ? "Generated" : "Not Available"}
+            </Tag>
           </Col>
         </Row>
       </Card>

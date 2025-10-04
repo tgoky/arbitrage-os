@@ -156,7 +156,7 @@ private buildContractPrompt(input: ProposalInput): string {
 2. Generate COMPLETE legal text with ALL sections
 3. Each document should be AT LEAST 500 words
 4. Use proper legal formatting with numbered sections
-5. Include the signature blocks at the end of each document
+5. DO NOT include signature blocks - end the document after the final substantive section
 
 **PROVIDED INFORMATION:**
 
@@ -194,7 +194,7 @@ Return ONLY valid JSON with this exact structure:
 }
 
 **SERVICE AGREEMENT STRUCTURE:**
-Use this exact structure with actual names/addresses:
+Generate the following structure with actual names/addresses. END the document after Section 12.4 - do NOT add signature blocks:
 
 This Service Agreement (the "Agreement") is entered into as of ${effectiveDate} (the "Effective Date"), by and between:
 
@@ -272,26 +272,11 @@ This Agreement, together with applicable SOWs, constitutes the entire agreement 
 12.4 Amendments.
 No amendment shall be effective unless in writing and signed by both Parties.
 
-IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.
-
-${input.serviceProvider.name?.toUpperCase() || 'SERVICE PROVIDER'}
-${input.serviceProvider.address || ''}
-
-By: _________________________
-Name: ${input.serviceProvider.signatoryName || '_________________________'}
-Title: ${input.serviceProvider.signatoryTitle || '_________________________'}
-Date: _________________________
-
-
-${input.clientInfo.legalName?.toUpperCase() || 'CLIENT'}
-${input.clientInfo.address || ''}
-
-By: _________________________
-Name: ${input.clientInfo.signatoryName || '_________________________'}
-Title: ${input.clientInfo.signatoryTitle || '_________________________'}
-Date: _________________________
+**CRITICAL: End the Service Agreement here. Do NOT add "IN WITNESS WHEREOF" or any signature blocks.**
 
 **STATEMENT OF WORK STRUCTURE:**
+Generate the following structure. END the document after Section 7 - do NOT add signature blocks:
+
 This Statement of Work ("SOW") is issued pursuant to the Service Agreement entered into between ${input.serviceProvider.name || 'Service Provider'} ("Service Provider") and ${input.clientInfo.legalName} ("Client"). This SOW is incorporated into and made part of the Agreement.
 
 1. Project Description
@@ -319,26 +304,9 @@ ${input.projectScope.acceptanceCriteria || 'Deliverables shall be deemed accepte
 7. Additional Terms
 ${input.projectScope.additionalTerms || 'None'}
 
-IN WITNESS WHEREOF, the Parties have executed this Statement of Work as of the Effective Date.
+**CRITICAL: End the Statement of Work here. Do NOT add "IN WITNESS WHEREOF" or any signature blocks.**
 
-${input.serviceProvider.name?.toUpperCase() || 'SERVICE PROVIDER'}
-${input.serviceProvider.address || ''}
-
-By: _________________________
-Name: ${input.serviceProvider.signatoryName || '_________________________'}
-Title: ${input.serviceProvider.signatoryTitle || '_________________________'}
-Date: _________________________
-
-
-${input.clientInfo.legalName?.toUpperCase() || 'CLIENT'}
-${input.clientInfo.address || ''}
-
-By: _________________________
-Name: ${input.clientInfo.signatoryName || '_________________________'}
-Title: ${input.clientInfo.signatoryTitle || '_________________________'}
-Date: _________________________
-
-Generate complete, professional legal text for both documents now. Include all the sections shown above and make sure the signature blocks are at the end of each document.`;
+Generate complete, professional legal text for both documents now. Include all the sections shown above. Remember: DO NOT include signature blocks, "IN WITNESS WHEREOF" clauses, or any "By:", "Name:", "Title:", "Date:" lines in your generated text. The signature blocks will be added separately during document formatting.`;
 }
 
 
@@ -601,14 +569,21 @@ Generate complete, professional legal text for both documents now. Include all t
             page-break-inside: avoid;
         }
         .signature-container {
-            display: flex;
-            justify-content: space-between;
+            display: table;
+            width: 100%;
             margin-top: 40px;
-            gap: 40px;
         }
         .signature-box {
-            flex: 1;
-            min-width: 250px;
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding: 0 20px;
+        }
+        .signature-box:first-child {
+            padding-left: 0;
+        }
+        .signature-box:last-child {
+            padding-right: 0;
         }
         .signature-line {
             border-top: 1px solid #000;
@@ -620,6 +595,15 @@ Generate complete, professional legal text for both documents now. Include all t
             margin: 3px 0;
         }
         .page-break { page-break-before: always; }
+        
+        @media print {
+            .signature-container {
+                display: table;
+            }
+            .signature-box {
+                display: table-cell;
+            }
+        }
     </style>
 </head>
 <body>
@@ -684,6 +668,7 @@ Generate complete, professional legal text for both documents now. Include all t
 </body>
 </html>`;
 }
+
 
   private sanitizeFilename(filename: string): string {
     return filename
