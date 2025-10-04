@@ -789,8 +789,14 @@ Date: _________________________`;
               onClick={() => onExport('html')}
               loading={exportLoading}
               type="primary"
+                 style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
             >
-              Export Proposal
+              Export & Download Proposal
             </Button>
             <Button 
               type="default" 
