@@ -193,7 +193,13 @@ export const SavedAdsHistory = () => {
             </Title>
             <Text type="secondary">Your generated ads will appear here once you save them.</Text>
             <div className="mt-4">
-              <Button key="create-ad" type="primary" href="/ad-writer">
+              <Button key="create-ad" type="primary" href="/ad-writer"  
+               style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}>
                 Create Your First Ad
               </Button>
             </div>
