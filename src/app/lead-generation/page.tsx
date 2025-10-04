@@ -261,70 +261,79 @@ const LeadGenerationPage = () => {
       loadData();
     }
   }, [currentWorkspace?.id]);
+  
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
+const loadData = async () => {
+  try {
+    setLoading(true);
+    
+    console.log('Loading data for workspace:', currentWorkspace?.id);
+    
+    const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+    console.log('Calling endpoint:', endpoint);
+    
+    const response = await fetch(endpoint);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Raw API response:', data);
       
-      console.log('Loading data for workspace:', currentWorkspace?.id);
-      
-      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
-      console.log('Calling endpoint:', endpoint);
-      
-      const response = await fetch(endpoint);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Raw API response:', data);
+      if (data.success && data.data) {
+        const rawGenerations = data.data;
+        console.log(`Loaded ${rawGenerations.length} raw generations`);
         
-        if (data.success && data.data) {
-          const rawGenerations = data.data;
-          console.log(`Loaded ${rawGenerations.length} raw generations`);
-          
-          const processedGenerations: LeadGeneration[] = [];
-          const allLeads: Lead[] = [];
-          
-          for (const gen of rawGenerations) {
-            try {
-              console.log(`Processing generation ${gen.id}:`, {
-                title: gen.title,
-                hasContent: !!gen.content,
-                contentType: typeof gen.content,
-                contentLength: gen.content?.length || 0
-              });
-              
-              let generationContent;
-              if (typeof gen.content === 'string') {
-                generationContent = JSON.parse(gen.content);
-              } else {
-                generationContent = gen.content;
-              }
-              
-              console.log('Parsed generation content keys:', Object.keys(generationContent || {}));
-              
-              const leads = generationContent?.leads || [];
-              const metadata = gen.metadata || {};
-              
-              const processedGen: LeadGeneration = {
-                id: gen.id,
-                title: gen.title,
-                leadCount: leads.length,
-                totalFound: generationContent?.totalFound || leads.length,
-                averageScore: metadata?.averageScore || (leads.length > 0 ? 
-                  leads.reduce((sum: number, lead: any) => sum + (lead.score || 0), 0) / leads.length : 0),
-                criteria: metadata?.criteria || {},
-                generatedAt: metadata?.generatedAt || gen.created_at,
-                createdAt: gen.created_at,
-                updatedAt: gen.updated_at || gen.created_at,
-                content: gen.content,
-                workspace: gen.workspace
-              };
-              
-              processedGenerations.push(processedGen);
-              
-              if (Array.isArray(leads)) {
-                const leadsWithContext = leads.map((lead: any, index: number) => {
-                  return {
+        const processedGenerations: LeadGeneration[] = [];
+        const allLeads: Lead[] = [];
+        
+        for (const gen of rawGenerations) {
+          try {
+            console.log(`Processing generation ${gen.id}:`, {
+              title: gen.title,
+              hasMetadata: !!gen.metadata,
+              metadataLeadCount: gen.metadata?.leadCount
+            });
+            
+            // ✅ FIX: The API already returns properly formatted metadata with leadCount
+            // We don't need to parse content here anymore for the list view
+            const metadata = gen.metadata || {};
+            const leadCount = metadata.leadCount || 0;
+            const totalFound = metadata.totalFound || 0;
+            const averageScore = metadata.averageScore || 0;
+            
+            console.log(`Generation ${gen.id} has ${leadCount} leads`);
+            
+            const processedGen: LeadGeneration = {
+              id: gen.id,
+              title: gen.title,
+              leadCount, // ✅ Use metadata leadCount
+              totalFound,
+              averageScore,
+              criteria: metadata?.criteria || {},
+              generatedAt: metadata?.generatedAt || gen.createdAt,
+              createdAt: gen.createdAt,
+              updatedAt: gen.updatedAt || gen.createdAt,
+              content: gen.content,
+              workspace: gen.workspace
+            };
+            
+            processedGenerations.push(processedGen);
+            
+            // ✅ FIX: Only parse content when we actually need the leads array
+            if (leadCount > 0 && gen.content) {
+              try {
+                let generationContent;
+                if (typeof gen.content === 'string') {
+                  generationContent = JSON.parse(gen.content);
+                } else {
+                  generationContent = gen.content;
+                }
+                
+                const leads = Array.isArray(generationContent?.leads) 
+                  ? generationContent.leads 
+                  : [];
+                
+                if (leads.length > 0) {
+                  const leadsWithContext = leads.map((lead: any, index: number) => ({
                     ...lead,
                     id: lead.id || `${gen.id}_lead_${index}`,
                     generationId: gen.id,
@@ -332,49 +341,56 @@ const LeadGenerationPage = () => {
                     notes: lead.notes || '',
                     status: lead.status || 'new',
                     lastContacted: lead.lastContacted || null,
-                    createdAt: gen.created_at,
-                    updatedAt: gen.updated_at || gen.created_at
-                  };
-                });
-                
-                allLeads.push(...leadsWithContext);
-                console.log(`Added ${leadsWithContext.length} leads from generation ${gen.id}`);
-              } else {
-                console.warn(`No valid leads array found in generation ${gen.id}`);
+                    createdAt: gen.createdAt,
+                    updatedAt: gen.updatedAt || gen.createdAt
+                  }));
+                  
+                  allLeads.push(...leadsWithContext);
+                  console.log(`✅ Added ${leadsWithContext.length} leads from generation ${gen.id}`);
+                }
+              } catch (contentParseError) {
+                console.error(`Failed to parse content for leads in ${gen.id}:`, contentParseError);
               }
-            } catch (parseError) {
-              console.error(`Failed to parse content for generation ${gen.id}:`, parseError);
-              console.log('Raw content that failed to parse:', gen.content?.substring(0, 200));
             }
+            
+          } catch (parseError) {
+            console.error(`Failed to process generation ${gen.id}:`, parseError);
+            continue;
           }
-          
-          console.log(`Final results:`);
-          console.log(`- ${processedGenerations.length} generations processed`);
-          console.log(`- ${allLeads.length} total leads extracted`);
-          
-          setGenerations(processedGenerations);
-          setLeads(allLeads);
-          
-          if (allLeads.length === 0 && processedGenerations.length > 0) {
-            console.warn('Found generations but no leads. Check content format.');
-          }
-          
-        } else {
-          console.error('API response indicates failure:', data);
-          message.error(data.error || 'Failed to load lead data');
         }
+        
+        console.log(`📊 Final results:`);
+        console.log(`- ${processedGenerations.length} generations processed`);
+        console.log(`- ${allLeads.length} total leads extracted`);
+        
+        setGenerations(processedGenerations);
+        setLeads(allLeads);
+        
+        // ✅ Better user feedback
+        if (processedGenerations.length === 0) {
+          message.info('No lead generations found. Create your first campaign!');
+        } else if (allLeads.length === 0 && processedGenerations.length > 0) {
+          message.warning(`Found ${processedGenerations.length} campaigns but couldn't load the leads. The data may be corrupted.`);
+        } else {
+          message.success(`Loaded ${allLeads.length} leads from ${processedGenerations.length} campaigns`);
+        }
+        
       } else {
-        const errorText = await response.text();
-        console.error('HTTP error response:', response.status, errorText);
-        message.error(`Failed to load lead data: ${response.status}`);
+        console.error('API response indicates failure:', data);
+        message.error(data.error || 'Failed to load lead data');
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      message.error('Failed to load lead data');
-    } finally {
-      setLoading(false);
+    } else {
+      const errorText = await response.text();
+      console.error('HTTP error response:', response.status, errorText);
+      message.error(`Failed to load lead data: ${response.status}`);
     }
-  };
+  } catch (error) {
+    console.error('Error loading data:', error);
+    message.error('Failed to load lead data');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter leads based on search and filters
   const filteredLeads = leads.filter(lead => {
