@@ -618,9 +618,11 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
                   loading={generating}
                   size="large"
                   style={{
-                    backgroundColor: '#1890ff',
-                    borderColor: '#1890ff',
-                  }}
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
                 >
                   {generating ? 'Generating...' : 'Generate Proposal'}
                 </Button>
