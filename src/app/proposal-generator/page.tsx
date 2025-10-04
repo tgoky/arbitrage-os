@@ -910,7 +910,7 @@ Date: _________________________`;
       </Card>
 
       {/* Summary Card stays the same */}
-      <Card>
+      {/* <Card>
         <Title level={4}>Proposal Summary</Title>
         <Divider />
         <Row gutter={[16, 16]}>
@@ -949,7 +949,7 @@ Date: _________________________`;
             </Tag>
           </Col>
         </Row>
-      </Card>
+      </Card> */}
     </div>
   );
 }
