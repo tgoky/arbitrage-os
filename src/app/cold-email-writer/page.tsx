@@ -812,6 +812,12 @@ const handleOptimizeEmail = async (
           icon={<SolutionOutlined />}
           onClick={() => setActiveTab('saved')}
           size="large"
+            style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
         >
           Saved Emails
         </Button>
@@ -1487,6 +1493,12 @@ const handleOptimizeEmail = async (
           type="primary" 
           onClick={() => setActiveTab('compose')}
           className="mt-4"
+            style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
         >
           Create Your First Email
         </Button>
