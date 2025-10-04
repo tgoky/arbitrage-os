@@ -1,31 +1,20 @@
-// hooks/useProposalCreator.ts - COMPLETE UPDATED VERSION for intelligent placeholders
+// hooks/useProposalCreator.ts - SIMPLIFIED VERSION
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import {
   ProposalInput,
   ProposalPackage,
   SavedProposal,
-  ProposalValidationResult,
   ApiResponse,
-  ApiResponseOptional,
-  ProposalType,
-  IndustryType
+  ApiResponseOptional
 } from '../../types/proposalCreator';
 import { useWorkspaceContext } from './useWorkspaceContext';
-
-export type {
-  ProposalInput,
-  ProposalPackage,
-  SavedProposal,
-  ProposalValidationResult
-};
 
 // ============================================================================
 // MAIN PROPOSAL CREATOR HOOK
 // ============================================================================
 export const useProposalCreator = () => {
-  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { currentWorkspace } = useWorkspaceContext();
@@ -35,37 +24,31 @@ export const useProposalCreator = () => {
     proposal: ProposalPackage;
   } | null> => {
     if (!currentWorkspace) {
-      throw new Error('No workspace selected. Please access the proposal creator from within a workspace.');
+      throw new Error('No workspace selected');
     }
 
     setGenerating(true);
     setError(null);
     
     try {
-      console.log('🚀 Sending proposal generation request...', input);
+      console.log('🚀 Sending proposal generation request...');
 
-      // **UPDATED: Only check the absolute essentials (let API handle placeholders)**
-   if (!input.client?.legalName?.trim()) {
-  throw new Error('Client name is required');
-}
-
-      if (!input.project?.description || input.project.description.length < 20) {
+      // Validate essential fields only
+      if (!input.clientInfo?.legalName?.trim()) {
+        throw new Error('Client name is required');
+      }
+      if (!input.projectScope?.description || input.projectScope.description.length < 20) {
         throw new Error('Project description is required (minimum 20 characters)');
       }
-      
-      if (!input.pricing?.totalAmount || input.pricing.totalAmount < 100) {
-        throw new Error('Project amount must be at least $100');
+      if (!input.serviceProvider?.name?.trim()) {
+        throw new Error('Service provider name is required');
       }
 
-      // **UPDATED: Send the raw input - API will handle placeholders**
       const requestBody = {
-        proposalType: input.proposalType || 'service-agreement',
-        client: input.client,
         serviceProvider: input.serviceProvider,
-        project: input.project,
-        pricing: input.pricing,
-        terms: input.terms,
-        customizations: input.customizations,
+        clientInfo: input.clientInfo,
+        projectScope: input.projectScope,
+        effectiveDate: input.effectiveDate,
         workspaceId: currentWorkspace.id
       };
 
@@ -80,34 +63,16 @@ export const useProposalCreator = () => {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ API Error:', errorData);
-
-        // **UPDATED: Better error message handling**
-        if (errorData.details && Array.isArray(errorData.details)) {
-          const criticalErrors = errorData.details.filter((detail: any) => detail.userFriendly || detail.critical);
-          if (criticalErrors.length > 0) {
-            throw new Error(errorData.error || 'Please check the required fields and try again.');
-          }
-        }
-
         throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
       const data = await response.json() as ApiResponseOptional<ProposalPackage>;
 
-      if (!data.success) {
+      if (!data.success || !data.data) {
         throw new Error(data.error || 'Generation failed');
       }
 
-      if (!data.data) {
-        throw new Error('No proposal data received from server');
-      }
-
-      // **UPDATED: Show different message based on whether placeholders were used**
-      if (data.meta?.appliedPlaceholders) {
-        message.success('Proposal generated with placeholders! Review and customize before sending.');
-      } else {
-        message.success('Proposal generated successfully!');
-      }
+      message.success('Proposal generated successfully!');
 
       return {
         proposalId: data.meta?.proposalId || 'temp-id',
@@ -125,201 +90,76 @@ export const useProposalCreator = () => {
     }
   }, [currentWorkspace]);
 
-  // **UPDATED: Placeholder-aware insights**
-  const getProposalInsights = useCallback((input: ProposalInput) => {
-    const insights = {
-      strengths: [] as string[],
-      weaknesses: [] as string[],
-      recommendations: [] as string[]
-    };
-
-    // Analyze project complexity
-    const deliverableCount = input.project.deliverables?.length || 0;
-    const milestoneCount = input.project.milestones?.length || 0;
-    
-    if (deliverableCount >= 5 && milestoneCount >= 3) {
-      insights.strengths.push('Well-structured project with comprehensive deliverables');
-    } else if (deliverableCount < 3) {
-      insights.weaknesses.push('Consider adding more detailed deliverables');
-      insights.recommendations.push('Break down major deliverables into smaller, measurable components');
-    }
-
-    // **NEW: Check for placeholders in key fields**
-    if (input.client?.address?.includes('[') || input.serviceProvider?.address?.includes('[')) {
-      insights.recommendations.push('Complete address information for professional contracts');
-    }
-
-    if (input.serviceProvider?.signatoryName?.includes('[') || input.client?.signatoryName?.includes('[')) {
-      insights.recommendations.push('Add authorized signatory names for legal validity');
-    }
-
-    if (input.terms?.governingLaw?.includes('[') || !input.terms?.governingLaw) {
-      insights.recommendations.push('Specify governing law based on your business location');
-    }
-
-    // Analyze pricing structure
-    if (input.pricing.model === 'milestone-based' && milestoneCount >= 3) {
-      insights.strengths.push('Milestone-based pricing aligned with project structure');
-    } else if (input.pricing.model === 'milestone-based' && milestoneCount < 3) {
-      insights.recommendations.push('Add more milestones to support milestone-based pricing');
-    }
-    
-    // **UPDATED: Safer payment schedule analysis**
-    if (input.pricing.paymentSchedule && input.pricing.paymentSchedule.length > 0) {
-      const firstPayment = input.pricing.paymentSchedule[0];
-      if (firstPayment && !firstPayment.description?.includes('[')) {
-        const upfrontPercentage = firstPayment.amount / input.pricing.totalAmount;
-        if (upfrontPercentage >= 0.3) {
-          insights.strengths.push('Healthy upfront payment reduces risk');
-        } else if (upfrontPercentage < 0.2) {
-          insights.weaknesses.push('Low upfront payment may create cash flow risk');
-          insights.recommendations.push('Consider negotiating higher upfront payment');
-        }
-      }
-    } else {
-      insights.recommendations.push('Payment schedule will be auto-generated with balanced terms');
-    }
-
-    // Industry-specific insights
-    if (input.client.industry === 'technology' && input.pricing.totalAmount > 50000) {
-      insights.strengths.push('Good positioning for technology sector engagement');
-    }
-
-    return insights;
-  }, []);
-
   return {
-    loading,
     generating,
     error,
     generateProposal,
-    getProposalInsights,
     setError
   };
 };
 
 // ============================================================================
-// PROPOSAL VALIDATION HOOK - ULTRA RELAXED
+// PROPOSAL VALIDATION HOOK - SIMPLIFIED
 // ============================================================================
 export const useProposalValidation = () => {
+  const validateProposalProgressive = useCallback((
+    input: Partial<ProposalInput>, 
+    showAllErrors = false
+  ) => {
+    const errors: Record<string, string> = {};
+    const warnings: Record<string, string> = {};
 
-  // In hooks/useProposalCreator.ts - update the validation:
-const validateProposalProgressive = useCallback((
-  input: Partial<ProposalInput>, 
-  showAllErrors = false
-): ProposalValidationResult => {
-  const errors: Record<string, string> = {};
-  const warnings: Record<string, string> = {};
+    // Only 3 essential fields
+    const essentialFields = [
+      () => input.clientInfo?.legalName && input.clientInfo.legalName.trim().length >= 2,
+      () => input.projectScope?.description && input.projectScope.description.trim().length >= 20,
+      () => input.serviceProvider?.name && input.serviceProvider.name.trim().length >= 2
+    ];
 
-  // **MATCH SERVICE VALIDATION** - only these 4 fields are truly required
-  const essentialFields = [
-    () => input.client?.legalName && input.client.legalName.trim().length >= 2,
-    () => input.project?.description && input.project.description.trim().length >= 20,
-    () => input.pricing?.totalAmount && input.pricing.totalAmount >= 100,
-    () => input.serviceProvider?.name && input.serviceProvider.name.trim().length >= 2
-  ];
+    const completedEssential = essentialFields.filter(field => field()).length;
 
-  const completedEssential = essentialFields.filter(field => field()).length;
-
-  // Critical blocking errors (matches service validateInput method)
-  if (!input.client?.legalName?.trim()) {
-    errors['client.legalName'] = 'Client legal name is required';
-  }
-  if (!input.project?.description?.trim() || (input.project.description && input.project.description.length < 20)) {
-    errors['project.description'] = 'Project description required (minimum 20 characters)';
-  }
-  if (!input.pricing?.totalAmount || input.pricing.totalAmount < 100) {
-    errors['pricing.totalAmount'] = 'Total amount must be at least $100';
-  }
-  if (!input.serviceProvider?.name?.trim()) {
-    errors['serviceProvider.name'] = 'Service provider name is required';
-  }
-
-  // Everything else becomes warnings (will be auto-filled)
-  if (!input.client?.address) {
-    warnings['client.address'] = 'Client address will be auto-filled if not provided';
-  }
-  if (!input.client?.signatoryName) {
-    warnings['client.signatoryName'] = 'Signatory information will be auto-filled if not provided';
-  }
-  if (!input.serviceProvider?.legalName) {
-    warnings['serviceProvider.legalName'] = 'Legal name will be derived from company name if not provided';
-  }
-
-  const completionPercentage = Math.round((completedEssential / 4) * 100);
-  const isReadyToGenerate = Object.keys(errors).length === 0;
-
-  return {
-    isValid: completedEssential === 4 && Object.keys(errors).length === 0,
-    isReadyToGenerate,
-    errors,
-    warnings,
-    completionPercentage,
-    completedFields: completedEssential,
-    totalRequiredFields: 4, // Updated to match service
-    missingCriticalFields: Object.keys(errors)
-  };
-}, []);
-
-
-  // **UPDATED: Safer pricing metrics calculation**
-  const calculatePricingMetrics = useCallback((input: ProposalInput) => {
-    const totalAmount = input.pricing.totalAmount;
-    const deliverableCount = Math.max(input.project.deliverables?.length || 1, 1);
-    
-    const parseTimelineToWeeks = (timeline: string): number => {
-      if (!timeline || timeline.includes('[')) return 0; // Handle placeholders
-      
-      const match = timeline.match(/(\d+)\s*(week|month|day)/i);
-      if (!match) return 0;
-      
-      const value = parseInt(match[1]);
-      const unit = match[2].toLowerCase();
-      
-      switch (unit) {
-        case 'day': return value / 7;
-        case 'week': return value;
-        case 'month': return value * 4;
-        default: return value;
-      }
-    };
-    
-    const timelineWeeks = parseTimelineToWeeks(input.project.timeline || '');
-    
-    // **UPDATED: Handle placeholder payment schedules**
-    let upfrontPercentage = 0;
-    if (input.pricing.paymentSchedule && input.pricing.paymentSchedule.length > 0) {
-      const firstPayment = input.pricing.paymentSchedule[0];
-      if (firstPayment && !firstPayment.description?.includes('[')) {
-        upfrontPercentage = Math.round((firstPayment.amount / totalAmount) * 100);
-      }
+    // Critical blocking errors
+    if (!input.clientInfo?.legalName || input.clientInfo.legalName.trim().length < 2) {
+      errors['clientInfo.legalName'] = 'Client legal name is required (minimum 2 characters)';
     }
-    
+    if (!input.projectScope?.description || input.projectScope.description.trim().length < 20) {
+      errors['projectScope.description'] = 'Project description required (minimum 20 characters)';
+    }
+    if (!input.serviceProvider?.name || input.serviceProvider.name.trim().length < 2) {
+      errors['serviceProvider.name'] = 'Service provider name is required';
+    }
+
+    // Friendly suggestions
+    if (!input.serviceProvider?.address) {
+      warnings['serviceProvider.address'] = 'Adding address improves professionalism';
+    }
+    if (!input.clientInfo?.address) {
+      warnings['clientInfo.address'] = 'Adding client address improves completeness';
+    }
+    if (!input.serviceProvider?.signatoryName) {
+      warnings['serviceProvider.signatory'] = 'Signatory details help with legal execution';
+    }
+
+    const completionPercentage = Math.round((completedEssential / 3) * 100);
+    const isReadyToGenerate = Object.keys(errors).length === 0 && completedEssential === 3;
+
     return {
-      pricePerDeliverable: Math.round(totalAmount / deliverableCount),
-      weeklyRate: timelineWeeks ? Math.round(totalAmount / timelineWeeks) : 0,
-      upfrontPercentage,
-      recommendations: {
-        pricePerDeliverable: totalAmount / deliverableCount > 10000 ? 
-          'High value per deliverable - ensure detailed specifications' :
-          totalAmount / deliverableCount < 1000 ?
-          'Consider bundling deliverables for better pricing' :
-          'Good balance of value per deliverable',
-        paymentStructure: input.pricing.paymentSchedule?.length >= 3 ?
-          'Good payment milestone distribution' :
-          'Payment schedule will be optimized if not specified'
-      }
+      isValid: completedEssential === 3 && Object.keys(errors).length === 0,
+      isReadyToGenerate,
+      errors,
+      warnings,
+      completionPercentage,
+      completedFields: completedEssential,
+      totalRequiredFields: 3,
+      missingCriticalFields: Object.keys(errors)
     };
   }, []);
 
-  return {
-    validateProposalProgressive,
-    calculatePricingMetrics
-  };
+  return { validateProposalProgressive };
 };
 
 // ============================================================================
-// SAVED PROPOSALS HOOK - UNCHANGED
+// SAVED PROPOSALS HOOK
 // ============================================================================
 export const useSavedProposals = () => {
   const [proposals, setProposals] = useState<SavedProposal[]>([]);
@@ -327,12 +167,9 @@ export const useSavedProposals = () => {
   const [error, setError] = useState<string | null>(null);
   const { currentWorkspace } = useWorkspaceContext();
 
-  const fetchProposals = useCallback(async (
-    proposalType?: ProposalType, 
-    clientIndustry?: IndustryType
-  ) => {
+  const fetchProposals = useCallback(async () => {
     if (!currentWorkspace) {
-      console.log('No current workspace, skipping proposals fetch');
+      console.log('No current workspace');
       return;
     }
 
@@ -342,10 +179,8 @@ export const useSavedProposals = () => {
     try {
       const params = new URLSearchParams();
       params.append('workspaceId', currentWorkspace.id);
-      if (proposalType) params.append('proposalType', proposalType);
-      if (clientIndustry) params.append('clientIndustry', clientIndustry);
       
-      const url = `/api/proposal-creator${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `/api/proposal-creator?${params.toString()}`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -362,7 +197,7 @@ export const useSavedProposals = () => {
       }
       
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -378,7 +213,7 @@ export const useSavedProposals = () => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch proposal: ${response.status}`);
+        throw new Error(errorData.error || 'Failed to fetch proposal');
       }
 
       const data = await response.json() as ApiResponseOptional<any>;
@@ -387,14 +222,10 @@ export const useSavedProposals = () => {
         throw new Error(data.error || 'Failed to fetch proposal');
       }
 
-      if (!data.data) {
-        throw new Error('Proposal not found');
-      }
-
       return data.data;
       
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       message.error(errorMessage);
       return null;
@@ -419,11 +250,7 @@ export const useSavedProposals = () => {
 
       const data = await response.json() as ApiResponse<{ deleted: boolean }>;
       
-      if (!data.success) {
-        throw new Error('Failed to delete proposal');
-      }
-
-      if (!data.data?.deleted) {
+      if (!data.success || !data.data?.deleted) {
         throw new Error('Delete operation failed');
       }
 
@@ -432,7 +259,7 @@ export const useSavedProposals = () => {
       return true;
       
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       message.error(errorMessage);
       return false;
@@ -453,76 +280,58 @@ export const useSavedProposals = () => {
 };
 
 // ============================================================================
-// PROPOSAL EXPORT HOOK - UNCHANGED
+// PROPOSAL EXPORT HOOK
 // ============================================================================
 export const useProposalExport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const downloadFile = (blob: Blob, filename: string) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+  const exportProposal = useCallback(async (
+    proposalId: string, 
+    format: 'json' | 'html' | 'pdf' = 'html'
+  ) => {
+    setLoading(true);
+    setError(null);
     
     try {
-      a.style.display = 'none';
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-    } finally {
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }
-  };
+      if (format === 'html') {
+        // Open HTML directly in new tab
+        const url = `/api/proposal-creator/${proposalId}/export?format=html`;
+        window.open(url, '_blank');
+        message.success('Proposal opened in new tab!');
+        return true;
+      } else if (format === 'json') {
+        // Download JSON
+        const response = await fetch(`/api/proposal-creator/${proposalId}/export?format=json`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Export failed');
+        }
 
-  // In hooks/useProposalCreator.ts - update exportProposal method:
-
-const exportProposal = useCallback(async (
-  proposalId: string, 
-  format: 'json' | 'html' | 'pdf' = 'html'
-) => {
-  setLoading(true);
-  setError(null);
-  
-  try {
-    if (format === 'html') {
-      // Open HTML directly in new tab
-      const url = `/api/proposal-creator/${proposalId}/export?format=html`;
-      window.open(url, '_blank');
-      message.success('Proposal opened in new tab!');
-      return true;
-    } else if (format === 'json') {
-      // Download JSON
-      const response = await fetch(`/api/proposal-creator/${proposalId}/export?format=json`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
+        const data = await response.json();
+        const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.meta.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        message.success('JSON exported successfully');
+        return true;
       }
-
-      const data = await response.json();
-      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = data.meta.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      message.success('JSON exported successfully');
-      return true;
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      message.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
     }
-    
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-    setError(errorMessage);
-    message.error(errorMessage);
-    return null;
-  } finally {
-    setLoading(false);
-  }
-}, []);
+  }, []);
 
   return {
     loading,
@@ -531,49 +340,3 @@ const exportProposal = useCallback(async (
     setError
   };
 };
-
-// ============================================================================
-// PROPOSAL TEMPLATES HOOK - UNCHANGED
-// ============================================================================
-export const useProposalTemplates = () => {
-  const getIndustryTemplates = (industry: IndustryType) => {
-    // Generate templates for each proposal type
-    const templates = [
-      {
-        id: `${industry}-service`,
-        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Service Agreement`,
-        description: 'Professional service delivery with defined scope',
-        proposalType: 'service-agreement' as ProposalType
-      },
-      {
-        id: `${industry}-project`,
-        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Project`,
-        description: 'Milestone-based project delivery',
-        proposalType: 'project-proposal' as ProposalType
-      },
-      {
-        id: `${industry}-consulting`,
-        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Consulting`,
-        description: 'Strategic analysis and recommendations',
-        proposalType: 'consulting-proposal' as ProposalType
-      },
-      {
-        id: `${industry}-retainer`,
-        name: `${industry.charAt(0).toUpperCase() + industry.slice(1)} Retainer`,
-        description: 'Ongoing advisory services',
-        proposalType: 'retainer-agreement' as ProposalType
-      },
-      {
-        id: `${industry}-custom`,
-        name: `Custom ${industry.charAt(0).toUpperCase() + industry.slice(1)} Solution`,
-        description: 'Tailored approach for specific needs',
-        proposalType: 'custom-proposal' as ProposalType
-      }
-    ];
-
-    return templates;
-  };
-
-  return { getIndustryTemplates };
-};
-  

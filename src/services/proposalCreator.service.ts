@@ -1,42 +1,9 @@
-// services/proposalCreator.service.ts - PRODUCTION-READY PART 1
+// services/proposalCreator.service.ts - SIMPLIFIED VERSION
+
 import { Redis } from '@upstash/redis';
-import { 
-  ProposalInput, 
-  GeneratedProposal,
-  ProposalPackage,
-  ProposalAnalysis,
-  SavedProposal,
-  AlternativeOption,
-  RiskAssessment,
-  CompetitiveAnalysis,
-  ProposalType,
-  IndustryType
-} from '@/types/proposalCreator';
-import { generateProposalCacheKey } from '../app/validators/proposalCreator.validator';
 import { OpenRouterClient } from '@/lib/openrouter';
+import { ProposalInput, ProposalPackage, SavedProposal, ContractTemplates } from '@/types/proposalCreator';
 
-
-interface ContractOutput {
-  serviceAgreement: string;
-  statementOfWork: string;
-  metadata?: {
-    tokensUsed?: number;
-    model?: string;
-    generatedAt?: string;
-  };
-}
-
-interface SimpleProposalPackage {
-  contracts: ContractOutput;
-  tokensUsed: number;
-  generationTime: number;
-  originalInput: ProposalInput;
-}
-
-
-
-
-// Production-ready error classes
 export class ProposalGenerationError extends Error {
   constructor(message: string, public cause?: Error) {
     super(message);
@@ -44,20 +11,12 @@ export class ProposalGenerationError extends Error {
   }
 }
 
-export class ProposalValidationError extends Error {
-  constructor(message: string, public details?: any) {
-    super(message);
-    this.name = 'ProposalValidationError';
-  }
-}
-
 export class ProposalCreatorService {
   private openRouterClient: OpenRouterClient;
   private redis: Redis;
-  private readonly CACHE_TTL = 7200; // 2 hours
-  private readonly AI_TIMEOUT = 120000;// 2 minutes
+  private readonly AI_TIMEOUT = 120000;
   private readonly MAX_RETRIES = 2;
- 
+
   constructor() {
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error('OPENROUTER_API_KEY is required');
@@ -73,1564 +32,568 @@ export class ProposalCreatorService {
     });
   }
 
-async generateProposal(input: ProposalInput): Promise<ProposalPackage> {
-  const startTime = Date.now();
+  async generateProposal(input: ProposalInput): Promise<ProposalPackage> {
+    const startTime = Date.now();
 
-  try {
-    this.validateInput(input);
+    try {
+      this.validateInput(input);
 
-    const cachedResult = await this.getCachedProposal(input);
-    if (cachedResult) {
-      return cachedResult;
-    }
+      const contracts = await this.generateContractsWithRetry(input);
+      
+      const proposalPackage: ProposalPackage = {
+        contracts,
+        tokensUsed: contracts.metadata?.tokensUsed || 0,
+        generationTime: Date.now() - startTime,
+        originalInput: input
+      };
 
-    // Generate main proposal
-    const proposal = await this.generateProposalWithRetry(input);
-    
-    // ALL AI-generated content - including analysis
-    const [analysis, recommendations, alternatives, riskAssessment, competitiveAnalysis] = await Promise.all([
-      this.generateAnalysisAI(input, proposal), // NEW AI method
-      this.generateRecommendationsAI(input), // Remove analysis dependency
-      proposal.alternativeOptions ? Promise.resolve(proposal.alternativeOptions) : this.generateAlternativeOptionsAI(input),
-      this.generateRiskAssessmentAI(input), 
-      this.generateCompetitiveAnalysisAI(input)
-    ]);
-
-    const proposalPackage: ProposalPackage = {
-      proposal,
-      analysis,
-      recommendations,
-      alternativeOptions: alternatives,
-      riskAssessment,
-      competitiveAnalysis,
-      tokensUsed: (proposal.metadata?.tokensUsed || 0) + 4000, // 5 AI calls now
-      generationTime: Date.now() - startTime,
-      originalInput: input
-    };
-
-    this.cacheProposalAsync(input, proposalPackage);
-    return proposalPackage;
-    
-  } catch (error) {
-    console.error('Proposal generation failed:', error);
-    
-    if (error instanceof ProposalValidationError) {
-      throw error;
-    }
-    
-    throw new ProposalGenerationError(
-      'Failed to generate proposal. Please check your input and try again.',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-
-private extractJSONFromResponse(content: string): string {
-  console.log('Extracting JSON from content length:', content.length);
-  
-  // Try to extract JSON from markdown code blocks first
-  const jsonBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-  if (jsonBlockMatch) {
-    let jsonString = jsonBlockMatch[1].trim();
-    console.log('Found JSON in code block, length:', jsonString.length);
-    return this.repairTruncatedJSON(jsonString);
-  }
-
-  // Try to extract JSON object
-  const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
-  if (jsonObjectMatch) {
-    let jsonString = jsonObjectMatch[0].trim();
-    console.log('Found JSON object, length:', jsonString.length);
-    return this.repairTruncatedJSON(jsonString);
-  }
-
-  // Try to extract JSON array
-  const jsonArrayMatch = content.match(/\[[\s\S]*\]/);
-  if (jsonArrayMatch) {
-    let jsonString = jsonArrayMatch[0].trim();
-    console.log('Found JSON array, length:', jsonString.length);
-    return this.repairTruncatedJSON(jsonString);
-  }
-
-  console.error('No valid JSON found in content:', content.substring(0, 500));
-  throw new Error('No valid JSON found in AI response');
-}
-
-private repairTruncatedJSON(jsonString: string): string {
-  // Check if JSON appears complete
-  if (jsonString.endsWith('}') || jsonString.endsWith(']')) {
-    return jsonString;
-  }
-
-  console.log('Attempting to repair truncated JSON...');
-  
-  // For objects, count braces and add missing ones
-  if (jsonString.startsWith('{')) {
-    const openBraces = (jsonString.match(/\{/g) || []).length;
-    const closeBraces = (jsonString.match(/\}/g) || []).length;
-    const missingBraces = openBraces - closeBraces;
-    
-    for (let i = 0; i < missingBraces; i++) {
-      jsonString += '}';
-    }
-  }
-  
-  // For arrays, count brackets and add missing ones
-  if (jsonString.startsWith('[')) {
-    const openBrackets = (jsonString.match(/\[/g) || []).length;
-    const closeBrackets = (jsonString.match(/\]/g) || []).length;
-    const missingBrackets = openBrackets - closeBrackets;
-    
-    for (let i = 0; i < missingBrackets; i++) {
-      jsonString += ']';
+      return proposalPackage;
+      
+    } catch (error) {
+      console.error('Proposal generation failed:', error);
+      throw new ProposalGenerationError(
+        'Failed to generate proposal. Please check your input and try again.',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 
-  return jsonString;
-}
-
-private async generateAnalysisAI(input: ProposalInput, proposal: GeneratedProposal): Promise<ProposalAnalysis> {
-  try {
-    const prompt = `Analyze this business proposal and provide strategic insights:
-
-CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
-PROJECT: "${input.project.description}"
-VALUE: $${input.pricing.totalAmount.toLocaleString()}
-TIMELINE: ${input.project.timeline || 'TBD'}
-
-Analyze the win probability, pricing competitiveness, risk level, and strengths/weaknesses.
-
-Return JSON:
-{
-  "winProbability": {
-    "score": number (0-100),
-    "factors": [{"factor": "string", "impact": "High|Medium|Low", "description": "string"}]
-  },
-  "pricingAnalysis": {
-    "competitiveness": "low|competitive|premium",
-    "valueJustification": "string",
-    "recommendations": ["string1", "string2"]
-  },
-  "riskLevel": "low|medium|high",
-  "strengthsWeaknesses": {
-    "strengths": ["string1", "string2"],
-    "weaknesses": ["string1", "string2"], 
-    "improvements": ["string1", "string2"]
-  }
-}`;
-
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a proposal analysis expert. Return only valid JSON with the specified structure.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.6,
-      max_tokens: 16000
-    });
-
-    console.log('Raw analysis response (first 1000 chars):', response.content.substring(0, 1000));
-    
-    const jsonString = this.extractJSONFromResponse(response.content);
-    const analysis = JSON.parse(jsonString);
-    
-    // Basic structure validation
-    if (!analysis.winProbability || typeof analysis.winProbability.score !== 'number' ||
-        !analysis.pricingAnalysis || !analysis.riskLevel ||
-        !analysis.strengthsWeaknesses || !Array.isArray(analysis.pricingAnalysis.recommendations)) {
-      throw new Error('Invalid analysis structure from AI: missing required fields');
-    }
-    return analysis;
-    
-  } catch (error) {
-    console.error('AI analysis generation failed:', error);
-    throw new ProposalGenerationError(
-      'Failed to generate proposal analysis. Please try again.',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-
-
-  
   private validateInput(input: ProposalInput): void {
     const errors: string[] = [];
 
-    // Validate required fields
-    if (!input.client?.legalName?.trim()) {
+    if (!input.clientInfo?.legalName?.trim()) {
       errors.push('Client legal name is required');
     }
-    if (!input.project?.description?.trim()) {
+    if (!input.projectScope?.description?.trim()) {
       errors.push('Project description is required');
-    }
-    if (!input.pricing?.totalAmount || input.pricing.totalAmount <= 0) {
-      errors.push('Valid total amount is required');
     }
     if (!input.serviceProvider?.name?.trim()) {
       errors.push('Service provider name is required');
     }
 
-    // Validate arrays exist and have proper structure
-    if (!Array.isArray(input.project.deliverables)) {
-      errors.push('Project deliverables must be an array');
-    }
-    if (!Array.isArray(input.project.objectives)) {
-      errors.push('Project objectives must be an array');  
-    }
-    if (!Array.isArray(input.pricing.paymentSchedule)) {
-      errors.push('Payment schedule must be an array');
-    }
-
-    // Validate enum values
-    const validIndustries = ['technology', 'healthcare', 'finance', 'consulting', 'marketing', 'ecommerce', 'manufacturing', 'real-estate', 'education', 'other'];
-    if (!validIndustries.includes(input.client.industry)) {
-      errors.push(`Invalid industry: ${input.client.industry}`);
-    }
-
-    const validProposalTypes = ['service-agreement', 'project-proposal', 'retainer-agreement', 'consulting-proposal', 'custom-proposal'];
-    if (!validProposalTypes.includes(input.proposalType)) {
-      errors.push(`Invalid proposal type: ${input.proposalType}`);
-    }
-
     if (errors.length > 0) {
-      throw new ProposalValidationError('Input validation failed', { errors });
+      throw new Error(errors.join(', '));
     }
   }
 
-  // private async getCachedProposal(input: ProposalInput): Promise<ProposalPackage | null> {
-  //   try {
-  //     const cacheKey = generateProposalCacheKey(input);
-  //     const cached = await this.redis.get(cacheKey);
-      
-  //     if (!cached) return null;
-
-  //     // Handle both string and object responses from Redis
-  //     let parsedCache: ProposalPackage;
-  //     if (typeof cached === 'string') {
-  //       parsedCache = JSON.parse(cached);
-  //     } else if (typeof cached === 'object' && cached !== null) {
-  //       parsedCache = cached as ProposalPackage;
-  //     } else {
-  //       console.warn('Invalid cache format, proceeding with fresh generation');
-  //       return null;
-  //     }
-
-  //     // Validate cached structure
-  //     if (this.validateProposalPackage(parsedCache)) {
-  //       return parsedCache;
-  //     } else {
-  //       console.warn('Cached proposal structure invalid, proceeding with fresh generation');
-  //       // Clean up invalid cache entry
-  //       await this.redis.del(cacheKey).catch(() => {});
-  //       return null;
-  //     }
-  //   } catch (error) {
-  //     console.warn('Cache retrieval error, proceeding with fresh generation:', error);
-  //     return null;
-  //   }
-  // }
-
-
-  
-  
-  private async getCachedProposal(input: ProposalInput): Promise<ProposalPackage | null> {
-  // Temporarily disable cache to force fresh generation
-  return null;
-}
-
-  private validateProposalPackage(pkg: any): boolean {
-    return !!(
-      pkg &&
-      typeof pkg === 'object' &&
-      pkg.proposal &&
-      pkg.analysis &&
-      pkg.recommendations &&
-      Array.isArray(pkg.recommendations) &&
-      pkg.alternativeOptions &&
-      Array.isArray(pkg.alternativeOptions) &&
-      pkg.riskAssessment &&
-      pkg.competitiveAnalysis &&
-      typeof pkg.tokensUsed === 'number' &&
-      typeof pkg.generationTime === 'number' &&
-      pkg.originalInput
-    );
-  }
-
-private async generateProposalWithRetry(input: ProposalInput): Promise<GeneratedProposal> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-    try {
-      console.log(`🔄 Generating proposal (attempt ${attempt}/${this.MAX_RETRIES})`);
-      return await this.generateProposalFromAI(input);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`❌ Attempt ${attempt} failed:`, lastError.message);
-      
-      if (attempt < this.MAX_RETRIES) {
-        const delay = 2000 * attempt; // Exponential backoff
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  // TEMPORARILY THROW INSTEAD OF FALLBACK
-  console.error('💥 ALL AI ATTEMPTS FAILED - THROWING ERROR INSTEAD OF FALLBACK');
-  throw new Error(`AI generation failed after ${this.MAX_RETRIES} attempts: ${lastError?.message}`);
-  
-  // Comment out fallback for debugging
-  // console.warn('All AI generation attempts failed, using fallback generation');
-  // return this.generateFallbackProposal(input);
-}
-
-// In services/proposalCreator.service.ts - update generateProposalFromAI:
-
-private async generateProposalFromAI(input: ProposalInput): Promise<GeneratedProposal> {
-  console.log('🚀 Starting AI generation...');
-  console.log('📝 Project description:', input.project.description);
-  console.log('🏢 Client:', input.client.legalName);
-  
-  const prompt = this.buildProposalPrompt(input);
-  console.log('📄 Prompt length:', prompt.length);
-  
-  try {
-    const response = await Promise.race([
-      this.openRouterClient.complete({
-        model: 'openai/gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: this.getSystemPrompt(input.proposalType)
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 32000  // INCREASED from 16000
-      }),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('AI generation timeout')), this.AI_TIMEOUT);
-      })
-    ]);
-
-    console.log('✅ AI response received');
-    console.log('📏 Response length:', response.content.length);
-    console.log('🔍 First 1000 chars:', response.content.substring(0, 1000));
-    console.log('🔍 Last 500 chars:', response.content.substring(response.content.length - 500));
+  private async generateContractsWithRetry(input: ProposalInput): Promise<ContractTemplates & { metadata?: any }> {
+    let lastError: Error | null = null;
     
-    const parsed = this.parseProposalResponse(response.content, input);
-    
-    // CRITICAL: Log what we actually parsed
-    console.log('✅ Parsed proposal structure:');
-    console.log('  - projectOverview:', parsed.projectOverview?.substring(0, 100) + '...');
-    console.log('  - scopeOfWork:', parsed.scopeOfWork?.substring(0, 100) + '...');
-    console.log('  - pricing:', parsed.pricing?.substring(0, 100) + '...');
-    console.log('  - timeline:', parsed.timeline?.substring(0, 100) + '...');
-    console.log('  - deliverables:', parsed.deliverables?.substring(0, 100) + '...');
-    console.log('  - contractTemplates.serviceAgreement:', parsed.contractTemplates?.serviceAgreement?.substring(0, 100) + '...');
-    console.log('  - contractTemplates.statementOfWork:', parsed.contractTemplates?.statementOfWork?.substring(0, 100) + '...');
-    
-    parsed.metadata = {
-      tokensUsed: response.usage.total_tokens,
-      model: 'openai/gpt-4o',
-      generatedAt: new Date().toISOString()
-    };
-
-    return parsed;
-    
-  } catch (error) {
-    console.error('❌ AI generation failed:', error);
-    throw error;
-  }
-}
-
-
-  private async cacheProposalAsync(input: ProposalInput, proposalPackage: ProposalPackage): Promise<void> {
-    try {
-      const cacheKey = generateProposalCacheKey(input);
-      await this.redis.set(cacheKey, JSON.stringify(proposalPackage), { ex: this.CACHE_TTL });
-    } catch (error) {
-      console.warn('Failed to cache proposal (non-blocking):', error);
-    }
-  }
-
-  private getSystemPrompt(proposalType: ProposalType): string {
-    const basePrompt = `You are an expert business proposal writer with deep experience in creating compelling, professional proposals that win contracts. You understand legal frameworks, pricing psychology, and client decision-making processes. Always return valid JSON with all required fields.`;
-
-    const typeSpecificPrompts: Record<ProposalType, string> = {
-      'service-agreement': `${basePrompt} You specialize in service agreements that clearly define ongoing relationships, responsibilities, and deliverables. Focus on creating comprehensive service level agreements with clear performance metrics.`,
-      'project-proposal': `${basePrompt} You specialize in project-based proposals that demonstrate clear value, defined scope, and measurable outcomes. Focus on compelling project narratives and detailed implementation plans.`,
-      'retainer-agreement': `${basePrompt} You specialize in retainer agreements that establish ongoing advisory relationships. Focus on value justification for monthly fees and clear service boundaries.`,
-      'consulting-proposal': `${basePrompt} You specialize in consulting proposals that position expertise and strategic thinking. Focus on problem diagnosis, methodology, and transformation outcomes.`,
-      'custom-proposal': `${basePrompt} You adapt your writing style to match the specific requirements and context provided. Focus on customization and client-specific value propositions.`
-    };
-
-    return typeSpecificPrompts[proposalType];
-  }
-
-private buildProposalPrompt(input: ProposalInput): string {
-    const formatCurrency = (amount: number, currency: string = 'USD') => {
-      if (currency === 'USD') {
-        return `$${amount.toLocaleString()}`;
-      }
-      return `${amount.toLocaleString()} ${currency}`;
-    };
-
-    const totalValue = input.pricing.totalAmount;
-    const paymentSchedule = this.safeGeneratePaymentScheduleText(input.pricing, formatCurrency);
-
-  return `
-# CRITICAL: LEGAL CONTRACT GENERATION REQUIREMENTS
-
-You MUST generate COMPLETE legal contracts with ALL sections filled in. Do NOT use placeholders like [NAME] or [ADDRESS]. Use the actual information provided.
-
-**SERVICE AGREEMENT MUST INCLUDE:**
-1. Full header with both party names and addresses
-2. Numbered sections (1. SERVICES, 2. TERM, 3. FEES, etc.)
-3. Complete legal clauses for: Services, Term, Fees, IP, Confidentiality, Termination, Governing Law
-4. Signature blocks with actual names (not placeholders):
-   - ${input.serviceProvider.name}
-   - ${input.serviceProvider.signatoryName || '[Authorized Representative]'} as signatory
-   - ${input.client.legalName}
-   - ${input.client.signatoryName || '[Authorized Representative]'} as signatory
-
-**STATEMENT OF WORK MUST INCLUDE:**
-1. Full SOW header referencing the Service Agreement
-2. Project Description from: "${input.project.description}"
-3. Scope of Services (detailed, not generic)
-4. Timeline: ${input.project.timeline}
-5. Fees: $${input.pricing.totalAmount.toLocaleString()}
-6. Deliverables: ${this.safeGenerateDeliverablesText(input.project.deliverables, formatCurrency)}
-7. Signature blocks matching Service Agreement
-
-## OUTPUT REQUIREMENTS
-Return valid JSON with this EXACT structure:
-{
-  "projectOverview": "string",
-  "scopeOfWork": "string",
-  "pricing": "string",
-  "timeline": "string",
-  "deliverables": "string",
-  "terms": "string",
-  "nextSteps": "string",
-  "alternativeOptions": [...],
-  "contractTemplates": {
-    "serviceAgreement": "FULL multi-paragraph legal contract text with actual names/addresses - NO placeholders",
-    "statementOfWork": "FULL multi-paragraph SOW text with actual project details - NO placeholders"
-  }
-}
-
-CRITICAL: The contractTemplates MUST contain complete, multi-paragraph legal text. They should be at least 500 words each. Use the actual party names and information - never use placeholders.
-`;
-}
-
-
-
-
-  
-
-  // Safe helper methods for handling arrays and undefined values
-  private safeJoinArray(arr: string[] | undefined, fallback: string): string {
-    if (!Array.isArray(arr) || arr.length === 0) return fallback;
-    const filtered = arr.filter(item => item && !this.isPlaceholder(item));
-    return filtered.length > 0 ? filtered.join(', ') : fallback;
-  }
-
-  private safeGenerateObjectivesList(objectives: string[] | undefined): string {
-    if (!Array.isArray(objectives) || objectives.length === 0) {
-      return '• Deliver high-quality professional solution';
-    }
-    
-    const filtered = objectives.filter(obj => obj && !this.isPlaceholder(obj));
-    if (filtered.length === 0) {
-      return '• Deliver high-quality professional solution';
-    }
-    
-    return filtered.map(obj => `• ${obj}`).join('\n');
-  }
-
-  private safeGenerateDeliverablesText(deliverables: any[] | undefined, formatCurrency: (amount: number) => string): string {
-    if (!Array.isArray(deliverables) || deliverables.length === 0) {
-      return '• Professional Project Deliverable: Comprehensive solution delivery (Document, qty: 1)';
-    }
-
-    try {
-      const validDeliverables = deliverables.filter(del => 
-        del && 
-        del.name && 
-        del.description && 
-        !this.isPlaceholder(del.name)
-      );
-
-      if (validDeliverables.length === 0) {
-        return '• Professional Project Deliverable: Comprehensive solution delivery (Document, qty: 1)';
-      }
-
-      return validDeliverables.map(del => 
-        `• ${this.getCleanValue(del.name, 'Project Deliverable')}: ${this.getCleanValue(del.description, 'Professional deliverable')} (${del.format || 'Document'}, qty: ${del.quantity || 1})`
-      ).join('\n');
-    } catch (error) {
-      console.warn('Error generating deliverables text:', error);
-      return '• Professional Project Deliverable: Comprehensive solution delivery (Document, qty: 1)';
-    }
-  }
-
-
-
-  private safeGeneratePaymentScheduleText(pricing: any, formatCurrency: (amount: number) => string): string {
-    if (!Array.isArray(pricing.paymentSchedule) || pricing.paymentSchedule.length === 0) {
-      const upfront = Math.round(pricing.totalAmount * 0.5);
-      const final = pricing.totalAmount - upfront;
-      return `50% Upfront: ${formatCurrency(upfront)} due Upon signing\n50% Final: ${formatCurrency(final)} due Upon completion`;
-    }
-
-    try {
-      const validPayments = pricing.paymentSchedule.filter((p: any) => 
-        p && 
-        p.description && 
-        typeof p.amount === 'number' && 
-        !this.isPlaceholder(p.description)
-      );
-
-      if (validPayments.length === 0) {
-        const upfront = Math.round(pricing.totalAmount * 0.5);
-        const final = pricing.totalAmount - upfront;
-        return `50% Upfront: ${formatCurrency(upfront)} due Upon signing\n50% Final: ${formatCurrency(final)} due Upon completion`;
-      }
-
-      return validPayments.map((p: any) => 
-        `${this.getCleanValue(p.description, 'Payment')}: ${formatCurrency(p.amount)} due ${this.getCleanValue(p.dueDate, 'TBD')}`
-      ).join('\n');
-    } catch (error) {
-      console.warn('Error generating payment schedule text:', error);
-      const upfront = Math.round(pricing.totalAmount * 0.5);
-      const final = pricing.totalAmount - upfront;
-      return `50% Upfront: ${formatCurrency(upfront)} due Upon signing\n50% Final: ${formatCurrency(final)} due Upon completion`;
-    }
-  }
-
- 
-
-  private isPlaceholder(value: string): boolean {
-    if (!value || typeof value !== 'string') return true;
-    return value.includes('[') && value.includes(']');
-  }
-
-  private getCleanValue(value: string | undefined, fallback: string = 'TBD'): string {
-    if (!value || typeof value !== 'string') return fallback;
-    return this.isPlaceholder(value) ? fallback : value.trim();
-  }
-
-private parseProposalResponse(content: string, input: ProposalInput): GeneratedProposal {
-  console.log('🔧 Parsing AI response...');
-  console.log('📏 Content length:', content.length);
-  
-  try {
-    let jsonString = this.extractJSONFromResponse(content);
-    console.log('📦 Extracted JSON length:', jsonString.length);
-    
-    const parsed = JSON.parse(jsonString);
-    
-    // Log missing fields BEFORE validation
-    const missingFields = this.getMissingFields(parsed);
-    if (missingFields.length > 0) {
-      console.error('❌ Missing fields in AI response:', missingFields);
-      console.error('📄 Full parsed object keys:', Object.keys(parsed));
-      
-      // Log the actual content of each field
-      for (const field of Object.keys(parsed)) {
-        console.log(`  ${field}:`, typeof parsed[field], parsed[field]?.length || 'N/A');
-      }
-    }
-    
-    if (!this.validateProposalStructure(parsed)) {
-      console.log('❌ Structure validation failed');
-      throw new ProposalGenerationError('Invalid proposal structure from AI response');
-    }
-
-    return parsed;
-  } catch (error) {
-    console.error('❌ JSON parsing failed:', error);
-    console.error('📄 Content sample:', content.substring(0, 2000));
-    throw new ProposalGenerationError(
-      'Failed to parse AI response into valid proposal structure',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-// Add this helper method:
-private getMissingFields(proposal: any): string[] {
-  const required = [
-    'projectOverview',
-    'scopeOfWork', 
-    'pricing',
-    'timeline',
-    'deliverables',
-    'terms',
-    'nextSteps',
-    'contractTemplates',
-    'alternativeOptions'
-  ];
-  
-  return required.filter(field => {
-    if (!proposal[field]) return true;
-    if (typeof proposal[field] === 'string' && proposal[field].trim().length === 0) return true;
-    if (field === 'contractTemplates') {
-      return !proposal[field].serviceAgreement || !proposal[field].statementOfWork;
-    }
-    return false;
-  });
-}
-
-
-private attemptJSONRepair(truncatedJson: string): string {
-  // Basic repair for truncated JSON
-  let repaired = truncatedJson.trim();
-  
-  // Count open braces vs close braces
-  const openBraces = (repaired.match(/\{/g) || []).length;
-  const closeBraces = (repaired.match(/\}/g) || []).length;
-  
-  // Add missing closing braces
-  const missingBraces = openBraces - closeBraces;
-  for (let i = 0; i < missingBraces; i++) {
-    repaired += '}';
-  }
-  
-  return repaired;
-}
-
-
-private validateProposalStructure(proposal: any): boolean {
-    const required = [
-      'projectOverview',
-      'scopeOfWork', 
-      'pricing',
-      'timeline',
-      'deliverables',
-      'terms',
-      'nextSteps',
-      'contractTemplates',
-      'alternativeOptions' // Add this
-    ];
-
-    if (!proposal || typeof proposal !== 'object') return false;
-
-    for (const field of required) {
-      if (!proposal[field]) {
-        console.warn(`Missing field: ${field}`);
-        return false;
-      }
-    }
-
-    // Validate alternative options structure
-    if (!Array.isArray(proposal.alternativeOptions) || proposal.alternativeOptions.length === 0) {
-      console.warn('Alternative options must be an array with at least one option');
-      return false;
-    }
-
-    // Validate contract templates structure
-    if (!proposal.contractTemplates || 
-        typeof proposal.contractTemplates !== 'object' ||
-        !proposal.contractTemplates.serviceAgreement ||
-        !proposal.contractTemplates.statementOfWork) {
-      console.warn('Invalid contract templates structure');
-      return false;
-    }
-
-    return true;
-  }
-
-
-
-
-private async generateAlternativeOptionsAI(input: ProposalInput): Promise<AlternativeOption[]> {
-  try {
-    const prompt = `Generate 3 unique alternative approaches for this specific proposal:
-
-CLIENT: ${input.client.legalName} (${input.client.companySize} ${input.client.industry} company)
-PROJECT: "${input.project.description}"
-BUDGET: $${input.pricing.totalAmount.toLocaleString()}
-TIMELINE: ${input.project.timeline || 'TBD'}
-
-Create alternatives that are:
-1. SPECIFIC to this exact project (not generic templates)
-2. REALISTIC with actual pricing/timeline adjustments
-3. CONTEXTUAL to ${input.client.industry} industry needs
-
-Return JSON array with exactly this structure:
-[
-  {
-    "title": "specific name for ${input.client.legalName}",
-    "description": "detailed description specific to their project",
-    "pricingAdjustment": number (-0.5 to 0.5),
-    "timelineAdjustment": "specific timeline change description", 
-    "scopeChanges": ["specific scope modification 1", "specific scope modification 2", "etc"],
-    "pros": ["specific advantage 1", "specific advantage 2", "etc"],
-    "cons": ["specific limitation 1", "specific limitation 2", "etc"]
-  }
-]
-
-Generate: Essential version (-30-40% cost), Premium version (+40-50% cost), Phased approach (+15% cost)`;
-
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
-      messages: [
-        {
-          role: 'system', 
-          content: 'You are an expert at creating project alternatives. Always return valid JSON arrays only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.8,
-      max_tokens: 16000
-    });
-
-    console.log('Raw alternatives response (first 1000 chars):', response.content.substring(0, 1000));
-    
-    const jsonString = this.extractJSONFromResponse(response.content);
-    const alternatives = JSON.parse(jsonString);
-    
-    if (!Array.isArray(alternatives) || alternatives.length === 0) {
-      throw new Error('Invalid alternatives format from AI: must be a non-empty array');
-    }
-    return alternatives;
-    
-  } catch (error) {
-    console.error('AI alternatives generation failed:', error);
-    throw new ProposalGenerationError(
-      'Failed to generate alternative options. Please try again.',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-
-
-private async generateRecommendationsAI(input: ProposalInput): Promise<string[]> {
-  try {
-    const prompt = `Generate 6-8 specific, actionable recommendations for this proposal:
-
-CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
-PROJECT: "${input.project.description}"
-VALUE: $${input.pricing.totalAmount.toLocaleString()}
-
-Focus on improving win probability, competitive positioning, and value proposition.
-Return JSON array of strings: ["recommendation 1", "recommendation 2", ...]`;
-
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a proposal optimization expert. Return only valid JSON arrays.'
-        },
-        {
-          role: 'user', 
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 16000
-    });
-
-    console.log('Raw recommendations response (first 1000 chars):', response.content.substring(0, 1000));
-    
-    const jsonString = this.extractJSONFromResponse(response.content);
-    const recommendations = JSON.parse(jsonString);
-    
-    if (!Array.isArray(recommendations) || recommendations.length === 0) {
-      throw new Error('Invalid recommendations format from AI');
-    }
-    return recommendations;
-    
-  } catch (error) {
-    console.error('AI recommendations generation failed:', error);
-    throw new ProposalGenerationError(
-      'Failed to generate recommendations. Please try again.',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-
-private async generateRiskAssessmentAI(input: ProposalInput): Promise<RiskAssessment> {
-  try {
-    const deliverableCount = input.project.deliverables?.length || 0;
-    const timelineWeeks = this.parseTimelineToWeeks(input.project.timeline || '') || 8;
-    const dependencyCount = input.project.dependencies?.length || 0;
-
-    const prompt = `Analyze risks for this specific proposal:
-
-CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
-PROJECT: "${input.project.description}"
-VALUE: $${input.pricing.totalAmount.toLocaleString()}
-TIMELINE: ${input.project.timeline || 'TBD'} (${timelineWeeks} weeks)
-DELIVERABLES: ${deliverableCount} items
-DEPENDENCIES: ${dependencyCount} dependencies
-PAYMENT: ${input.pricing.model} model
-
-Analyze SPECIFIC risks for THIS project in these categories:
-- Technical: Implementation, integration, complexity risks
-- Financial: Payment, budget, cost overrun risks  
-- Timeline: Delivery, milestone, scheduling risks
-- Relationship: Client communication, expectation risks
-- Market: Industry, competitive, economic risks
-
-For each risk, assess:
-- Probability: low/medium/high
-- Impact: low/medium/high  
-- Specific mitigation strategy
-
-Return JSON:
-{
-  "overallRisk": "low|medium|high",
-  "riskCategories": {
-    "technical": [{"description": "specific risk", "probability": "medium", "impact": "high", "mitigation": "specific action"}],
-    "financial": [...],
-    "timeline": [...], 
-    "relationship": [...],
-    "market": [...]
-  },
-  "mitigationPlan": ["overall strategy 1", "overall strategy 2", ...]
-}`;
-
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a project risk analysis expert. Return only valid JSON with the specified structure.'
-        },
-        {
-          role: 'user',
-          content: prompt  
-        }
-      ],
-      temperature: 0.6,
-      max_tokens: 16000
-    });
-
-    console.log('Raw risk assessment response (first 1000 chars):', response.content.substring(0, 1000));
-    
-    const jsonString = this.extractJSONFromResponse(response.content);
-    const riskAssessment = JSON.parse(jsonString);
-    
-    // Basic structure validation
-    if (!riskAssessment.overallRisk || !riskAssessment.riskCategories || 
-        !riskAssessment.mitigationPlan || !Array.isArray(riskAssessment.mitigationPlan)) {
-      throw new Error('Invalid risk assessment structure from AI: missing required fields');
-    }
-    
-    return riskAssessment;
-    
-} catch (error) {
-    console.error('AI risk assessment generation failed:', error);
-    throw new ProposalGenerationError(
-      'Failed to generate risk assessment. Please try again.',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-
-
-
-
-private async generateCompetitiveAnalysisAI(input: ProposalInput): Promise<CompetitiveAnalysis> {
-  try {
-    const specializations = input.serviceProvider.specializations?.join(', ') || 'General services';
-    const credentials = input.serviceProvider.credentials?.join(', ') || 'Professional credentials';
-
-    const prompt = `Generate competitive analysis for this specific proposal:
-
-SERVICE PROVIDER: ${input.serviceProvider.name || 'Service Provider'}
-SPECIALIZATIONS: ${specializations}  
-CREDENTIALS: ${credentials}
-
-CLIENT: ${input.client.legalName} (${input.client.industry}, ${input.client.companySize})
-PROJECT: "${input.project.description}"
-VALUE: $${input.pricing.totalAmount.toLocaleString()}
-MODEL: ${input.pricing.model}
-
-Analyze competitive positioning for THIS specific engagement:
-
-1. POSITIONING ADVANTAGES: What makes this provider uniquely suited for THIS project?
-2. POTENTIAL CHALLENGES: What competitive/market challenges might arise?  
-3. DIFFERENTIATION POINTS: How does this proposal stand out from alternatives?
-4. MARKET BENCHMARKS: Realistic pricing/timeline ranges for similar ${input.client.industry} projects
-
-Be specific to:
-- This exact project type and scope
-- ${input.client.industry} industry dynamics  
-- ${input.client.companySize} company decision factors
-- Current market conditions
-
-Return JSON:
-{
-  "positioningAdvantages": ["specific advantage 1", "specific advantage 2", ...],
-  "potentialChallenges": ["specific challenge 1", "specific challenge 2", ...], 
-  "differentiationPoints": ["specific differentiator 1", "specific differentiator 2", ...],
-  "marketBenchmarks": {
-    "pricingRange": {"min": 0, "max": 0},
-    "typicalTimeline": "timeline description",
-    "standardFeatures": ["standard feature 1", "standard feature 2", ...]
-  }
-}`;
-
-    const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a competitive analysis expert. Return only valid JSON with the specified structure.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 16000
-    });
-
-    console.log('Raw competitive analysis response (first 1000 chars):', response.content.substring(0, 1000));
-    
-    const jsonString = this.extractJSONFromResponse(response.content);
-    const competitiveAnalysis = JSON.parse(jsonString);
-    
-    // Basic structure validation
-    if (!competitiveAnalysis.positioningAdvantages || !Array.isArray(competitiveAnalysis.positioningAdvantages) ||
-        !competitiveAnalysis.marketBenchmarks || !competitiveAnalysis.marketBenchmarks.pricingRange ||
-        typeof competitiveAnalysis.marketBenchmarks.pricingRange.min !== 'number' ||
-        typeof competitiveAnalysis.marketBenchmarks.pricingRange.max !== 'number') {
-      throw new Error('Invalid competitive analysis structure from AI: missing required fields');
-    }
-    return competitiveAnalysis;
-    
-  } catch (error) {
-    console.error('AI competitive analysis generation failed:', error);
-    throw new ProposalGenerationError(
-      'Failed to generate competitive analysis. Please try again.',
-      error instanceof Error ? error : new Error(String(error))
-    );
-  }
-}
-
-
-
-
-
-private parseTimelineToWeeks(timeline: string): number {
-  try {
-    if (!timeline || typeof timeline !== 'string') {
-      return 0;
-    }
-
-    // Clean the input string
-    const cleanTimeline = timeline.toLowerCase().trim();
-    
-    // Enhanced regex to catch more patterns
-    const timelineMatch = cleanTimeline.match(/(\d+(?:\.\d+)?)\s*[-–—]?\s*(\d+(?:\.\d+)?)?\s*(week|month|day|wk|mo|yr|year)s?/i);
-    
-    if (!timelineMatch) {
-      // Try alternative patterns like "8-12 weeks" or "2-3 months"
-      const rangeMatch = cleanTimeline.match(/(\d+(?:\.\d+)?)\s*[-–—]\s*(\d+(?:\.\d+)?)\s*(week|month|day|wk|mo|yr|year)s?/i);
-      if (rangeMatch) {
-        const startValue = parseFloat(rangeMatch[1]);
-        const endValue = parseFloat(rangeMatch[2]);
-        const timeUnit = rangeMatch[3].toLowerCase();
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        console.log(`🔄 Generating contracts (attempt ${attempt}/${this.MAX_RETRIES})`);
+        return await this.generateContractsFromAI(input);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.error(`❌ Attempt ${attempt} failed:`, lastError.message);
         
-        // Use average of range
-        const avgValue = (startValue + endValue) / 2;
-        return this.convertToWeeks(avgValue, timeUnit);
+        if (attempt < this.MAX_RETRIES) {
+          const delay = 2000 * attempt;
+          console.log(`⏳ Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-      return 0;
-    }
-    
-    const timeValue = parseFloat(timelineMatch[1]);
-    const timeUnit = timelineMatch[3].toLowerCase();
-    
-    return this.convertToWeeks(timeValue, timeUnit);
-    
-  } catch (error) {
-    console.warn('Error parsing timeline:', timeline, error);
-    return 0;
-  }
-}
-
-private convertToWeeks(value: number, unit: string): number {
-  if (isNaN(value) || value <= 0) {
-    return 0;
-  }
-  
-  let timelineWeeks = value;
-  
-  switch (unit) {
-    case 'month':
-    case 'months':
-    case 'mo':
-      timelineWeeks *= 4.33; // More accurate weeks per month
-      break;
-    case 'day':
-    case 'days':
-      timelineWeeks /= 7;
-      break;
-    case 'year':
-    case 'years':
-    case 'yr':
-      timelineWeeks *= 52;
-      break;
-    case 'week':
-    case 'weeks':
-    case 'wk':
-    default:
-      // Already in weeks
-      break;
-  }
-  
-  return Math.max(Math.round(timelineWeeks * 10) / 10, 0); // Round to 1 decimal place
-}
-
-
-
-// Safe utility method for filtering arrays
-private safeFilterArray(arr: any[] | undefined): any[] {
-  if (!Array.isArray(arr)) return [];
-  return arr.filter(item => item && typeof item === 'string' && !this.isPlaceholder(item));
-}
-
-
-
-
-// ===== DATABASE OPERATIONS =====
-async saveProposal(userId: string, workspaceId: string, proposal: ProposalPackage, input: ProposalInput): Promise<string> {
-  try {
-    const { prisma } = await import('@/lib/prisma');
-    
-    // Validate required parameters
-    if (!userId || !workspaceId || !proposal || !input) {
-      throw new Error('Missing required parameters for proposal save');
     }
 
-    const serializedProposal = JSON.stringify(proposal, null, 2);
-    const clientName = input.client.legalName || 'Unknown Client';
-    const proposalTitle = `${input.proposalType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} - ${clientName}`;
+    throw new Error(`AI generation failed after ${this.MAX_RETRIES} attempts: ${lastError?.message}`);
+  }
+
+  private async generateContractsFromAI(input: ProposalInput): Promise<ContractTemplates & { metadata?: any }> {
+    console.log('🚀 Starting AI generation...');
     
-    const deliverable = await prisma.deliverable.create({
-      data: {
-        title: proposalTitle,
-        content: serializedProposal,
-        type: 'proposal',
-        user_id: userId,
-        workspace_id: workspaceId,
+    const prompt = this.buildContractPrompt(input);
+    console.log('📄 Prompt built');
+    
+    try {
+      const response = await Promise.race([
+        this.openRouterClient.complete({
+          model: 'openai/gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert legal document writer specializing in service agreements and statements of work. Generate complete, professional contracts with all sections filled in using the actual information provided. NEVER use placeholders like [NAME] or [ADDRESS].'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 32000
+        }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('AI generation timeout')), this.AI_TIMEOUT);
+        })
+      ]);
+
+      console.log('✅ AI response received');
+      console.log('📏 Response length:', response.content.length);
+      
+      const contracts = this.parseContractsResponse(response.content);
+      
+      return {
+        ...contracts,
         metadata: {
-          proposalType: input.proposalType,
-          clientName: clientName,
-          clientIndustry: input.client.industry,
-          totalValue: input.pricing.totalAmount,
-          currency: input.pricing.currency,
-          contractLength: input.terms.contractLength,
-          pricingModel: input.pricing.model,
-          winProbability: proposal.analysis?.winProbability?.score || 60,
-          riskLevel: proposal.analysis?.riskLevel || 'medium',
-          generatedAt: new Date().toISOString(),
-          tokensUsed: proposal.tokensUsed || 0,
-          generationTime: proposal.generationTime || 0,
-          version: '1.0',
-          fallbackGeneration: proposal.proposal?.metadata?.fallbackGeneration || false
-        },
-        tags: this.generateProposalTags(input)
-      }
-    });
-
-    console.log('Proposal saved successfully with ID:', deliverable.id);
-    return deliverable.id;
-  } catch (error) {
-    console.error('Error saving proposal:', error);
-    throw new ProposalGenerationError('Failed to save proposal to database', error instanceof Error ? error : new Error(String(error)));
+          tokensUsed: response.usage.total_tokens,
+          model: 'openai/gpt-4o',
+          generatedAt: new Date().toISOString()
+        }
+      };
+      
+    } catch (error) {
+      console.error('❌ AI generation failed:', error);
+      throw error;
+    }
   }
-}
 
-private generateProposalTags(input: ProposalInput): string[] {
-  const tags = ['proposal'];
+private buildContractPrompt(input: ProposalInput): string {
+  const effectiveDate = input.effectiveDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   
-  try {
-    tags.push(input.proposalType);
-    tags.push(input.client.industry);
-    tags.push(input.pricing.model);
-    tags.push(`value-${Math.floor(input.pricing.totalAmount / 10000)}0k`);
-    tags.push(`term-${input.terms.contractLength}`);
-    
-    // Add company size tag if available
-    if (input.client.companySize) {
-      tags.push(`size-${input.client.companySize}`);
-    }
-    
-    return tags.filter(tag => tag && tag.trim().length > 0);
-  } catch (error) {
-    console.error('Error generating proposal tags:', error);
-    return ['proposal', 'business-services'];
-  }
+  return `Generate a complete SERVICE AGREEMENT and STATEMENT OF WORK using this exact information:
+
+**CRITICAL REQUIREMENTS:**
+1. Use ACTUAL information provided - NEVER use placeholders like [NAME] or [ADDRESS]
+2. Generate COMPLETE legal text with ALL sections
+3. Each document should be AT LEAST 500 words
+4. Use proper legal formatting with numbered sections
+5. Include the signature blocks at the end of each document
+
+**PROVIDED INFORMATION:**
+
+EFFECTIVE DATE: ${effectiveDate}
+
+SERVICE PROVIDER:
+- Name: ${input.serviceProvider.name || 'Service Provider'}
+- Address: ${input.serviceProvider.address || '[Service Provider Address]'}
+- Signatory Name: ${input.serviceProvider.signatoryName || '[Authorized Representative]'}
+- Signatory Title: ${input.serviceProvider.signatoryTitle || '[Title]'}
+
+CLIENT:
+- Legal Name: ${input.clientInfo.legalName}
+- Entity Type: ${input.clientInfo.entityType || 'corporation'}
+- State of Incorporation: ${input.clientInfo.stateOfIncorporation || 'Delaware'}
+- Address: ${input.clientInfo.address || '[Client Address]'}
+- Signatory Name: ${input.clientInfo.signatoryName || '[Authorized Representative]'}
+- Signatory Title: ${input.clientInfo.signatoryTitle || '[Title]'}
+
+PROJECT DETAILS:
+- Description: ${input.projectScope.description}
+- Scope of Services: ${input.projectScope.scopeOfServices || 'To be defined in Statement of Work'}
+- Timeline: ${input.projectScope.timeline || 'To be determined'}
+- Fees: ${input.projectScope.fees || 'To be defined in Statement of Work'}
+- Service Provider Responsibilities: ${input.projectScope.serviceProviderResponsibilities || 'As outlined in SOW'}
+- Client Responsibilities: ${input.projectScope.clientResponsibilities || 'As outlined in SOW'}
+- Acceptance Criteria: ${input.projectScope.acceptanceCriteria || 'Client written approval'}
+- Additional Terms: ${input.projectScope.additionalTerms || 'None'}
+
+**OUTPUT FORMAT:**
+Return ONLY valid JSON with this exact structure:
+{
+  "serviceAgreement": "COMPLETE multi-paragraph SERVICE AGREEMENT text here...",
+  "statementOfWork": "COMPLETE multi-paragraph STATEMENT OF WORK text here..."
 }
 
-// services/proposalCreator.service.ts - PRODUCTION-READY PART 4 COMPLETION
-// Database Operations & Utility Methods (Continued)
+**SERVICE AGREEMENT STRUCTURE:**
+Use this exact structure with actual names/addresses:
 
-async getUserProposals(userId: string, workspaceId?: string): Promise<SavedProposal[]> {
-  try {
-    const { prisma } = await import('@/lib/prisma');
-    
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    
-    const whereClause: any = {
-      user_id: userId,
-      type: 'proposal'
-    };
+This Service Agreement (the "Agreement") is entered into as of ${effectiveDate} (the "Effective Date"), by and between:
 
-    if (workspaceId) {
-      whereClause.workspace_id = workspaceId;
-    }
+${input.serviceProvider.name || 'Service Provider'}, with its principal place of business at ${input.serviceProvider.address || '[Service Provider Address]'} ("Service Provider"),
 
-    const proposals = await prisma.deliverable.findMany({
-      where: whereClause,
-      orderBy: { created_at: 'desc' },
-      include: {
-        workspace: true
-      }
-    });
+and
 
-    return proposals.map(proposal => this.mapProposalFromDatabase(proposal));
-  } catch (error) {
-    console.error('Error fetching user proposals:', error);
-    throw new ProposalGenerationError('Failed to retrieve proposals from database', error instanceof Error ? error : new Error(String(error)));
-  }
+${input.clientInfo.legalName}, a ${input.clientInfo.entityType || 'corporation'} with its principal place of business at ${input.clientInfo.address || '[Client Address]'} ("Client").
+
+Together referred to as the "Parties" and individually as a "Party."
+
+1. SERVICES
+1.1 Scope of Services.
+Service Provider shall provide the services set forth in one or more statements of work, proposals, or schedules executed by the Parties (each, an "SOW"). Each SOW shall describe the services, deliverables, timelines, and fees.
+
+1.2 Standard of Performance.
+Service Provider shall perform the Services in a professional and workmanlike manner consistent with industry standards.
+
+2. TERM
+This Agreement shall commence on the Effective Date and continue until terminated in accordance with Section 10.
+
+3. FEES & PAYMENT
+3.1 Fees.
+Client shall pay Service Provider the fees set forth in the applicable SOW.
+
+3.2 Invoices.
+Unless otherwise stated, Service Provider shall invoice monthly in arrears. Payment shall be due within fifteen (15) days of receipt of invoice.
+
+3.3 Late Payments.
+Past due balances may accrue interest at one and one-half percent (1.5%) per month or the maximum allowed by law.
+
+4. EXPENSES
+Client shall reimburse Service Provider for pre-approved, reasonable, out-of-pocket expenses incurred in performing the Services.
+
+5. CONFIDENTIALITY
+Each Party agrees to maintain in strict confidence any non-public, proprietary, or confidential information disclosed by the other Party, and to use such information solely for purposes of performing under this Agreement.
+
+6. INTELLECTUAL PROPERTY
+6.1 Pre-Existing IP.
+Each Party retains ownership of its pre-existing intellectual property.
+
+6.2 Deliverables.
+Unless otherwise set forth in an SOW, all deliverables created specifically for Client under this Agreement shall be deemed "work made for hire" and owned by Client upon full payment.
+
+6.3 Tools & Background Technology.
+Service Provider retains all rights to its methodologies, templates, processes, code libraries, and tools used in providing the Services. Client receives a non-exclusive license to use such elements solely as incorporated into deliverables.
+
+7. REPRESENTATIONS & WARRANTIES
+Each Party represents and warrants that it has full power and authority to enter into this Agreement. Service Provider warrants that Services shall be performed in a professional manner. EXCEPT AS EXPRESSLY PROVIDED, SERVICES ARE PROVIDED "AS IS" WITHOUT OTHER WARRANTIES.
+
+8. INDEMNIFICATION
+Each Party shall indemnify, defend, and hold harmless the other Party against claims, damages, or expenses arising from the indemnifying Party's negligence, willful misconduct, or breach of this Agreement.
+
+9. LIMITATION OF LIABILITY
+Except for confidentiality or indemnification obligations, neither Party shall be liable for any indirect, incidental, special, or consequential damages. Service Provider's total liability shall not exceed the fees paid by Client in the six (6) months preceding the claim.
+
+10. TERMINATION
+Either Party may terminate this Agreement or any SOW:
+(a) for convenience upon thirty (30) days' prior written notice; or
+(b) immediately upon written notice if the other Party materially breaches and fails to cure within fifteen (15) days after notice.
+
+11. GOVERNING LAW
+This Agreement shall be governed by and construed under the laws of the State of ${input.clientInfo.stateOfIncorporation || 'Delaware'}, without regard to its conflicts of law principles.
+
+12. GENERAL
+12.1 Independent Contractor.
+Service Provider is an independent contractor and not an employee, agent, or partner of Client.
+
+12.2 Assignment.
+Neither Party may assign this Agreement without prior written consent, except to a successor in interest by merger or acquisition.
+
+12.3 Entire Agreement.
+This Agreement, together with applicable SOWs, constitutes the entire agreement between the Parties.
+
+12.4 Amendments.
+No amendment shall be effective unless in writing and signed by both Parties.
+
+IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.
+
+${input.serviceProvider.name?.toUpperCase() || 'SERVICE PROVIDER'}
+${input.serviceProvider.address || ''}
+
+By: _________________________
+Name: ${input.serviceProvider.signatoryName || '_________________________'}
+Title: ${input.serviceProvider.signatoryTitle || '_________________________'}
+Date: _________________________
+
+
+${input.clientInfo.legalName?.toUpperCase() || 'CLIENT'}
+${input.clientInfo.address || ''}
+
+By: _________________________
+Name: ${input.clientInfo.signatoryName || '_________________________'}
+Title: ${input.clientInfo.signatoryTitle || '_________________________'}
+Date: _________________________
+
+**STATEMENT OF WORK STRUCTURE:**
+This Statement of Work ("SOW") is issued pursuant to the Service Agreement entered into between ${input.serviceProvider.name || 'Service Provider'} ("Service Provider") and ${input.clientInfo.legalName} ("Client"). This SOW is incorporated into and made part of the Agreement.
+
+1. Project Description
+${input.projectScope.description}
+
+2. Scope of Services
+${input.projectScope.scopeOfServices || 'Services to be performed as outlined in this agreement'}
+
+3. Timeline & Milestones
+${input.projectScope.timeline || 'To be determined'}
+
+4. Fees & Payment
+${input.projectScope.fees || 'Fees to be defined'}
+
+5. Responsibilities
+Service Provider Responsibilities:
+${input.projectScope.serviceProviderResponsibilities || 'As outlined in the Service Agreement'}
+
+Client Responsibilities:
+${input.projectScope.clientResponsibilities || 'As outlined in the Service Agreement'}
+
+6. Acceptance Criteria
+${input.projectScope.acceptanceCriteria || 'Deliverables shall be deemed accepted upon Client written approval or five (5) business days after delivery if no objections are raised.'}
+
+7. Additional Terms
+${input.projectScope.additionalTerms || 'None'}
+
+IN WITNESS WHEREOF, the Parties have executed this Statement of Work as of the Effective Date.
+
+${input.serviceProvider.name?.toUpperCase() || 'SERVICE PROVIDER'}
+${input.serviceProvider.address || ''}
+
+By: _________________________
+Name: ${input.serviceProvider.signatoryName || '_________________________'}
+Title: ${input.serviceProvider.signatoryTitle || '_________________________'}
+Date: _________________________
+
+
+${input.clientInfo.legalName?.toUpperCase() || 'CLIENT'}
+${input.clientInfo.address || ''}
+
+By: _________________________
+Name: ${input.clientInfo.signatoryName || '_________________________'}
+Title: ${input.clientInfo.signatoryTitle || '_________________________'}
+Date: _________________________
+
+Generate complete, professional legal text for both documents now. Include all the sections shown above and make sure the signature blocks are at the end of each document.`;
 }
 
-// In services/proposalCreator.service.ts, update the mapProposalFromDatabase method's parseError catch block:
 
-private mapProposalFromDatabase(dbProposal: any): SavedProposal {
-  try {
-    let proposalData: ProposalPackage;
+  private parseContractsResponse(content: string): ContractTemplates {
+    console.log('🔧 Parsing AI response...');
     
     try {
-      proposalData = typeof dbProposal.content === 'string' 
-        ? JSON.parse(dbProposal.content) 
-        : dbProposal.content;
-    } catch (parseError) {
-      console.error('Error parsing proposal content:', parseError);
-      // Create minimal proposal data for corrupted records
-      proposalData = {
-        proposal: { projectOverview: 'Content parsing error', scopeOfWork: '', pricing: '', timeline: '', deliverables: '', terms: '', nextSteps: '', contractTemplates: { serviceAgreement: '', statementOfWork: '' } },
-        analysis: { winProbability: { score: 50, factors: [] }, pricingAnalysis: { competitiveness: 'competitive', valueJustification: '', recommendations: [] }, riskLevel: 'medium', strengthsWeaknesses: { strengths: [], weaknesses: [], improvements: [] } },
-        recommendations: [],
-        alternativeOptions: [],
-        riskAssessment: { 
-          overallRisk: 'medium', 
-          riskCategories: {
-            technical: [],
-            financial: [],
-            timeline: [],
-            relationship: [],
-            market: []
+      const jsonString = this.extractJSONFromResponse(content);
+      const parsed = JSON.parse(jsonString);
+      
+      if (!parsed.serviceAgreement || !parsed.statementOfWork) {
+        throw new Error('Missing required contract sections');
+      }
+
+      // Validate minimum length
+      if (parsed.serviceAgreement.length < 500) {
+        throw new Error('Service Agreement too short');
+      }
+      if (parsed.statementOfWork.length < 300) {
+        throw new Error('Statement of Work too short');
+      }
+
+      return {
+        serviceAgreement: parsed.serviceAgreement,
+        statementOfWork: parsed.statementOfWork
+      };
+      
+    } catch (error) {
+      console.error('❌ Contract parsing failed:', error);
+      throw new ProposalGenerationError(
+        'Failed to parse AI response into valid contracts',
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+
+  private extractJSONFromResponse(content: string): string {
+    // Try to extract JSON from markdown code blocks
+    const jsonBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonBlockMatch) {
+      return jsonBlockMatch[1].trim();
+    }
+
+    // Try to extract JSON object
+    const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonObjectMatch) {
+      return jsonObjectMatch[0].trim();
+    }
+
+    throw new Error('No valid JSON found in AI response');
+  }
+
+  // Database operations
+  async saveProposal(userId: string, workspaceId: string, proposal: ProposalPackage, input: ProposalInput): Promise<string> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const serializedProposal = JSON.stringify(proposal, null, 2);
+      const clientName = input.clientInfo.legalName || 'Unknown Client';
+      const proposalTitle = `Service Agreement - ${clientName}`;
+      
+      const deliverable = await prisma.deliverable.create({
+        data: {
+          title: proposalTitle,
+          content: serializedProposal,
+          type: 'proposal',
+          user_id: userId,
+          workspace_id: workspaceId,
+          metadata: {
+            clientName,
+            effectiveDate: input.effectiveDate || new Date().toISOString(),
+            generatedAt: new Date().toISOString(),
+            tokensUsed: proposal.tokensUsed || 0,
+            generationTime: proposal.generationTime || 0,
+            version: '2.0'
           },
-          mitigationPlan: [] 
-        },
-        competitiveAnalysis: { positioningAdvantages: [], potentialChallenges: [], differentiationPoints: [], marketBenchmarks: { pricingRange: { min: 0, max: 0 }, typicalTimeline: '', standardFeatures: [] } },
-        tokensUsed: 0,
-        generationTime: 0,
-        originalInput: null as any
-      };
-    }
+          tags: ['proposal', 'service-agreement']
+        }
+      });
 
-    const metadata = dbProposal.metadata as any || {};
-    
-    return {
-      id: dbProposal.id,
-      title: dbProposal.title,
-      proposalType: metadata.proposalType || 'service-agreement',
-      clientName: metadata.clientName || 'Unknown Client',
-      status: 'draft', // Default status for saved proposals
-      totalValue: metadata.totalValue || 0,
-      createdAt: dbProposal.created_at,
-      updatedAt: dbProposal.updated_at,
-      proposalData,
-      metadata: {
-        industry: metadata.clientIndustry || 'other',
-        projectSize: this.categorizeProjectSize(metadata.totalValue || 0),
-        complexity: this.assessComplexityFromMetadata(metadata),
-        winProbability: metadata.winProbability || 50,
-        version: metadata.version || '1.0'
-      },
-      workspace: dbProposal.workspace
-    };
-  } catch (error) {
-    console.error('Error mapping proposal from database:', error);
-    // Return minimal proposal on mapping error
-    return {
-      id: dbProposal.id,
-      title: dbProposal.title || 'Proposal',
-      proposalType: 'service-agreement',
-      clientName: 'Unknown Client',
-      status: 'draft',
-      totalValue: 0,
-      createdAt: dbProposal.created_at,
-      updatedAt: dbProposal.updated_at,
-      proposalData: null as any,
-      metadata: {
-        industry: 'other',
-        projectSize: 'small',
-        complexity: 'low',
-        winProbability: 50,
-        version: '1.0'
-      },
-      workspace: dbProposal.workspace
-    };
+      console.log('Proposal saved successfully with ID:', deliverable.id);
+      return deliverable.id;
+    } catch (error) {
+      console.error('Error saving proposal:', error);
+      throw new ProposalGenerationError('Failed to save proposal to database', error instanceof Error ? error : new Error(String(error)));
+    }
   }
-}
 
-private categorizeProjectSize(totalValue: number): 'small' | 'medium' | 'large' {
-  if (totalValue < 10000) return 'small';
-  if (totalValue < 100000) return 'medium';
-  return 'large';
-}
-
-private assessComplexityFromMetadata(metadata: any): 'low' | 'moderate' | 'high' {
-  try {
-    const riskLevel = metadata.riskLevel;
-    const proposalType = metadata.proposalType;
-    
-    // Map risk levels to complexity
-    if (riskLevel === 'high') return 'high';
-    if (riskLevel === 'low') return 'low';
-    
-    // Assess based on proposal type
-    const complexTypes = ['consulting-proposal', 'custom-proposal'];
-    if (complexTypes.includes(proposalType)) return 'moderate';
-    
-    return 'moderate';
-  } catch (error) {
-    return 'moderate';
-  }
-}
-
-
-
-
-async getProposal(userId: string, proposalId: string) {
-  try {
-    const { prisma } = await import('@/lib/prisma');
-    
-    if (!userId || !proposalId) {
-      throw new Error('User ID and Proposal ID are required');
-    }
-    
-    const deliverable = await prisma.deliverable.findFirst({
-      where: {
-        id: proposalId,
-        user_id: userId,
-        type: 'proposal'
-      },
-      include: {
-        workspace: true
-      }
-    });
-
-    if (!deliverable) {
-      return null;
-    }
-
-    let parsedProposal: ProposalPackage;
+  async getUserProposals(userId: string, workspaceId?: string): Promise<SavedProposal[]> {
     try {
-      parsedProposal = typeof deliverable.content === 'string'
-        ? JSON.parse(deliverable.content)
-        : deliverable.content;
-    } catch (parseError) {
-      console.error('Error parsing proposal content:', parseError);
-      throw new ProposalGenerationError('Proposal data is corrupted and cannot be retrieved');
-    }
-
-    return {
-      id: deliverable.id,
-      title: deliverable.title,
-      proposal: parsedProposal,
-      metadata: deliverable.metadata,
-      createdAt: deliverable.created_at,
-      updatedAt: deliverable.updated_at,
-      workspace: deliverable.workspace
-    };
-  } catch (error) {
-    console.error('Error retrieving proposal:', error);
-    if (error instanceof ProposalGenerationError) {
-      throw error;
-    }
-    throw new ProposalGenerationError('Failed to retrieve proposal', error instanceof Error ? error : new Error(String(error)));
-  }
-}
-
-async deleteProposal(userId: string, proposalId: string): Promise<boolean> {
-  try {
-    const { prisma } = await import('@/lib/prisma');
-    
-    if (!userId || !proposalId) {
-      throw new Error('User ID and Proposal ID are required');
-    }
-    
-    const result = await prisma.deliverable.deleteMany({
-      where: {
-        id: proposalId,
+      const { prisma } = await import('@/lib/prisma');
+      
+      const whereClause: any = {
         user_id: userId,
         type: 'proposal'
-      }
-    });
+      };
 
-    const success = result.count > 0;
-    if (success) {
-      console.log(`Proposal ${proposalId} deleted successfully for user ${userId}`);
-    } else {
-      console.warn(`No proposal found with ID ${proposalId} for user ${userId}`);
+      if (workspaceId) {
+        whereClause.workspace_id = workspaceId;
+      }
+
+      const proposals = await prisma.deliverable.findMany({
+        where: whereClause,
+        orderBy: { created_at: 'desc' },
+        include: { workspace: true }
+      });
+
+      return proposals.map(proposal => ({
+        id: proposal.id,
+        title: proposal.title,
+        clientName: (proposal.metadata as any)?.clientName || 'Unknown Client',
+        status: 'draft',
+        totalValue: 0,
+        createdAt: proposal.created_at,
+        updatedAt: proposal.updated_at,
+        proposalData: typeof proposal.content === 'string' ? JSON.parse(proposal.content) : proposal.content,
+        metadata: {
+          version: (proposal.metadata as any)?.version || '2.0'
+        },
+        workspace: proposal.workspace
+      }));
+    } catch (error) {
+      console.error('Error fetching user proposals:', error);
+      throw new ProposalGenerationError('Failed to retrieve proposals', error instanceof Error ? error : new Error(String(error)));
     }
-    
-    return success;
-  } catch (error) {
-    console.error('Error deleting proposal:', error);
-    throw new ProposalGenerationError('Failed to delete proposal', error instanceof Error ? error : new Error(String(error)));
   }
-}
 
-async exportProposal(userId: string, proposalId: string, format: 'json' | 'html' | 'pdf' = 'html') {
-  try {
-    console.log(`Starting export: userId=${userId}, proposalId=${proposalId}, format=${format}`);
-    
-    const proposal = await this.getProposal(userId, proposalId);
-    if (!proposal) {
-      console.error('Proposal not found:', { userId, proposalId });
-      throw new ProposalGenerationError('Proposal not found or access denied');
-    }
-
-    console.log('Proposal found, checking data integrity...');
-    
-    // Check data integrity before export
-    const hasMainContent = proposal.proposal?.proposal?.projectOverview || 
-                          proposal.proposal?.proposal?.scopeOfWork ||
-                          proposal.proposal?.proposal?.pricing;
-    
-    if (!hasMainContent) {
-      console.warn('Proposal appears to have missing main content');
-    }
-    
-    const clientName = this.sanitizeFilename((proposal.metadata as any)?.clientName || 'export');
-    
-    if (format === 'json') {
-      return {
-        format: 'json',
-        content: JSON.stringify(proposal, null, 2),
-        filename: `proposal-${clientName}.json`,
-        mimeType: 'application/json'
-      };
-    }
-
-    if (format === 'html') {
-      console.log('Generating HTML content...');
-      const htmlContent = this.generateHTMLExport(proposal);
-      console.log('HTML content generated, length:', htmlContent.length);
+  async getProposal(userId: string, proposalId: string) {
+    try {
+      const { prisma } = await import('@/lib/prisma');
       
-      // Validate HTML has minimum content
-      if (htmlContent.length < 1000) {
-        console.warn('Generated HTML seems too short, may indicate missing data');
+      const deliverable = await prisma.deliverable.findFirst({
+        where: {
+          id: proposalId,
+          user_id: userId,
+          type: 'proposal'
+        },
+        include: { workspace: true }
+      });
+
+      if (!deliverable) {
+        return null;
       }
-      
-      return {
-        format: 'html',
-        content: htmlContent,
-        filename: `proposal-${clientName}.html`,
-        mimeType: 'text/html'
-      };
-    }
 
-    if (format === 'pdf') {
-      console.log('Generating PDF content...');
-      const htmlContent = this.generateHTMLExport(proposal);
-      
-      // Additional check for PDF generation
-      if (htmlContent.includes('Export Error')) {
-        throw new ProposalGenerationError('Cannot generate PDF due to data formatting issues. Try JSON export instead.');
-      }
-      
-      const pdfBuffer = await this.generatePDFFromHTML(htmlContent);
-      
       return {
-        format: 'pdf',
-        content: pdfBuffer,
-        filename: `proposal-${clientName}.pdf`,
-        mimeType: 'application/pdf'
+        id: deliverable.id,
+        title: deliverable.title,
+        proposalData: typeof deliverable.content === 'string' ? JSON.parse(deliverable.content) : deliverable.content,
+        metadata: deliverable.metadata,
+        createdAt: deliverable.created_at,
+        updatedAt: deliverable.updated_at,
+        workspace: deliverable.workspace
       };
+    } catch (error) {
+      console.error('Error retrieving proposal:', error);
+      throw new ProposalGenerationError('Failed to retrieve proposal', error instanceof Error ? error : new Error(String(error)));
     }
-
-    throw new ProposalGenerationError(`Unsupported export format: ${format}`);
-    
-  } catch (error) {
-    console.error('Export service error:', error);
-    console.error('Export error details:', {
-      userId,
-      proposalId,
-      format,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
-      errorStack: error instanceof Error ? error.stack : 'No stack'
-    });
-    
-    if (error instanceof ProposalGenerationError) {
-      throw error;
-    }
-    throw new ProposalGenerationError(
-      'Failed to export proposal', 
-      error instanceof Error ? error : new Error(String(error))
-    );
   }
-}
 
-private async generatePDFFromHTML(htmlContent: string): Promise<Buffer> {
-  const puppeteer = await import('puppeteer');
+  async deleteProposal(userId: string, proposalId: string): Promise<boolean> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const result = await prisma.deliverable.deleteMany({
+        where: {
+          id: proposalId,
+          user_id: userId,
+          type: 'proposal'
+        }
+      });
+
+      return result.count > 0;
+    } catch (error) {
+      console.error('Error deleting proposal:', error);
+      throw new ProposalGenerationError('Failed to delete proposal', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  async exportProposal(userId: string, proposalId: string, format: 'json' | 'html' | 'pdf' = 'html') {
+    try {
+      const proposal = await this.getProposal(userId, proposalId);
+      if (!proposal) {
+        throw new ProposalGenerationError('Proposal not found');
+      }
+
+      const clientName = this.sanitizeFilename((proposal.metadata as any)?.clientName || 'export');
+      
+      if (format === 'json') {
+        return {
+          format: 'json',
+          content: JSON.stringify(proposal, null, 2),
+          filename: `proposal-${clientName}.json`,
+          mimeType: 'application/json'
+        };
+      }
+
+      if (format === 'html') {
+        const htmlContent = this.generateHTMLExport(proposal);
+        return {
+          format: 'html',
+          content: htmlContent,
+          filename: `proposal-${clientName}.html`,
+          mimeType: 'text/html'
+        };
+      }
+
+      throw new ProposalGenerationError(`Unsupported export format: ${format}`);
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      throw new ProposalGenerationError('Failed to export proposal', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private generateHTMLExport(proposal: any): string {
+  const contracts = proposal.proposalData?.contracts;
+  const originalInput = proposal.proposalData?.originalInput;
+  const metadata = proposal.metadata || {};
   
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    const page = await browser.newPage();
-    
-    // Set content and wait for fonts/styles to load
-    await page.setContent(htmlContent, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000
-    });
-    
-    // Generate PDF with professional formatting
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      margin: {
-        top: '1in',
-        right: '1in',
-        bottom: '1in',
-        left: '1in'
-      },
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: `
-        <div style="font-size: 10px; color: #666; text-align: center; width: 100%;">
-          Project Proposal - Confidential
-        </div>
-      `,
-      footerTemplate: `
-        <div style="font-size: 10px; color: #666; text-align: center; width: 100%;">
-          Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-        </div>
-      `
-    });
-    
-    return Buffer.from(pdfBuffer);
-    
-  } catch (error) {
-    console.error('PDF generation error:', error);
-    throw new ProposalGenerationError('Failed to generate PDF', error instanceof Error ? error : new Error(String(error)));
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
-  }
-}
-
-
-private sanitizeFilename(filename: string): string {
-  return filename
-    .replace(/[^a-zA-Z0-9\-_]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase()
-    .substring(0, 50) || 'proposal';
-}
-
-private generateHTMLExport(proposal: any): string {
-  try {
-    const proposalContent = proposal.proposal?.proposal;
-    const metadata = proposal.metadata || {};
-    const originalInput = proposal.proposal?.originalInput;
-    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    
-    const clientName = metadata?.clientName || originalInput?.client?.legalName || 'Client Name';
-    const totalValue = metadata?.totalValue || originalInput?.pricing?.totalAmount || 0;
-    const providerName = originalInput?.serviceProvider?.name || 'Service Provider';
-    const providerLegalName = originalInput?.serviceProvider?.legalName || providerName;
-    const providerAddress = originalInput?.serviceProvider?.address || '[Service Provider Address]';
-    const clientAddress = originalInput?.client?.address || '[Client Address]';
-    const clientEntity = originalInput?.client?.entityType || 'Corporation';
-    const signatoryName = originalInput?.serviceProvider?.signatoryName || '[Authorized Signatory]';
-    const signatoryTitle = originalInput?.serviceProvider?.signatoryTitle || 'Authorized Representative';
-    
-    const serviceAgreement = proposalContent?.contractTemplates?.serviceAgreement || 
-      this.generateDefaultServiceAgreement(providerName, providerLegalName, providerAddress, clientName, clientAddress, clientEntity, currentDate);
-    
-    const statementOfWork = proposalContent?.contractTemplates?.statementOfWork || 
-      this.generateDefaultSOW(providerName, clientName, proposalContent, originalInput, currentDate);
-    
-    return `
+  // Extract signatory information
+  const providerName = originalInput?.serviceProvider?.name || 'Service Provider';
+  const providerAddress = originalInput?.serviceProvider?.address || '';
+  const providerSignatoryName = originalInput?.serviceProvider?.signatoryName || '_________________________';
+  const providerSignatoryTitle = originalInput?.serviceProvider?.signatoryTitle || '_________________________';
+  
+  const clientName = originalInput?.clientInfo?.legalName || 'Client';
+  const clientAddress = originalInput?.clientInfo?.address || '';
+  const clientSignatoryName = originalInput?.clientInfo?.signatoryName || '_________________________';
+  const clientSignatoryTitle = originalInput?.clientInfo?.signatoryTitle || '_________________________';
+  const effectiveDate = originalInput?.effectiveDate || metadata?.effectiveDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Proposal - ${this.escapeHtml(clientName)}</title>
+    <title>Service Agreement - ${this.escapeHtml(clientName)}</title>
     <style>
-        @page { margin: 0.75in; size: letter; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
             line-height: 1.6;
-            color: #000;
-            background: #fff;
             max-width: 8.5in;
             margin: 0 auto;
-            padding: 0.5in;
+            padding: 1in;
         }
         .document-title {
             text-align: center;
             font-size: 18pt;
             font-weight: bold;
             margin: 30px 0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .section-title {
-            font-size: 14pt;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
-            text-transform: uppercase;
-            border-bottom: 2px solid #000;
-            padding-bottom: 5px;
         }
         .content {
             text-align: justify;
-            margin: 10px 0;
             white-space: pre-wrap;
         }
         .signature-block {
@@ -1656,480 +619,88 @@ private generateHTMLExport(proposal: any): string {
             font-size: 10pt;
             margin: 3px 0;
         }
-        .page-break {
-            page-break-before: always;
-            margin-top: 40px;
-        }
-        .legal-text {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 11pt;
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
-        .contract-header {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 16pt;
-            font-weight: bold;
-        }
-        .proposal-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px;
-            border-bottom: 3px solid #000;
-        }
-        .proposal-metadata {
-            text-align: right;
-            font-size: 10pt;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        @media print {
-            body { padding: 0; }
-            .page-break { page-break-before: always; }
-        }
+        .page-break { page-break-before: always; }
     </style>
 </head>
 <body>
-    <!-- BUSINESS PROPOSAL HEADER -->
-    <div class="proposal-header">
-        <div class="document-title">PROJECT PROPOSAL</div>
-        <div style="font-size: 14pt; margin-top: 10px;">For ${this.escapeHtml(clientName)}</div>
-        <div class="proposal-metadata">
-            Prepared by ${this.escapeHtml(providerName)}<br>
-            ${currentDate}<br>
-            Total Investment: $${totalValue.toLocaleString()}
-        </div>
-    </div>
-
-    <!-- EXECUTIVE SUMMARY (if included) -->
-    ${proposalContent?.executiveSummary ? `
-    <div class="section-title">EXECUTIVE SUMMARY</div>
-    <div class="content">${this.escapeHtml(proposalContent.executiveSummary)}</div>
-    ` : ''}
-
-    <!-- PROJECT OVERVIEW -->
-    <div class="section-title">PROJECT OVERVIEW</div>
-    <div class="content">${this.escapeHtml(proposalContent?.projectOverview || 'Project overview not available')}</div>
-
-    <!-- SCOPE OF WORK -->
-    <div class="section-title">SCOPE OF WORK</div>
-    <div class="content">${this.escapeHtml(proposalContent?.scopeOfWork || 'Scope details not available')}</div>
-
-    <!-- DELIVERABLES -->
-    <div class="section-title">DELIVERABLES</div>
-    <div class="content">${this.escapeHtml(proposalContent?.deliverables || 'Deliverables not specified')}</div>
-
-    <!-- TIMELINE -->
-    <div class="section-title">PROJECT TIMELINE</div>
-    <div class="content">${this.escapeHtml(proposalContent?.timeline || 'Timeline not specified')}</div>
-
-    <!-- INVESTMENT & PRICING -->
-    <div class="section-title">INVESTMENT & PRICING</div>
-    <div class="content">${this.escapeHtml(proposalContent?.pricing || 'Pricing details not available')}</div>
-
-    <!-- TERMS & CONDITIONS -->
-    <div class="section-title">TERMS & CONDITIONS</div>
-    <div class="content">${this.escapeHtml(proposalContent?.terms || 'Terms not specified')}</div>
-
-    <!-- NEXT STEPS -->
-    <div class="section-title">NEXT STEPS</div>
-    <div class="content">${this.escapeHtml(proposalContent?.nextSteps || 'Next steps not specified')}</div>
-
-    <!-- SERVICE AGREEMENT (NEW PAGE) -->
-    <div class="page-break"></div>
     <div class="document-title">SERVICE AGREEMENT</div>
-    
-    <div class="legal-text">${this.escapeHtml(serviceAgreement)}</div>
-    
-   <div class="signature-block">
-    <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.</p>
-    
-    <div class="signature-container">
-        <div class="signature-box">
-            <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
-            ${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName)}</div>` : ''}
-            <div class="signature-line"></div>
-            <div class="signature-label">By: _________________________</div>
-            <div class="signature-label">Name: ${this.escapeHtml(signatoryName)}</div>
-            <div class="signature-label">Title: ${this.escapeHtml(signatoryTitle)}</div>
-            <div class="signature-label">Date: _________________________</div>
-        </div>
-        
-        <div class="signature-box">
-            <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
-            <div>&nbsp;</div>
-            <div class="signature-line"></div>
-            <div class="signature-label">By: _________________________</div>
-            <div class="signature-label">Name: ${this.escapeHtml(input.client.signatoryName || '_________________________')}</div>
-            <div class="signature-label">Title: ${this.escapeHtml(input.client.signatoryTitle || '_________________________')}</div>
-            <div class="signature-label">Date: _________________________</div>
-        </div>
-    </div>
-</div>
-
-
-    <!-- STATEMENT OF WORK (NEW PAGE) -->
-    <div class="page-break"></div>
-    <div class="contract-header">SCHEDULE A<br>STATEMENT OF WORK</div>
-    
-    <div class="legal-text">${this.escapeHtml(statementOfWork)}</div>
+    <div class="content">${this.escapeHtml(contracts?.serviceAgreement || 'Content not available')}</div>
     
     <div class="signature-block">
-        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Statement of Work.</p>
+        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.</p>
         
         <div class="signature-container">
             <div class="signature-box">
                 <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
+                <div style="font-size: 10pt; margin-top: 5px;">${this.escapeHtml(providerAddress)}</div>
                 <div class="signature-line"></div>
                 <div class="signature-label">By: _________________________</div>
-                <div class="signature-label">Name: ______________________________</div>
-                <div class="signature-label">Title: ______________________________</div>
+                <div class="signature-label">Name: ${this.escapeHtml(providerSignatoryName)}</div>
+                <div class="signature-label">Title: ${this.escapeHtml(providerSignatoryTitle)}</div>
                 <div class="signature-label">Date: _________________________</div>
             </div>
             
             <div class="signature-box">
                 <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
+                <div style="font-size: 10pt; margin-top: 5px;">${this.escapeHtml(clientAddress)}</div>
                 <div class="signature-line"></div>
                 <div class="signature-label">By: _________________________</div>
-                <div class="signature-label">Name: _________________________</div>
-                <div class="signature-label">Title: _________________________</div>
+                <div class="signature-label">Name: ${this.escapeHtml(clientSignatoryName)}</div>
+                <div class="signature-label">Title: ${this.escapeHtml(clientSignatoryTitle)}</div>
+                <div class="signature-label">Date: _________________________</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-break"></div>
+    <div class="document-title">STATEMENT OF WORK</div>
+    <div class="content">${this.escapeHtml(contracts?.statementOfWork || 'Content not available')}</div>
+    
+    <div class="signature-block">
+        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Statement of Work as of the Effective Date.</p>
+        
+        <div class="signature-container">
+            <div class="signature-box">
+                <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
+                <div style="font-size: 10pt; margin-top: 5px;">${this.escapeHtml(providerAddress)}</div>
+                <div class="signature-line"></div>
+                <div class="signature-label">By: _________________________</div>
+                <div class="signature-label">Name: ${this.escapeHtml(providerSignatoryName)}</div>
+                <div class="signature-label">Title: ${this.escapeHtml(providerSignatoryTitle)}</div>
+                <div class="signature-label">Date: _________________________</div>
+            </div>
+            
+            <div class="signature-box">
+                <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
+                <div style="font-size: 10pt; margin-top: 5px;">${this.escapeHtml(clientAddress)}</div>
+                <div class="signature-line"></div>
+                <div class="signature-label">By: _________________________</div>
+                <div class="signature-label">Name: ${this.escapeHtml(clientSignatoryName)}</div>
+                <div class="signature-label">Title: ${this.escapeHtml(clientSignatoryTitle)}</div>
                 <div class="signature-label">Date: _________________________</div>
             </div>
         </div>
     </div>
 </body>
 </html>`;
-  } catch (error) {
-    console.error('HTML generation error:', error);
-    throw new ProposalGenerationError('Failed to generate HTML export');
+}
+
+  private sanitizeFilename(filename: string): string {
+    return filename
+      .replace(/[^a-zA-Z0-9\-_]/g, '-')
+      .replace(/-+/g, '-')
+      .toLowerCase()
+      .substring(0, 50) || 'proposal';
+  }
+
+  private escapeHtml(text: string): string {
+    const map: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;'
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 }
-
-
-// Add these helper methods for fallback contracts:
-
-private generateDefaultServiceAgreement(
-  provider: string, 
-  providerLegal: string, 
-  providerAddr: string, 
-  client: string, 
-  clientAddr: string, 
-  clientEntity: string, 
-  date: string
-): string {
-  return `This Service Agreement (the "Agreement") is entered into as of ${date} (the "Effective Date"), by and between:
-
-${provider}${providerLegal ? `, a trade name and doing business as ("DBA") of ${providerLegal}` : ''}, with its principal place of business at ${providerAddr} ("Service Provider"),
-
-and
-
-${client}, a ${clientEntity} with its principal place of business at ${clientAddr} ("Client").
-
-Together referred to as the "Parties" and individually as a "Party."
-
-1. SERVICES
-
-1.1 Scope of Services.
-Service Provider shall provide the services set forth in one or more statements of work, proposals, or schedules executed by the Parties (each, an "SOW"). Each SOW shall describe the services, deliverables, timelines, and fees.
-
-1.2 Standard of Performance.
-Service Provider shall perform the Services in a professional and workmanlike manner consistent with industry standards.
-
-2. TERM
-
-This Agreement shall commence on the Effective Date and continue until terminated in accordance with Section 10.
-
-3. FEES & PAYMENT
-
-3.1 Fees.
-Client shall pay Service Provider the fees set forth in the applicable SOW.
-
-3.2 Invoices.
-Unless otherwise stated, Service Provider shall invoice monthly in arrears. Payment shall be due within fifteen (15) days of receipt of invoice.
-
-3.3 Late Payments.
-Past due balances may accrue interest at one and one-half percent (1.5%) per month or the maximum allowed by law.
-
-4. EXPENSES
-
-Client shall reimburse Service Provider for pre-approved, reasonable, out-of-pocket expenses incurred in performing the Services.
-
-5. CONFIDENTIALITY
-
-Each Party agrees to maintain in strict confidence any non-public, proprietary, or confidential information disclosed by the other Party, and to use such information solely for purposes of performing under this Agreement.
-
-6. INTELLECTUAL PROPERTY
-
-6.1 Pre-Existing IP.
-Each Party retains ownership of its pre-existing intellectual property.
-
-6.2 Deliverables.
-Unless otherwise set forth in an SOW, all deliverables created specifically for Client under this Agreement shall be deemed "work made for hire" and owned by Client upon full payment.
-
-6.3 Tools & Background Technology.
-Service Provider retains all rights to its methodologies, templates, processes, code libraries, and tools used in providing the Services. Client receives a non-exclusive license to use such elements solely as incorporated into deliverables.
-
-7. REPRESENTATIONS & WARRANTIES
-
-Each Party represents and warrants that it has full power and authority to enter into this Agreement. Service Provider warrants that Services shall be performed in a professional manner. EXCEPT AS EXPRESSLY PROVIDED, SERVICES ARE PROVIDED "AS IS" WITHOUT OTHER WARRANTIES.
-
-8. INDEMNIFICATION
-
-Each Party shall indemnify, defend, and hold harmless the other Party against claims, damages, or expenses arising from the indemnifying Party's negligence, willful misconduct, or breach of this Agreement.
-
-9. LIMITATION OF LIABILITY
-
-Except for confidentiality or indemnification obligations, neither Party shall be liable for any indirect, incidental, special, or consequential damages. Service Provider's total liability shall not exceed the fees paid by Client in the six (6) months preceding the claim.
-
-10. TERMINATION
-
-Either Party may terminate this Agreement or any SOW:
-(a) for convenience upon thirty (30) days' prior written notice; or
-(b) immediately upon written notice if the other Party materially breaches and fails to cure within fifteen (15) days after notice.
-
-11. GOVERNING LAW
-
-This Agreement shall be governed by and construed under the laws of the State of ${input.terms.governingLaw || 'Delaware'}, without regard to its conflicts of law principles.
-
-12. GENERAL
-
-12.1 Independent Contractor.
-Service Provider is an independent contractor and not an employee, agent, or partner of Client.
-
-12.2 Assignment.
-Neither Party may assign this Agreement without prior written consent, except to a successor in interest by merger or acquisition.
-
-12.3 Entire Agreement.
-This Agreement, together with applicable SOWs, constitutes the entire agreement between the Parties.
-
-12.4 Amendments.
-No amendment shall be effective unless in writing and signed by both Parties.`;
-}
-
-
-private generateDefaultSOW(provider: string, client: string, content: any, input: any, date: string): string {
-  const description = content?.projectOverview || input?.project?.description || 'Professional services as agreed';
-  const scope = content?.scopeOfWork || 'Services to be performed as outlined in this agreement';
-  const timeline = content?.timeline || input?.project?.timeline || 'To be determined';
-  const pricing = content?.pricing || `Total: $${input?.pricing?.totalAmount?.toLocaleString() || '0'}`;
-  
-  return `This Statement of Work ("SOW") is issued pursuant to the Service Agreement entered into between ${provider} ("Service Provider") and ${client} ("Client").
-
-1. Project Description
-
-${description}
-
-2. Scope of Services
-
-${scope}
-
-3. Timeline & Milestones
-
-${timeline}
-
-4. Fees & Payment
-
-${pricing}
-
-5. Acceptance Criteria
-
-Deliverables shall be deemed accepted upon Client's written approval or five (5) business days after delivery if no objections are raised.`;
-}
-
-
-// Add this helper method for missing contract sections
-private generateMissingContractSection(title: string): string {
-  return `
-        <div class="contract-section">
-            <h2>${this.escapeHtml(title)}</h2>
-            <div class="warning-box">
-                <h3>⚠️ Contract Template Missing</h3>
-                <p>The ${title} template was not generated during proposal creation. This may occur if:</p>
-                <ul>
-                    <li>The AI generation was interrupted</li>
-                    <li>There was insufficient context to generate legal documents</li>
-                    <li>The proposal was created with incomplete data</li>
-                </ul>
-                <p><strong>Recommended Action:</strong> Regenerate the proposal with complete information to include all contract templates.</p>
-                <p><strong>Alternative:</strong> Contact support to obtain standard ${title} templates for your industry.</p>
-            </div>
-        </div>`;
-}
-
-
-// Add this helper method for better error handling
-private generateErrorHTML(error: any): string {
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Export Error</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-        .error-container { max-width: 600px; margin: 0 auto; }
-        .error-box { background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; }
-        .error-title { color: #721c24; font-size: 24px; margin-bottom: 10px; }
-        .error-message { color: #721c24; margin-bottom: 20px; }
-        .suggestions { background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; }
-        .suggestions h3 { color: #0c5460; margin-top: 0; }
-    </style>
-</head>
-<body>
-    <div class="error-container">
-        <div class="error-box">
-            <h1 class="error-title">🚫 Export Error</h1>
-            <p class="error-message">Unable to generate PDF due to data formatting issues.</p>
-            <p><strong>Error Details:</strong> ${this.escapeHtml(error?.message || 'Unknown error')}</p>
-        </div>
-        
-        <div class="suggestions">
-            <h3>💡 Suggestions to Fix This Issue:</h3>
-            <ul>
-                <li>Try regenerating the proposal with complete information</li>
-                <li>Ensure all required fields are filled before generation</li>
-                <li>Contact support if the issue persists</li>
-                <li>Try exporting as JSON format as an alternative</li>
-            </ul>
-        </div>
-    </div>
-</body>
-</html>`;
-}
-
-
-private generatePDFSection(title: string, content?: string): string {
-  // Skip empty sections entirely
-  if (!content || content.trim() === '' || content === 'Content not available') {
-    return '';
-  }
-  
-  return `
-        <div class="section no-break">
-            <h2>${this.escapeHtml(title)}</h2>
-            <div>${this.formatContentForPDF(content)}</div>
-        </div>`;
-}
-
-
-private generatePDFContractSection(title: string, content?: string): string {
-  if (!content || content.trim() === '') {
-    return this.generateMissingContractSection(title);
-  }
-  
-  return `
-        <div class="contract-section">
-            <h2>${this.escapeHtml(title)}</h2>
-            <div class="contract-content">${this.escapeHtml(content)}</div>
-        </div>`;
-} 
-
-
-private formatContentForPDF(content: string): string {
-  if (!content || content.trim() === '') {
-    return '<p>Content not available.</p>';
-  }
-  
-  return this.escapeHtml(content)
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/•/g, '&bull;')
-    .replace(/^\s*/, '<p>')
-    .replace(/\s*$/, '</p>');
-}
-
-
-private generateHTMLSection(title: string, content?: string): string {
-  if (!content) return '';
-  
-  return `
-        <div class="section">
-            <h2>${this.escapeHtml(title)}</h2>
-            <div>${this.formatContentForHTML(content)}</div>
-        </div>`;
-}
-
-private generateHTMLContractSection(title: string, content?: string): string {
-  if (!content) {
-    return `
-        <div class="contract-section">
-            <h2>${this.escapeHtml(title)}</h2>
-            <div class="error-message">
-                ${title} content not available. Please regenerate proposal if needed.
-            </div>
-        </div>`;
-  }
-  
-  return `
-        <div class="contract-section">
-            <h2>${this.escapeHtml(title)}</h2>
-            <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85em; overflow-x: auto;">
-${this.escapeHtml(content)}
-            </pre>
-        </div>`;
-}
-
-private formatContentForHTML(content: string): string {
-  return this.escapeHtml(content)
-    .replace(/\n/g, '<br>')
-    .replace(/•/g, '&bull;');
-}
-
-private escapeHtml(text: string): string {
-  const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#x27;',
-    '/': '&#x2F;'
-  };
-  return text.replace(/[&<>"'/]/g, (m) => map[m]);
-}
-
-// ===== CACHE MANAGEMENT =====
-async clearProposalCache(input: ProposalInput): Promise<void> {
-  try {
-    const cacheKey = generateProposalCacheKey(input);
-    await this.redis.del(cacheKey);
-    console.log('Cache cleared for proposal input');
-  } catch (error) {
-    console.warn('Error clearing proposal cache:', error);
-    // Non-blocking operation, don't throw
-  }
-}
-
-
-async clearAllProposalCaches(userId: string): Promise<void> {
-  try {
-    const pattern = `proposal:${userId}:*`;
-    const keys = await this.redis.keys(pattern);
-    
-    if (keys.length > 0) {
-      await this.redis.del(...keys);
-      console.log(`Cleared ${keys.length} proposal cache entries for user ${userId}`);
-    }
-  } catch (error) {
-    console.warn('Error clearing all proposal caches:', error);
-    // Non-blocking operation, don't throw
-  }
-}
-
-
-// ===== SERVICE CLEANUP =====
-async cleanup(): Promise<void> {
-  try {
-    console.log('Cleaning up ProposalCreatorService resources...');
-    // Add any cleanup logic here (close connections, clear intervals, etc.)
-    console.log('ProposalCreatorService cleanup completed');
-  } catch (error) {
-    console.error('Error during service cleanup:', error);
-  }
-}
-
-// ===== END OF SERVICE CLASS =====
-}
-
-
