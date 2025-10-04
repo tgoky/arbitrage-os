@@ -50,6 +50,8 @@ import {
   useProposalExport
 } from '../hooks/useProposalCreator';
 
+import LoadingOverlay from './LoadingOverlay';
+
 
 import dayjs from 'dayjs';
 
@@ -161,7 +163,7 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
   }
 
   const handleBack = () => {
-    router.push(`/dashboard/${currentWorkspace?.slug}`);
+    router.back();
   };
 
   const handleInputChange = (section: string, field: string, value: any) => {
@@ -306,7 +308,7 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* <LoadingOverlay visible={generating} /> */}
+      <LoadingOverlay visible={generating} />
       <Button 
         icon={<ArrowLeftOutlined />} 
         onClick={handleBack}
