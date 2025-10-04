@@ -894,6 +894,12 @@ const leadColumns: ColumnsType<Lead> = [
       type="primary" 
       icon={<PlusOutlined />}
       onClick={() => router.push('/lead-generation/create')}
+       style={{
+    backgroundColor: '#5CC49D',
+    borderColor: '#5CC49D',
+    color: '#000000',
+    fontWeight: '500'
+  }}
     >
       Generate Your First Leads
     </Button>
