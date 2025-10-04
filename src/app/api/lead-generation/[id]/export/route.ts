@@ -124,7 +124,7 @@ export async function GET(
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'lead_generation'
+        type: 'lead-generation'
       }
     });
 

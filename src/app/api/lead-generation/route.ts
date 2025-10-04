@@ -572,7 +572,7 @@ export async function GET(req: NextRequest) {
     // Build where clause
     const whereClause: any = {
       user_id: user.id,
-      type: 'lead_generation'
+      type: 'lead-generation'
     };
 
     if (workspaceId) {
