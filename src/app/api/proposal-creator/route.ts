@@ -1,7 +1,8 @@
-// app/api/proposal-creator/route.ts - COMPLETE SIMPLIFIED VERSION
+// app/api/proposal-creator/route.ts - COMPLETE SIMPLIFIED VERSION WITH ROBUST AUTH
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { ProposalCreatorService } from '../../../services/proposalCreator.service';
 import { rateLimit } from '@/lib/rateLimit';
@@ -16,10 +17,85 @@ const RATE_LIMITS = {
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    try {
+      const supabase = createRouteHandlerClient({ 
+        cookies: () => cookieStore 
+      });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (!error && user) {
+        return { user, error: null };
+      }
+      
+      console.log('Route handler auth failed:', error);
+    } catch (helperError) {
+      console.warn('Route handler client failed:', helperError);
+    }
+    
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              get: () => undefined,
+            },
+          }
+        );
+        
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (!error && user) {
+          return { user, error: null };
+        }
+        
+        console.log('Token auth failed:', error);
+      } catch (tokenError) {
+        console.warn('Token auth error:', tokenError);
+      }
+    }
+    
+    const supabaseSSR = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            try {
+              const cookie = cookieStore.get(name);
+              if (!cookie?.value) return undefined;
+              
+              if (cookie.value.startsWith('base64-')) {
+                try {
+                  const decoded = atob(cookie.value.substring(7));
+                  JSON.parse(decoded);
+                  return cookie.value;
+                } catch (e) {
+                  console.warn(`Invalid cookie ${name}, skipping...`);
+                  return undefined;
+                }
+              }
+              return cookie.value;
+            } catch (error) {
+              console.warn(`Error reading cookie ${name}:`, error);
+              return undefined;
+            }
+          },
+        },
+      }
+    );
+    
+    const { data: { user }, error } = await supabaseSSR.auth.getUser();
     return { user, error };
+    
   } catch (error) {
+    console.error('All authentication methods failed:', error);
     return { user: null, error };
   }
 }
@@ -28,10 +104,14 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
   try {
     const { prisma } = await import('@/lib/prisma');
     const workspace = await prisma.workspace.findFirst({
-      where: { id: workspaceId, user_id: userId }
+      where: {
+        id: workspaceId,
+        user_id: userId
+      }
     });
     return !!workspace;
   } catch (error) {
+    console.error('Error validating workspace access:', error);
     return false;
   }
 }
@@ -40,14 +120,36 @@ export async function POST(req: NextRequest) {
   console.log('🚀 Proposal Creator API called');
   
   try {
-    // Authentication
+    // Robust authentication
     const { user, error: authError } = await getAuthenticatedUser(req);
+    
     if (authError || !user) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Authentication required',
-        code: 'AUTH_REQUIRED'
-      }, { status: 401 });
+      console.error('Auth failed in proposal creator:', authError);
+      
+      const response = NextResponse.json(
+        { 
+          success: false,
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          code: 'AUTH_REQUIRED'
+        }, 
+        { status: 401 }
+      );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', {
+          expires: new Date(0),
+          path: '/',
+        });
+      });
+      
+      return response;
     }
 
     // Get body and workspace
@@ -57,7 +159,7 @@ export async function POST(req: NextRequest) {
     if (!workspaceId) {
       return NextResponse.json({ 
         success: false,
-        error: 'Workspace ID required',
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
         code: 'WORKSPACE_ID_REQUIRED'
       }, { status: 400 });
     }
@@ -67,7 +169,7 @@ export async function POST(req: NextRequest) {
     if (!hasAccess) {
       return NextResponse.json({ 
         success: false,
-        error: 'Workspace access denied',
+        error: 'Workspace not found or access denied.',
         code: 'WORKSPACE_ACCESS_DENIED'
       }, { status: 403 });
     }
@@ -81,7 +183,7 @@ export async function POST(req: NextRequest) {
     if (!rateLimitResult.success) {
       return NextResponse.json({ 
         success: false,
-        error: 'Too many requests',
+        error: 'Generation rate limit exceeded. You can generate 30 proposals per hour.',
         retryAfter: rateLimitResult.reset
       }, { status: 429 });
     }
@@ -95,9 +197,10 @@ export async function POST(req: NextRequest) {
     if (!body.projectScope?.description || body.projectScope.description.length < 20) {
       errors.push('Project description is required (minimum 20 characters)');
     }
-    if (!body.serviceProvider?.name || body.serviceProvider.name.length < 2) {
-      errors.push('Service provider name is required');
-    }
+
+    // if (!body.pricing?.totalAmount || body.pricing.totalAmount < 100) {
+    //   errors.push('Total amount must be at least $100');
+    // }
 
     if (errors.length > 0) {
       return NextResponse.json({ 
@@ -110,10 +213,10 @@ export async function POST(req: NextRequest) {
     // Create input object matching frontend structure
     const input: ProposalInput = {
       serviceProvider: {
-        name: body.serviceProvider.name,
-        address: body.serviceProvider.address,
-        signatoryName: body.serviceProvider.signatoryName,
-        signatoryTitle: body.serviceProvider.signatoryTitle
+        name: body.serviceProvider?.name,
+        address: body.serviceProvider?.address,
+        signatoryName: body.serviceProvider?.signatoryName,
+        signatoryTitle: body.serviceProvider?.signatoryTitle
       },
       clientInfo: {
         legalName: body.clientInfo.legalName,
@@ -133,6 +236,9 @@ export async function POST(req: NextRequest) {
         acceptanceCriteria: body.projectScope.acceptanceCriteria,
         additionalTerms: body.projectScope.additionalTerms
       },
+      // pricing: {
+      //   totalAmount: body.pricing.totalAmount
+      // },
       effectiveDate: body.effectiveDate,
       workspaceId: workspaceId,
       userId: user.id
@@ -168,7 +274,8 @@ export async function POST(req: NextRequest) {
           workspaceId,
           saved: saveSuccess,
           clientName: input.clientInfo.legalName,
-          generationTime: generatedProposal.generationTime
+          generationTime: generatedProposal.generationTime,
+          // totalAmount: input.pricing.totalAmount
         }
       });
       console.log('✅ Usage logged');
@@ -209,14 +316,33 @@ export async function GET(req: NextRequest) {
   console.log('🚀 Proposals List API called');
   
   try {
+    // Robust authentication
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
-      return NextResponse.json({ 
+      console.error('Auth failed in proposal list:', authError);
+      
+      const response = NextResponse.json({ 
         success: false,
-        error: 'Authentication required',
+        error: 'Authentication required. Please clear your browser cookies and sign in again.',
         code: 'AUTH_REQUIRED'
       }, { status: 401 });
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', {
+          expires: new Date(0),
+          path: '/',
+        });
+      });
+      
+      return response;
     }
 
     // Rate limiting
@@ -228,7 +354,7 @@ export async function GET(req: NextRequest) {
     if (!rateLimitResult.success) {
       return NextResponse.json({ 
         success: false,
-        error: 'Too many requests',
+        error: 'List rate limit exceeded.',
         retryAfter: rateLimitResult.reset 
       }, { status: 429 });
     }
@@ -242,7 +368,7 @@ export async function GET(req: NextRequest) {
       if (!hasAccess) {
         return NextResponse.json({ 
           success: false,
-          error: 'Workspace access denied',
+          error: 'Workspace access denied.',
           code: 'WORKSPACE_ACCESS_DENIED'
         }, { status: 403 });
       }

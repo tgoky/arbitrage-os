@@ -83,14 +83,21 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
     signatoryTitle: ""
   });
 
-  const [clientInfo, setClientInfo] = useState({
-    legalName: "",
-    stateOfIncorporation: "Delaware",
-    entityType: "corporation",
-    address: "",
-    signatoryName: "",
-    signatoryTitle: ""
-  });
+ const [clientInfo, setClientInfo] = useState<{
+  legalName: string;
+  stateOfIncorporation: string;
+  entityType: 'corporation' | 'llc' | 'partnership' | 'sole-proprietorship';
+  address: string;
+  signatoryName: string;
+  signatoryTitle: string;
+}>({
+  legalName: "",
+  stateOfIncorporation: "Delaware",
+  entityType: "corporation",
+  address: "",
+  signatoryName: "",
+  signatoryTitle: ""
+});
 
   const [projectScope, setProjectScope] = useState({
     description: "",
@@ -171,33 +178,36 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
     }
   };
 
-  // const onFinish = async () => {
-  //   try {
-  //     const fullValidation = validateProposalProgressive(completeInput, true);
-  //     if (!fullValidation.isReadyToGenerate) {
-  //       message.error("Please complete essential fields before generating");
-  //       return;
-  //     }
+  const onFinish = async () => {
+  try {
+    // Validate essential fields
+    if (!clientInfo.legalName || clientInfo.legalName.length < 2) {
+      message.error("Client legal name is required");
+      return;
+    }
+    if (!projectScope.description || projectScope.description.length < 20) {
+      message.error("Project description is required (minimum 20 characters)");
+      return;
+    }
+    if (!serviceProvider.name || serviceProvider.name.length < 2) {
+      message.error("Service provider name is required");
+      return;
+    }
 
-  //     const result = await generateProposal(completeInput);
+    const result = await generateProposal(completeInput);
 
-  //     if (result) {
-  //       setGeneratedProposal(result.proposal);
-  //       setSavedProposalId(result.proposalId);
-  //       setActiveTab("preview");
-  //       await fetchProposals();
-        
-  //       // notification.success({
-  //       //   message: "Proposal Generated Successfully",
-  //       //   description: `Your professional proposal is ready for review.`,
-  //       //   duration: 5,
-  //       // });
-  //     }
-  //   } catch (error) {
-  //     console.error("Generation error:", error);
-  //     message.error("Failed to generate proposal. Please try again.");
-  //   }
-  // };
+    if (result) {
+      setGeneratedProposal(result.proposal);
+      setSavedProposalId(result.proposalId);
+      setActiveTab("preview");
+      await fetchProposals();
+    }
+  } catch (error) {
+    console.error("Generation error:", error);
+    message.error("Failed to generate proposal. Please try again.");
+  }
+};
+
 
   const handleClearAll = () => {
     setGeneratedProposal(null);
@@ -364,7 +374,7 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
       />
 
       {activeTab === "inputs" && (
-        <Form form={form} layout="vertical" >    {/* onFinish={onFinish} */}
+<Form form={form} layout="vertical" onFinish={onFinish}>
           <div className="space-y-8">
             {/* Service Agreement Details */}
             <Card>
@@ -387,6 +397,14 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
     }}
     style={{ width: '100%' }}
     placeholder="Select effective date"
+  />
+</Form.Item>
+
+<Form.Item label="Service Provider Name" required>
+  <Input 
+    value={serviceProvider.name}
+    onChange={(e) => handleInputChange('serviceProvider', 'name', e.target.value)}
+    placeholder="Your Company Name"
   />
 </Form.Item>
 
@@ -639,6 +657,7 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
 }
 
 // Proposal Preview Component
+// Proposal Preview Component
 function ProposalPreview({ 
   proposal, 
   clientInfo, 
@@ -663,6 +682,10 @@ function ProposalPreview({
       message.success(`${type} copied to clipboard!`);
     });
   };
+
+  // Extract the generated contracts from the proposal
+  const serviceAgreement = proposal?.contracts?.serviceAgreement;
+  const statementOfWork = proposal?.contracts?.statementOfWork;
 
   return (
     <div className="space-y-6">
@@ -695,128 +718,99 @@ function ProposalPreview({
         </div>
       </Card>
 
-      {/* Service Agreement Preview */}
+      {/* Service Agreement Display */}
+      {serviceAgreement ? (
+        <Card>
+          <div className="flex justify-between items-center mb-4">
+            <Title level={3}>Service Agreement</Title>
+            <Button 
+              icon={<CopyOutlined />}
+              onClick={() => copyToClipboard(serviceAgreement, 'Service Agreement')}
+              size="small"
+            >
+              Copy
+            </Button>
+          </div>
+          <div 
+            className="whitespace-pre-wrap font-serif text-sm leading-relaxed border rounded p-6 "
+            style={{ maxHeight: '600px', overflowY: 'auto' }}
+          >
+            {serviceAgreement}
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <Alert
+            message="Service Agreement Not Available"
+            description="The service agreement could not be generated. Please try regenerating the proposal."
+            type="warning"
+            showIcon
+          />
+        </Card>
+      )}
+
+      {/* Statement of Work Display */}
+      {statementOfWork ? (
+        <Card>
+          <div className="flex justify-between items-center mb-4">
+            <Title level={3}>Statement of Work</Title>
+            <Button 
+              icon={<CopyOutlined />}
+              onClick={() => copyToClipboard(statementOfWork, 'Statement of Work')}
+              size="small"
+            >
+              Copy
+            </Button>
+          </div>
+          <div 
+            className="whitespace-pre-wrap font-serif text-sm leading-relaxed border rounded p-6"
+            style={{ maxHeight: '600px', overflowY: 'auto' }}
+          >
+            {statementOfWork}
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <Alert
+            message="Statement of Work Not Available"
+            description="The statement of work could not be generated. Please try regenerating the proposal."
+            type="warning"
+            showIcon
+          />
+        </Card>
+      )}
+
+      {/* Summary Card */}
       <Card>
-        <Title level={3}>Service Agreement</Title>
-        <div className="space-y-4">
-          <div>
-            <Text strong>Effective Date: </Text>
+        <Title level={4}>Proposal Summary</Title>
+        <Divider />
+        <Row gutter={[16, 16]}>
+          <Col span={12}>
+            <Text strong>Client:</Text>
+            <br />
+            <Text>{clientInfo.legalName}</Text>
+          </Col>
+          <Col span={12}>
+            <Text strong>Service Provider:</Text>
+            <br />
+            <Text>{serviceProvider.name}</Text>
+          </Col>
+          <Col span={12}>
+            <Text strong>Effective Date:</Text>
+            <br />
             <Text>{effectiveDate}</Text>
-          </div>
-          
-          <div>
-            <Text strong>Service Provider Address: </Text>
-            <Text>{serviceProvider.address}</Text>
-          </div>
-
-          <Divider />
-
-          <Title level={4}>Client Information</Title>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Text strong>Legal Name: </Text>
-              <Text>{clientInfo.legalName}</Text>
-            </div>
-            <div>
-              <Text strong>State of Incorporation: </Text>
-              <Text>{clientInfo.stateOfIncorporation}</Text>
-            </div>
-            <div>
-              <Text strong>Entity Type: </Text>
-              <Text>{clientInfo.entityType}</Text>
-            </div>
-            <div>
-              <Text strong>Address: </Text>
-              <Text>{clientInfo.address}</Text>
-            </div>
-          </div>
-
-          <Divider />
-
-          <Title level={4}>Authorized Signatories</Title>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Text strong>Service Provider: </Text>
-              <Text>{serviceProvider.signatoryName}, {serviceProvider.signatoryTitle}</Text>
-            </div>
-            <div>
-              <Text strong>Client: </Text>
-              <Text>{clientInfo.signatoryName}, {clientInfo.signatoryTitle}</Text>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Statement of Work Preview */}
-      <Card>
-        <Title level={3}>Statement of Work</Title>
-        <div className="space-y-6">
-          {projectScope.description && (
-            <div>
-              <Title level={4}>1. Project Description</Title>
-              <Text>{projectScope.description}</Text>
-            </div>
-          )}
-
-          {projectScope.scopeOfServices && (
-            <div>
-              <Title level={4}>2. Scope of Services</Title>
-              <Text>{projectScope.scopeOfServices}</Text>
-            </div>
-          )}
-
-          {projectScope.timeline && (
-            <div>
-              <Title level={4}>3. Timeline & Milestones</Title>
-              <Text>{projectScope.timeline}</Text>
-            </div>
-          )}
-
-          {projectScope.fees && (
-            <div>
-              <Title level={4}>4. Fees & Payment</Title>
-              <Text>{projectScope.fees}</Text>
-            </div>
-          )}
-
-          {(projectScope.serviceProviderResponsibilities || projectScope.clientResponsibilities) && (
-            <div>
-              <Title level={4}>Responsibilities</Title>
-              <Row gutter={16}>
-                {projectScope.serviceProviderResponsibilities && (
-                  <Col span={12}>
-                    <Text strong>Service Provider: </Text>
-                    <Text>{projectScope.serviceProviderResponsibilities}</Text>
-                  </Col>
-                )}
-                {projectScope.clientResponsibilities && (
-                  <Col span={12}>
-                    <Text strong>Client: </Text>
-                    <Text>{projectScope.clientResponsibilities}</Text>
-                  </Col>
-                )}
-              </Row>
-            </div>
-          )}
-
-          {projectScope.acceptanceCriteria && (
-            <div>
-              <Title level={4}>6. Acceptance Criteria</Title>
-              <Text>{projectScope.acceptanceCriteria}</Text>
-            </div>
-          )}
-
-          {projectScope.additionalTerms && (
-            <div>
-              <Title level={4}>7. Additional Terms</Title>
-              <Text>{projectScope.additionalTerms}</Text>
-            </div>
-          )}
-        </div>
+          </Col>
+          <Col span={12}>
+            <Text strong>Status:</Text>
+            <br />
+            <Tag color="blue">Draft</Tag>
+          </Col>
+        </Row>
       </Card>
     </div>
   );
 }
+
 
 // Proposal History Component
 function ProposalHistory({ 

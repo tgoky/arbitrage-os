@@ -41,6 +41,7 @@ export interface ProposalInput {
   serviceProvider: ServiceProvider;
   clientInfo: ClientInformation;
   projectScope: ProjectScope;
+    pricing?: PricingStructure; 
   effectiveDate?: string;
   workspaceId: string;
   userId?: string;
