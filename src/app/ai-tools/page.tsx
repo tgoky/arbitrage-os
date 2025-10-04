@@ -529,7 +529,7 @@ const AIToolsDashboard = () => {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <Space align="center" size="middle">
-          <div style={{
+          {/* <div style={{
             background: 'linear-gradient(135deg, #5CC49D 0%, #5CC49D 100%)',
             borderRadius: 12,
             padding: 12,
@@ -538,7 +538,7 @@ const AIToolsDashboard = () => {
             justifyContent: 'center'
           }}>
             <ThunderboltOutlined style={{ fontSize: 24, color: 'white' }} />
-          </div>
+          </div> */}
           <div>
             <Title
               level={2}
