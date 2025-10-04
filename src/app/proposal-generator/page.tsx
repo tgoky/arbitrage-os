@@ -831,7 +831,7 @@ Date: _________________________`;
                     </Button>
                   </div>
                   <div 
-                    className="border rounded p-6 bg-white"
+                    className="border rounded p-6 "
                     style={{ maxHeight: '600px', overflowY: 'auto' }}
                   >
                     {serviceAgreementHTML && (
@@ -861,7 +861,7 @@ Date: _________________________`;
                     </Button>
                   </div>
                   <div 
-                    className="border rounded p-6 bg-white"
+                    className="border rounded p-6 "
                     style={{ maxHeight: '600px', overflowY: 'auto' }}
                     dangerouslySetInnerHTML={{ __html: serviceAgreementHTML }}
                   />
@@ -891,7 +891,7 @@ Date: _________________________`;
                     </Button>
                   </div>
                   <div 
-                    className="border rounded p-6 bg-white"
+                    className="border rounded p-6"
                     style={{ maxHeight: '600px', overflowY: 'auto' }}
                     dangerouslySetInnerHTML={{ __html: statementOfWorkHTML }}
                   />
