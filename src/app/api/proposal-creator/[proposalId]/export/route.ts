@@ -162,12 +162,18 @@ export async function GET(
         throw new Error('Export returned null result');
       }
 
+      // Calculate content length safely
+      let contentLength: number;
+      if (typeof exportResult.content === 'string') {
+        contentLength = exportResult.content.length;
+      } else {
+        contentLength = 0; // For now, since we only have string formats
+      }
+
       console.log('✅ Export completed:', {
         format: exportResult.format,
         filename: exportResult.filename,
-        contentLength: typeof exportResult.content === 'string'
-          ? exportResult.content.length
-          : exportResult.content.byteLength,
+        contentLength,
         mimeType: exportResult.mimeType
       });
 
@@ -193,17 +199,6 @@ export async function GET(
           }
         });
       }
-
-      // // PDF format (if re-enabled)
-      // if (exportResult.format === 'pdf') {
-      //   return new NextResponse(exportResult.content as Buffer, {
-      //     status: 200,
-      //     headers: {
-      //       'Content-Type': 'application/pdf',
-      //       'Content-Disposition': `attachment; filename="${exportResult.filename}"`,
-      //     },
-      //   });
-      // }
 
       return NextResponse.json(
         {
