@@ -94,55 +94,48 @@ const WorkspaceHomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Calculate metrics from work items
-  const metrics = React.useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+// Replace the entire metrics useMemo with this:
+const metrics = React.useMemo(() => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  // Get most recent item
+  const sortedItems = [...workItems].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA;
+  });
+  
+  const mostRecentItem = sortedItems[0];
+  
+  // Count this month's items
+  const thisMonthItems = workItems.filter(item => {
+    if (!item.createdAt) return false;
+    const itemDate = new Date(item.createdAt);
+    return itemDate >= startOfMonth && itemDate <= now;
+  });
 
-    const thisMonthItems = workItems.filter(item => {
-      if (!item.createdAt) return false;
-      const itemDate = new Date(item.createdAt);
-      return itemDate >= startOfMonth && itemDate <= now;
-    });
+  // Tool display names
+  const toolNames: Record<string, string> = {
+    'sales-call': 'Sales Call',
+    'growth-plan': 'Growth Plan',
+    'pricing-calc': 'Pricing Calc',
+    'niche-research': 'Niche Research',
+    'cold-email': 'Cold Email',
+    'offer-creator': 'Offer Creator',
+    'ad-writer': 'Ad Writer',
+    'n8n-workflow': 'Workflow',
+    'proposal': 'Proposal',
+    'lead-generation': 'Lead Gen'
+  };
 
-    const lastMonthItems = workItems.filter(item => {
-      if (!item.createdAt) return false;
-      const itemDate = new Date(item.createdAt);
-      return itemDate >= startOfLastMonth && itemDate <= endOfLastMonth;
-    });
-
-    const getItemScore = (item: any) => {
-      const weights: Record<string, number> = {
-        'sales-call': 5,
-        'growth-plan': 8,
-        'pricing-calc': 4,
-        'niche-research': 6,
-        'cold-email': 3,
-        'offer-creator': 7,
-        'ad-writer': 4,
-        'n8n-workflow': 9
-      };
-      return weights[item.type] || 3;
-    };
-
-    const thisMonthScore = thisMonthItems.reduce((sum, item) => sum + getItemScore(item), 0);
-    const lastMonthScore = lastMonthItems.reduce((sum, item) => sum + getItemScore(item), 0);
-
-    let changePercent = 0;
-    if (lastMonthScore > 0) {
-      changePercent = ((thisMonthScore - lastMonthScore) / lastMonthScore) * 100;
-    } else if (thisMonthScore > 0) {
-      changePercent = 100;
-    }
-
-    return {
-      thisMonthItems: thisMonthItems.length,
-      thisMonthScore,
-      changePercent: Math.round(changePercent * 10) / 10,
-      isPositive: changePercent >= 0
-    };
-  }, [workItems]);
+  return {
+    thisMonthItems: thisMonthItems.length,
+    recentToolType: mostRecentItem?.type || null,
+    recentToolName: mostRecentItem ? toolNames[mostRecentItem.type] || 'Tool' : 'None',
+    recentToolTime: mostRecentItem?.createdAt || null
+  };
+}, [workItems]);
 
   // Generate notifications
   const notifications = React.useMemo(() => {
@@ -187,16 +180,34 @@ const WorkspaceHomePage = () => {
       });
     }
 
-    if (metrics.changePercent > 20) {
-      notifs.push({
-        id: 'productivity-boost',
-        type: 'achievement',
-        title: 'Productivity Boost!',
-        description: `You're ${metrics.changePercent}% more productive this month. Keep it up!`,
-        timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        read: false
-      });
-    }
+    if (workItems.length === 10) {
+  notifs.push({
+    id: 'milestone-10',
+    type: 'achievement',
+    title: 'First 10 Tools!',
+    description: 'You\'ve generated 10 items. You\'re getting the hang of this!',
+    timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000),
+    read: false
+  });
+} else if (workItems.length === 50) {
+  notifs.push({
+    id: 'milestone-50',
+    type: 'achievement',
+    title: '50 Tools Generated!',
+    description: 'You\'re becoming a power user. Keep building!',
+    timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000),
+    read: false
+  });
+} else if (workItems.length === 100) {
+  notifs.push({
+    id: 'milestone-100',
+    type: 'achievement',
+    title: 'Century Club!',
+    description: '100 tools generated! You\'re a true arbitrageOS expert.',
+    timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000),
+    read: false
+  });
+}
 
     const thisWeekItems = workItems.filter(item => {
       if (!item.createdAt) return false;
@@ -1048,39 +1059,58 @@ if (isLoading || workspaceLoading || userLoading) {
             </Card>
           </Col>
           
-          <Col xs={24} sm={8}>
-            <Card 
-              size="small" 
-              className="text-center h-full" 
-              bodyStyle={{ padding: '12px 16px' }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <Text type="secondary" className="text-xs block mb-1">This Month</Text>
-                  <Title 
-                    level={3} 
-                    className="mb-0" 
-                    style={{ 
-                      marginBottom: 0, 
-                      color: metrics.isPositive ? '#16a34a' : '#ef4444'
-                    }}
-                  >
-                    {metrics.isPositive ? '+' : ''}{metrics.changePercent}%
-                  </Title>
-                  <Text 
-                    type="secondary" 
-                    className="text-xs"
-                    title={`${metrics.thisMonthItems} items created this month (score: ${metrics.thisMonthScore})`}
-                  >
-                    {metrics.thisMonthItems} items created
-                  </Text>
-                </div>
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <RiseOutlined className="text-purple-600 text-sm" />
-                </div>
-              </div>
-            </Card>
-          </Col>
+        <Col xs={24} sm={8}>
+  <Card 
+    size="small" 
+    className="text-center h-full" 
+    bodyStyle={{ padding: '12px 16px' }}
+  >
+    <div className="flex items-center justify-between">
+      <div className="text-left">
+        <Text type="secondary" className="text-xs block mb-1">Recent Tool Used</Text>
+        <Title 
+          level={4} 
+          className="mb-0" 
+          style={{ 
+            marginBottom: 0, 
+            fontSize: '16px',
+            lineHeight: 1.2,
+            color: theme === 'dark' ? '#fff' : '#000'
+          }}
+          ellipsis={{ tooltip: metrics.recentToolName }}
+        >
+          {metrics.recentToolName}
+        </Title>
+        {metrics.recentToolTime && (
+          <Text 
+            type="secondary" 
+            className="text-xs"
+            title={new Date(metrics.recentToolTime).toLocaleString()}
+          >
+            {(() => {
+              const now = new Date();
+              const itemDate = new Date(metrics.recentToolTime);
+              const diffMs = now.getTime() - itemDate.getTime();
+              const diffMins = Math.floor(diffMs / (1000 * 60));
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+              
+              if (diffMins < 1) return 'Just now';
+              if (diffMins < 60) return `${diffMins}m ago`;
+              if (diffHours < 24) return `${diffHours}h ago`;
+              if (diffDays === 1) return 'Yesterday';
+              return `${diffDays}d ago`;
+            })()}
+          </Text>
+        )}
+      </div>
+      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+        <RiseOutlined className="text-purple-600 text-sm" />
+      </div>
+    </div>
+  </Card>
+</Col>
+
         </Row>
 
         {/* Workspaces Grid */}

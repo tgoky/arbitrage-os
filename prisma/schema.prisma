@@ -1,4 +1,4 @@
-// schema.prisma - COMPLETE WITH CREDITS SYSTEM AND USER MODEL + RELATIONS
+// schema.prisma - COMPLETE WITH ADMIN, INVITES, CREDITS SYSTEM AND USER MODEL + RELATIONS
 
 generator client {
   provider = "prisma-client-js"
@@ -13,12 +13,15 @@ datasource db {
 
 // ------------------ USER MODEL ------------------
 model User {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email      String    @unique
-  name       String?
-  avatar     String?
-  created_at DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
-  updated_at DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String    @unique
+  name           String?
+  avatar         String?
+  status         String?   @default("invited") @db.VarChar(50) // 'invited', 'active', 'suspended'
+  last_login     DateTime? @map("last_login") @db.Timestamptz(6)
+  invite_sent_at DateTime? @map("invite_sent_at") @db.Timestamptz(6)
+  created_at     DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
+  updated_at     DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
   workspaces         Workspace[]
@@ -27,10 +30,38 @@ model User {
   aiToolFavorites    AIToolFavorite[]
   userCredits        UserCredit?
   creditTransactions CreditTransaction[]
-  notifications        Notification[]
+  notifications      Notification[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
+  @@schema("public")
+}
+
+// ------------------ ADMIN MODELS ------------------
+model AdminProfile {
+  id         String   @id @db.Uuid
+  role       String   @default("admin") @db.VarChar(50)
+  created_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
+  updated_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("admin_profiles")
+  @@schema("public")
+}
+
+model UserInvite {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String    @unique @db.VarChar(255)
+  status      String    @default("sent") @db.VarChar(50) // 'sent', 'accepted', 'expired'
+  invited_by  String    @db.VarChar(255)
+  sent_at     DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("sent_at") @db.Timestamptz(6)
+  accepted_at DateTime? @map("accepted_at") @db.Timestamptz(6)
+  expires_at  DateTime  @map("expires_at") @db.Timestamptz(6)
+  created_at  DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
+  updated_at  DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([email], map: "idx_user_invites_email")
+  @@index([status], map: "idx_user_invites_status")
+  @@map("user_invites")
   @@schema("public")
 }
 
@@ -49,7 +80,7 @@ model Workspace {
   user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   deliverables       Deliverable[]
   creditTransactions CreditTransaction[]
-  notifications        Notification[]
+  notifications      Notification[]
   
   @@unique([user_id, slug])
   @@index([slug], map: "idx_workspaces_slug")
@@ -160,15 +191,15 @@ model CreditTransaction {
 
 // ------------------ NOTIFICATION MODEL ------------------
 model Notification {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id      String   @db.Uuid
-  workspace_id String   @db.Uuid
-  type         String   @db.VarChar(50)  // 'pricing_calculation', 'sales_call', etc.
-  title        String   @db.VarChar(255)
-  message      String   @db.Text
-  status       String   @default("unread") @db.VarChar(20) // 'unread', 'read', 'archived'
-  item_id      String   @db.Uuid  // ID of the generated item (deliverable, calculation, etc.)
-  route        String   @db.Text  // The URL route to navigate to
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  workspace_id String    @db.Uuid
+  type         String    @db.VarChar(50)  // 'pricing_calculation', 'sales_call', etc.
+  title        String    @db.VarChar(255)
+  message      String    @db.Text
+  status       String    @default("unread") @db.VarChar(20) // 'unread', 'read', 'archived'
+  item_id      String    @db.Uuid  // ID of the generated item (deliverable, calculation, etc.)
+  route        String    @db.Text  // The URL route to navigate to
   metadata     Json?
   read_at      DateTime? @map("read_at") @db.Timestamptz(6)
   created_at   DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)

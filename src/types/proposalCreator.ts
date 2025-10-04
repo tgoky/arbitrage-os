@@ -18,6 +18,8 @@ export type IndustryType =
   | 'education'
   | 'other';
 
+  
+
 export type ContractLength =
   | 'one-time'
   | 'monthly'

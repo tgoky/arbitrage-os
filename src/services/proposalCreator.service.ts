@@ -15,6 +15,27 @@ import {
 import { generateProposalCacheKey } from '../app/validators/proposalCreator.validator';
 import { OpenRouterClient } from '@/lib/openrouter';
 
+
+interface ContractOutput {
+  serviceAgreement: string;
+  statementOfWork: string;
+  metadata?: {
+    tokensUsed?: number;
+    model?: string;
+    generatedAt?: string;
+  };
+}
+
+interface SimpleProposalPackage {
+  contracts: ContractOutput;
+  tokensUsed: number;
+  generationTime: number;
+  originalInput: ProposalInput;
+}
+
+
+
+
 // Production-ready error classes
 export class ProposalGenerationError extends Error {
   constructor(message: string, public cause?: Error) {
@@ -469,92 +490,51 @@ private buildProposalPrompt(input: ProposalInput): string {
     const totalValue = input.pricing.totalAmount;
     const paymentSchedule = this.safeGeneratePaymentScheduleText(input.pricing, formatCurrency);
 
-    return `
-# PERSONALIZED PROPOSAL GENERATION BRIEF
+  return `
+# CRITICAL: LEGAL CONTRACT GENERATION REQUIREMENTS
 
-## PERSONALIZATION MANDATE
-Create a UNIQUE proposal that could ONLY be for ${input.client.legalName}. This is NOT a template - make it specific to their exact situation: "${input.project.description}"
+You MUST generate COMPLETE legal contracts with ALL sections filled in. Do NOT use placeholders like [NAME] or [ADDRESS]. Use the actual information provided.
 
-Reference their specific project description throughout. Address ${input.client.industry}-specific challenges and regulations. Avoid generic phrases like "professional service delivery" or "quality assurance."
+**SERVICE AGREEMENT MUST INCLUDE:**
+1. Full header with both party names and addresses
+2. Numbered sections (1. SERVICES, 2. TERM, 3. FEES, etc.)
+3. Complete legal clauses for: Services, Term, Fees, IP, Confidentiality, Termination, Governing Law
+4. Signature blocks with actual names (not placeholders):
+   - ${input.serviceProvider.name}
+   - ${input.serviceProvider.signatoryName || '[Authorized Representative]'} as signatory
+   - ${input.client.legalName}
+   - ${input.client.signatoryName || '[Authorized Representative]'} as signatory
 
-## CLIENT PROFILE
-**Client:** ${this.getCleanValue(input.client.legalName)} (${input.client.entityType || 'Corporation'})
-**Industry:** ${input.client.industry}
-**Company Size:** ${input.client.companySize}
-**Specific Project Need:** ${input.project.description}
-**Decision Maker:** ${this.getCleanValue(input.client.decisionMaker, 'TBD')}
-
-## SERVICE PROVIDER
-**Provider:** ${this.getCleanValue(input.serviceProvider.name, 'Service Provider')}
-**Specializations:** ${this.safeJoinArray(input.serviceProvider.specializations, 'Professional Services')}
-**Credentials:** ${this.safeJoinArray(input.serviceProvider.credentials, 'Professional Credentials')}
-
-## PROJECT SCOPE - CUSTOMIZE THIS SECTION
-**Description:** ${input.project.description}
-**Objectives:** ${this.safeGenerateObjectivesList(input.project.objectives)}
-**Timeline:** ${this.getCleanValue(input.project.timeline, '8-12 weeks')}
-**Deliverables:** ${this.safeGenerateDeliverablesText(input.project.deliverables, formatCurrency)}
-
-## PRICING STRUCTURE
-**Model:** ${input.pricing.model}
-**Total Value:** ${formatCurrency(totalValue, input.pricing.currency)}
-**Payment Schedule:** ${paymentSchedule}
-
-## CONTRACT TERMS
-**Proposal Validity:** ${input.terms.proposalValidityDays} days
-**Contract Length:** ${input.terms.contractLength}
-**IP Ownership:** ${input.terms.intellectualProperty}
-**Governing Law:** ${this.getCleanValue(input.terms.governingLaw, 'Delaware')}
-
-## SPECIFIC REQUIREMENTS FOR THIS PROPOSAL
-
-1. **Industry Context**: Address specific ${input.client.industry} industry challenges, regulations, and best practices
-2. **Project Integration**: Weave "${input.project.description}" throughout all sections - don't just mention it once
-3. **Client-Specific Value**: Explain why THIS solution fits ${input.client.legalName}'s specific needs
-4. **Unique Deliverables**: Create deliverables that directly serve "${input.project.description}" - not generic ones
-5. **Personalized Risks**: Identify risks specific to ${input.client.industry} and this project type
-6. **Custom Timeline**: Reference actual project phases that make sense for "${input.project.description}"
-
-## ALTERNATIVE OPTIONS REQUIREMENT
-Create 3 alternative approaches specifically for ${input.client.legalName}'s "${input.project.description}" project:
-
-1. **Essential Package**: Streamlined version focusing on core aspects of "${input.project.description}" with reduced scope but faster delivery
-2. **Premium Package**: Enhanced version with additional ${input.client.industry}-specific optimization and extended support
-3. **Phased Approach**: Break "${input.project.description}" into strategic phases with validation checkpoints
-
-Make each alternative specific to their project - not generic templates. Include realistic pricing adjustments, timeline changes, and specific scope modifications that make sense for "${input.project.description}".
+**STATEMENT OF WORK MUST INCLUDE:**
+1. Full SOW header referencing the Service Agreement
+2. Project Description from: "${input.project.description}"
+3. Scope of Services (detailed, not generic)
+4. Timeline: ${input.project.timeline}
+5. Fees: $${input.pricing.totalAmount.toLocaleString()}
+6. Deliverables: ${this.safeGenerateDeliverablesText(input.project.deliverables, formatCurrency)}
+7. Signature blocks matching Service Agreement
 
 ## OUTPUT REQUIREMENTS
-Return a valid JSON object with this exact structure:
+Return valid JSON with this EXACT structure:
 {
-  "executiveSummary": "string (optional, only if requested)",
-  "projectOverview": "string (required - make this unique to ${input.client.legalName}'s situation)",
-  "scopeOfWork": "string (required - directly address '${input.project.description}')", 
-  "pricing": "string (required)",
-  "timeline": "string (required)",
-  "deliverables": "string (required - custom to this project)",
-  "terms": "string (required)",
-  "nextSteps": "string (required)",
-  "alternativeOptions": [
-    {
-      "title": "string (specific to ${input.client.legalName})",
-      "description": "string (specific to '${input.project.description}')",
-      "pricingAdjustment": number (between -0.5 and 0.5),
-      "timelineAdjustment": "string (specific timeline changes)",
-      "scopeChanges": ["array of specific scope modifications for this project"],
-      "pros": ["array of specific advantages for ${input.client.legalName}"],
-      "cons": ["array of specific disadvantages or limitations"]
-    }
-  ],
+  "projectOverview": "string",
+  "scopeOfWork": "string",
+  "pricing": "string",
+  "timeline": "string",
+  "deliverables": "string",
+  "terms": "string",
+  "nextSteps": "string",
+  "alternativeOptions": [...],
   "contractTemplates": {
-    "serviceAgreement": "string (required - full legal template)",
-    "statementOfWork": "string (required - full SOW template)"
+    "serviceAgreement": "FULL multi-paragraph legal contract text with actual names/addresses - NO placeholders",
+    "statementOfWork": "FULL multi-paragraph SOW text with actual project details - NO placeholders"
   }
 }
 
-CRITICAL: Make this proposal so specific to ${input.client.legalName} and "${input.project.description}" that it couldn't be used for any other client. Use their exact project description as the foundation for all content. The alternative options must be equally specific - not generic packages with client names swapped in.
+CRITICAL: The contractTemplates MUST contain complete, multi-paragraph legal text. They should be at least 500 words each. Use the actual party names and information - never use placeholders.
 `;
-  }
+}
+
 
 
 
@@ -1762,31 +1742,32 @@ private generateHTMLExport(proposal: any): string {
     
     <div class="legal-text">${this.escapeHtml(serviceAgreement)}</div>
     
-    <div class="signature-block">
-        <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.</p>
+   <div class="signature-block">
+    <p style="font-weight: bold; margin-bottom: 30px;">IN WITNESS WHEREOF, the Parties have executed this Service Agreement as of the Effective Date.</p>
+    
+    <div class="signature-container">
+        <div class="signature-box">
+            <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
+            ${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName)}</div>` : ''}
+            <div class="signature-line"></div>
+            <div class="signature-label">By: _________________________</div>
+            <div class="signature-label">Name: ${this.escapeHtml(signatoryName)}</div>
+            <div class="signature-label">Title: ${this.escapeHtml(signatoryTitle)}</div>
+            <div class="signature-label">Date: _________________________</div>
+        </div>
         
-        <div class="signature-container">
-            <div class="signature-box">
-                <div><strong>${this.escapeHtml(providerName).toUpperCase()}</strong></div>
-${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName)}</div>` : ''}
-                <div class="signature-line"></div>
-                <div class="signature-label">By: _________________________</div>
-                <div class="signature-label">Name: ________________________</div>
-                <div class="signature-label">Title: ________________________</div>
-                <div class="signature-label">Date: _________________________</div>
-            </div>
-            
-            <div class="signature-box">
-                <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
-                  <div>&nbsp;</div> 
-                <div class="signature-line"></div>
-                <div class="signature-label">By: _________________________</div>
-                <div class="signature-label">Name: _________________________</div>
-                <div class="signature-label">Title: _________________________</div>
-                <div class="signature-label">Date: _________________________</div>
-            </div>
+        <div class="signature-box">
+            <div><strong>${this.escapeHtml(clientName).toUpperCase()}</strong></div>
+            <div>&nbsp;</div>
+            <div class="signature-line"></div>
+            <div class="signature-label">By: _________________________</div>
+            <div class="signature-label">Name: ${this.escapeHtml(input.client.signatoryName || '_________________________')}</div>
+            <div class="signature-label">Title: ${this.escapeHtml(input.client.signatoryTitle || '_________________________')}</div>
+            <div class="signature-label">Date: _________________________</div>
         </div>
     </div>
+</div>
+
 
     <!-- STATEMENT OF WORK (NEW PAGE) -->
     <div class="page-break"></div>
@@ -1828,10 +1809,18 @@ ${providerLegalName !== providerName ? `<div>${this.escapeHtml(providerLegalName
 
 // Add these helper methods for fallback contracts:
 
-private generateDefaultServiceAgreement(provider: string, providerLegal: string, providerAddr: string, client: string, clientAddr: string, clientEntity: string, date: string): string {
+private generateDefaultServiceAgreement(
+  provider: string, 
+  providerLegal: string, 
+  providerAddr: string, 
+  client: string, 
+  clientAddr: string, 
+  clientEntity: string, 
+  date: string
+): string {
   return `This Service Agreement (the "Agreement") is entered into as of ${date} (the "Effective Date"), by and between:
 
-${provider}, ${providerLegal ? `${providerLegal}, ` : ''}with its principal place of business at ${providerAddr} ("Service Provider"),
+${provider}${providerLegal ? `, a trade name and doing business as ("DBA") of ${providerLegal}` : ''}, with its principal place of business at ${providerAddr} ("Service Provider"),
 
 and
 
@@ -1842,39 +1831,82 @@ Together referred to as the "Parties" and individually as a "Party."
 1. SERVICES
 
 1.1 Scope of Services.
-Service Provider shall provide the services set forth in the attached Statement of Work.
+Service Provider shall provide the services set forth in one or more statements of work, proposals, or schedules executed by the Parties (each, an "SOW"). Each SOW shall describe the services, deliverables, timelines, and fees.
 
 1.2 Standard of Performance.
 Service Provider shall perform the Services in a professional and workmanlike manner consistent with industry standards.
 
 2. TERM
 
-This Agreement shall commence on the Effective Date and continue until completion of services or earlier termination.
+This Agreement shall commence on the Effective Date and continue until terminated in accordance with Section 10.
 
 3. FEES & PAYMENT
 
 3.1 Fees.
-Client shall pay Service Provider the fees set forth in the Statement of Work.
+Client shall pay Service Provider the fees set forth in the applicable SOW.
 
-3.2 Payment Terms.
-Payment shall be made according to the schedule outlined in the Statement of Work.
+3.2 Invoices.
+Unless otherwise stated, Service Provider shall invoice monthly in arrears. Payment shall be due within fifteen (15) days of receipt of invoice.
 
-4. INTELLECTUAL PROPERTY
+3.3 Late Payments.
+Past due balances may accrue interest at one and one-half percent (1.5%) per month or the maximum allowed by law.
 
-All deliverables created specifically for Client under this Agreement shall be deemed "work made for hire" and owned by Client upon full payment.
+4. EXPENSES
+
+Client shall reimburse Service Provider for pre-approved, reasonable, out-of-pocket expenses incurred in performing the Services.
 
 5. CONFIDENTIALITY
 
-Each Party agrees to maintain in strict confidence any non-public, proprietary, or confidential information disclosed by the other Party.
+Each Party agrees to maintain in strict confidence any non-public, proprietary, or confidential information disclosed by the other Party, and to use such information solely for purposes of performing under this Agreement.
 
-6. TERMINATION
+6. INTELLECTUAL PROPERTY
 
-Either Party may terminate upon thirty (30) days' written notice.
+6.1 Pre-Existing IP.
+Each Party retains ownership of its pre-existing intellectual property.
 
-7. GOVERNING LAW
+6.2 Deliverables.
+Unless otherwise set forth in an SOW, all deliverables created specifically for Client under this Agreement shall be deemed "work made for hire" and owned by Client upon full payment.
 
-This Agreement shall be governed by and construed under the laws of Delaware.`;
+6.3 Tools & Background Technology.
+Service Provider retains all rights to its methodologies, templates, processes, code libraries, and tools used in providing the Services. Client receives a non-exclusive license to use such elements solely as incorporated into deliverables.
+
+7. REPRESENTATIONS & WARRANTIES
+
+Each Party represents and warrants that it has full power and authority to enter into this Agreement. Service Provider warrants that Services shall be performed in a professional manner. EXCEPT AS EXPRESSLY PROVIDED, SERVICES ARE PROVIDED "AS IS" WITHOUT OTHER WARRANTIES.
+
+8. INDEMNIFICATION
+
+Each Party shall indemnify, defend, and hold harmless the other Party against claims, damages, or expenses arising from the indemnifying Party's negligence, willful misconduct, or breach of this Agreement.
+
+9. LIMITATION OF LIABILITY
+
+Except for confidentiality or indemnification obligations, neither Party shall be liable for any indirect, incidental, special, or consequential damages. Service Provider's total liability shall not exceed the fees paid by Client in the six (6) months preceding the claim.
+
+10. TERMINATION
+
+Either Party may terminate this Agreement or any SOW:
+(a) for convenience upon thirty (30) days' prior written notice; or
+(b) immediately upon written notice if the other Party materially breaches and fails to cure within fifteen (15) days after notice.
+
+11. GOVERNING LAW
+
+This Agreement shall be governed by and construed under the laws of the State of ${input.terms.governingLaw || 'Delaware'}, without regard to its conflicts of law principles.
+
+12. GENERAL
+
+12.1 Independent Contractor.
+Service Provider is an independent contractor and not an employee, agent, or partner of Client.
+
+12.2 Assignment.
+Neither Party may assign this Agreement without prior written consent, except to a successor in interest by merger or acquisition.
+
+12.3 Entire Agreement.
+This Agreement, together with applicable SOWs, constitutes the entire agreement between the Parties.
+
+12.4 Amendments.
+No amendment shall be effective unless in writing and signed by both Parties.`;
 }
+
 
 private generateDefaultSOW(provider: string, client: string, content: any, input: any, date: string): string {
   const description = content?.projectOverview || input?.project?.description || 'Professional services as agreed';
