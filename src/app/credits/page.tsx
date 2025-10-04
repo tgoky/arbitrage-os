@@ -5,21 +5,45 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
 import CreditsPurchaseModal from '../../components/credits/CreditsDisplayModal';
 import { 
-  CreditCard, 
-  Zap, 
-  Gift, 
-  History, 
-  Download, 
-  ShoppingCart, 
-  Info, 
-  Plus, 
-  ArrowLeft,
-  Clock,
-  HardDrive,
-  File,
-  Trash2
-} from 'lucide-react';
-import dayjs from 'dayjs';
+  Button, 
+  Card, 
+  Input, 
+  Modal, 
+  Typography, 
+  Progress, 
+  Space, 
+  Avatar, 
+  Dropdown, 
+  Badge,
+  Row,
+  Col,
+  Empty,
+  Popover,
+  List,
+  Select,
+  Statistic
+} from 'antd';
+import { 
+  CreditCardOutlined, 
+  ThunderboltOutlined, 
+  GiftOutlined, 
+  HistoryOutlined, 
+  DownloadOutlined, 
+  ShoppingCartOutlined, 
+  InfoCircleOutlined,
+  PlusOutlined,
+  ArrowLeftOutlined,
+  ClockCircleOutlined,
+  CheckCircleFilled,
+  LoadingOutlined,
+  BellOutlined,
+  DownOutlined,
+  RiseOutlined,
+  UserOutlined
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 interface CreditTransaction {
   id: string;
@@ -50,6 +74,13 @@ interface UsageStats {
   timeframe: string;
 }
 
+interface UserProfile {
+  id: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+}
+
 const CreditsHistoryPage = () => {
   const { theme } = useTheme();
   const router = useRouter();
@@ -72,16 +103,11 @@ const CreditsHistoryPage = () => {
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'all'>('month');
   const [transactionType, setTransactionType] = useState<string>('all');
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeWindow, setActiveWindow] = useState<string>('credits');
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     loadData();
+    loadUserProfile();
   }, [timeframe]);
 
   const loadData = async () => {
@@ -109,6 +135,18 @@ const CreditsHistoryPage = () => {
       console.error('Failed to load credits data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      const data = await response.json();
+      if (data.success) {
+        setUserProfile(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
     }
   };
 
@@ -147,512 +185,474 @@ const CreditsHistoryPage = () => {
 
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
-      case 'purchase': return '#00c000'; // Green
-      case 'usage': return '#0000c0'; // Blue
-      case 'free_usage': return '#c06000'; // Orange
-      case 'refund': return '#8000c0'; // Purple
-      case 'bonus': return '#c0c000'; // Gold
-      default: return '#808080'; // Gray
+      case 'purchase': return '#52c41a'; // Green
+      case 'usage': return '#1890ff'; // Blue
+      case 'free_usage': return '#fa8c16'; // Orange
+      case 'refund': return '#722ed1'; // Purple
+      case 'bonus': return '#faad14'; // Gold
+      default: return '#8c8c8c'; // Gray
     }
   };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'purchase': return <CreditCard className="w-3 h-3" />;
-      case 'usage': return <Zap className="w-3 h-3" />;
-      case 'free_usage': return <Gift className="w-3 h-3" />;
-      default: return <History className="w-3 h-3" />;
+      case 'purchase': return <CreditCardOutlined style={{ color: getTransactionTypeColor(type) }} />;
+      case 'usage': return <ThunderboltOutlined style={{ color: getTransactionTypeColor(type) }} />;
+      case 'free_usage': return <GiftOutlined style={{ color: getTransactionTypeColor(type) }} />;
+      default: return <HistoryOutlined style={{ color: getTransactionTypeColor(type) }} />;
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const formatAmount = (amount: number) => {
+    return (
+      <span style={{ 
+        color: amount > 0 ? '#52c41a' : amount < 0 ? '#ff4d4f' : '#666',
+        fontWeight: 'bold'
+      }}>
+        {amount > 0 ? '+' : ''}{amount}
+      </span>
+    );
   };
 
   const filteredTransactions = transactions.filter(tx => 
     transactionType === 'all' || tx.transaction_type === transactionType
   );
 
+  const displayName = userProfile?.name || userProfile?.email?.split('@')[0] || 'User';
+  const userInitial = displayName.charAt(0).toUpperCase();
+
+  const userMenuItems = [
+    { key: 'profile', label: 'Profile' },
+    { key: 'settings', label: 'Settings' },
+    { key: 'logout', label: 'Logout' }
+  ];
+
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
-      {/* Desktop Background */}
-      <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
-        {/* Desktop Icons */}
-        <div className="absolute left-0 top-0 p-6 space-y-8 flex flex-col">
-          {/* My Computer Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("my-computer")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <rect x="8" y="12" width="40" height="30" rx="2" fill="#1084D0" />
-                <rect x="12" y="16" width="32" height="22" fill="#000" />
-                <path d="M12 16 L44 16 L36 24 Z" fill="white" fillOpacity="0.2" />
-                <rect x="24" y="42" width="8" height="4" fill="#595959" />
-                <rect x="20" y="46" width="16" height="4" fill="#808080" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              My Computer
-            </span>
+    <div className="min-h-screen w-full" style={{ 
+      backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
+    }}>
+      {/* Header */}
+      <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+        <div className="flex items-center justify-between h-12">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <img
+              src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+              alt="ArbitrageOS Logo"
+              style={{ 
+                height: '140px',
+                width: 'auto',
+                objectFit: 'contain',
+                marginRight: '16px'
+              }}
+            />
           </div>
 
-          {/* My Documents Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("documents")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <path
-                  d="M10 16H46V46H10V16Z"
-                  fill="#FFCC00"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M10 16L20 8H36L46 16"
-                  fill="#FFCC00"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <rect x="16" y="24" width="24" height="2" fill="#000" />
-                <rect x="16" y="28" width="20" height="2" fill="#000" />
-                <rect x="16" y="32" width="24" height="2" fill="#000" />
-                <rect x="16" y="36" width="18" height="2" fill="#000" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              My Documents
-            </span>
+          {/* Page Title */}
+          <div className="flex-1 text-center">
+            <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+              Credits & History
+            </Title>
           </div>
 
-          {/* Recycle Bin Icon */}
-          <div
-            className="flex flex-col items-center w-20 text-center text-white cursor-pointer group"
-            onDoubleClick={() => setActiveWindow("recycle-bin")}
-          >
-            <div className="w-14 h-14 mb-1 flex items-center justify-center relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 56 56"
-                className="transition-transform group-hover:scale-110"
-              >
-                <path
-                  d="M14 20H42V44H14V20Z"
-                  fill="#C0C0C0"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M18 16H38V20H18V16Z"
-                  fill="#808080"
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-                <rect x="26" y="12" width="4" height="4" fill="#000" />
-                <rect x="20" y="24" width="16" height="12" fill="#FFFFFF" stroke="#000" />
-                <rect x="24" y="28" width="8" height="1" fill="#000" />
-                <rect x="24" y="32" width="8" height="1" fill="#000" />
-              </svg>
-            </div>
-            <span className="text-xs bg-blue-700 px-1 group-hover:bg-blue-800">
-              Recycle Bin
-            </span>
+          {/* User Menu */}
+          <Space size="middle">
+            <Button 
+              type="text" 
+              icon={<BellOutlined />} 
+              style={{
+                color: theme === 'dark' ? '#fff' : '#000'
+              }}
+            />
+            
+            <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+              <Button type="text" className="flex items-center gap-2">
+                {userProfile?.avatar ? (
+                  <Avatar 
+                    size="small" 
+                    src={userProfile.avatar}
+                    style={{ backgroundColor: '#1890ff' }}
+                  />
+                ) : (
+                  <Avatar 
+                    size="small" 
+                    style={{ backgroundColor: '#1890ff' }}
+                  >
+                    {userInitial}
+                  </Avatar>
+                )}
+                <div className="flex flex-col items-start">
+                  <Text 
+                    style={{ 
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '12px',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {displayName}
+                  </Text>
+                  {userProfile?.email && (
+                    <Text 
+                      style={{ 
+                        color: theme === 'dark' ? '#9ca3af' : '#666',
+                        fontSize: '10px',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {userProfile.email.length > 20 
+                        ? `${userProfile.email.substring(0, 20)}...` 
+                        : userProfile.email
+                      }
+                    </Text>
+                  )}
+                </div>
+                <DownOutlined />
+              </Button>
+            </Dropdown>
+          </Space>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="w-full px-6 py-6">
+        {/* Header Section */}
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <Title level={3} className="mb-1" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+              Credits Management
+            </Title>
+            <Text type="secondary" className="text-sm">
+              Manage your credits, view transaction history, and track usage
+            </Text>
           </div>
+          
+          <Space>
+            <Button 
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.back()}
+            >
+              Back
+            </Button>
+            <Button 
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setPurchaseModalVisible(true)}
+              style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
+            >
+              Buy Credits
+            </Button>
+          </Space>
         </div>
 
-        {/* Credits Window */}
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-6xl shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
-                  <div className="w-3 h-3 border-2 border-gray-600 bg-blue-600"></div>
+        {/* Credit Balance Cards */}
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} sm={12} md={6}>
+            <Card 
+              size="small" 
+              className="h-full" 
+              bodyStyle={{ padding: '16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Available Credits</Text>
+                  <Title level={3} className="mb-0" style={{ marginBottom: 0, color: '#52c41a' }}>
+                    {userCredits.credits}
+                  </Title>
+                  <Progress 
+                    percent={100}
+                    strokeColor="#52c41a"
+                    trailColor={theme === 'dark' ? '#374151' : '#f0f0f0'}
+                    size="small"
+                    showInfo={false}
+                    className="mt-2"
+                  />
                 </div>
-                <span className="font-bold">Credits & History</span>
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <ThunderboltOutlined className="text-green-600 text-lg" />
+                </div>
               </div>
-              <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Card 
+              size="small" 
+              className="h-full" 
+              bodyStyle={{ padding: '16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Free Leads Remaining</Text>
+                  <Title level={3} className="mb-0" style={{ marginBottom: 0, color: '#1890ff' }}>
+                    {userCredits.freeLeadsAvailable}<span className="text-sm font-normal">/5</span>
+                  </Title>
+                  <Progress 
+                    percent={(userCredits.freeLeadsAvailable / 5) * 100}
+                    strokeColor="#1890ff"
+                    trailColor={theme === 'dark' ? '#374151' : '#f0f0f0'}
+                    size="small"
+                    showInfo={false}
+                    className="mt-2"
+                  />
                 </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">×</span>
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <GiftOutlined className="text-blue-600 text-lg" />
                 </div>
               </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Card 
+              size="small" 
+              className="h-full" 
+              bodyStyle={{ padding: '16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Total Purchased</Text>
+                  <Title level={3} className="mb-0" style={{ marginBottom: 0, color: '#722ed1' }}>
+                    {userCredits.totalPurchased}
+                  </Title>
+                </div>
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <CreditCardOutlined className="text-purple-600 text-lg" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Card 
+              size="small" 
+              className="h-full" 
+              bodyStyle={{ padding: '16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Leads Generated</Text>
+                  <Title level={3} className="mb-0" style={{ marginBottom: 0, color: '#eb2f96' }}>
+                    {usageStats.totalLeadsGenerated}
+                  </Title>
+                  <Text type="secondary" className="text-xs block mt-1">
+                    This {timeframe}
+                  </Text>
+                </div>
+                <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+                  <RiseOutlined className="text-pink-600 text-lg" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Usage Statistics */}
+        <Card className="mb-6" bodyStyle={{ padding: '20px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                <InfoCircleOutlined className="text-white text-sm" />
+              </div>
+              <Title level={4} className="mb-0">Usage Statistics</Title>
             </div>
             
-            <div className="p-4 bg-gray-200">
-              {/* Header */}
-              <div className="mb-4 flex justify-between items-center">
-                <button 
-                  className="px-3 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center"
-                  onClick={() => router.back()}
-                >
-                  <ArrowLeft className="w-3 h-3 mr-1" />
-                  Back
-                </button>
-                
-                <button
-                  className="px-3 py-1 bg-blue-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center"
-                  onClick={() => setPurchaseModalVisible(true)}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Buy Credits
-                </button>
+            <Select 
+              value={timeframe}
+              onChange={(value) => setTimeframe(value)}
+              style={{ width: 120 }}
+            >
+              <Option value="week">This Week</Option>
+              <Option value="month">This Month</Option>
+              <Option value="all">All Time</Option>
+            </Select>
+          </div>
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={12} sm={6}>
+              <div className="text-center">
+                <Statistic
+                  value={usageStats.creditsUsed}
+                  valueStyle={{ color: '#fa8c16', fontSize: '24px' }}
+                />
+                <Text type="secondary" className="text-sm">Credits Used</Text>
               </div>
+            </Col>
+            <Col xs={12} sm={6}>
+              <div className="text-center">
+                <Statistic
+                  value={usageStats.freeLeadsUsed}
+                  valueStyle={{ color: '#52c41a', fontSize: '24px' }}
+                />
+                <Text type="secondary" className="text-sm">Free Leads Used</Text>
+              </div>
+            </Col>
+            <Col xs={12} sm={6}>
+              <div className="text-center">
+                <Statistic
+                  value={usageStats.generationsCount}
+                  valueStyle={{ color: '#1890ff', fontSize: '24px' }}
+                />
+                <Text type="secondary" className="text-sm">Generations</Text>
+              </div>
+            </Col>
+            <Col xs={12} sm={6}>
+              <div className="text-center">
+                <Statistic
+                  value={usageStats.totalLeadsGenerated}
+                  valueStyle={{ color: '#722ed1', fontSize: '24px' }}
+                />
+                <Text type="secondary" className="text-sm">Total Leads</Text>
+              </div>
+            </Col>
+          </Row>
+        </Card>
 
-              {/* Title */}
-              <div className="flex items-center mb-4">
-                <CreditCard className="w-6 h-6 mr-2 text-blue-800" />
-                <h2 className="text-xl font-bold text-gray-800">Credits & History</h2>
+        {/* Transaction History */}
+        <Card bodyStyle={{ padding: '20px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                <HistoryOutlined className="text-white text-sm" />
+              </div>
+              <Title level={4} className="mb-0">Transaction History</Title>
+            </div>
+            
+            <Space>
+              <Select 
+                value={transactionType}
+                onChange={setTransactionType}
+                style={{ width: 140 }}
+              >
+                <Option value="all">All Types</Option>
+                <Option value="purchase">Purchases</Option>
+                <Option value="usage">Usage</Option>
+                <Option value="free_usage">Free Usage</Option>
+              </Select>
+              
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleExportHistory}
+                disabled={filteredTransactions.length === 0}
+              >
+                Export CSV
+              </Button>
+            </Space>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="flex justify-center mb-4">
+                <LoadingOutlined style={{ fontSize: 24, color: '#5CC49D' }} spin />
+              </div>
+              <Text type="secondary">Loading transactions...</Text>
+            </div>
+          ) : filteredTransactions.length > 0 ? (
+            <div className="border rounded-lg overflow-hidden">
+              <div className={`grid grid-cols-12 gap-4 p-4 font-semibold text-sm ${
+                theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'
+              }`}>
+                <div className="col-span-3">Date</div>
+                <div className="col-span-2">Type</div>
+                <div className="col-span-2 text-right">Amount</div>
+                <div className="col-span-3">Description</div>
+                <div className="col-span-2">Reference</div>
               </div>
               
-            <div className="flex justify-between items-center mb-6">
-  <button 
-    className="px-3 py-1 bg-teal-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center"
-       onClick={() => router.back()}
-  >
-    <ArrowLeft className="w-3 h-3 mr-1" />
-    Lead Generation
-  </button>
-  
-  <div className="text-sm text-gray-600">
-    View your credit balance, purchase history, and usage statistics
-  </div>
-</div>
-              {/* Current Balance Cards */}
-              <div className="grid grid-cols-4 gap-3 mb-6">
-                {/* Available Credits */}
-                <div className="border-2 border-gray-400 bg-white p-3">
-                  <div className="flex items-center mb-2">
-                    <Zap className="w-4 h-4 mr-1 text-green-600" />
-                    <div className="font-bold text-sm">Available Credits</div>
-                  </div>
-                  <div className="text-2xl font-bold text-green-700 mb-1">{userCredits.credits}</div>
-                  <div className="h-2 bg-gray-300 border border-gray-400">
-                    <div 
-                      className="h-full bg-green-600" 
-                      style={{ width: '100%' }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Free Leads */}
-                <div className="border-2 border-gray-400 bg-white p-3">
-                  <div className="flex items-center mb-2">
-                    <Gift className="w-4 h-4 mr-1 text-blue-600" />
-                    <div className="font-bold text-sm">Free Leads Remaining</div>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-700 mb-1">
-                    {userCredits.freeLeadsAvailable}<span className="text-sm font-normal">/5</span>
-                  </div>
-                  <div className="h-2 bg-gray-300 border border-gray-400">
-                    <div 
-                      className="h-full bg-blue-600" 
-                      style={{ width: `${(userCredits.freeLeadsAvailable / 5) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Total Purchased */}
-                <div className="border-2 border-gray-400 bg-white p-3">
-                  <div className="flex items-center mb-2">
-                    <CreditCard className="w-4 h-4 mr-1 text-purple-600" />
-                    <div className="font-bold text-sm">Total Purchased</div>
-                  </div>
-                  <div className="text-2xl font-bold text-purple-700">{userCredits.totalPurchased}</div>
-                </div>
-
-                {/* Leads Generated */}
-                <div className="border-2 border-gray-400 bg-white p-3">
-                  <div className="flex items-center mb-2">
-                    <History className="w-4 h-4 mr-1 text-pink-600" />
-                    <div className="font-bold text-sm">Leads Generated</div>
-                  </div>
-                  <div className="text-2xl font-bold text-pink-700">{usageStats.totalLeadsGenerated}</div>
-                  <div className="text-xs text-gray-600">This {timeframe}</div>
-                </div>
-              </div>
-
-              {/* Usage Statistics */}
-              <div className="border-2 border-gray-400 bg-white p-4 mb-6">
-                <div className="flex items-center mb-3">
-                  <div className="w-4 h-4 bg-blue-700 mr-2 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white"></div>
-                  </div>
-                  <div className="font-bold text-gray-800">Usage Statistics</div>
-                </div>
-                
-                <div className="flex items-center mb-4">
-                  <div className="text-sm font-bold mr-2">Time Period:</div>
-                  <select 
-                    className="border-2 border-gray-400 px-2 py-1 bg-white"
-                    value={timeframe}
-                    onChange={(e) => setTimeframe(e.target.value as any)}
+              <div className="max-h-96 overflow-y-auto">
+                {filteredTransactions.map((tx) => (
+                  <div 
+                    key={tx.id} 
+                    className={`grid grid-cols-12 gap-4 p-4 border-b ${
+                      theme === 'dark' ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50'
+                    } transition-colors duration-150 items-center`}
                   >
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="all">All Time</option>
-                  </select>
-                </div>
-                
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-orange-700">{usageStats.creditsUsed}</div>
-                    <div className="text-xs text-gray-600">Credits Used</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-700">{usageStats.freeLeadsUsed}</div>
-                    <div className="text-xs text-gray-600">Free Leads Used</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-700">{usageStats.generationsCount}</div>
-                    <div className="text-xs text-gray-600">Generations</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-700">{usageStats.totalLeadsGenerated}</div>
-                    <div className="text-xs text-gray-600">Total Leads</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transaction History */}
-              <div className="border-2 border-gray-400 bg-white p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center">
-                    <History className="w-4 h-4 mr-2 text-blue-800" />
-                    <div className="font-bold text-gray-800">Transaction History</div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <select 
-                      className="border-2 border-gray-400 px-2 py-1 bg-white"
-                      value={transactionType}
-                      onChange={(e) => setTransactionType(e.target.value)}
-                    >
-                      <option value="all">All Types</option>
-                      <option value="purchase">Purchases</option>
-                      <option value="usage">Usage</option>
-                      <option value="free_usage">Free Usage</option>
-                    </select>
-                    
-                    <button
-                      className="px-3 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center disabled:opacity-50"
-                      onClick={handleExportHistory}
-                      disabled={filteredTransactions.length === 0}
-                    >
-                      <Download className="w-3 h-3 mr-1" />
-                      Export CSV
-                    </button>
-                  </div>
-                </div>
-
-              {loading ? (
-  <div className="text-center py-8">
-    <div className="w-8 h-8 border-4 border-blue-700 border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
-    <div className="text-sm text-gray-600">Loading transactions...</div>
-  </div>
-) : filteredTransactions.length > 0 ? (
-  <div className="border-2 border-gray-300">
-    <div className="bg-gray-200 border-b-2 border-gray-300 grid grid-cols-12 gap-2 p-2 font-bold text-sm">
-      <div className="col-span-3">Date</div>
-      <div className="col-span-2">Type</div>
-      <div className="col-span-2 text-right">Amount</div>
-      <div className="col-span-3">Description</div>
-      <div className="col-span-2">Reference</div>
-    </div>
-    
-    <div className="max-h-96 overflow-y-auto">
-      {filteredTransactions.map((tx) => (
-        <div key={tx.id} className="grid grid-cols-12 gap-2 p-2 border-b border-gray-300 text-sm hover:bg-gray-100 items-center">
-          <div className="col-span-3">
-            <div>{new Date(tx.created_at).toLocaleDateString()}</div>
-            <div className="text-xs text-gray-600">
-              {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          </div>
-          
-          <div className="col-span-2 flex items-center">
-            <div 
-              className="w-4 h-4 mr-1 flex items-center justify-center"
-              style={{ color: getTransactionTypeColor(tx.transaction_type) }}
-            >
-              {getTransactionIcon(tx.transaction_type)}
-            </div>
-            <div className="truncate">{tx.transaction_type.replace('_', ' ').toUpperCase()}</div>
-          </div>
-          
-          <div className="col-span-2 text-right">
-            <div 
-              className="font-bold" 
-              style={{ 
-                color: tx.amount > 0 ? '#00c000' : tx.amount < 0 ? '#c00000' : '#666' 
-              }}
-            >
-              {tx.amount > 0 ? '+' : ''}{tx.amount}
-            </div>
-            {tx.transaction_type === 'free_usage' && (
-              <div className="text-xs text-gray-600">(Free)</div>
-            )}
-          </div>
-          
-          <div className="col-span-3">
-            <div className="truncate">{tx.description}</div>
-            {tx.workspace && (
-              <div className="text-xs text-gray-600 truncate">
-                Workspace: {tx.workspace.name}
-              </div>
-            )}
-          </div>
-          
-          <div className="col-span-2 text-xs">
-            {tx.reference_id ? (
-              <code className="truncate">{tx.reference_id.substring(0, 12)}...</code>
-            ) : (
-              <span>-</span>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-) : (
-  <div className="text-center py-8 border-2 border-gray-300 border-dashed">
-    <div className="text-gray-600 mb-4">No transactions found</div>
-    <button 
-      className="px-3 py-1 bg-blue-700 text-white border-2 border-blue-900 font-bold hover:bg-blue-800 flex items-center mx-auto"
-      onClick={() => setPurchaseModalVisible(true)}
-    >
-      <ShoppingCart className="w-3 h-3 mr-1" />
-      Make Your First Purchase
-    </button>
-  </div>
-)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Other Windows (My Computer, Documents, Recycle Bin) */}
-        {activeWindow === "my-computer" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <HardDrive className="w-4 h-4 mr-2" />
-                <span className="font-bold">My Computer</span>
-              </div>
-              <div className="flex space-x-1">
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
-                >
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200 grid grid-cols-3 gap-4">
-              {["Local Disk (C:)", "Local Disk (D:)", "CD-ROM (E:)", "Network", "Control Panel", "Printers"].map(
-                (item) => (
-                  <div key={item} className="flex flex-col items-center cursor-pointer">
-                    <div className="w-12 h-12 bg-blue-700 flex items-center justify-center mb-1 hover:bg-blue-800">
-                      <HardDrive className="w-6 h-6 text-white" />
+                    <div className="col-span-3">
+                      <div className="font-medium">
+                        {new Date(tx.created_at).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
-                    <span className="text-xs text-center">{item}</span>
+                    
+                    <div className="col-span-2 flex items-center gap-2">
+                      {getTransactionIcon(tx.transaction_type)}
+                      <span className="capitalize">
+                        {tx.transaction_type.replace('_', ' ')}
+                      </span>
+                    </div>
+                    
+                    <div className="col-span-2 text-right">
+                      <div className="font-semibold">
+                        {formatAmount(tx.amount)}
+                      </div>
+                      {tx.transaction_type === 'free_usage' && (
+                        <div className="text-xs text-gray-500">(Free)</div>
+                      )}
+                    </div>
+                    
+                    <div className="col-span-3">
+                      <div className="font-medium truncate">{tx.description}</div>
+                      {tx.workspace && (
+                        <div className="text-xs text-gray-500 truncate">
+                          Workspace: {tx.workspace.name}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="col-span-2">
+                      {tx.reference_id ? (
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          {tx.reference_id.substring(0, 12)}...
+                        </code>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </div>
                   </div>
-                )
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeWindow === "documents" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <File className="w-4 h-4 mr-2" />
-                <span className="font-bold">My Documents</span>
+                ))}
               </div>
-              <div className="flex space-x-1">
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
+            </div>
+          ) : (
+            <div className="text-center py-8 border-2 border-dashed rounded-lg">
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <div>
+                    <Title level={4} className="mb-2">No transactions found</Title>
+                    <Text type="secondary" className="text-sm">
+                      {transactionType !== 'all' 
+                        ? `No ${transactionType.replace('_', ' ')} transactions in this period`
+                        : 'No transactions recorded yet'
+                      }
+                    </Text>
+                  </div>
+                }
+              >
+                <Button 
+                  type="primary"
+                  icon={<ShoppingCartOutlined />}
+                  onClick={() => setPurchaseModalVisible(true)}
+                  style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
                 >
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
+                  Make Your First Purchase
+                </Button>
+              </Empty>
             </div>
-            <div className="p-4 bg-gray-200">
-              <p className="text-sm">No documents found.</p>
-            </div>
-          </div>
-        )}
+          )}
+        </Card>
+      </main>
 
-        {activeWindow === "recycle-bin" && (
-          <div className="absolute left-1/4 top-1/4 w-96 border-2 border-gray-400 bg-gray-300 shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <Trash2 className="w-4 h-4 mr-2" />
-                <span className="font-bold">Recycle Bin</span>
-              </div>
-              <div className="flex space-x-1">
-                <div
-                  className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-                  onClick={() => setActiveWindow("")}
-                >
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200">
-              <p className="text-sm">Recycle Bin is empty.</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Taskbar */}
-      <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
-        <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
-          <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-            <div className="w-3 h-3 border-2 border-gray-600"></div>
-          </div>
-          Start
-        </button>
-
-        {/* Taskbar Programs */}
-        <div className="flex-1 flex space-x-1 mx-2">
-          <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-              <div className="w-3 h-3 border-2 border-gray-600 bg-blue-600"></div>
-            </div>
-            Credits & History
-          </button>
+      {/* Footer */}
+      <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
+        <div className="flex items-center justify-center">
+          <Text type="secondary" className="text-xs">
+            <span style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+            <span style={{ color: '#5CC49D' }}>GrowAI</span>
+            {' '}© 2025 • Automate & Grow
+          </Text>
         </div>
-
-        {/* System Tray */}
-        <div className="flex items-center space-x-1">
-          <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
-            <Clock className="w-4 h-4 mr-1" />
-            <span className="text-xs">{formatTime(currentTime)}</span>
-          </div>
-        </div>
-      </div>
+      </footer>
 
       <CreditsPurchaseModal
         visible={purchaseModalVisible}
