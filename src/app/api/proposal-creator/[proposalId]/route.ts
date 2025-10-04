@@ -174,6 +174,7 @@ export async function GET(
 
       // Format response to match what the detail page expects
     // Format response to match what the detail page expects
+// Format response to match what the detail page expects
 const metadata = proposal.metadata as any; // Type assertion
 
 return NextResponse.json({
@@ -181,7 +182,7 @@ return NextResponse.json({
   data: {
     id: proposal.id,
     title: proposal.title,
-    proposalData: proposal.proposal,
+    proposalData: proposal.proposalData,  // ← CHANGED FROM proposal.proposal
     proposalType: metadata?.proposalType || 'service-agreement',
     clientName: metadata?.clientName || 'Unknown Client',
     status: 'draft',
