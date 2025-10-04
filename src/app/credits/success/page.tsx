@@ -3,7 +3,43 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { CheckCircle, ArrowLeft, CreditCard, Zap, Home, Clock } from 'lucide-react';
+import { 
+  Button, 
+  Card, 
+  Modal, 
+  Typography, 
+  Space, 
+  Avatar, 
+  Dropdown, 
+  Row,
+  Col,
+  Statistic,
+  Result,
+  Progress,
+  Tag
+} from 'antd';
+import { 
+  CheckCircleFilled,
+  ArrowLeftOutlined,
+  CreditCardOutlined,
+  ThunderboltOutlined,
+  HomeOutlined,
+  HistoryOutlined,
+  LoadingOutlined,
+  CloseCircleFilled,
+  BellOutlined,
+  DownOutlined,
+  UserOutlined
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+
+interface UserProfile {
+  id: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+}
 
 const SuccessPage = () => {
   const { theme } = useTheme();
@@ -12,14 +48,9 @@ const SuccessPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [purchaseDetails, setPurchaseDetails] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const sessionId = searchParams.get('session_id');
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (sessionId) {
@@ -28,7 +59,20 @@ const SuccessPage = () => {
       setError('No session ID provided');
       setLoading(false);
     }
+    loadUserProfile();
   }, [sessionId]);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      const data = await response.json();
+      if (data.success) {
+        setUserProfile(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+    }
+  };
 
   const verifyPayment = async () => {
     try {
@@ -57,7 +101,8 @@ const SuccessPage = () => {
         credits: data.data.purchase.credits,
         newBalance: data.data.userCredits.currentBalance,
         amountPaid: data.data.session.amountTotal / 100, // Convert from cents
-        purchaseDate: new Date(data.data.purchase.timestamp).toLocaleDateString()
+        purchaseDate: new Date(data.data.purchase.timestamp).toLocaleDateString(),
+        timestamp: data.data.purchase.timestamp
       });
       
       setLoading(false);
@@ -69,317 +114,458 @@ const SuccessPage = () => {
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  const displayName = userProfile?.name || userProfile?.email?.split('@')[0] || 'User';
+  const userInitial = displayName.charAt(0).toUpperCase();
 
+  const userMenuItems = [
+    { key: 'profile', label: 'Profile' },
+    { key: 'settings', label: 'Settings' },
+    { key: 'logout', label: 'Logout' }
+  ];
+
+  // Loading state
   if (loading) {
     return (
-      <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
-        {/* Desktop Background */}
-        <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
-          {/* Loading Window */}
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
-              <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
-                    <div className="w-3 h-3 border-2 border-gray-600 animate-spin"></div>
-                  </div>
-                  <span className="font-bold">Processing Payment</span>
-                </div>
-                <div className="flex space-x-1">
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">_</span>
-                  </div>
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">□</span>
-                  </div>
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">×</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 bg-gray-200">
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 border-4 border-blue-700 border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
-                  <div className="text-lg font-bold text-gray-800 mb-2">Verifying your payment...</div>
-                  <div className="text-sm text-gray-600">This will only take a moment</div>
-                </div>
-              </div>
+      <div className="min-h-screen w-full flex flex-col" style={{ 
+        backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
+      }}>
+        {/* Header */}
+        <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center gap-3">
+              <img
+                src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+                alt="ArbitrageOS Logo"
+                style={{ 
+                  height: '140px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  marginRight: '16px'
+                }}
+              />
             </div>
-          </div>
-        </div>
-
-        {/* Taskbar */}
-        <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
-          <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
-            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-              <div className="w-3 h-3 border-2 border-gray-600"></div>
+            
+            <div className="flex-1 text-center">
+              <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                Processing Payment
+              </Title>
             </div>
-            Start
-          </button>
 
-          <div className="flex-1 flex space-x-1 mx-2">
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-                <div className="w-3 h-3 border-2 border-gray-600 animate-spin"></div>
-              </div>
-              Processing Payment
-            </button>
+            <Space size="middle">
+              <Button 
+                type="text" 
+                icon={<BellOutlined />} 
+                style={{
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              />
+              
+              <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+                <Button type="text" className="flex items-center gap-2">
+                  <Avatar 
+                    size="small" 
+                    style={{ backgroundColor: '#1890ff' }}
+                    icon={<UserOutlined />}
+                  >
+                    {userInitial}
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <Text 
+                      style={{ 
+                        color: theme === 'dark' ? '#fff' : '#000',
+                        fontSize: '12px',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {displayName}
+                    </Text>
+                  </div>
+                  <DownOutlined />
+                </Button>
+              </Dropdown>
+            </Space>
           </div>
+        </header>
 
-          <div className="flex items-center space-x-1">
-            <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
-              <Clock className="w-4 h-4 mr-1" />
-              <span className="text-xs">{formatTime(currentTime)}</span>
+        {/* Main Content */}
+        <main className="flex-1 flex items-center justify-center px-6 py-6">
+          <Card className="w-full max-w-md text-center" bodyStyle={{ padding: '40px' }}>
+            <div className="flex justify-center mb-6">
+              <LoadingOutlined style={{ fontSize: 48, color: '#5CC49D' }} spin />
             </div>
+            
+            <Title level={3} className="mb-2">Verifying Your Payment</Title>
+            <Text type="secondary" className="mb-6 block">
+              This will only take a moment...
+            </Text>
+            
+            <Progress 
+              percent={100}
+              strokeColor="#5CC49D"
+              trailColor={theme === 'dark' ? '#374151' : '#f0f0f0'}
+              status="active"
+              showInfo={false}
+            />
+          </Card>
+        </main>
+
+        {/* Footer */}
+        <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t px-6 py-2`}>
+          <div className="flex items-center justify-center">
+            <Text type="secondary" className="text-xs">
+              <span style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+              <span style={{ color: '#5CC49D' }}>GrowAI</span>
+              {' '}© 2025 • Automate & Grow
+            </Text>
           </div>
-        </div>
+        </footer>
       </div>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
-        {/* Desktop Background */}
-        <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
-          {/* Error Window */}
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
-              <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
-                    <div className="w-3 h-3 border-2 border-gray-600 bg-red-600"></div>
-                  </div>
-                  <span className="font-bold">Payment Error</span>
-                </div>
-                <div className="flex space-x-1">
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">_</span>
-                  </div>
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">□</span>
-                  </div>
-                  <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                    <span className="text-xs">×</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 bg-gray-200">
-                <div className="border-2 border-gray-400 bg-white p-4">
-                  <div className="flex items-start mb-4">
-                    <div className="w-6 h-6 bg-red-600 flex items-center justify-center mr-2 flex-shrink-0">
-                      <span className="text-white text-xs font-bold">!</span>
-                    </div>
-                    <div>
-                      <div className="font-bold text-red-800 mb-1">Payment Verification Failed</div>
-                      <div className="text-sm">{error}</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-600 mb-4">
-                    Please contact support if you believe this is an error.
-                  </div>
-                  <div className="flex justify-between">
-                    <button 
-                      className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center"
-                      onClick={() => router.push('/credits')}
+      <div className="min-h-screen w-full flex flex-col" style={{ 
+        backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
+      }}>
+        {/* Header */}
+        <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center gap-3">
+              <img
+                src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+                alt="ArbitrageOS Logo"
+                style={{ 
+                  height: '140px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  marginRight: '16px'
+                }}
+              />
+            </div>
+            
+            <div className="flex-1 text-center">
+              <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                Payment Error
+              </Title>
+            </div>
+
+            <Space size="middle">
+              <Button 
+                type="text" 
+                icon={<BellOutlined />} 
+                style={{
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              />
+              
+              <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+                <Button type="text" className="flex items-center gap-2">
+                  <Avatar 
+                    size="small" 
+                    style={{ backgroundColor: '#1890ff' }}
+                    icon={<UserOutlined />}
+                  >
+                    {userInitial}
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <Text 
+                      style={{ 
+                        color: theme === 'dark' ? '#fff' : '#000',
+                        fontSize: '12px',
+                        lineHeight: 1.2
+                      }}
                     >
-                      <ArrowLeft className="w-4 h-4 mr-1" />
-                      Back to Credits
-                    </button>
-                    <button 
-                      className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
-                      onClick={() => router.push('/lead-generation')}
-                    >
-                      Continue to Dashboard
-                    </button>
+                      {displayName}
+                    </Text>
                   </div>
-                </div>
+                  <DownOutlined />
+                </Button>
+              </Dropdown>
+            </Space>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 flex items-center justify-center px-6 py-6">
+          <Card className="w-full max-w-md" bodyStyle={{ padding: '40px' }}>
+            <Result
+              status="error"
+              title="Payment Verification Failed"
+              subTitle={error}
+              extra={[
+                <Button 
+                  key="back" 
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.push('/credits')}
+                >
+                  Back to Credits
+                </Button>,
+                <Button 
+                  key="dashboard" 
+                  type="primary"
+                  onClick={() => router.push('/lead-generation')}
+                >
+                  Continue to Dashboard
+                </Button>,
+              ]}
+            >
+              <div className="text-center">
+                <Text type="secondary">
+                  Please contact support if you believe this is an error.
+                </Text>
+                {sessionId && (
+                  <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                    <Text type="secondary" className="text-xs block mb-1">Session ID:</Text>
+                    <code className="text-xs break-all">{sessionId}</code>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        </div>
+            </Result>
+          </Card>
+        </main>
 
-        {/* Taskbar */}
-        <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
-          <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
-            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-              <div className="w-3 h-3 border-2 border-gray-600"></div>
-            </div>
-            Start
-          </button>
-
-          <div className="flex-1 flex space-x-1 mx-2">
-            <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-              <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-                <div className="w-3 h-3 border-2 border-gray-600 bg-red-600"></div>
-              </div>
-              Payment Error
-            </button>
+        {/* Footer */}
+        <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t px-6 py-2`}>
+          <div className="flex items-center justify-center">
+            <Text type="secondary" className="text-xs">
+              <span style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+              <span style={{ color: '#5CC49D' }}>GrowAI</span>
+              {' '}© 2025 • Automate & Grow
+            </Text>
           </div>
-
-          <div className="flex items-center space-x-1">
-            <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
-              <Clock className="w-4 h-4 mr-1" />
-              <span className="text-xs">{formatTime(currentTime)}</span>
-            </div>
-          </div>
-        </div>
+        </footer>
       </div>
     );
   }
 
+  // Success state
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-teal-700">
-      {/* Desktop Background */}
-      <div className="flex-1 relative bg-[url('/win98-bg.jpg')] bg-cover bg-center p-4 overflow-hidden">
-        {/* Success Window */}
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="border-2 border-gray-400 bg-gray-300 w-full max-w-md shadow-lg">
-            <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-              <div className="flex items-center">
-                <div className="w-4 h-4 mr-2 bg-white flex items-center justify-center">
-                  <div className="w-3 h-3 border-2 border-gray-600 bg-green-600"></div>
-                </div>
-                <span className="font-bold">Payment Successful</span>
-              </div>
-              <div className="flex space-x-1">
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">_</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">□</span>
-                </div>
-                <div className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400">
-                  <span className="text-xs">×</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-200">
-              <div className="border-2 border-gray-400 bg-white p-4">
-                {/* Success Icon */}
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-green-100 border-2 border-green-400 flex items-center justify-center">
-                    <CheckCircle className="w-10 h-10 text-green-600" />
-                  </div>
-                </div>
-                
-                {/* Title */}
-                <div className="text-center mb-4">
-                  <div className="text-xl font-bold text-gray-800 mb-1">Payment Successful!</div>
-                  <div className="text-sm text-gray-600">
-                    Thank you for your purchase. Your credits have been added to your account.
-                  </div>
-                </div>
-                
-                {/* Divider */}
-                <div className="border-t-2 border-gray-300 my-4"></div>
-                
-                {/* Purchase Details */}
-                {purchaseDetails && (
-                  <div className="bg-gray-100 border-2 border-gray-300 p-3 mb-4">
-                    <div className="flex items-center mb-2">
-                      <CreditCard className="w-4 h-4 mr-2 text-blue-800" />
-                      <div className="font-bold text-gray-800">Purchase Details</div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <div className="text-xs text-gray-600">Package:</div>
-                        <div className="font-medium">{purchaseDetails.packageName}</div>
-                      </div>
-                      
-                      <div>
-                        <div className="text-xs text-gray-600">Credits Added:</div>
-                        <div className="font-medium">{purchaseDetails.credits.toLocaleString()}</div>
-                      </div>
-                      
-                      <div>
-                        <div className="text-xs text-gray-600">New Balance:</div>
-                        <div className="font-medium">{purchaseDetails.newBalance.toLocaleString()} credits</div>
-                      </div>
-                      
-                      <div>
-                        <div className="text-xs text-gray-600">Amount Paid:</div>
-                        <div className="font-medium">${purchaseDetails.amountPaid.toFixed(2)}</div>
-                      </div>
-                      
-                      <div className="col-span-2">
-                        <div className="text-xs text-gray-600">Purchase Date:</div>
-                        <div className="font-medium">{purchaseDetails.purchaseDate}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Buttons */}
-                <div className="space-y-2">
-                  <button 
-                    className="w-full py-2 bg-teal-800 text-white font-bold border-2 border-blue-900 hover:bg-blue-800 flex items-center justify-center"
-                    onClick={() => router.push('/lead-generation')}
+    <div className="min-h-screen w-full flex flex-col" style={{ 
+      backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' 
+    }}>
+      {/* Header */}
+      <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+        <div className="flex items-center justify-between h-12">
+          <div className="flex items-center gap-3">
+            <img
+              src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+              alt="ArbitrageOS Logo"
+              style={{ 
+                height: '140px',
+                width: 'auto',
+                objectFit: 'contain',
+                marginRight: '16px'
+              }}
+            />
+          </div>
+          
+          <div className="flex-1 text-center">
+            <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+              Payment Successful
+            </Title>
+          </div>
+
+          <Space size="middle">
+            <Button 
+              type="text" 
+              icon={<BellOutlined />} 
+              style={{
+                color: theme === 'dark' ? '#fff' : '#000'
+              }}
+            />
+            
+            <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+              <Button type="text" className="flex items-center gap-2">
+                <Avatar 
+                  size="small" 
+                  style={{ backgroundColor: '#1890ff' }}
+                  icon={<UserOutlined />}
+                >
+                  {userInitial}
+                </Avatar>
+                <div className="flex flex-col items-start">
+                  <Text 
+                    style={{ 
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '12px',
+                      lineHeight: 1.2
+                    }}
                   >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Start Generating Leads
-                  </button>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      className="flex-1 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400"
-                      onClick={() => router.push('/credits')}
-                    >
-                      View Credit History
-                    </button>
-                    
-                    <button 
-                      className="flex-1 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 flex items-center justify-center"
-                      onClick={() => router.push('/')}
-                    >
-                      <Home className="w-4 h-4 mr-1" />
-                      Home
-                    </button>
-                  </div>
+                    {displayName}
+                  </Text>
                 </div>
-                
-               {/* Session ID */}
-<div className="mt-4 p-2 bg-gray-200 border border-gray-300 text-xs">
-  <div className="text-gray-600 mb-1">Session ID:</div>
-  <div className="font-mono text-xs break-all bg-gray-100 p-1 border border-gray-300">
-    {sessionId}
-  </div>
-</div>
-              </div>
-            </div>
-          </div>
+                <DownOutlined />
+              </Button>
+            </Dropdown>
+          </Space>
         </div>
-      </div>
+      </header>
 
-      {/* Taskbar */}
-      <div className="h-10 bg-gray-400 border-t-2 border-gray-300 flex items-center px-2 z-40">
-        <button className="h-8 px-3 bg-gradient-to-b from-blue-700 to-blue-500 text-white font-bold flex items-center hover:from-blue-800 hover:to-blue-600">
-          <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-            <div className="w-3 h-3 border-2 border-gray-600"></div>
-          </div>
-          Start
-        </button>
+      {/* Main Content */}
+      <main className="flex-1 px-6 py-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Success Result */}
+          <Card className="mb-6" bodyStyle={{ padding: '40px' }}>
+            <Result
+              icon={<CheckCircleFilled style={{ color: '#52c41a' }} />}
+              title="Payment Successful!"
+              subTitle="Thank you for your purchase. Your credits have been added to your account."
+              extra={[
+                <Button 
+                  key="generate" 
+                  type="primary" 
+                  size="large"
+                  icon={<ThunderboltOutlined />}
+                  onClick={() => router.push('/lead-generation')}
+                  style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
+                >
+                  Start Generating Leads
+                </Button>,
+                <Button 
+                  key="history" 
+                  size="large"
+                  icon={<HistoryOutlined />}
+                  onClick={() => router.push('/credits')}
+                >
+                  View Credit History
+                </Button>,
+              ]}
+            />
+          </Card>
 
-        <div className="flex-1 flex space-x-1 mx-2">
-          <button className="h-8 px-3 bg-gradient-to-b from-gray-300 to-gray-200 border-2 border-gray-400 font-bold flex items-center">
-            <div className="w-4 h-4 mr-1 bg-white flex items-center justify-center">
-              <div className="w-3 h-3 border-2 border-gray-600 bg-green-600"></div>
-            </div>
-            Payment Successful
-          </button>
+          {/* Purchase Details */}
+          {purchaseDetails && (
+            <Row gutter={[16, 16]}>
+              <Col xs={24} lg={12}>
+                <Card title="Purchase Details" bodyStyle={{ padding: '24px' }}>
+                  <Space direction="vertical" size="large" className="w-full">
+                    <div className="flex items-center justify-between">
+                      <Text strong>Package:</Text>
+                      <Tag color="blue">{purchaseDetails.packageName}</Tag>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <Text strong>Amount Paid:</Text>
+                      <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
+                        ${purchaseDetails.amountPaid.toFixed(2)}
+                      </Text>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <Text strong>Purchase Date:</Text>
+                      <Text>{purchaseDetails.purchaseDate}</Text>
+                    </div>
+                    
+                    {sessionId && (
+                      <div>
+                        <Text strong className="block mb-2">Session ID:</Text>
+                        <code className="text-xs bg-gray-100 p-2 rounded block break-all">
+                          {sessionId}
+                        </code>
+                      </div>
+                    )}
+                  </Space>
+                </Card>
+              </Col>
+
+              <Col xs={24} lg={12}>
+                <Card title="Credit Balance" bodyStyle={{ padding: '24px' }}>
+                  <Row gutter={[16, 16]}>
+                    <Col span={12}>
+                      <Statistic
+                        title="Credits Added"
+                        value={purchaseDetails.credits}
+                        valueStyle={{ color: '#1890ff' }}
+                        prefix={<ThunderboltOutlined />}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Statistic
+                        title="New Balance"
+                        value={purchaseDetails.newBalance}
+                        valueStyle={{ color: '#52c41a' }}
+                        prefix={<CreditCardOutlined />}
+                      />
+                    </Col>
+                  </Row>
+                  
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center">
+                      <CheckCircleFilled style={{ color: '#52c41a', marginRight: '8px' }} />
+                      <Text type="secondary" className="text-sm">
+                        Your credits are ready to use immediately
+                      </Text>
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+          {/* Quick Actions */}
+          <Card title="Quick Actions" className="mt-6" bodyStyle={{ padding: '24px' }}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={8}>
+                <Card 
+                  hoverable 
+                  size="small" 
+                  onClick={() => router.push('/lead-generation')}
+                  bodyStyle={{ textAlign: 'center', padding: '20px' }}
+                >
+                  <ThunderboltOutlined style={{ fontSize: '24px', color: '#5CC49D', marginBottom: '8px' }} />
+                  <Title level={5} className="mb-1">Generate Leads</Title>
+                  <Text type="secondary" className="text-sm">
+                    Start using your new credits
+                  </Text>
+                </Card>
+              </Col>
+              
+              <Col xs={24} sm={8}>
+                <Card 
+                  hoverable 
+                  size="small" 
+                  onClick={() => router.push('/credits')}
+                  bodyStyle={{ textAlign: 'center', padding: '20px' }}
+                >
+                  <HistoryOutlined style={{ fontSize: '24px', color: '#1890ff', marginBottom: '8px' }} />
+                  <Title level={5} className="mb-1">View History</Title>
+                  <Text type="secondary" className="text-sm">
+                    Check your transaction history
+                  </Text>
+                </Card>
+              </Col>
+              
+              <Col xs={24} sm={8}>
+                <Card 
+                  hoverable 
+                  size="small" 
+                  onClick={() => router.push('/')}
+                  bodyStyle={{ textAlign: 'center', padding: '20px' }}
+                >
+                  <HomeOutlined style={{ fontSize: '24px', color: '#fa8c16', marginBottom: '8px' }} />
+                  <Title level={5} className="mb-1">Dashboard</Title>
+                  <Text type="secondary" className="text-sm">
+                    Return to homepage
+                  </Text>
+                </Card>
+              </Col>
+            </Row>
+          </Card>
         </div>
+      </main>
 
-        <div className="flex items-center space-x-1">
-          <div className="h-8 px-2 bg-gray-300 border-2 border-gray-400 flex items-center">
-            <Clock className="w-4 h-4 mr-1" />
-            <span className="text-xs">{formatTime(currentTime)}</span>
-          </div>
+      {/* Footer */}
+      <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t px-6 py-2`}>
+        <div className="flex items-center justify-center">
+          <Text type="secondary" className="text-xs">
+            <span style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+            <span style={{ color: '#5CC49D' }}>GrowAI</span>
+            {' '}© 2025 • Automate & Grow
+          </Text>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

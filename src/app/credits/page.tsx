@@ -256,7 +256,7 @@ const CreditsHistoryPage = () => {
           </div>
 
           {/* User Menu */}
-          <Space size="middle">
+          {/* <Space size="middle">
             <Button 
               type="text" 
               icon={<BellOutlined />} 
@@ -309,7 +309,7 @@ const CreditsHistoryPage = () => {
                 <DownOutlined />
               </Button>
             </Dropdown>
-          </Space>
+          </Space> */}
         </div>
       </header>
 
