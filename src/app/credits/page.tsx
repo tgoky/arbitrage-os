@@ -602,7 +602,7 @@ const CreditsHistoryPage = () => {
                     
                     <div className="col-span-2">
                       {tx.reference_id ? (
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        <code className="text-xs  px-2 py-1 rounded">
                           {tx.reference_id.substring(0, 12)}...
                         </code>
                       ) : (
