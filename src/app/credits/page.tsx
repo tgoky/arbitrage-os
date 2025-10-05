@@ -7,19 +7,15 @@ import CreditsPurchaseModal from '../../components/credits/CreditsDisplayModal';
 import { 
   Button, 
   Card, 
-  Input, 
-  Modal, 
+
   Typography, 
   Progress, 
   Space, 
-  Avatar, 
-  Dropdown, 
-  Badge,
+
   Row,
   Col,
   Empty,
-  Popover,
-  List,
+
   Select,
   Statistic
 } from 'antd';
@@ -256,60 +252,7 @@ const CreditsHistoryPage = () => {
           </div>
 
           {/* User Menu */}
-          {/* <Space size="middle">
-            <Button 
-              type="text" 
-              icon={<BellOutlined />} 
-              style={{
-                color: theme === 'dark' ? '#fff' : '#000'
-              }}
-            />
-            
-            <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
-              <Button type="text" className="flex items-center gap-2">
-                {userProfile?.avatar ? (
-                  <Avatar 
-                    size="small" 
-                    src={userProfile.avatar}
-                    style={{ backgroundColor: '#1890ff' }}
-                  />
-                ) : (
-                  <Avatar 
-                    size="small" 
-                    style={{ backgroundColor: '#1890ff' }}
-                  >
-                    {userInitial}
-                  </Avatar>
-                )}
-                <div className="flex flex-col items-start">
-                  <Text 
-                    style={{ 
-                      color: theme === 'dark' ? '#fff' : '#000',
-                      fontSize: '12px',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {displayName}
-                  </Text>
-                  {userProfile?.email && (
-                    <Text 
-                      style={{ 
-                        color: theme === 'dark' ? '#9ca3af' : '#666',
-                        fontSize: '10px',
-                        lineHeight: 1.2
-                      }}
-                    >
-                      {userProfile.email.length > 20 
-                        ? `${userProfile.email.substring(0, 20)}...` 
-                        : userProfile.email
-                      }
-                    </Text>
-                  )}
-                </div>
-                <DownOutlined />
-              </Button>
-            </Dropdown>
-          </Space> */}
+        
         </div>
       </header>
 

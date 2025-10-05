@@ -316,7 +316,7 @@ const SuccessPage = () => {
                   Please contact support if you believe this is an error.
                 </Text>
                 {sessionId && (
-                  <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                  <div className="mt-4 p-3  rounded-lg">
                     <Text type="secondary" className="text-xs block mb-1">Session ID:</Text>
                     <code className="text-xs break-all">{sessionId}</code>
                   </div>
@@ -491,7 +491,7 @@ const SuccessPage = () => {
                     </Col>
                   </Row>
                   
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mt-4 p-3  border border-green-200 rounded-lg">
                     <div className="flex items-center">
                       <CheckCircleFilled style={{ color: '#52c41a', marginRight: '8px' }} />
                       <Text type="secondary" className="text-sm">
