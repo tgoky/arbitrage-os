@@ -20,12 +20,31 @@ export const authProviderClient: AuthProvider = {
 
       const trimmedEmail = email.trim().toLowerCase();
 
+      // Check if user has a valid invite before sending magic link
+      const inviteCheck = await fetch('/api/auth/check-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+
+      const inviteResult = await inviteCheck.json();
+
+      if (!inviteResult.hasValidInvite) {
+        return {
+          success: false,
+          error: {
+            name: "LoginError",
+            message: inviteResult.error || "You don't have access to this platform. Contact team@growaiagency.io to request access.",
+          },
+        };
+      }
+
+      // Only send magic link if invite exists and is valid
       const { data, error } = await supabase.auth.signInWithOtp({
         email: trimmedEmail,
         options: {
-          // ✅ Redirect to workspace home page after authentication
           emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
-          shouldCreateUser: true,
+          shouldCreateUser: false,
         },
       });
 
@@ -60,8 +79,14 @@ export const authProviderClient: AuthProvider = {
   },
 
   register: async ({ email }) => {
-    // For magic link auth, register is the same as login
-    return await authProviderClient.login({ email });
+    // Registration is invite-only, redirect to request access
+    return {
+      success: false,
+      error: {
+        name: "RegistrationClosed",
+        message: "ArbitrageOS is invite-only. Contact team@growaiagency.io to request access.",
+      },
+    };
   },
 
   logout: async () => {
@@ -262,6 +287,4 @@ export const authProviderClient: AuthProvider = {
       };
     }
   },
-
- 
 };
