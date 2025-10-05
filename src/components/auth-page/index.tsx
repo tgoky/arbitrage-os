@@ -90,22 +90,20 @@ const GalaxyBackground = () => {
         const finalOpacity = star.opacity * twinkle;
         
         // Outer glow
-      // Outer glow
-ctx.beginPath();
-const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
-glowGradient.addColorStop(0, `rgba(92, 196, 157, ${finalOpacity * 0.9})`);  // strong green core glow
-glowGradient.addColorStop(0.5, `rgba(92, 196, 157, ${finalOpacity * 0.4})`); // softer mid glow
-glowGradient.addColorStop(1, 'rgba(92, 196, 157, 0)'); // fade out
-ctx.fillStyle = glowGradient;
-ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
-ctx.fill();
+        ctx.beginPath();
+        const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
+        glowGradient.addColorStop(0, `rgba(92, 196, 157, ${finalOpacity * 0.9})`);
+        glowGradient.addColorStop(0.5, `rgba(92, 196, 157, ${finalOpacity * 0.4})`);
+        glowGradient.addColorStop(1, 'rgba(92, 196, 157, 0)');
+        ctx.fillStyle = glowGradient;
+        ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
+        ctx.fill();
 
-// Core star (green instead of white)
-ctx.beginPath();
-ctx.fillStyle = `rgba(92, 196, 157, ${finalOpacity})`;
-ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-ctx.fill();
-
+        // Core star (green)
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(92, 196, 157, ${finalOpacity})`;
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
       });
 
       animationFrame = requestAnimationFrame(animate);
@@ -149,20 +147,19 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
       }}
     >
       <div className="flex items-start gap-4">
-       <div
-  className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl 
-             flex items-center justify-center flex-shrink-0 mt-1 
-             border border-white/20 group-hover:scale-110 
-             transition-all duration-500 group-hover:shadow-lg"
->
-  <Icon className={`w-5 h-5 text-${color}-400 group-hover:text-${color}-300 transition-colors duration-300`} />
-</div>
+        <div
+          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl 
+                     flex items-center justify-center flex-shrink-0 mt-1 
+                     border border-white/20 group-hover:scale-110 
+                     transition-all duration-500 group-hover:shadow-lg"
+        >
+          <Icon className={`w-5 h-5 text-${color}-400 group-hover:text-${color}-300 transition-colors duration-300`} />
+        </div>
         <div className="group-hover:translate-x-2 transition-transform duration-500">
           <h3 className="font-semibold text-white mb-2 group-hover:text-white/90">{title}</h3>
           <p className="text-gray-300 text-sm group-hover:text-gray-200">{description}</p>
         </div>
       </div>
-      {/* 3D depth effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl 
         opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     </div>
@@ -200,8 +197,6 @@ const AnimatedTitle = () => {
                 </span>
               )
             )}
-
-            {/* space + by */}
             <span
               className="inline-block animate-bounce-in"
               style={{ animationDelay: "1200ms", animationFillMode: "both" }}
@@ -214,8 +209,6 @@ const AnimatedTitle = () => {
             >
               y&nbsp;
             </span>
-
-            {/* GrowAI (plain white) */}
             {["G", "r", "o", "w", "A", "I"].map((char, i) => (
               <span
                 key={`grow-${i}`}
@@ -235,21 +228,16 @@ const AnimatedTitle = () => {
   );
 };
 
-
-
 // Connecting Curves Component
 const ConnectingCurves = () => {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {/* Top curve with branding */}
       <div className="absolute top-16 left-0 w-full h-40">
-        {/* Branding text */}
         <div className="absolute top-4 left-12 z-20 animate-fade-in-up" style={{ animationDelay: '2s' }}>
           <div className="text-sm text-white/70 font-medium tracking-wider">
             <span className="text-[#5CC49D] animate-glow-pulse" style={{ animationDelay: '2.5s' }}>Automate</span>
             <span className="text-white/90">&</span>
-
-            <span className="text-[#5CC49D] ml-1 font-bold ">Grow</span>
+            <span className="text-[#5CC49D] ml-1 font-bold">Grow</span>
           </div>
         </div>
         
@@ -279,7 +267,6 @@ const ConnectingCurves = () => {
         </svg>
       </div>
 
-      {/* Bottom curve */}
       <svg className="absolute bottom-20 left-0 w-full h-32 opacity-30" viewBox="0 0 1200 150" fill="none">
         <defs>
           <linearGradient id="bottomGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -318,107 +305,39 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
-    // Override body background for auth pages only
     const originalBackground = document.body.style.background;
     document.body.style.background = 'transparent';
     
-    // Add custom styles
     const style = document.createElement('style');
     style.textContent = `
       @keyframes bounce-in {
-        0% { 
-          opacity: 0; 
-          transform: translateY(-50px) rotateX(-90deg); 
-        }
-        50% { 
-          transform: translateY(-10px) rotateX(-45deg); 
-        }
-        100% { 
-          opacity: 1; 
-          transform: translateY(0) rotateX(0deg); 
-        }
+        0% { opacity: 0; transform: translateY(-50px) rotateX(-90deg); }
+        50% { transform: translateY(-10px) rotateX(-45deg); }
+        100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
       }
-      
       @keyframes glow-pulse {
-        0%, 100% { 
-          text-shadow: 0 0 5px #5CC49D, 0 0 10px #5CC49D, 0 0 15px #5CC49D;
-          transform: scale(1);
-        }
-        50% { 
-          text-shadow: 0 0 10px #5CC49D, 0 0 20px #5CC49D, 0 0 30px #5CC49D;
-          transform: scale(1.1);
-        }
+        0%, 100% { text-shadow: 0 0 5px #5CC49D, 0 0 10px #5CC49D, 0 0 15px #5CC49D; transform: scale(1); }
+        50% { text-shadow: 0 0 10px #5CC49D, 0 0 20px #5CC49D, 0 0 30px #5CC49D; transform: scale(1.1); }
       }
-      
       @keyframes slide-in-left {
-        0% { 
-          opacity: 0; 
-          transform: translateX(-100px) rotateY(-30deg); 
-        }
-        100% { 
-          opacity: 1; 
-          transform: translateX(0) rotateY(0deg); 
-        }
+        0% { opacity: 0; transform: translateX(-100px) rotateY(-30deg); }
+        100% { opacity: 1; transform: translateX(0) rotateY(0deg); }
       }
-      
-      @keyframes slide-in-right {
-        0% { 
-          opacity: 0; 
-          transform: translateX(100px) rotateY(30deg); 
-        }
-        100% { 
-          opacity: 1; 
-          transform: translateX(0) rotateY(0deg); 
-        }
-      }
-      
       @keyframes draw-line {
         0% { stroke-dasharray: 0 1000; }
         100% { stroke-dasharray: 1000 0; }
       }
-      
       @keyframes fade-in-up {
-        0% { 
-          opacity: 0; 
-          transform: translateY(30px); 
-        }
-        100% { 
-          opacity: 1; 
-          transform: translateY(0); 
-        }
+        0% { opacity: 0; transform: translateY(30px); }
+        100% { opacity: 1; transform: translateY(0); }
       }
-      
-      .animate-bounce-in {
-        animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      }
-      
-      .animate-glow-pulse {
-        animation: glow-pulse 2s ease-in-out infinite;
-      }
-      
-      .animate-slide-in-left {
-        animation: slide-in-left 0.8s ease-out;
-      }
-      
-      .animate-slide-in-right {
-        animation: slide-in-right 0.8s ease-out;
-      }
-      
-      .animate-draw-line {
-        animation: draw-line 2s ease-in-out;
-      }
-      
-      .animate-fade-in-up {
-        animation: fade-in-up 0.8s ease-out;
-      }
-      
-      .perspective-1000 {
-        perspective: 1000px;
-      }
-      
-      .rotate-y-12:hover {
-        transform: rotateY(12deg) scale(1.05);
-      }
+      .animate-bounce-in { animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+      .animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+      .animate-slide-in-left { animation: slide-in-left 0.8s ease-out; }
+      .animate-draw-line { animation: draw-line 2s ease-in-out; }
+      .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
+      .perspective-1000 { perspective: 1000px; }
+      .rotate-y-12:hover { transform: rotateY(12deg) scale(1.05); }
     `;
     document.head.appendChild(style);
     
@@ -452,62 +371,101 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     );
   };
 
+  if (type === "register") {
+    return (
+      <div className="min-h-screen relative flex">
+        <GalaxyBackground />
+        <ConnectingCurves />
+        
+        <div className="relative z-10 w-full flex min-h-screen">
+          <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
+            <div className="max-w-md space-y-6">
+              <FeatureCard icon={Building2} title="Workspaces" description="create and manage workspaces" delay={200} color="green" />
+              <FeatureCard icon={Shield} title="Tools" description="Generate and automate with arbitrage tools" delay={400} color="green" />
+              <FeatureCard icon={Users} title="Submissions" description="View all recent deliverables in real time" delay={600} color="green" />
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-lg mx-auto lg:max-w-none lg:translate-x-8 xl:translate-x-12">
+            <div className="w-full max-w-sm">
+              <AnimatedTitle />
+              <div className="space-y-6 animate-fade-in-up">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-500/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-400/30">
+                    <Shield className="w-8 h-8 text-blue-300" />
+                  </div>
+                  <h1 className="text-2xl font-semibold text-white mb-2">ArbitrageOS is Invite-Only</h1>
+                  <p className="text-gray-300">Access to our platform is currently by invitation only</p>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-gray-300">
+                      <p className="font-medium text-white mb-2">Interested in joining?</p>
+                      <p className="mb-3">Contact our team to request an invitation and learn more about how ArbitrageOS can transform your workflow.</p>
+                      <a href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request" className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 font-medium transition-colors">
+                        team@growaiagency.io
+                        <ArrowLeft className="w-4 h-4 rotate-180" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10">
+                  <p className="text-sm text-gray-300"><strong className="text-white">Already invited?</strong> Check your email for your magic link, or sign in below.</p>
+                </div>
+
+                <Link href="/login" className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to sign in
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center text-xs text-gray-400 animate-fade-in-up" style={{ animationDelay: '1s' }}>
+              <p>© 2025 ArbitrageOS. All rights reserved.</p>
+            </div>
+          </div>
+
+          <div className="hidden xl:flex xl:flex-1 items-center justify-center p-12 xl:translate-x-20">
+            <div className="max-w-md space-y-6">
+              <FeatureCard icon={TrendingUp} title="Activity Heatmaps" description="Monitor activities and your usage stats." delay={800} color="green" />
+              <FeatureCard icon={Target} title="Milestones" description="Set milestones for yourself and achieve them" delay={1000} color="green" />
+              <FeatureCard icon={Zap} title="Directories" description="Access libraries & directories of various" delay={1200} color="green" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative flex">
-      {/* Animated Galaxy Background */}
       <GalaxyBackground />
-      
-      {/* Connecting Curves */}
       <ConnectingCurves />
       
-      {/* Content Overlay */}
       <div className="relative z-10 w-full flex min-h-screen">
-        {/* Left Panel - Feature Cards */}
         <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
           <div className="max-w-md space-y-6">
-            <FeatureCard
-              icon={Building2}
-              title="Workspaces"
-              description="create and manage workspaces"
-              delay={200}
-              color="green"
-            />
-            <FeatureCard
-              icon={Shield}
-              title="Tools"
-              description="Generate and automate with arbitrage tools"
-              delay={400}
-              color="green"
-            />
-            <FeatureCard
-              icon={Users}
-              title="Submissions"
-              description="View all recent deliverables in real time"
-              delay={600}
-              color="green"
-            />
+            <FeatureCard icon={Building2} title="Workspaces" description="create and manage workspaces" delay={200} color="green" />
+            <FeatureCard icon={Shield} title="Tools" description="Generate and automate with arbitrage tools" delay={400} color="green" />
+            <FeatureCard icon={Users} title="Submissions" description="View all recent deliverables in real time" delay={600} color="green" />
           </div>
         </div>
 
-        {/* Center Panel - Login Form */}
         <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-lg mx-auto lg:max-w-none lg:translate-x-8 xl:translate-x-12">
           <div className="w-full max-w-sm">
-            {/* Animated Title */}
             <AnimatedTitle />
 
-            {/* Content */}
             {emailSent ? (
               <div className="space-y-6 animate-fade-in-up">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-green-500/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 border border-green-400/30 animate-pulse">
                     <CheckCircle className="w-8 h-8 text-green-300" />
                   </div>
-                  <h1 className="text-2xl font-semibold text-white mb-2 text-center">
-                    Check your email
-                  </h1>
-                  <p className="text-gray-300 text-center">
-                    We sent a magic link to <strong className="text-white">{email}</strong>
-                  </p>
+                  <h1 className="text-2xl font-semibold text-white mb-2">Check your email</h1>
+                  <p className="text-gray-300">We sent a magic link to <strong className="text-white">{email}</strong></p>
                 </div>
 
                 <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20 hover:bg-white/15 transition-all duration-300">
@@ -524,15 +482,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setEmailSent(false);
-                    setMessage("");
-                    setError("");
-                    setEmail("");
-                  }}
-                  className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg"
-                >
+                <button onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); }} className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
                   <ArrowLeft className="w-4 h-4" />
                   Back to sign in
                 </button>
@@ -540,32 +490,16 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
             ) : (
               <div className="space-y-6 animate-fade-in-up">
                 <div className="text-center">
-                  <h1 className="text-2xl font-semibold text-white mb-2">
-                    {type === "login" ? "Sign in to your account" : "Create your account"}
-                  </h1>
-                  <p className="text-gray-300">
-                    Enter your email to continue with ArbitrageOS
-                  </p>
+                  <h1 className="text-2xl font-semibold text-white mb-2">Sign in to your account</h1>
+                  <p className="text-gray-300">Enter your email to continue with ArbitrageOS</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                      Email address
-                    </label>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email address</label>
                     <div className="relative group">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
-                        placeholder="you@company.com"
-                      />
+                      <input id="email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400" placeholder="you@company.com" />
                     </div>
                   </div>
 
@@ -576,20 +510,14 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
-                  >
+                  <button type="submit" disabled={loading} className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95">
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                         Sending magic link...
                       </>
                     ) : (
-                      <>
-                        Continue with email
-                      </>
+                      <>Continue with email</>
                     )}
                   </button>
                 </form>
@@ -608,56 +536,25 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                 </div>
 
                 <div className="text-center text-sm text-gray-300">
-                  {type === "login" ? (
-                    <>
-                      Do not have an account?{" "}
-                      <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors hover:underline">
-                        Sign up
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      Already have an account?{" "}
-                      <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors hover:underline">
-                        Sign in
-                      </Link>
-                    </>
-                  )}
+                  New to ArbitrageOS?{" "}
+                  <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors hover:underline">
+                    Request access
+                  </Link>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Footer */}
           <div className="mt-12 text-center text-xs text-gray-400 animate-fade-in-up" style={{ animationDelay: '1s' }}>
             <p>© 2025 ArbitrageOS. All rights reserved.</p>
           </div>
         </div>
 
-        {/* Right Panel - Platform Benefits */}
         <div className="hidden xl:flex xl:flex-1 items-center justify-center p-12 xl:translate-x-20">
           <div className="max-w-md space-y-6">
-            <FeatureCard
-              icon={TrendingUp}
-              title="Activity Heatmaps"
-              description="Monitor activities and your usage stats."
-              delay={800}
-              color="green"
-            />
-            <FeatureCard
-              icon={Target}
-              title="Milestones"
-              description="Set milestones for yourself and achieve them"
-              delay={1000}
-              color="green"
-            />
-            <FeatureCard
-              icon={Zap}
-              title="Directories"
-              description="Access libraries & directories of various"
-              delay={1200}
-              color="green"
-            />
+            <FeatureCard icon={TrendingUp} title="Activity Heatmaps" description="Monitor activities and your usage stats." delay={800} color="green" />
+            <FeatureCard icon={Target} title="Milestones" description="Set milestones for yourself and achieve them" delay={1000} color="green" />
+            <FeatureCard icon={Zap} title="Directories" description="Access libraries & directories of various" delay={1200} color="green" />
           </div>
         </div>
       </div>
