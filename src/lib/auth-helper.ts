@@ -4,20 +4,19 @@ import { User } from '@supabase/supabase-js';
 
 export async function ensureUserExists(supabaseUser: User) {
   try {
-    console.log('🔍 Checking if user exists in database:', supabaseUser.id);
+    console.log('🔍 ensureUserExists called for:', supabaseUser.id);
+    console.log('Email:', supabaseUser.email);
     
-    // Check if user exists in our database
     const existingUser = await prisma.user.findUnique({
       where: { id: supabaseUser.id }
     });
 
     if (existingUser) {
-      console.log('✅ User already exists in database');
+      console.log('✅ User found in database');
       return existingUser;
     }
 
-    // User doesn't exist - create them
-    console.log('📝 Creating new user in database');
+    console.log('⚠️ User NOT found, creating...');
     const newUser = await prisma.user.create({
       data: {
         id: supabaseUser.id,
@@ -31,18 +30,20 @@ export async function ensureUserExists(supabaseUser: User) {
       }
     });
 
-    console.log('✅ User created successfully in database');
+    console.log('✅ User created successfully:', newUser.id);
     return newUser;
     
   } catch (error: any) {
-    console.error('❌ Error in ensureUserExists:', error);
+    console.error('❌ ensureUserExists ERROR:', error);
+    console.error('Error code:', error.code);
+    console.error('Error details:', error.message);
     
-    // If it's a unique constraint violation, user was just created by another request
     if (error.code === 'P2002') {
-      console.log('User was created concurrently, fetching...');
-      return await prisma.user.findUnique({
+      console.log('Concurrent creation detected, fetching...');
+      const user = await prisma.user.findUnique({
         where: { id: supabaseUser.id }
       });
+      if (user) return user;
     }
     
     throw error;
