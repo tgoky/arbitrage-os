@@ -1,46 +1,13 @@
-// app/api/webhooks/stripe/route.ts - COMPLETE WITH EMAIL NOTIFICATIONS
+// app/api/webhooks/stripe/route.ts - SIMPLIFIED (Stripe handles receipts)
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { CreditsService } from '@/services/credits.service';
-import { EmailService } from '@/services/email.service';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
 });
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-// Helper function to get user details
-async function getUserDetails(userId: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role key for admin operations
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
-      }
-    );
-
-    const { data: user, error } = await supabase.auth.admin.getUserById(userId);
-    
-    if (error || !user) {
-      console.error('Failed to get user details:', error);
-      return null;
-    }
-    
-    return user.user;
-  } catch (error) {
-    console.error('Error fetching user details:', error);
-    return null;
-  }
-}
 
 export async function POST(req: NextRequest) {
   console.log('🎣 Stripe webhook received');
@@ -63,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Webhook event type:', event.type);
 
-    // Handle the checkout session completed event
+    // Handle successful payment
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
@@ -79,7 +46,6 @@ export async function POST(req: NextRequest) {
       const packageId = session.metadata?.packageId;
       const credits = parseInt(session.metadata?.credits || '0');
       const packageName = session.metadata?.package_name;
-      const amountPaid = (session.amount_total || 0) / 100; // Convert from cents
 
       if (!userId || !packageId || !credits) {
         console.error('❌ Missing required data in webhook:', {
@@ -113,58 +79,31 @@ export async function POST(req: NextRequest) {
           sessionId: session.id
         });
 
-        // Send purchase confirmation email
-        try {
-          const user = await getUserDetails(userId);
-          
-          if (user && user.email) {
-            await EmailService.sendPurchaseConfirmationEmail(
-              user.email,
-              user.user_metadata?.full_name || user.email.split('@')[0],
-              packageName || 'Credit Package',
-              credits,
-              amountPaid,
-              session.id
-            );
-            
-            console.log('✅ Purchase confirmation email sent to:', user.email);
-          } else {
-            console.warn('⚠️ Could not send confirmation email - user details not found');
-          }
-        } catch (emailError) {
-          console.error('❌ Failed to send confirmation email:', emailError);
-          // Don't fail the webhook for email errors
-        }
+        // Note: Stripe automatically sends receipt email to customer_email
+        // No need to send custom emails here
 
       } catch (error) {
         console.error('❌ Failed to add credits:', error);
         
-        // Send admin alert for manual intervention
-        try {
-          await EmailService.sendAdminAlert(
-            session.id,
-            userId,
-            packageName || 'Unknown Package',
-            credits,
-            error instanceof Error ? error.message : 'Unknown error'
-          );
-          
-          console.log('✅ Admin alert sent for failed credit addition');
-        } catch (alertError) {
-          console.error('❌ Failed to send admin alert:', alertError);
-        }
-        
-        // Log this for manual intervention
+        // Log for manual intervention
         console.error('🚨 MANUAL INTERVENTION REQUIRED:', {
           sessionId: session.id,
           userId,
           packageId,
           credits,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          customerEmail: session.customer_email,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
         });
 
+        // TODO: Set up monitoring/alerting for these errors
+        // Options:
+        // 1. Send to error tracking service (Sentry, LogRocket)
+        // 2. Send Slack notification
+        // 3. Create database record to monitor
+        // 4. Check Stripe Dashboard for failed webhooks
+
         // Still return 200 so Stripe doesn't retry
-        // But you should have monitoring for these errors
         return NextResponse.json(
           { 
             error: 'Failed to add credits - logged for manual intervention',
@@ -175,42 +114,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Handle payment failed events
+    // Handle payment failures (optional - Stripe also handles these notifications)
     if (event.type === 'checkout.session.expired' || event.type === 'payment_intent.payment_failed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
       console.log('❌ Payment failed or expired:', {
         sessionId: session.id,
-        clientReferenceId: session.client_reference_id
+        clientReferenceId: session.client_reference_id,
+        customerEmail: session.customer_email
       });
 
-      // Send failure notification to user
-      try {
-        const userId = session.client_reference_id || session.metadata?.userId;
-        const packageName = session.metadata?.package_name;
-        
-        if (userId) {
-          const user = await getUserDetails(userId);
-          
-          if (user && user.email) {
-            const reason = event.type === 'checkout.session.expired' 
-              ? 'Payment session expired' 
-              : 'Payment failed';
-              
-            await EmailService.sendPaymentFailureNotification(
-              user.email,
-              user.user_metadata?.full_name || user.email.split('@')[0],
-              packageName || 'Credit Package',
-              reason,
-              session.id
-            );
-            
-            console.log('✅ Payment failure notification sent to:', user.email);
-          }
-        }
-      } catch (emailError) {
-        console.error('❌ Failed to send failure notification:', emailError);
-      }
+      // Stripe already notifies customers about failed payments
+      // Just log for your records
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
