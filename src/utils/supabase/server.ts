@@ -4,8 +4,8 @@ import type { CookieOptions } from '@supabase/ssr';
 import { SUPABASE_URL, SUPABASE_KEY } from '../supabase/constant';
 import { cookies } from 'next/headers';
 
-export function createSupabaseServerClient() {
-  const cookieStore = cookies();
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
   return createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
@@ -16,7 +16,6 @@ export function createSupabaseServerClient() {
         try {
           cookieStore.set({ name, value, ...options });
         } catch (error) {
-          // This can be called from Server Components where setting cookies is not allowed
           console.error('Error setting cookie:', error);
         }
       },
@@ -30,3 +29,6 @@ export function createSupabaseServerClient() {
     },
   });
 }
+
+// Add this alias for compatibility
+export const createClient = createSupabaseServerClient;
