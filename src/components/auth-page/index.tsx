@@ -2,7 +2,7 @@
 
 import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle } from "lucide-react";
 import Link from "next/link";
 
 // Animated Galaxy Background Component
@@ -304,6 +304,9 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
+    const [isNotInvited, setIsNotInvited] = useState(false);
+
+
   useEffect(() => {
     const originalBackground = document.body.style.background;
     document.body.style.background = 'transparent';
@@ -351,9 +354,10 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     e.preventDefault();
     setMessage("");
     setError("");
+        setIsNotInvited(false);
     setLoading(true);
 
-    login(
+  login(
       { email },
       {
         onSuccess: (data) => {
@@ -365,11 +369,18 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
         },
         onError: (error: any) => {
           setLoading(false);
-          setError(error?.message || "Failed to send magic link. Please try again.");
+          const errorMessage = error?.message || "Failed to send magic link. Please try again.";
+          setError(errorMessage);
+          
+          // Check if this is an "not invited" error
+          if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
+            setIsNotInvited(true);
+          }
         },
       }
     );
   };
+
 
   if (type === "register") {
     return (
@@ -494,33 +505,79 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   <p className="text-gray-300">Enter your email to continue with ArbitrageOS</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email address</label>
                     <div className="relative group">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
-                      <input id="email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400" placeholder="you@company.com" />
+                      <input 
+                        id="email" 
+                        name="email" 
+                        type="email" 
+                        required 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        disabled={loading} 
+                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400" 
+                        placeholder="you@company.com" 
+                      />
                     </div>
                   </div>
 
                   {error && (
-                    <div className="p-3 bg-red-500/10 backdrop-blur-md border border-red-400/30 rounded-lg flex items-center gap-2 text-red-300 text-sm animate-fade-in-up">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      {error}
+                    <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
+                      isNotInvited 
+                        ? 'bg-orange-500/10 border-orange-400/30' 
+                        : 'bg-red-500/10 border-red-400/30'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                          isNotInvited ? 'text-orange-300' : 'text-red-300'
+                        }`} />
+                        <div className="flex-1">
+                          <p className={`font-medium mb-2 ${
+                            isNotInvited ? 'text-orange-200' : 'text-red-200'
+                          }`}>
+                            {isNotInvited ? 'Access Required' : 'Authentication Error'}
+                          </p>
+                          <p className={`text-sm ${
+                            isNotInvited ? 'text-orange-300' : 'text-red-300'
+                          }`}>
+                            {error}
+                          </p>
+                          {isNotInvited && (
+                            <div className="mt-3 pt-3 border-t border-orange-400/30">
+                              <a 
+                                href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request&body=Hello, I would like to request access to ArbitrageOS.%0D%0A%0D%0AMy email: "
+                                className="inline-flex items-center gap-2 text-sm font-medium text-orange-200 hover:text-orange-100 transition-colors"
+                              >
+                                <Mail className="w-4 h-4" />
+                                Request Access from Team
+                                <ArrowLeft className="w-3 h-3 rotate-180" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <button type="submit" disabled={loading} className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95">
+                  <button 
+                    type="submit" 
+                    disabled={loading} 
+                    className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
+                  >
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        Sending magic link...
+                        Verifying access...
                       </>
                     ) : (
                       <>Continue with email</>
                     )}
                   </button>
                 </form>
+
 
                 <div className="border-t border-white/20 pt-6">
                   <div className="space-y-4">
