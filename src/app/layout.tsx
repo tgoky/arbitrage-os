@@ -65,27 +65,7 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
-                        {
-                          name: "Cold_Email_Writer",
-                          list: "/cold-email-writer",
-                          create: "/cold-email-writer/create",
-                          edit: "/cold-email-writer/edit/:id",
-                          show: "/cold-email-writer/show/:id",
-                          meta: {
-                            canDelete: true,
-                          },
-                        },
-                        {
-                          name: "Niche_Research_Report",
-                          list: "/niche-researcher",
-                          create: "/niche-researcher/create",
-                          edit: "/niche-researcher/edit/:id",
-                          show: "/niche-researcher/show/:id",
-                          meta: {
-                            canDelete: true,
-                          }, 
-                        },
-                        {
+                         {
                           name: "Top_50_Niches",
                           list: "/top-50-niches",
                           create: "/top-50-niches/create",
@@ -95,7 +75,17 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
-                        {
+                         {
+                          name: "Niche_Research_Report",
+                          list: "/niche-researcher",
+                          create: "/niche-researcher/create",
+                          edit: "/niche-researcher/edit/:id",
+                          show: "/niche-researcher/show/:id",
+                          meta: {
+                            canDelete: true,
+                          }, 
+                        },
+                         {
                           name: "Offer_Creator",
                           list: "/offer-creator",
                           create: "/offer-creator/create",
@@ -106,16 +96,16 @@ export default function RootLayout({
                           },
                         },
                          {
-                          name: "Proposal_Generator",
-                          list: "/proposal-generator",
-                          create: "/proposal-generator/create",
-                          edit: "/proposal-generator/edit/:id",
-                          show: "/proposal-generator/show/:id",
+                          name: "Pricing_Calculator",
+                          list: "/pricing-calculator",
+                          create: "/pricing-calculator/create",
+                          edit: "/pricing-calculator/edit/:id",
+                          show: "/pricing-calculator/show/:id",
                           meta: {
                             canDelete: true,
                           },
                         },
-                        {
+                         {
                           name: "Ad_Writer",
                           list: "/ad-writer",
                           create: "/ad-writer/create",
@@ -125,22 +115,13 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                       
                         {
-                          name: "Growth_Plan_Creator",
-                          list: "/growth-plan-creator",
-                          create: "/growth-plan-creator/create",
-                          edit: "/growth-plan-creator/edit/:id",
-                          show: "/growth-plan-creator/show/:id",
-                          meta: {
-                            canDelete: true,
-                          },
-                        },
-                        {
-                          name: "Pricing_Calculator",
-                          list: "/pricing-calculator",
-                          create: "/pricing-calculator/create",
-                          edit: "/pricing-calculator/edit/:id",
-                          show: "/pricing-calculator/show/:id",
+                          name: "Cold_Email_Writer",
+                          list: "/cold-email-writer",
+                          create: "/cold-email-writer/create",
+                          edit: "/cold-email-writer/edit/:id",
+                          show: "/cold-email-writer/show/:id",
                           meta: {
                             canDelete: true,
                           },
@@ -155,6 +136,29 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                         
+                        {
+                          name: "Growth_Plan_Creator",
+                          list: "/growth-plan-creator",
+                          create: "/growth-plan-creator/create",
+                          edit: "/growth-plan-creator/edit/:id",
+                          show: "/growth-plan-creator/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                       
+                         {
+                          name: "Proposal_Generator",
+                          list: "/proposal-generator",
+                          create: "/proposal-generator/create",
+                          edit: "/proposal-generator/edit/:id",
+                          show: "/proposal-generator/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
+                       
                         {
                           name: "Sales_Call_Settings",
                           list: "/sales-call-analyzer/settings",
