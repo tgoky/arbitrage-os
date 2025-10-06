@@ -111,7 +111,7 @@ private buildEnhancedOfferPrompt(input: OfferCreatorInput): string {
   const capacity = parseInt(input.business.capacity) || 5;
   const monthlyHours = parseInt(input.business.monthlyHours) || 160;
   
-const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'annual');
+const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'monthly');
 
  console.log('🔍 DEBUG parseACV result:', acvData);
 
@@ -507,7 +507,7 @@ private getStrengthSpecificExamples(primaryStrength: string, primaryProcess: str
 
 private generateEnhancedFallbackOffer(input: OfferCreatorInput): GeneratedOffer {
  const capacity = parseInt(input.business.capacity) || 5;
-const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'annual');
+const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'monthly');
 
     const monthlyPerClient = Math.round(acvData.monthly / capacity);
 
@@ -762,7 +762,7 @@ private generateSpecificGuarantee(guaranteeType: GuaranteeType, tier: string, fa
   return guarantees[guaranteeType]?.[tier] || fallbackText;
 }
 
-private parseACV(acvString: string, period: 'monthly' | 'annual' = 'annual'): { monthly: number; annual: number } {
+private parseACV(acvString: string, period: 'monthly' | 'annual' = 'monthly'): { monthly: number; annual: number } {
   const match = acvString.match(/[\d,]+/);
   if (!match) {
     return { monthly: 10000, annual: 120000 }; // Sensible defaults

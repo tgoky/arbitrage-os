@@ -127,7 +127,7 @@ const { validateInput, validateInputProgressive, getOfferInsights, calculateCapa
     capacity: "",
     monthlyHours: "",
     acv: "",
-      acvPeriod: "annual", 
+    acvPeriod: "monthly", 
     fulfillmentStack: [],
   });
 
@@ -380,7 +380,7 @@ const handleClearAll = () => {
       capacity: "",
       monthlyHours: "",
       acv: "",
-            acvPeriod: "annual", 
+        acvPeriod: "monthly",
       fulfillmentStack: [],
     });
     
@@ -463,7 +463,7 @@ const handleClearAll = () => {
   capacity: input.business?.capacity || "",
   monthlyHours: input.business?.monthlyHours || "",
   acv: input.business?.acv || "",
-  acvPeriod: input.business?.acvPeriod || "annual",  // ✅ Correct - checks the specific field
+  acvPeriod: input.business?.acvPeriod || "monthly",  // ✅ Correct - checks the specific field
   fulfillmentStack: input.business?.fulfillmentStack || [],
 });
           setPricingInputs(input.pricing || {
@@ -787,7 +787,7 @@ const handleClearAll = () => {
         style={{ flex: '1 1 65%' }}
       />
       <Select
-         value={businessInputs.acvPeriod || 'annual'}
+         value={businessInputs.acvPeriod || 'monthly'}
         onChange={(value) => handleInputChange("business", "acvPeriod", value)}
         style={{ flex: '1 1 35%', minWidth: '90px' }}
       >
@@ -795,6 +795,12 @@ const handleClearAll = () => {
         <Option value="annual">yearly</Option>
       </Select>
     </div>
+  
+  <div className="text-xs text-gray-500 mt-1">
+    {businessInputs.acv && businessInputs.capacity && businessInputs.acvPeriod === 'monthly' && (
+      <>Targeting ${Math.round(parseInt(businessInputs.acv.replace(/[^0-9]/g, '')) / parseInt(businessInputs.capacity)).toLocaleString()}/month per client</>
+    )}
+    
     {validationResults.errors['business.acv'] && (
       <Text type="danger" className="text-sm">
         {validationResults.errors['business.acv']}

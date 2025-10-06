@@ -267,6 +267,21 @@ export const useOfferValidation = () => {
   }
 }
 
+
+if (input.business?.acv && input.business?.capacity) {
+  const acvNum = parseInt(input.business.acv.replace(/[^0-9]/g, ''));
+  const capacityNum = parseInt(input.business.capacity);
+  const period = input.business.acvPeriod || 'annual';
+  
+  const perClientMonthly = period === 'monthly' 
+    ? Math.round(acvNum / capacityNum)
+    : Math.round(acvNum / 12 / capacityNum);
+  
+  if (perClientMonthly < 500) {
+    warnings['business.acv'] = `Your per-client monthly rate would be only $${perClientMonthly}/month. Did you mean to select "${period === 'monthly' ? 'annual' : 'monthly'}"?`;
+  }
+}
+
     // HARD ERRORS - Only truly essential fields prevent generation
     // Founder validation - Only check if showAllErrors OR if we have some founder data
     if (showAllErrors || (input.founder?.signatureResults?.length || input.founder?.coreStrengths?.length)) {

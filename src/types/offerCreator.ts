@@ -597,6 +597,7 @@ export const DEFAULT_FORM_VALUES: FormState = {
     capacity: '',
     monthlyHours: '',
     acv: '',
+     acvPeriod: 'monthly',
     fulfillmentStack: [],
   },
   pricing: {
