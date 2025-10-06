@@ -796,7 +796,7 @@ const onFinish = async (values: any) => {
               name="name"
               label="Your Name"
               rules={[{ required: true }]}
-              initialValue="Alex Growth"
+              initialValue=""
             >
               <Input />
             </Form.Item>
