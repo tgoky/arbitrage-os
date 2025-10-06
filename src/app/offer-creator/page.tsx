@@ -795,12 +795,13 @@ const handleClearAll = () => {
         <Option value="annual">yearly</Option>
       </Select>
     </div>
-  
-  <div className="text-xs text-gray-500 mt-1">
+    
+     <div className="text-xs text-gray-500 mt-1">
     {businessInputs.acv && businessInputs.capacity && businessInputs.acvPeriod === 'monthly' && (
       <>Targeting ${Math.round(parseInt(businessInputs.acv.replace(/[^0-9]/g, '')) / parseInt(businessInputs.capacity)).toLocaleString()}/month per client</>
     )}
-    
+  </div>
+  
     {validationResults.errors['business.acv'] && (
       <Text type="danger" className="text-sm">
         {validationResults.errors['business.acv']}
