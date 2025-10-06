@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
+  
   console.log('🔗 Auth callback triggered');
   
   const { searchParams, origin } = new URL(request.url)
