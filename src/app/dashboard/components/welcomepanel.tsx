@@ -255,6 +255,8 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         marginBottom: 12, // Reduced from 20
         paddingTop: 4, // Reduced from 8
         paddingBottom: 4, // Reduced from 8
+         paddingLeft: screens.xs ? '8px' : '20px', // Responsive padding
+  paddingRight: screens.xs ? '8px' : '20px', // Balance on right side
         flexDirection: screens.xs ? 'column' : 'row',
         gap: screens.xs ? '8px' : '12px', // Reduced gaps
 
@@ -265,7 +267,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     margin: 0,
     color: theme === 'dark' ? '#f9fafb' : '#111827', // This sets the base color
     fontWeight: 700,
-    fontSize: screens.xs ? '18px' : '20px',
+    fontSize: screens.xs ? '16px' : '18px',
     lineHeight: '1.2',
     flex: 1
   }}
@@ -313,15 +315,22 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
             {isFetching ? 'Refreshing...' : 'Refresh'}
           </Button>
           
-          {(lastRefreshTime || dataUpdatedAt) && (
-            <span style={{ 
-              fontSize: '12px', 
-              color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
-              whiteSpace: 'nowrap'
-            }}>
-              Last updated: {(lastRefreshTime || new Date(dataUpdatedAt)).toLocaleTimeString()}
-            </span>
-          )}
+       {(lastRefreshTime || dataUpdatedAt) && (
+  <Tag 
+    color={theme === 'dark' ? 'default' : 'default'}
+    style={{
+      fontSize: '12px',
+      padding: '4px 12px',
+      borderRadius: '6px',
+      backgroundColor: theme === 'dark' ? '#1F2937' : '#F9FAFB',
+      borderColor: theme === 'dark' ? '#374151' : '#D1D5DB',
+      color: theme === 'dark' ? '#9CA3AF' : '#6B7280',
+      margin: 0
+    }}
+  >
+    Last updated: {(lastRefreshTime || new Date(dataUpdatedAt)).toLocaleTimeString()}
+  </Tag>
+)}
         </div>
       </div>
 
