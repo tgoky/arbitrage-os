@@ -98,11 +98,6 @@ async function getAuthenticatedUser(request: NextRequest) {
 // GET - Fetch user profile
 export async function GET(req: NextRequest) {
 
-   const cookieStore = cookies();
-  
-  // LOG ALL COOKIES
-  const allCookies = cookieStore.getAll();
-  console.log('📝 All cookies:', allCookies);
   
   
   try {

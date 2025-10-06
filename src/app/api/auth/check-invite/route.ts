@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Check if user has a valid invite or is already an active user
+    // Check if user exists or has an invite
     const [invite, existingUser] = await Promise.all([
       prisma.userInvite.findUnique({
         where: { email: trimmedEmail }
@@ -25,39 +25,31 @@ export async function POST(request: NextRequest) {
       })
     ]);
 
-    // Allow if user already exists and is active
-    if (existingUser && existingUser.status === 'active') {
+    // Allow login if user already exists (regardless of status or last_login)
+    if (existingUser) {
       return NextResponse.json({ hasValidInvite: true });
     }
 
-    // Allow if user has a pending invite that hasn't expired
+    // If no existing user, they must have a valid invite
     if (invite) {
-      // Check if already accepted
-      if (invite.status === 'accepted') {
-        return NextResponse.json({ 
-          hasValidInvite: false,
-          error: 'Your invite has already been used. Please contact support if you need help accessing your account.'
-        });
-      }
-
       // Check if expired
       if (invite.expires_at && new Date() > invite.expires_at) {
         return NextResponse.json({ 
           hasValidInvite: false,
-          error: 'Your invite has expired. Please contact your administrator for a new invitation.'
+          error: 'Your invite has expired. Contact team@growaiagency.io for a new invitation.'
         });
       }
 
-      // Valid pending invite
-      if (invite.status === 'sent') {
+      // Valid invite (sent or accepted - both are fine)
+      if (invite.status === 'sent' || invite.status === 'accepted') {
         return NextResponse.json({ hasValidInvite: true });
       }
     }
 
-    // No valid invite found
+    // No valid invite or user found
     return NextResponse.json({ 
       hasValidInvite: false,
-      error: 'You don\'t have access to this platform. Contact team@growaiagency.io to request access.'
+      error: "You don't have access to this platform. Contact team@growaiagency.io to request access."
     });
 
   } catch (error: any) {
