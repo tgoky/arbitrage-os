@@ -130,9 +130,18 @@ ${input.additionalContext || 'No additional context provided'}`;
   }
 
   private buildAnalysisRequest(input: SalesCallInput): string {
-    return `
+  return `
 
 ANALYSIS DELIVERABLES REQUIRED:
+
+CRITICAL RULES FOR THIS ANALYSIS:
+- Extract REAL quotes from the transcript for key moments
+- Use relative time markers like "early in call", "midway", "towards end" instead of fake timestamps
+- Base ALL insights on actual conversation content that appears in the transcript
+- Identify patterns that ACTUALLY appear in the dialogue
+- For key moments, quote actual exchanges that happened
+- NO generic placeholders or assumptions
+- Every insight must reference something specific from this conversation
 
 Generate a comprehensive analysis package in valid JSON format with the following structure:
 
@@ -143,7 +152,7 @@ Generate a comprehensive analysis package in valid JSON format with the followin
     "duration": <estimated_duration_in_seconds>,
     "participants": [
       {
-        "name": "<participant_name>",
+        "name": "<actual_participant_name_from_transcript>",
         "role": "<host|participant|prospect|interviewer>",
         "speakingTime": <estimated_seconds>,
         "speakingPercentage": <percentage_of_total>
@@ -151,40 +160,48 @@ Generate a comprehensive analysis package in valid JSON format with the followin
     ],
     "transcript": "${input.transcript.substring(0, 200)}...",
     "analysis": {
-      "overallScore": <score_0_to_100>,
+      "overallScore": <score_0_to_100_based_on_actual_performance>,
       "sentiment": "<positive|neutral|negative|mixed>",
       "keyInsights": [
-        "<insight_1>",
-        "<insight_2>",
-        "<insight_3>"
+        "<specific_insight_from_actual_conversation>",
+        "<another_real_insight_with_context>",
+        "<third_insight_based_on_dialogue>"
       ],
       "actionItems": [
-        "<action_1>",
-        "<action_2>",
-        "<action_3>"
+        "<specific_action_based_on_what_was_discussed>",
+        "<follow_up_item_from_conversation>",
+        "<next_step_mentioned_or_implied>"
+      ],
+      "keyMoments": [
+        {
+          "phase": "<early_in_conversation|midway_through|towards_end>",
+          "topic": "<what_was_discussed>",
+          "actualQuote": "<exact_quote_from_transcript>",
+          "significance": "<why_this_matters>"
+        }
       ],
       "speakerBreakdown": [
         {
           "speaker": "<speaker_name>",
           "speakingTime": <seconds>,
           "percentage": <percentage>,
-          "keyPoints": ["<point_1>", "<point_2>"],
-          "toneAnalysis": "<professional|casual|enthusiastic|concerned>",
+          "keyPoints": ["<actual_point_made>", "<another_real_point>"],
+          "toneAnalysis": "<assessment_based_on_actual_language_used>",
           "engagement": <score_0_to_10>
         }
       ],
       ${this.getCallTypeSpecificAnalysis(input.callType)}
     },
-    "executiveSummary": "<2-3_sentence_summary>",
-    "detailedReport": "<comprehensive_markdown_report>",
-    ${input.callType === 'sales' || input.callType === 'discovery' ? '"followUpEmail": "<personalized_follow_up_template>",' : ''}
-    ${input.callType === 'sales' ? '"proposalTemplate": "<proposal_outline_based_on_discussion>",' : ''}
+    "executiveSummary": "<2-3_sentence_summary_of_what_actually_happened>",
+    "detailedReport": "<comprehensive_markdown_report_based_on_real_conversation>",
+    ${input.callType === 'sales' || input.callType === 'discovery' ? '"followUpEmail": "<personalized_email_referencing_actual_discussion_points>",' : ''}
+    ${input.callType === 'sales' ? '"proposalTemplate": "<proposal_based_on_actual_needs_discussed>",' : ''}
     "coachingFeedback": {
-      "strengths": ["<strength_1>", "<strength_2>", "<strength_3>"],
-      "improvements": ["<improvement_1>", "<improvement_2>", "<improvement_3>"],
-      "specificSuggestions": ["<suggestion_1>", "<suggestion_2>", "<suggestion_3>"],
-      "communicationTips": ["<tip_1>", "<tip_2>", "<tip_3>"],
-      "nextCallPreparation": ["<prep_item_1>", "<prep_item_2>", "<prep_item_3>"]
+      "strengths": ["<specific_strength_from_this_call>", "<another_real_strength>", "<third_strength>"],
+      "improvements": ["<specific_improvement_area_from_this_call>", "<another_real_area>", "<third_area>"],
+      "specificSuggestions": ["<actionable_suggestion_based_on_what_happened>", "<another_specific_tip>", "<third_suggestion>"],
+      "communicationTips": ["<tip_relevant_to_this_conversation>", "<another_contextual_tip>", "<third_tip>"],
+      "nextCallPreparation": ["<prep_item_based_on_discussion>", "<another_relevant_prep>", "<third_prep_item>"]
     },
     "benchmarks": {
       "industryAverages": {
@@ -194,67 +211,55 @@ Generate a comprehensive analysis package in valid JSON format with the followin
         "sentiment_positive_rate": 0.65
       },
       "yourPerformance": {
-        "talk_time_ratio": <calculated_ratio>,
-        "question_count": <actual_questions_asked>,
+        "talk_time_ratio": <calculated_from_actual_transcript>,
+        "question_count": <actual_questions_counted>,
         "engagement_score": <calculated_score>,
         "sentiment_positive_rate": <calculated_rate>
       },
-      "improvementAreas": ["<area_1>", "<area_2>", "<area_3>"]
+      "improvementAreas": ["<area_1_from_this_call>", "<area_2_from_this_call>", "<area_3_from_this_call>"]
     }
   },
   "summaryPresentation": [
     {
       "title": "Call Overview",
-      "content": "<brief_overview>",
+      "content": "<summary_of_what_actually_happened>",
       "visualType": "text"
     },
     {
       "title": "Key Performance Metrics",
-      "content": "<performance_data>",
+      "content": "<metrics_from_actual_conversation>",
       "visualType": "chart"
     },
     {
       "title": "Critical Insights",
-      "content": "<main_discoveries>",
+      "content": "<main_discoveries_from_this_specific_call>",
       "visualType": "bullet"
     },
     {
       "title": "Strategic Recommendations",
-      "content": "<actionable_next_steps>",
+      "content": "<next_steps_based_on_actual_discussion>",
       "visualType": "bullet"
     }
   ],
   "nextStepsStrategy": {
-    "immediateActions": ["<immediate_1>", "<immediate_2>", "<immediate_3>"],
-    "shortTermGoals": ["<short_term_1>", "<short_term_2>", "<short_term_3>"],
-    "longTermStrategy": ["<long_term_1>", "<long_term_2>", "<long_term_3>"],
-    "riskMitigation": ["<risk_1_mitigation>", "<risk_2_mitigation>"]
+    "immediateActions": ["<immediate_action_from_call>", "<another_immediate_step>", "<third_action>"],
+    "shortTermGoals": ["<short_term_goal_from_discussion>", "<another_goal>", "<third_goal>"],
+    "longTermStrategy": ["<long_term_strategy_point>", "<another_strategic_point>", "<third_point>"],
+    "riskMitigation": ["<risk_mentioned_or_implied>", "<another_risk>"]
   },
   "performanceMetrics": {
-    "talkTimePercentage": <host_talk_percentage>,
-    "questionToStatementRatio": <questions_vs_statements>,
+    "talkTimePercentage": <host_talk_percentage_calculated>,
+    "questionToStatementRatio": <calculated_from_transcript>,
     "averageResponseTime": <estimated_response_seconds>,
-    "engagementScore": <engagement_0_to_10>,
+    "engagementScore": <engagement_0_to_10_based_on_dialogue>,
     "clarityScore": <communication_clarity_0_to_10>,
-    "enthusiasmLevel": <enthusiasm_0_to_10>,
+    "enthusiasmLevel": <enthusiasm_0_to_10_from_language_used>,
     "professionalismScore": <professionalism_0_to_10>
   }
 }
 
-ANALYSIS REQUIREMENTS:
-1. Analyze conversation flow, pacing, and structure
-2. Identify emotional states and sentiment shifts
-3. Evaluate question quality and discovery effectiveness
-4. Assess rapport building and relationship dynamics
-5. Provide quantitative metrics wherever possible
-6. Focus on actionable, specific improvements
-7. Include industry benchmarks and comparisons
-8. Generate practical templates and next steps
-9. Identify missed opportunities and provide coaching
-10. Tailor all insights to ${input.callType} call objectives
-
-Make every insight specific, actionable, and tied to measurable outcomes. Provide coaching that users can immediately implement to improve their performance.`;
-  }
+IMPORTANT: Read the ENTIRE transcript before generating analysis. Base every single insight, quote, and recommendation on what actually appears in the conversation. No generic content allowed.`;
+}
 
   private getCallTypeSpecificAnalysis(callType: string): string {
     switch (callType) {
@@ -502,45 +507,115 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
   return 'negative';
 }
 
-  private generateKeyInsights(transcript: string, callType: string): string[] {
-    const insights = [];
-    
-    // Common insights
-    if (transcript.includes('budget')) {
-      insights.push('Budget was discussed - good sign for qualification');
-    }
-    
-    if (transcript.includes('timeline')) {
-      insights.push('Timeline was established - shows buying intent');
-    }
-    
-    const questionCount = (transcript.match(/\?/g) || []).length;
-    if (questionCount > 10) {
-      insights.push('Strong discovery - many questions asked');
-    } else if (questionCount < 5) {
-      insights.push('Limited discovery - consider asking more questions');
-    }
-    
-    // Call type specific insights
-    switch (callType) {
-      case 'sales':
-        if (transcript.includes('pain') || transcript.includes('challenge')) {
-          insights.push('Pain points identified - good foundation for value prop');
-        }
-        if (transcript.includes('decision maker')) {
-          insights.push('Decision maker involvement confirmed');
-        }
-        break;
-        
-      case 'interview':
-        if (transcript.includes('improve') || transcript.includes('better')) {
-          insights.push('Improvement opportunities identified');
-        }
-        break;
-    }
-    
-    return insights.slice(0, 5);
+private generateKeyInsights(transcript: string, callType: string): string[] {
+  const insights = [];
+  const lowerTranscript = transcript.toLowerCase();
+  
+  // Extract actual topics discussed
+  const topics = this.extractTopics(transcript);
+  if (topics.length > 0) {
+    insights.push(`Main topics discussed: ${topics.slice(0, 3).join(', ')}`);
   }
+  
+  // Real objections or concerns
+  const concerns = this.extractConcerns(transcript);
+  if (concerns.length > 0) {
+    insights.push(`Concerns raised: ${concerns[0]}`);
+  }
+  
+  // Actual engagement signals
+  if (lowerTranscript.includes('interested') || lowerTranscript.includes('sounds good')) {
+    insights.push('Prospect showed positive engagement signals during discussion');
+  }
+  
+  // Question quality from actual questions
+  const questions = (transcript.match(/\?/g) || []).length;
+  const transcriptLength = transcript.split(' ').length;
+  const questionDensity = questions / (transcriptLength / 100);
+  
+  if (questionDensity > 2) {
+    insights.push(`Strong discovery approach with ${questions} questions asked`);
+  } else if (questionDensity < 1) {
+    insights.push('Limited questioning - consider more discovery questions');
+  }
+  
+  return insights.slice(0, 5);
+}
+
+private extractTopics(transcript: string): string[] {
+  const topics: string[] = [];
+  const commonTopics = [
+    'pricing', 'budget', 'timeline', 'implementation', 'integration',
+    'features', 'support', 'training', 'onboarding', 'security',
+    'scalability', 'ROI', 'team', 'process', 'current solution'
+  ];
+  
+  for (const topic of commonTopics) {
+    if (transcript.toLowerCase().includes(topic)) {
+      topics.push(topic);
+    }
+  }
+  
+  return topics;
+}
+
+private extractConcerns(transcript: string): string[] {
+  const concerns: string[] = [];
+  const concernPatterns = [
+    /(?:concern|worried|hesitant|problem|issue) (?:about|with|regarding) ([^.!?]+)/gi,
+    /(?:not sure|uncertain|unclear) (?:about|if|whether) ([^.!?]+)/gi
+  ];
+  
+  for (const pattern of concernPatterns) {
+    const matches = transcript.matchAll(pattern);
+    for (const match of matches) {
+      if (match[1]) {
+        concerns.push(match[1].trim().substring(0, 100));
+      }
+    }
+  }
+  
+  return concerns;
+}
+
+private extractKeyMoments(transcript: string): Array<{topic: string, content: string}> {
+  const moments: Array<{topic: string, content: string}> = [];
+  
+  // Split by speaker if formatted with "Speaker:" or "Name:"
+  const lines = transcript.split('\n');
+  const importantLines = lines.filter(line => {
+    const lower = line.toLowerCase();
+    return lower.includes('?') || 
+           lower.includes('next step') ||
+           lower.includes('follow up') ||
+           lower.includes('concern') ||
+           lower.includes('budget') ||
+           lower.includes('timeline');
+  });
+  
+  importantLines.slice(0, 5).forEach(line => {
+    if (line.includes(':')) {
+      const [speaker, ...content] = line.split(':');
+      moments.push({
+        topic: this.categorizeContent(content.join(':')),
+        content: content.join(':').trim().substring(0, 200)
+      });
+    }
+  });
+  
+  return moments;
+}
+
+private categorizeContent(content: string): string {
+  const lower = content.toLowerCase();
+  if (lower.includes('?')) return 'Discovery Question';
+  if (lower.includes('next step') || lower.includes('follow up')) return 'Next Steps';
+  if (lower.includes('concern') || lower.includes('problem')) return 'Objection/Concern';
+  if (lower.includes('budget') || lower.includes('price')) return 'Budget Discussion';
+  if (lower.includes('timeline') || lower.includes('when')) return 'Timeline';
+  return 'Key Discussion Point';
+}
+
 
   private generateActionItems(input: SalesCallInput): string[] {
     const actions = [];
@@ -631,36 +706,31 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
   return `${callType} call with ${company} completed successfully with ${sentiment} sentiment. Key objectives were addressed and clear next steps established for continued engagement.`;
 }
   private generateDetailedReport(input: SalesCallInput, transcript: string): string {
-    return `# ${input.callType.toUpperCase()} CALL ANALYSIS REPORT
-
-## Call Overview
-**Date**: ${input.actualDate || input.scheduledDate || 'Not specified'}
-**Duration**: ${Math.floor(transcript.split(' ').length * 1.2 / 60)} minutes
-**Participants**: ${input.prospectName || 'Prospect'}, Host
-**Company**: ${input.companyName || 'Not specified'}
+  const keyMoments = this.extractKeyMoments(transcript);
+  const insights = this.generateKeyInsights(transcript, input.callType);
+  const topics = this.extractTopics(transcript);
+  
+  return `# ${input.callType.toUpperCase()} CALL ANALYSIS
 
 ## Executive Summary
-This ${input.callType} call demonstrated positive engagement and clear communication patterns. The conversation successfully covered key discussion points and established a foundation for next steps.
+${this.generateExecutiveSummary(input, transcript)}
 
-## Key Findings
-- **Engagement Level**: High participant involvement throughout
-- **Discovery Quality**: Adequate information gathering
-- **Relationship Building**: Strong rapport established
-- **Next Steps**: Clear action items defined
+## Key Topics Discussed
+${topics.length > 0 ? topics.map(t => `- ${t}`).join('\n') : '- General discussion'}
+
+## Critical Moments
+${keyMoments.map(m => `### ${m.topic}\n"${m.content}"\n`).join('\n')}
+
+## Key Insights
+${insights.map(i => `- ${i}`).join('\n')}
 
 ## Recommendations
-1. **Immediate**: Follow up within 24 hours with meeting summary
-2. **Short-term**: Prepare detailed proposal addressing discussed needs
-3. **Long-term**: Build strategic partnership approach
+${this.generateActionItems(input).map(a => `- ${a}`).join('\n')}
 
-## Performance Assessment
-- **Communication**: Professional and clear
-- **Listening**: Active listening demonstrated
-- **Question Quality**: Good discovery techniques used
-- **Outcome**: Objectives achieved successfully
+---
+*Analysis based on ${transcript.split(' ').length} words across ${transcript.split('\n').length} exchanges*`;
+}
 
-This analysis provides actionable insights for improving future call performance and advancing business objectives.`;
-  }
 
   private generateFollowUpEmail(input: SalesCallInput): string {
     return `Subject: Thank you for our ${input.callType} call today - Next steps
