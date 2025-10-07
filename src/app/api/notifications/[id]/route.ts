@@ -8,6 +8,7 @@ async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
     
+    // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       try {
@@ -29,6 +30,7 @@ async function getAuthenticatedUser(request: NextRequest) {
       }
     }
     
+    // Method 2: SSR cookies with proper base64 handling
     try {
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,6 +71,7 @@ async function getAuthenticatedUser(request: NextRequest) {
       console.warn('SSR cookie auth failed:', ssrError);
     }
     
+    // Method 3: Route handler client (fallback)
     try {
       const supabase = createRouteHandlerClient({
         cookies: () => cookieStore
