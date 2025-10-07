@@ -144,97 +144,115 @@ function createAuthErrorResponse() {
   return response;
 }
 
+// app/api/sales-call-analyzer/route.ts - ADD DETAILED LOGGING
+
 export async function POST(request: NextRequest) {
   console.log('🚀 Sales Call Analyzer API Route called');
+  console.log('📍 Request URL:', request.url);
+  console.log('📍 Request method:', request.method);
   
   try {
-    // USE ROBUST AUTHENTICATION
+    // Authentication
     const { user, error: authError } = await getAuthenticatedUser(request);
     
     if (authError || !user) {
-      console.error('❌ Auth failed in sales call analyzer:', authError);
+      console.error('❌ Auth failed:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Sales Call Analyzer user authenticated successfully:', user.id);
+    console.log('✅ User authenticated:', user.id);
 
-    // Parse request body first to get workspace ID
+    // Parse body
     let body;
     try {
-      body = await request.json();
+      const rawBody = await request.text();
+      console.log('📦 Raw request body length:', rawBody.length);
+      console.log('📦 Raw request body preview:', rawBody.substring(0, 200));
+      
+      body = JSON.parse(rawBody);
+      console.log('📦 Parsed body keys:', Object.keys(body));
+      console.log('📦 Body workspace ID:', body.workspaceId);
+      console.log('📦 Body call type:', body.callType);
+      console.log('📦 Body transcript length:', body.transcript?.length);
     } catch (parseError) {
-      console.error('❌ Failed to parse sales call analysis request body:', parseError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Invalid JSON in request body' 
-        },
-        { status: 400 }
-      );
-    }
-
-    // GET WORKSPACE ID FROM REQUEST (like pricing calculator)
-    const { searchParams } = new URL(request.url);
-    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
-    
-    if (!workspaceId) {
-      return NextResponse.json({ 
-        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
-        code: 'WORKSPACE_ID_REQUIRED'
+      console.error('❌ JSON parse error:', parseError);
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid JSON in request body',
+        debug: parseError instanceof Error ? parseError.message : 'Parse failed'
       }, { status: 400 });
     }
 
-    // VALIDATE WORKSPACE ACCESS
+    // Get workspace ID
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
+    
+    console.log('🏢 Workspace ID from params:', searchParams.get('workspaceId'));
+    console.log('🏢 Workspace ID from body:', body.workspaceId);
+    console.log('🏢 Final workspace ID:', workspaceId);
+    
+    if (!workspaceId) {
+      console.error('❌ No workspace ID provided');
+      return NextResponse.json({ 
+        error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
+        code: 'WORKSPACE_ID_REQUIRED',
+        debug: {
+          searchParams: searchParams.get('workspaceId'),
+          bodyWorkspaceId: body.workspaceId,
+          allBodyKeys: Object.keys(body)
+        }
+      }, { status: 400 });
+    }
+
+    // Validate workspace access
+    console.log('🔍 Validating workspace access...');
     const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
     if (!hasAccess) {
+      console.error('❌ Workspace access denied');
       return NextResponse.json({ 
         error: 'Workspace not found or access denied.',
         code: 'WORKSPACE_ACCESS_DENIED'
       }, { status: 403 });
     }
+    console.log('✅ Workspace access validated');
 
-    // RATE LIMITING for call analysis
-    console.log('🔍 Checking rate limits for sales call analyzer user:', user.id);
+    // Rate limiting
+    console.log('🔍 Checking rate limits...');
     const rateLimitResult = await rateLimit(
       `call_analysis:${user.id}`, 
-      20, // 20 per hour
+      20,
       3600
     );
     
     if (!rateLimitResult.success) {
-      console.log('❌ Sales call analysis rate limit exceeded for user:', user.id);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Too many analysis requests. Please try again later.',
-          data: {
-            retryAfter: rateLimitResult.reset,
-            remaining: rateLimitResult.remaining
-          }
-        },
-        { status: 429 }
-      );
+      console.log('❌ Rate limit exceeded');
+      return NextResponse.json({
+        success: false,
+        error: 'Too many analysis requests. Please try again later.',
+        data: {
+          retryAfter: rateLimitResult.reset,
+          remaining: rateLimitResult.remaining
+        }
+      }, { status: 429 });
     }
-    console.log('✅ Sales call analysis rate limit check passed');
+    console.log('✅ Rate limit check passed');
 
     // Validate input
-    console.log('🔍 Validating sales call input...');
+    console.log('🔍 Validating input...');
     const validation = validateSalesCallInput(body);
     
     if (!validation.success) {
-      console.error('❌ Sales call input validation failed:', validation.errors);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Invalid input', 
-          data: validation.errors 
-        },
-        { status: 400 }
-      );
+      console.error('❌ Input validation failed:', validation.errors);
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid input', 
+        data: validation.errors 
+      }, { status: 400 });
     }
-    console.log('✅ Sales call input validation passed');
+    console.log('✅ Input validation passed');
 
-    // VERIFY WORKSPACE EXISTS
+    // Get workspace
+    console.log('🔍 Fetching workspace from database...');
     let workspace;
     try {
       const { prisma } = await import('@/lib/prisma');
@@ -246,24 +264,24 @@ export async function POST(request: NextRequest) {
       });
 
       if (!workspace) {
+        console.error('❌ Workspace not found in database');
         return NextResponse.json({ 
           error: 'Workspace not found.',
           code: 'WORKSPACE_NOT_FOUND'
         }, { status: 404 });
       }
+      console.log('✅ Workspace found:', workspace.name);
     } catch (dbError) {
       console.error('💥 Database error getting workspace:', dbError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Database error. Please try again.',
-          debug: dbError instanceof Error ? dbError.message : 'Unknown DB error'
-        },
-        { status: 500 }
-      );
+      console.error('💥 DB Error stack:', dbError instanceof Error ? dbError.stack : 'No stack');
+      return NextResponse.json({
+        success: false,
+        error: 'Database error. Please try again.',
+        debug: dbError instanceof Error ? dbError.message : 'Unknown DB error'
+      }, { status: 500 });
     }
 
-    // SERVICE HANDLES BOTH ANALYSIS AND STORAGE
+    // Analyze call
     console.log('🤖 Starting sales call analysis...');
     let analysisPackage;
     let deliverableId;
@@ -272,58 +290,73 @@ export async function POST(request: NextRequest) {
       const analyzerService = new SalesCallAnalyzerService();
       const analysisInput = { ...validation.data, userId: user.id };
       
-      // Analyze the call
-      console.log('🔍 Analyzing sales call...');
-      analysisPackage = await analyzerService.analyzeCall(analysisInput);
-      console.log('✅ Sales call analysis completed');
+      console.log('🔍 Analysis input keys:', Object.keys(analysisInput));
+      console.log('🔍 Analysis input call type:', analysisInput.callType);
+      console.log('🔍 Analysis input transcript length:', analysisInput.transcript?.length);
       
-      // Save with validated workspace ID
-      console.log('💾 Saving sales call analysis...');
+      // Analyze
+      console.log('🔍 Calling analyzerService.analyzeCall...');
+      analysisPackage = await analyzerService.analyzeCall(analysisInput);
+      console.log('✅ Analysis completed');
+      console.log('📊 Tokens used:', analysisPackage.tokensUsed);
+      console.log('⏱️ Processing time:', analysisPackage.processingTime, 'ms');
+      
+      // Save
+      console.log('💾 Saving analysis to database...');
       deliverableId = await analyzerService.saveCallAnalysis(
         user.id,
-        workspaceId, // Use the validated workspace ID
+        workspaceId,
         analysisPackage,
         analysisInput
       );
-      console.log('✅ Sales call analysis saved with ID:', deliverableId);
+      console.log('✅ Analysis saved with ID:', deliverableId);
+      
     } catch (serviceError) {
-      console.error('💥 Service error during sales call analysis:', serviceError);
-      console.error('Sales call analysis service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
-      return NextResponse.json(
-        { 
+      console.error('💥 Service error during analysis:', serviceError);
+      console.error('💥 Service error name:', serviceError instanceof Error ? serviceError.name : 'Unknown');
+      console.error('💥 Service error message:', serviceError instanceof Error ? serviceError.message : 'Unknown');
+      console.error('💥 Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
+      
+      // Check if it's an OpenRouter API error
+      if (serviceError instanceof Error && serviceError.message.includes('OpenRouter')) {
+        return NextResponse.json({
           success: false,
-          error: 'Failed to analyze call. Please try again.',
-          debug: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
-        },
-        { status: 500 }
-      );
+          error: 'AI service error. Please try again.',
+          debug: serviceError.message
+        }, { status: 503 });
+      }
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to analyze call. Please try again.',
+        debug: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
+      }, { status: 500 });
     }
 
-    // After successful call analysis and saving
-try {
-  await createNotification({
-    userId: user.id,
-    workspaceId: workspaceId,
-    workspaceSlug: workspace.slug,
-    type: 'sales_call',
-    itemId: deliverableId,
-    metadata: {
-      callType: validation.data.callType,
-      companyName: validation.data.companyName,
-      prospectName: validation.data.prospectName,
-      overallScore: analysisPackage.callResults.analysis.overallScore,
-      sentiment: analysisPackage.callResults.analysis.sentiment
+    // Create notification
+    console.log('📢 Creating notification...');
+    try {
+      await createNotification({
+        userId: user.id,
+        workspaceId: workspaceId,
+        workspaceSlug: workspace.slug,
+        type: 'sales_call',
+        itemId: deliverableId,
+        metadata: {
+          callType: validation.data.callType,
+          companyName: validation.data.companyName,
+          prospectName: validation.data.prospectName,
+          overallScore: analysisPackage.callResults.analysis.overallScore,
+          sentiment: analysisPackage.callResults.analysis.sentiment
+        }
+      });
+      console.log('✅ Notification created');
+    } catch (notifError) {
+      console.error('⚠️ Failed to create notification (non-critical):', notifError);
     }
-  });
-  
-  console.log('✅ Notification created for call analysis:', deliverableId);
-} catch (notifError) {
-  console.error('Failed to create notification:', notifError);
-}
 
-
-    // LOG USAGE for billing/analytics with workspace context
-    console.log('📊 Logging sales call analysis usage...');
+    // Log usage
+    console.log('📊 Logging usage...');
     try {
       await logUsage({
         userId: user.id,
@@ -341,12 +374,12 @@ try {
           sentiment: analysisPackage.callResults.analysis.sentiment
         }
       });
-      console.log('✅ Sales call analysis usage logged successfully');
+      console.log('✅ Usage logged');
     } catch (logError) {
-      console.error('⚠️ Sales call analysis usage logging failed (non-critical):', logError);
+      console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
 
-    console.log('🎉 Sales call analysis completed successfully');
+    console.log('🎉 Analysis completed successfully');
     return NextResponse.json({
       success: true,
       data: {
@@ -363,16 +396,17 @@ try {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected Sales Call Analyzer API Error:', error);
-    console.error('Sales call analyzer error stack:', error instanceof Error ? error.stack : 'No stack');
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to analyze call. Please try again.',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('💥 UNEXPECTED ERROR IN API ROUTE:', error);
+    console.error('💥 Error type:', error?.constructor?.name);
+    console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to analyze call. Please try again.',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error?.constructor?.name || 'Unknown'
+    }, { status: 500 });
   }
 }
 
