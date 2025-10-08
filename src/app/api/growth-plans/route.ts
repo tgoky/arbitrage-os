@@ -1,6 +1,5 @@
 // app/api/growth-plans/route.ts - WITH DATABASE SAVING ENABLED
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
@@ -22,103 +21,42 @@ export const runtime = 'nodejs';
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ ROBUST AUTHENTICATION (same as before)
-async function getAuthenticatedUser(request: NextRequest) {
+// ✅ SIMPLIFIED: Authentication function from work-items
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Try with route handler client
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (!error && user) {
-        console.log('✅ Growth Plan Auth Method 1 (route handler) succeeded for user:', user.id);
-        return { user, error: null };
-      }
-      
-      console.log('⚠️ Growth Plan route handler auth failed:', error?.message);
-    } catch (helperError) {
-      console.warn('⚠️ Growth Plan route handler client failed:', helperError);
-    }
-    
-    // Method 2: Try with authorization header
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        console.log('🔍 Growth Plan trying token auth with token:', token.substring(0, 20) + '...');
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get: () => undefined,
-            },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (!error && user) {
-          console.log('✅ Growth Plan Auth Method 2 (token) succeeded for user:', user.id);
-          return { user, error: null };
-        }
-        
-        console.log('⚠️ Growth Plan token auth failed:', error?.message);
-      } catch (tokenError) {
-        console.warn('⚠️ Growth Plan token auth error:', tokenError);
-      }
-    }
-    
-    // Method 3: Try with cookie validation
-    const supabaseSSR = createServerClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
             try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              // Validate base64 cookies
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded); // Validate JSON
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`Invalid Growth Plan cookie ${name}, skipping...`);
-                  return undefined;
-                }
-              }
-              return cookie.value;
-            } catch (error) {
-              console.warn(`Error reading Growth Plan cookie ${name}:`, error);
-              return undefined;
-            }
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
           },
         },
       }
     );
     
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!error && user) {
-      console.log('✅ Growth Plan Auth Method 3 (SSR cookies) succeeded for user:', user.id);
-    } else {
-      console.log('⚠️ Growth Plan SSR cookie auth failed:', error?.message);
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    return { user, error };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('💥 All Growth Plan authentication methods failed:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -127,43 +65,25 @@ export async function POST(request: NextRequest) {
   console.log('🚀 Growth Plan API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in growth plan:', authError);
-      
-      // Clear corrupted cookies in response
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = [
-        'sb-access-token',
-        'sb-refresh-token',
-        'supabase-auth-token'
-      ];
-      
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', {
-          expires: new Date(0),
-          path: '/',
-        });
-      });
-      
-      return response;
     }
 
     console.log('✅ Growth Plan user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ RATE LIMITING: Growth plan generation is expensive!
+    // RATE LIMITING: Growth plan generation is expensive!
     console.log('🔍 Checking rate limits for growth plan user:', userId);
     const rateLimitResult = await rateLimit(
       `growth_plan_generation:${userId}`,
@@ -201,22 +121,23 @@ export async function POST(request: NextRequest) {
     
     const { input, workspaceId } = body;
 
-      if (!workspaceId) {
+    if (!workspaceId) {
       return NextResponse.json({ 
+        success: false,
         error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
         code: 'WORKSPACE_ID_REQUIRED'
       }, { status: 400 });
     }
 
-      // VALIDATE WORKSPACE ACCESS
+    // VALIDATE WORKSPACE ACCESS
     const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
     if (!hasAccess) {
       return NextResponse.json({ 
+        success: false,
         error: 'Workspace not found or access denied.',
         code: 'WORKSPACE_ACCESS_DENIED'
       }, { status: 403 });
     }
-
 
     if (!input) {
       console.error('❌ Growth plan input is missing');
@@ -280,7 +201,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Growth plan input validation passed');
 
-    // ✅ GET USER'S WORKSPACE with error handling
+    // GET USER'S WORKSPACE with error handling
     console.log('🔍 Getting/creating workspace for growth plan user:', userId);
     let workspace;
     try {
@@ -308,7 +229,7 @@ export async function POST(request: NextRequest) {
         { 
           success: false,
           error: 'Database error. Please try again.',
-          debug: dbError instanceof Error ? dbError.message : 'Unknown DB error'
+          details: process.env.NODE_ENV === 'development' ? (dbError instanceof Error ? dbError.message : 'Unknown DB error') : undefined
         },
         { status: 500 }
       );
@@ -327,55 +248,55 @@ export async function POST(request: NextRequest) {
         { 
           success: false,
           error: 'Failed to generate growth plan. Please try again.',
-          debug: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
+          details: process.env.NODE_ENV === 'development' ? (serviceError instanceof Error ? serviceError.message : 'Unknown service error') : undefined
         },
         { status: 500 }
       );
     }
 
-  if (!userId || typeof userId !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId)) {
-  console.error("🚨 INVALID USER ID DETECTED:", userId);
-  return NextResponse.json(
-    { success: false, error: "Authentication failed: Invalid user ID." },
-    { status: 401 } // 401 Unauthorized is appropriate for auth issues
-  );
-}
+    if (!userId || typeof userId !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId)) {
+      console.error("🚨 INVALID USER ID DETECTED:", userId);
+      return NextResponse.json(
+        { success: false, error: "Authentication failed: Invalid user ID." },
+        { status: 401 } // 401 Unauthorized is appropriate for auth issues
+      );
+    }
 
-// 2. Determine and Validate finalWorkspaceId
-let finalWorkspaceId: string;
+    // 2. Determine and Validate finalWorkspaceId
+    let finalWorkspaceId: string;
 
-// Check if workspaceId from request body is a valid UUID string
-if (workspaceId && typeof workspaceId === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(workspaceId)) {
-  console.log("   Using workspaceId from request body");
-  finalWorkspaceId = workspaceId;
-} else {
-  // Fallback to the user's default workspace ID obtained from DB
-  console.log("   Using default workspace ID from DB lookup");
-  finalWorkspaceId = workspace.id;
-}
+    // Check if workspaceId from request body is a valid UUID string
+    if (workspaceId && typeof workspaceId === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(workspaceId)) {
+      console.log("   Using workspaceId from request body");
+      finalWorkspaceId = workspaceId;
+    } else {
+      // Fallback to the user's default workspace ID obtained from DB
+      console.log("   Using default workspace ID from DB lookup");
+      finalWorkspaceId = workspace.id;
+    }
 
-// 3. Validate finalWorkspaceId (crucial check)
-if (!finalWorkspaceId || typeof finalWorkspaceId !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(finalWorkspaceId)) {
-   console.error("🚨 INVALID WORKSPACE ID DETECTED for saving:", finalWorkspaceId, "Type:", typeof finalWorkspaceId);
-   // Log the values for debugging
-   console.error("   workspaceId (from body):", workspaceId, "Type:", typeof workspaceId);
-   console.error("   workspace.id (from DB):", workspace.id, "Type:", typeof workspace.id);
-   return NextResponse.json(
-     { success: false, error: "Invalid workspace ID format provided or could not determine a valid workspace." },
-     { status: 400 } // 400 Bad Request for invalid input
-   );
-}
+    // 3. Validate finalWorkspaceId (crucial check)
+    if (!finalWorkspaceId || typeof finalWorkspaceId !== 'string' || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(finalWorkspaceId)) {
+       console.error("🚨 INVALID WORKSPACE ID DETECTED for saving:", finalWorkspaceId, "Type:", typeof finalWorkspaceId);
+       // Log the values for debugging
+       console.error("   workspaceId (from body):", workspaceId, "Type:", typeof workspaceId);
+       console.error("   workspace.id (from DB):", workspace.id, "Type:", typeof workspace.id);
+       return NextResponse.json(
+         { success: false, error: "Invalid workspace ID format provided or could not determine a valid workspace." },
+         { status: 400 } // 400 Bad Request for invalid input
+       );
+    }
 
-// --- End of validation logic ---
+    // --- End of validation logic ---
 
-// Now use finalWorkspaceId in the save call
-console.log('💾 Saving growth plan to database...');
-console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWorkspaceId); // Extra debug log
-  let planId;
+    // Now use finalWorkspaceId in the save call
+    console.log('💾 Saving growth plan to database...');
+    console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWorkspaceId); // Extra debug log
+    let planId;
     try {
       planId = await growthPlanService.saveGrowthPlan(
         userId,
-        workspaceId, // Use the validated workspace ID directly
+        finalWorkspaceId, // Use the validated workspace ID directly
         plan,
         inputWithUserId
       );
@@ -386,52 +307,52 @@ console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWor
         { 
           success: false,
           error: 'Failed to save growth plan. Please try again.',
-          debug: saveError instanceof Error ? saveError.message : 'Unknown save error'
+          details: process.env.NODE_ENV === 'development' ? (saveError instanceof Error ? saveError.message : 'Unknown save error') : undefined
         },
         { status: 500 }
       );
     }
 
     try {
-  await createNotification({
-    userId: user.id,
-    workspaceId: workspaceId,
-    workspaceSlug: workspace.slug,
-    type: 'growth_plan',
-    itemId: planId,
-    metadata: {
-      clientCompany: validation.data.clientCompany,
-      industry: validation.data.industry,
-      timeframe: validation.data.timeframe,
-      consultantName: validation.data.name,
-      consultantExpertise: validation.data.expertise
+      await createNotification({
+        userId: user.id,
+        workspaceId: finalWorkspaceId,
+        workspaceSlug: workspace.slug,
+        type: 'growth_plan',
+        itemId: planId,
+        metadata: {
+          clientCompany: validation.data.clientCompany,
+          industry: validation.data.industry,
+          timeframe: validation.data.timeframe,
+          consultantName: validation.data.name,
+          consultantExpertise: validation.data.expertise
+        }
+      });
+      
+      console.log('✅ Notification created for growth plan:', planId);
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+      // Don't fail the request if notification fails
     }
-  });
-  
-  console.log('✅ Notification created for growth plan:', planId);
-} catch (notifError) {
-  console.error('Failed to create notification:', notifError);
-  // Don't fail the request if notification fails
-}
 
-    // ✅ LOG USAGE: Track AI token consumption
+    // LOG USAGE: Track AI token consumption
     console.log('📊 Logging growth plan usage...');
     try {
       await logUsage({
-      userId,
-      feature: 'growth_plan_generation',
-      tokens: plan.tokensUsed,
-      timestamp: new Date(),
-      metadata: {
-        planId,
-        workspaceId, // ADD THIS
-        workspaceName: workspace.name, // ADD THIS (get workspace object first)
-        clientCompany: input.clientCompany,
-        industry: input.industry,
-        timeframe: input.timeframe,
-        generationTime: plan.generationTime
-      }
-    });
+        userId,
+        feature: 'growth_plan_generation',
+        tokens: plan.tokensUsed,
+        timestamp: new Date(),
+        metadata: {
+          planId,
+          workspaceId: finalWorkspaceId, // ADD THIS
+          workspaceName: workspace.name, // ADD THIS (get workspace object first)
+          clientCompany: input.clientCompany,
+          industry: input.industry,
+          timeframe: input.timeframe,
+          generationTime: plan.generationTime
+        }
+      });
       console.log('✅ Growth plan usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
@@ -472,7 +393,7 @@ console.log("   Final validated IDs - UserId:", userId, "WorkspaceId:", finalWor
         success: false,
         error: 'Failed to create growth plan',
         message: error instanceof Error ? error.message : 'Unknown error',
-        debug: error instanceof Error ? error.message : 'Unknown error'
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
       },
       { status: 500 }
     );
@@ -483,34 +404,25 @@ export async function GET(request: NextRequest) {
   console.log('🚀 Growth Plan GET API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in growth plan GET:', authError);
-      
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
-      });
-      
-      return response;
     }
 
     console.log('✅ Growth Plan GET user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ LIGHT RATE LIMITING: Prevent API abuse on reads
+    // LIGHT RATE LIMITING: Prevent API abuse on reads
     const rateLimitResult = await rateLimit(
       `growth_plan_list:${userId}`,
       100, // 100 requests per hour
@@ -527,94 +439,96 @@ export async function GET(request: NextRequest) {
       );
     }
 
-  const { searchParams } = new URL(request.url);
-   const workspaceId = searchParams.get('workspaceId');
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get('workspaceId');
 
     if (workspaceId) {
       const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
       if (!hasAccess) {
         return NextResponse.json({ 
+          success: false,
           error: 'Workspace access denied.',
           code: 'WORKSPACE_ACCESS_DENIED'
         }, { status: 403 });
       }
     }
 
-// Get raw workspaceId from query params
-const rawWorkspaceId = searchParams.get('workspaceId'); // This could be 'default', a UUID, or null
-const limit = parseInt(searchParams.get('limit') || '20');
-const offset = parseInt(searchParams.get('offset') || '0');
-const industry = searchParams.get('industry');
-const timeframe = searchParams.get('timeframe');
+    // Get raw workspaceId from query params
+    const rawWorkspaceId = searchParams.get('workspaceId'); // This could be 'default', a UUID, or null
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = parseInt(searchParams.get('offset') || '0');
+    const industry = searchParams.get('industry');
+    const timeframe = searchParams.get('timeframe');
 
-console.log('🔍 Fetching growth plans for user:', userId, 'Raw workspaceId from query:', rawWorkspaceId);
+    console.log('🔍 Fetching growth plans for user:', userId, 'Raw workspaceId from query:', rawWorkspaceId);
 
-// --- Add Robust Workspace ID Handling for GET ---
-let finalWorkspaceIdForFetch: string | undefined;
+    // --- Add Robust Workspace ID Handling for GET ---
+    let finalWorkspaceIdForFetch: string | undefined;
 
-// Validate the rawWorkspaceId from the query
-if (rawWorkspaceId && typeof rawWorkspaceId === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(rawWorkspaceId)) {
-  console.log("   Using valid workspaceId from query parameter");
-  finalWorkspaceIdForFetch = rawWorkspaceId;
-} else if (rawWorkspaceId === 'default' || !rawWorkspaceId) { // Handle 'default' string or missing ID
-  // Need to get the user's actual default workspace ID
-  console.log("   Need to resolve 'default' or missing workspaceId. Fetching user's default workspace...");
-  try {
-    const defaultWorkspace = await prisma.workspace.findFirst({
-      where: { user_id: userId, slug: 'default' } // Or find the one created for the user
-      // Or perhaps just: where: { user_id: userId } and take the first one if there's only one default-like
-      // Adjust this query based on how you identify the "default" workspace for the user.
-      // The safest way is to use the same logic as in POST to get the workspace.id
-    });
+    // Validate the rawWorkspaceId from the query
+    if (rawWorkspaceId && typeof rawWorkspaceId === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(rawWorkspaceId)) {
+      console.log("   Using valid workspaceId from query parameter");
+      finalWorkspaceIdForFetch = rawWorkspaceId;
+    } else if (rawWorkspaceId === 'default' || !rawWorkspaceId) { // Handle 'default' string or missing ID
+      // Need to get the user's actual default workspace ID
+      console.log("   Need to resolve 'default' or missing workspaceId. Fetching user's default workspace...");
+      try {
+        const defaultWorkspace = await prisma.workspace.findFirst({
+          where: { user_id: userId, slug: 'default' } // Or find the one created for the user
+          // Or perhaps just: where: { user_id: userId } and take the first one if there's only one default-like
+          // Adjust this query based on how you identify the "default" workspace for the user.
+          // The safest way is to use the same logic as in POST to get the workspace.id
+        });
 
-    if (defaultWorkspace) {
-      console.log("   Resolved 'default' to workspace ID:", defaultWorkspace.id);
-      finalWorkspaceIdForFetch = defaultWorkspace.id;
+        if (defaultWorkspace) {
+          console.log("   Resolved 'default' to workspace ID:", defaultWorkspace.id);
+          finalWorkspaceIdForFetch = defaultWorkspace.id;
+        } else {
+          console.warn("   User's default workspace not found. Fetching plans for all user workspaces or none?");
+          // Decide: Fetch for all user's workspaces? Or return empty?
+          // For now, let's pass undefined to potentially fetch all for the user, or handle as needed.
+          // You might want to refine this logic.
+          finalWorkspaceIdForFetch = undefined; // Or handle error
+          // Alternatively, if you *always* want a workspace, you could create it here too,
+          // but that's usually done in POST.
+        }
+      } catch (dbError) {
+        console.error('💥 Database error resolving default workspace ID for GET:', dbError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Database error resolving workspace.',
+            details: process.env.NODE_ENV === 'development' ? String(dbError) : undefined
+          },
+          { status: 500 }
+        );
+      }
     } else {
-      console.warn("   User's default workspace not found. Fetching plans for all user workspaces or none?");
-      // Decide: Fetch for all user's workspaces? Or return empty?
-      // For now, let's pass undefined to potentially fetch all for the user, or handle as needed.
-      // You might want to refine this logic.
-      finalWorkspaceIdForFetch = undefined; // Or handle error
-      // Alternatively, if you *always* want a workspace, you could create it here too,
-      // but that's usually done in POST.
+      // rawWorkspaceId is a string but not a valid UUID nor 'default'
+      console.warn("   Invalid workspaceId format received in query:", rawWorkspaceId);
+      // Decide: Return error or ignore filter?
+      // Let's ignore the invalid filter for now and fetch for the user generally.
+      finalWorkspaceIdForFetch = undefined;
     }
-  } catch (dbError) {
-    console.error('💥 Database error resolving default workspace ID for GET:', dbError);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Database error resolving workspace.',
-      },
-      { status: 500 }
-    );
-  }
-} else {
-  // rawWorkspaceId is a string but not a valid UUID nor 'default'
-  console.warn("   Invalid workspaceId format received in query:", rawWorkspaceId);
-  // Decide: Return error or ignore filter?
-  // Let's ignore the invalid filter for now and fetch for the user generally.
-  finalWorkspaceIdForFetch = undefined;
-}
-// --- End of Robust Workspace ID Handling for GET ---
+    // --- End of Robust Workspace ID Handling for GET ---
 
-console.log('🔍 Fetching growth plans for user:', userId, 'Using resolved/final workspaceId:', finalWorkspaceIdForFetch);
+    console.log('🔍 Fetching growth plans for user:', userId, 'Using resolved/final workspaceId:', finalWorkspaceIdForFetch);
 
-let plans;
-try {
-  // Pass the validated/resolved workspaceId
-  plans = await growthPlanService.getUserGrowthPlans(
-    userId,
-    workspaceId || undefined
-  );
-  console.log('✅ Retrieved', plans.length, 'growth plans');
-} catch (serviceError) {
+    let plans;
+    try {
+      // Pass the validated/resolved workspaceId
+      plans = await growthPlanService.getUserGrowthPlans(
+        userId,
+        finalWorkspaceIdForFetch
+      );
+      console.log('✅ Retrieved', plans.length, 'growth plans');
+    } catch (serviceError) {
       console.error('💥 Error fetching growth plans:', serviceError);
       return NextResponse.json(
         { 
           success: false,
           error: 'Failed to fetch growth plans. Please try again.',
-          debug: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
+          details: process.env.NODE_ENV === 'development' ? (serviceError instanceof Error ? serviceError.message : 'Unknown service error') : undefined
         },
         { status: 500 }
       );
@@ -633,7 +547,7 @@ try {
     const paginatedPlans = filteredPlans.slice(offset, offset + limit);
     const hasMore = filteredPlans.length > offset + limit;
 
-    // ✅ LOG USAGE for list access
+    // LOG USAGE for list access
     try {
       await logUsage({
         userId,
@@ -641,7 +555,7 @@ try {
         tokens: 0,
         timestamp: new Date(),
         metadata: {
-            workspaceId: finalWorkspaceIdForFetch, 
+          workspaceId: finalWorkspaceIdForFetch, 
           resultCount: paginatedPlans.length,
           totalCount: filteredPlans.length,
           filters: { industry, timeframe }
@@ -670,7 +584,8 @@ try {
       {
         success: false,
         error: 'Failed to list growth plans',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
       },
       { status: 500 }
     );
