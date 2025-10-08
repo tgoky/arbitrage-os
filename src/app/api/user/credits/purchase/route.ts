@@ -7,97 +7,52 @@ import { CreditsService } from '@/services/credits.service';
 import { rateLimit } from '@/lib/rateLimit';
 
 // Authentication function
-async function getAuthenticatedUser(request?: NextRequest) {
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    if (request) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        try {
-          const token = authHeader.substring(7);
-          const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-              cookies: { get: () => undefined },
-            }
-          );
-          
-          const { data: { user }, error } = await supabase.auth.getUser(token);
-          if (!error && user) {
-            return { user, error: null };
-          }
-        } catch (tokenError) {
-          console.warn('Token auth failed:', tokenError);
-        }
-      }
-    }
-    
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded);
-                    return cookie.value;
-                  } catch (e) {
-                    return undefined;
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('Authentication failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
+
 
 export async function POST(req: NextRequest) {
   console.log('Credit Purchase API called');
   
   try {
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    const { user, error: authError } = await getAuthenticatedUser();
+  
     
     if (authError || !user) {
       return NextResponse.json(

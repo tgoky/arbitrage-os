@@ -211,105 +211,45 @@ const SIGNATURE_OFFER_BENCHMARKS = {
 };
 
 // ✅ Enhanced authentication function (matches other routes)
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Try with route handler client
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (!error && user) {
-        console.log('✅ Auth Method 1 (route handler) succeeded for user:', user.id);
-        return { user, error: null };
-      }
-      
-      console.log('⚠️ Route handler auth failed:', error?.message);
-    } catch (helperError) {
-      console.warn('⚠️ Route handler client failed:', helperError);
-    }
-    
-    // Method 2: Try with authorization header
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        console.log('🔍 Trying token auth for benchmarks...');
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get: () => undefined,
-            },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (!error && user) {
-          console.log('✅ Auth Method 2 (token) succeeded for user:', user.id);
-          return { user, error: null };
-        }
-        
-        console.log('⚠️ Token auth failed:', error?.message);
-      } catch (tokenError) {
-        console.warn('⚠️ Token auth error:', tokenError);
-      }
-    }
-    
-    // Method 3: Try with cookie validation
-    const supabaseSSR = createServerClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
             try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              // Validate base64 cookies
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded); // Validate JSON
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`Invalid cookie ${name}, skipping...`);
-                  return undefined;
-                }
-              }
-              return cookie.value;
-            } catch (error) {
-              console.warn(`Error reading cookie ${name}:`, error);
-              return undefined;
-            }
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
           },
         },
       }
     );
     
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!error && user) {
-      console.log('✅ Auth Method 3 (SSR cookies) succeeded for user:', user.id);
-    } else {
-      console.log('⚠️ SSR cookie auth failed:', error?.message);
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    return { user, error };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('💥 All authentication methods failed:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
+
 
 function getSignatureOfferBenchmark(industry: string) {
   return SIGNATURE_OFFER_BENCHMARKS[industry as keyof typeof SIGNATURE_OFFER_BENCHMARKS] || 
@@ -322,7 +262,7 @@ export async function GET(req: NextRequest) {
     console.log('🚀 Signature Offer Benchmarks API called');
 
     // ✅ Enhanced authentication
-    const { user, error: authError } = await getAuthenticatedUser(req);
+   const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
       console.error('❌ Auth failed in benchmarks:', authError);

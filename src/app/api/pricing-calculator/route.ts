@@ -21,91 +21,45 @@ const RATE_LIMITS = {
   }
 };
 
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    try {
-      const supabase = createRouteHandlerClient({ 
-        cookies: () => cookieStore 
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (!error && user) {
-        return { user, error: null };
-      }
-      
-      console.log('Route handler auth failed:', error);
-    } catch (helperError) {
-      console.warn('Route handler client failed:', helperError);
-    }
-    
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get: () => undefined,
-            },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (!error && user) {
-          return { user, error: null };
-        }
-        
-        console.log('Token auth failed:', error);
-      } catch (tokenError) {
-        console.warn('Token auth error:', tokenError);
-      }
-    }
-    
-    const supabaseSSR = createServerClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
             try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded);
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`Invalid cookie ${name}, skipping...`);
-                  return undefined;
-                }
-              }
-              return cookie.value;
-            } catch (error) {
-              console.warn(`Error reading cookie ${name}:`, error);
-              return undefined;
-            }
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
           },
         },
       }
     );
     
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
-    return { user, error };
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
+    }
+    
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('All authentication methods failed:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
+
 
 async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
   try {
@@ -124,7 +78,7 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, error: authError } = await getAuthenticatedUser(req);
+   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in pricing calculator:', authError);
@@ -325,7 +279,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     // Use robust authentication
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in pricing calculator GET:', authError);

@@ -9,93 +9,41 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
 // ✅ USE SAME ROBUST AUTH AS YOUR MAIN ROUTE
-// Use this IMPROVED 3-method approach in ALL routes
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Authorization header (most reliable for API calls)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: { get: () => undefined },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) {
-          return { user, error: null };
-        }
-      } catch (tokenError) {
-        console.warn('Token auth failed:', tokenError);
-      }
-    }
-    
-    // Method 2: SSR cookies (FIXED cookie handling)
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // FIXED: Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined; // Skip corrupted cookies
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -109,7 +57,7 @@ export async function GET(
   
   try {
     // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(req);
+   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in analysis GET:', authError);
@@ -187,7 +135,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       return NextResponse.json({ 

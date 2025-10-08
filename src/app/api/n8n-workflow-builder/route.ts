@@ -10,102 +10,41 @@ import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
 // ✅ ROBUST AUTHENTICATION (same pattern as sales call analyzer)
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Try with route handler client
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (!error && user) {
-        console.log('✅ n8n Workflow Builder Auth Method 1 (route handler) succeeded for user:', user.id);
-        return { user, error: null };
-      }
-      
-      console.log('⚠️ n8n Workflow Builder route handler auth failed:', error?.message);
-    } catch (helperError) {
-      console.warn('⚠️ n8n Workflow Builder route handler client failed:', helperError);
-    }
-    
-    // Method 2: Try with authorization header
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        console.log('🔍 n8n Workflow Builder trying token auth with token:', token.substring(0, 20) + '...');
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get: () => undefined,
-            },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (!error && user) {
-          console.log('✅ n8n Workflow Builder Auth Method 2 (token) succeeded for user:', user.id);
-          return { user, error: null };
-        }
-        
-        console.log('⚠️ n8n Workflow Builder token auth failed:', error?.message);
-      } catch (tokenError) {
-        console.warn('⚠️ n8n Workflow Builder token auth error:', tokenError);
-      }
-    }
-    
-    // Method 3: Try with cookie validation
-    const supabaseSSR = createServerClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
             try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              // Validate base64 cookies
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded); // Validate JSON
-                  return cookie.value;
-                } catch (e) {
-                  console.warn(`Invalid n8n Workflow Builder cookie ${name}, skipping...`);
-                  return undefined;
-                }
-              }
-              return cookie.value;
-            } catch (error) {
-              console.warn(`Error reading n8n Workflow Builder cookie ${name}:`, error);
-              return undefined;
-            }
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
           },
         },
       }
     );
     
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!error && user) {
-      console.log('✅ n8n Workflow Builder Auth Method 3 (SSR cookies) succeeded for user:', user.id);
-    } else {
-      console.log('⚠️ n8n Workflow Builder SSR cookie auth failed:', error?.message);
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    return { user, error };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('💥 All n8n Workflow Builder authentication methods failed:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -142,7 +81,7 @@ export async function POST(request: NextRequest) {
   
   try {
     // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(request);
+  const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in n8n workflow builder:', authError);
@@ -358,7 +297,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(request);
+     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in n8n workflow builder GET:', authError);
@@ -503,7 +442,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in n8n workflow builder PUT:', authError);
@@ -645,7 +584,7 @@ export async function DELETE(request: NextRequest) {
   
   try {
     // ✅ USE ROBUST AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in n8n workflow builder DELETE:', authError);
