@@ -59,7 +59,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
     const mainAnalysisPrompt = this.buildAnalysisPrompt(input);
     
     const mainResponse = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -498,7 +498,7 @@ Provide a JSON response with this exact structure:
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -691,7 +691,7 @@ IMPORTANT:
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini', // or gpt-4 for higher quality
+      model: 'openai/gpt-4o', // or gpt-4 for higher quality
       messages: [
         {
           role: 'system',
@@ -1156,7 +1156,7 @@ Focus on:
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -1212,7 +1212,7 @@ Focus on what should be done in the next 24-48 hours.`;
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -1328,7 +1328,7 @@ Keep it concise and professional.`;
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -1381,7 +1381,7 @@ Best regards,
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -1439,7 +1439,7 @@ Use actual details from the transcript - be specific!`;
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
@@ -1503,7 +1503,7 @@ Be specific - reference actual moments from the transcript!`;
 
   try {
     const response = await this.openRouterClient.complete({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4o',
       messages: [
         {
           role: 'system',
