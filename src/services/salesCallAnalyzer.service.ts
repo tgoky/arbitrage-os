@@ -15,59 +15,109 @@ export class SalesCallAnalyzerService {
     });
   }
 
-  async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
-    const startTime = Date.now();
-    
-    // Validate transcript
-   if (input.transcript.length < 50) {
+// services/salesCallAnalyzer.service.ts - ADD LOGGING TO EVERY STEP
+
+// services/salesCallAnalyzer.service.ts - ADD THIS TO analyzeCall method
+
+async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
+  const startTime = Date.now();
+  
+  console.log('🚀 analyzeCall called');
+  console.log('📦 Input:', {
+    title: input.title,
+    callType: input.callType,
+    transcriptLength: input.transcript?.length,
+    userId: input.userId,
+    hasProspectName: !!input.prospectName,
+    hasCompanyName: !!input.companyName
+  });
+  
+  // Validate transcript
+  if (!input.transcript || input.transcript.length < 50) {
+    console.error('❌ Transcript validation failed:', {
+      hasTranscript: !!input.transcript,
+      length: input.transcript?.length
+    });
     throw new Error('Transcript must be at least 50 characters for meaningful analysis');
   }
   
-    // Check cache first
-    const cacheKey = this.generateCacheKey(input);
+  console.log('✅ Transcript validation passed');
+  
+  // Check cache
+  const cacheKey = this.generateCacheKey(input);
+  console.log('🔍 Cache key:', cacheKey);
+  
+  try {
     const cached = await this.redis.get(cacheKey);
     if (cached) {
+      console.log('✅ Cache hit');
       return JSON.parse(cached as string);
     }
-
-    // Generate comprehensive analysis
-    const analysisPrompt = this.buildAnalysisPrompt(input);
-    
-    try {
-      const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: this.getSystemPrompt(input.callType)
-          },
-          {
-            role: 'user',
-            content: analysisPrompt
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 8000
-      });
-
-      const analysisResults = this.parseAnalysisResponse(response.content, input);
-      
-      const callPackage: GeneratedCallPackage = {
-        ...analysisResults,
-        tokensUsed: response.usage?.total_tokens || 0,
-        processingTime: Date.now() - startTime
-      };
-
-      // Cache for 24 hours
-      await this.redis.set(cacheKey, JSON.stringify(callPackage), { ex: 86400 });
-      
-      return callPackage;
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      // Return fallback analysis instead of throwing
-      return this.generateFallbackAnalysis(input, Date.now() - startTime);
-    }
+    console.log('📭 Cache miss');
+  } catch (cacheError) {
+    console.warn('⚠️ Cache error (non-critical):', cacheError);
   }
+
+  console.log('📝 Building analysis prompt...');
+  const analysisPrompt = this.buildAnalysisPrompt(input);
+  console.log('✅ Prompt built, length:', analysisPrompt.length);
+  
+  try {
+    console.log('🤖 Calling OpenRouter API...');
+    console.log('🤖 Model: openai/gpt-4o-mini');
+    
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: this.getSystemPrompt(input.callType)
+        },
+        {
+          role: 'user',
+          content: analysisPrompt
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 8000
+    });
+
+    console.log('✅ OpenRouter response received');
+    console.log('📊 Content length:', response.content?.length);
+    console.log('📊 Tokens used:', response.usage?.total_tokens);
+
+    console.log('🔍 Parsing response...');
+    const analysisResults = this.parseAnalysisResponse(response.content, input);
+    console.log('✅ Response parsed');
+    
+    const callPackage: GeneratedCallPackage = {
+      ...analysisResults,
+      tokensUsed: response.usage?.total_tokens || 0,
+      processingTime: Date.now() - startTime
+    };
+
+    console.log('💾 Caching result...');
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(callPackage), { ex: 86400 });
+      console.log('✅ Cached');
+    } catch (cacheError) {
+      console.warn('⚠️ Cache set failed (non-critical):', cacheError);
+    }
+    
+    console.log('🎉 analyzeCall completed successfully');
+    return callPackage;
+    
+  } catch (error) {
+    console.error('💥 analyzeCall error:', error);
+    console.error('💥 Error type:', error?.constructor?.name);
+    console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
+    
+    console.log('⚠️ Returning fallback analysis');
+    return this.generateFallbackAnalysis(input, Date.now() - startTime);
+  }
+}
+
 
   private getSystemPrompt(callType: string): string {
     const basePrompt = `You are an expert sales coach and conversation analyst. You specialize in analyzing ${callType} calls and business conversations to extract actionable insights, identify improvement opportunities, and provide strategic recommendations.
@@ -914,53 +964,68 @@ private calculatePerformanceMetrics(transcript: string, speakers: CallParticipan
   }
 
   // Service management methods
-  async saveCallAnalysis(userId: string, workspaceId: string, analysis: GeneratedCallPackage, input: SalesCallInput): Promise<string> {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      
-      const deliverable = await prisma.deliverable.create({
-        data: {
-          title: `${input.callType} Call Analysis - ${input.title}`,
-          content: JSON.stringify(analysis),
-          type: 'sales_call_analysis',
-          user_id: userId,
-          workspace_id: workspaceId,
-          metadata: {
-            callType: input.callType,
-            prospectName: input.prospectName,
-            companyName: input.companyName,
-            companyIndustry: input.companyIndustry,
-            scheduledDate: input.scheduledDate?.toISOString(),
-            actualDate: input.actualDate?.toISOString(),
-            overallScore: analysis.callResults.analysis.overallScore,
-            sentiment: analysis.callResults.analysis.sentiment,
-            duration: analysis.callResults.duration,
-            participantCount: analysis.callResults.participants.length,
-            analysisStatus: 'completed',
-            generatedAt: new Date().toISOString(),
-            tokensUsed: analysis.tokensUsed,
-            processingTime: analysis.processingTime,
-     transcriptLength: input.transcript.length,
-     questionCount: (input.transcript.match(/\?/g) || []).length,
-            engagementScore: analysis.performanceMetrics.engagementScore
-          },
-          tags: [
-            'sales-call', 
-            input.callType, 
-            input.companyIndustry?.toLowerCase() || 'general',
-            'analysis',
-            analysis.callResults.analysis.sentiment,
-            'text-based'
-          ]
-        }
-      });
+// services/salesCallAnalyzer.service.ts - UPDATE saveCallAnalysis
 
-      return deliverable.id;
-    } catch (error) {
-      console.error('Error saving call analysis:', error);
-      throw new Error('Failed to save call analysis');
-    }
+async saveCallAnalysis(userId: string, workspaceId: string, analysis: GeneratedCallPackage, input: SalesCallInput): Promise<string> {
+  console.log('💾 saveCallAnalysis called');
+  console.log('💾 User ID:', userId);
+  console.log('💾 Workspace ID:', workspaceId);
+  console.log('💾 Analysis keys:', Object.keys(analysis));
+  console.log('💾 Input keys:', Object.keys(input));
+  
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    console.log('✅ Prisma imported successfully');
+    
+    console.log('📝 Creating deliverable record...');
+    const deliverable = await prisma.deliverable.create({
+      data: {
+        title: `${input.callType} Call Analysis - ${input.title}`,
+        content: JSON.stringify(analysis),
+        type: 'sales_call_analysis',
+        user_id: userId,
+        workspace_id: workspaceId,
+        metadata: {
+          callType: input.callType,
+          prospectName: input.prospectName,
+          companyName: input.companyName,
+          companyIndustry: input.companyIndustry,
+          scheduledDate: input.scheduledDate?.toISOString(),
+          actualDate: input.actualDate?.toISOString(),
+          overallScore: analysis.callResults.analysis.overallScore,
+          sentiment: analysis.callResults.analysis.sentiment,
+          duration: analysis.callResults.duration,
+          participantCount: analysis.callResults.participants.length,
+          analysisStatus: 'completed',
+          generatedAt: new Date().toISOString(),
+          tokensUsed: analysis.tokensUsed,
+          processingTime: analysis.processingTime,
+          transcriptLength: input.transcript.length,
+          questionCount: (input.transcript.match(/\?/g) || []).length,
+          engagementScore: analysis.performanceMetrics.engagementScore
+        },
+        tags: [
+          'sales-call', 
+          input.callType, 
+          input.companyIndustry?.toLowerCase() || 'general',
+          'analysis',
+          analysis.callResults.analysis.sentiment,
+          'text-based'
+        ]
+      }
+    });
+
+    console.log('✅ Deliverable created with ID:', deliverable.id);
+    return deliverable.id;
+    
+  } catch (error) {
+    console.error('💥 Error saving call analysis:', error);
+    console.error('💥 Error type:', error?.constructor?.name);
+    console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
+    throw new Error('Failed to save call analysis');
   }
+}
 
   async getCallAnalysis(userId: string, analysisId: string) {
     try {

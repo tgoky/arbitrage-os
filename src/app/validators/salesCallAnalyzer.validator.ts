@@ -8,18 +8,16 @@ const salesCallInputSchema = z.object({
     .max(255, 'Title is too long'),
   
   callType: z.enum(['discovery', 'interview', 'sales', 'podcast'], {
-  message: 'Call type is required'
-}),
+    message: 'Call type is required'
+  }),
 
   scheduledDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
   actualDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
   
   // Recording/Transcript Input
-  // recordingUrl: z.string().url().optional(),
-
   transcript: z.string()
-  .min(50, 'Transcript must be at least 50 characters for meaningful analysis')
-  .max(100000, 'Transcript is too long'),
+    .min(50, 'Transcript must be at least 50 characters for meaningful analysis')
+    .max(100000, 'Transcript is too long'),
   
   // Prospect Information
   prospectName: z.string()
@@ -79,20 +77,71 @@ const salesCallInputSchema = z.object({
     .optional()
 });
 
+
 export function validateSalesCallInput(data: any, partial = false): 
   | { success: true; data: z.infer<typeof salesCallInputSchema> }
   | { success: false; errors: any[] } {
+  
+  console.log('🔍 Validating sales call input...');
+  console.log('📦 Input keys:', Object.keys(data || {}));
+  console.log('📦 Has transcript:', !!data?.transcript);
+  console.log('📦 Transcript length:', data?.transcript?.length);
+  console.log('📦 Call type:', data?.callType);
+  console.log('📦 Has title:', !!data?.title);
+  console.log('📦 Partial validation:', partial);
+  
   try {
     const schema = partial ? salesCallInputSchema.partial() : salesCallInputSchema;
+    
+    console.log('🔍 Running Zod validation...');
     const validated = schema.parse(data);
-    return { success: true, data: validated as z.infer<typeof salesCallInputSchema> };
+    
+    console.log('✅ Validation passed');
+    console.log('✅ Validated data keys:', Object.keys(validated));
+    
+    // ✅ FIX: Safe transcript length logging
+    if (validated.transcript) {
+      console.log('✅ Validated transcript length:', validated.transcript.length);
+    } else {
+      console.log('⚠️ No transcript in validated data (partial mode)');
+    }
+    
+    return { 
+      success: true, 
+      data: validated as z.infer<typeof salesCallInputSchema> 
+    };
+    
   } catch (error) {
+    console.error('❌ Validation failed');
+    
     if (error instanceof z.ZodError) {
+      console.error('❌ Zod validation errors:', error.issues);
+      console.error('❌ Error details:', JSON.stringify(error.issues, null, 2));
+      
+      // Log specific transcript errors
+      const transcriptErrors = error.issues.filter(issue => 
+        issue.path.includes('transcript')
+      );
+      
+      if (transcriptErrors.length > 0) {
+        console.error('❌ TRANSCRIPT VALIDATION ERRORS:', transcriptErrors);
+        console.error('❌ Received transcript:', {
+          exists: !!data?.transcript,
+          type: typeof data?.transcript,
+          length: data?.transcript?.length,
+          preview: data?.transcript?.substring(0, 100)
+        });
+      }
+      
       return { success: false, errors: error.issues };
     }
+    
+    console.error('❌ Unknown validation error:', error);
     return { success: false, errors: [{ message: 'Validation failed' }] };
   }
 }
+
+
 
 // Business logic validation
 export function validateCallBusinessRules(data: z.infer<typeof salesCallInputSchema>): {
