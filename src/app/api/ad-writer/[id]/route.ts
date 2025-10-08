@@ -1,6 +1,5 @@
-// app/api/ad-writer/[id]/route.ts
+// app/api/ad-writer/[id]/route.ts - SIMPLIFIED AUTH VERSION
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { AdWriterService } from '@/services/adWriter.service';
@@ -8,94 +7,42 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { prisma } from '@/lib/prisma';
 
-// Same robust authentication function as other routes
-async function getAuthenticatedUser(request: NextRequest) {
+// ✅ SIMPLIFIED: Authentication function from work-items
+async function getAuthenticatedUser() {
   try {
+    const cookieStore = await cookies();
     
-     const cookieStore = await cookies();
-    
-    // Method 1: Authorization header (most reliable for API calls)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: { get: () => undefined },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) {
-          return { user, error: null };
-        }
-      } catch (tokenError) {
-        console.warn('Token auth failed:', tokenError);
-      }
-    }
-    
-    // Method 2: SSR cookies
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined;
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -108,28 +55,19 @@ export async function GET(
   console.log('🚀 Ad Writer Detail GET API Route called for ID:', params.id);
   
   try {
-    // Authenticate user
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in ad writer detail GET:', authError);
-      
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
-      });
-      
-      return response;
     }
 
     console.log('✅ User authenticated:', user.id);
@@ -157,12 +95,33 @@ export async function GET(
       workspaceId
     });
 
+    // Validate workspace access if workspaceId provided
+    if (workspaceId) {
+      const hasAccess = await prisma.workspace.findFirst({
+        where: {
+          id: workspaceId,
+          user_id: user.id
+        }
+      });
+      if (!hasAccess) {
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Workspace not found or access denied',
+            code: 'WORKSPACE_ACCESS_DENIED'
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Fetch the specific ad generation from database
     const generation = await prisma.deliverable.findFirst({
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'ad_writer'
+        type: 'ad_writer',
+        ...(workspaceId && { workspace_id: workspaceId })
       },
       include: {
         workspace: {
@@ -254,7 +213,9 @@ export async function GET(
       success: true,
       data: responseData,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.limit - rateLimitResult.count,
+        workspaceId: workspaceId,
+        timestamp: new Date().toISOString()
       }
     });
 
@@ -264,7 +225,7 @@ export async function GET(
       { 
         success: false,
         error: 'Failed to fetch ad generation details',
-        debug: error instanceof Error ? error.message : 'Unknown error'
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
       },
       { status: 500 }
     );
@@ -279,12 +240,11 @@ export async function DELETE(
   console.log('🚀 Ad Writer Detail DELETE API Route called for ID:', params.id);
   
   try {
-    // Authenticate user
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in ad writer detail DELETE:', authError);
-      
       return NextResponse.json(
         { 
           success: false,
@@ -310,6 +270,30 @@ export async function DELETE(
       );
     }
 
+    // Get optional workspaceId from query params
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId');
+
+    // Validate workspace access if workspaceId provided
+    if (workspaceId) {
+      const hasAccess = await prisma.workspace.findFirst({
+        where: {
+          id: workspaceId,
+          user_id: user.id
+        }
+      });
+      if (!hasAccess) {
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Workspace not found or access denied',
+            code: 'WORKSPACE_ACCESS_DENIED'
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     console.log('🗑️ Deleting ad generation:', params.id);
 
     // Delete the ad generation from database
@@ -317,7 +301,8 @@ export async function DELETE(
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'ad_writer'
+        type: 'ad_writer',
+        ...(workspaceId && { workspace_id: workspaceId })
       }
     });
 
@@ -341,6 +326,7 @@ export async function DELETE(
       timestamp: new Date(),
       metadata: {
         generationId: params.id,
+        workspaceId,
         action: 'delete'
       }
     });
@@ -353,7 +339,8 @@ export async function DELETE(
         id: params.id
       },
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.limit - rateLimitResult.count,
+        workspaceId: workspaceId
       }
     });
 
@@ -363,7 +350,7 @@ export async function DELETE(
       { 
         success: false,
         error: 'Failed to delete ad generation',
-        debug: error instanceof Error ? error.message : 'Unknown error'
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
       },
       { status: 500 }
     );
@@ -378,8 +365,8 @@ export async function PUT(
   console.log('🚀 Ad Writer Detail PUT API Route called for ID:', params.id);
   
   try {
-    // Authenticate user
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       return NextResponse.json(
@@ -405,6 +392,30 @@ export async function PUT(
       );
     }
 
+    // Get optional workspaceId from query params
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId');
+
+    // Validate workspace access if workspaceId provided
+    if (workspaceId) {
+      const hasAccess = await prisma.workspace.findFirst({
+        where: {
+          id: workspaceId,
+          user_id: user.id
+        }
+      });
+      if (!hasAccess) {
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Workspace not found or access denied',
+            code: 'WORKSPACE_ACCESS_DENIED'
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await req.json();
     const { action, ...updateData } = body;
 
@@ -413,13 +424,18 @@ export async function PUT(
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'ad_writer'
+        type: 'ad_writer',
+        ...(workspaceId && { workspace_id: workspaceId })
       }
     });
 
     if (!existingGeneration) {
       return NextResponse.json(
-        { success: false, error: 'Original generation not found' },
+        { 
+          success: false,
+          error: 'Original generation not found',
+          code: 'NOT_FOUND'
+        },
         { status: 404 }
       );
     }
@@ -461,6 +477,7 @@ export async function PUT(
         timestamp: new Date(),
         metadata: {
           generationId: params.id,
+          workspaceId,
           action: 'regenerate'
         }
       });
@@ -474,7 +491,8 @@ export async function PUT(
         meta: {
           tokensUsed: newAdsResult.tokensUsed,
           generationTime: newAdsResult.generationTime,
-          remaining: rateLimitResult.remaining
+          remaining: rateLimitResult.remaining,
+          workspaceId
         }
       });
     }
@@ -498,7 +516,10 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      data: { updated: true, id: updatedGeneration.id }
+      data: { updated: true, id: updatedGeneration.id },
+      meta: {
+        workspaceId
+      }
     });
 
   } catch (error) {
@@ -507,7 +528,7 @@ export async function PUT(
       { 
         success: false,
         error: 'Failed to update ad generation',
-        debug: error instanceof Error ? error.message : 'Unknown error'
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
       },
       { status: 500 }
     );
