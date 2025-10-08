@@ -1,6 +1,5 @@
-// app/api/niche-research/route.ts - UPDATED WITH WORKSPACE ISOLATION
+// app/api/niche-research/route.ts - WITH SIMPLIFIED AUTHENTICATION
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
@@ -10,93 +9,42 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
-// ✅ IMPROVED AUTH FUNCTION WITH BETTER ERROR HANDLING
-async function getAuthenticatedUser(request: NextRequest) {
+// ✅ SIMPLIFIED AUTHENTICATION (from work-items route)
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Authorization header (most reliable for API calls)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: { get: () => undefined },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) {
-          return { user, error: null };
-        }
-      } catch (tokenError) {
-        console.warn('Token auth failed:', tokenError);
-      }
-    }
-    
-    // Method 2: SSR cookies (FIXED cookie handling)
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // FIXED: Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined; // Skip corrupted cookies
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -105,36 +53,19 @@ export async function POST(req: NextRequest) {
   console.log('🚀 Niche Research API Route called');
   
   try {
-    // ✅ AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // ✅ USE SIMPLIFIED AUTHENTICATION
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in niche research:', authError);
-      
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = [
-        'sb-access-token',
-        'sb-refresh-token',
-        'supabase-auth-token'
-      ];
-      
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', {
-          expires: new Date(0),
-          path: '/',
-        });
-      });
-      
-      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
@@ -173,7 +104,7 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Using workspace:', workspace.id);
 
-    // ✅ RATE LIMITING - 3 reports per day
+    // ✅ RATE LIMITING - 20 reports per day
     console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 20, 86400); 
     if (!rateLimitResult.success) {
@@ -181,7 +112,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Daily limit reached (3 reports per day). Please try again tomorrow.',
+          error: 'Daily limit reached (20 reports per day). Please try again tomorrow.',
           retryAfter: rateLimitResult.reset 
         },
         { status: 429 }
@@ -283,27 +214,27 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-  await createNotification({
-    userId: user.id,
-    workspaceId: workspace.id,
-    workspaceSlug: workspace.slug,
-    type: 'niche_research',
-    itemId: result.reportId,
-    metadata: {
-      nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name,
-      primaryObjective: validation.data.primaryObjective,
-      marketType: validation.data.marketType,
-      budget: validation.data.budget,
-      recommendedNicheIndex: result.report.recommendedNiche,
-      totalNiches: result.report.niches.length
+      await createNotification({
+        userId: user.id,
+        workspaceId: workspace.id,
+        workspaceSlug: workspace.slug,
+        type: 'niche_research',
+        itemId: result.reportId,
+        metadata: {
+          nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name,
+          primaryObjective: validation.data.primaryObjective,
+          marketType: validation.data.marketType,
+          budget: validation.data.budget,
+          recommendedNicheIndex: result.report.recommendedNiche,
+          totalNiches: result.report.niches.length
+        }
+      });
+      
+      console.log('✅ Notification created for niche research:', result.reportId);
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+      // Don't fail the request if notification fails
     }
-  });
-  
-  console.log('✅ Notification created for niche research:', result.reportId);
-} catch (notifError) {
-  console.error('Failed to create notification:', notifError);
-  // Don't fail the request if notification fails
-}
 
     // ✅ LOG USAGE
     console.log('📊 Logging usage...');
@@ -315,7 +246,7 @@ export async function POST(req: NextRequest) {
         timestamp: new Date(),
         metadata: {
           reportId: result.reportId,
-          workspaceId: workspace.id, // Add workspace ID to logging
+          workspaceId: workspace.id,
           primaryObjective: validation.data.primaryObjective,
           marketType: validation.data.marketType,
           budget: validation.data.budget,
@@ -339,7 +270,7 @@ export async function POST(req: NextRequest) {
         tokensUsed: result.report.tokensUsed,
         generationTime: result.report.generationTime,
         remaining: rateLimitResult.remaining,
-        workspaceId: workspace.id // Return workspace ID for confirmation
+        workspaceId: workspace.id
       }
     });
 
@@ -361,27 +292,19 @@ export async function GET(req: NextRequest) {
   console.log('🚀 Niche Research GET API Route called');
   
   try {
-    // ✅ AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // ✅ USE SIMPLIFIED AUTHENTICATION
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in niche research GET:', authError);
-      
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
-      });
-      
-      return response;
     }
 
     // Rate limiting for list fetches
@@ -448,7 +371,7 @@ export async function GET(req: NextRequest) {
       data: reports,
       meta: {
         remaining: rateLimitResult.remaining,
-        workspaceId: workspaceId // Return workspace ID for confirmation
+        workspaceId: workspaceId
       }
     });
 

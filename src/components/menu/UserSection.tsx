@@ -128,7 +128,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
           aria-label="Submit Feedback"
           title="Submit Feedback"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -152,7 +152,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
           aria-label="Workspace Settings"
           title="Workspace Settings"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -174,29 +174,31 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
       {!collapsed && <div className="mb-3"></div>}
 
       {/* User Section */}
-      <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+      <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"} overflow-hidden`}>
         {!collapsed ? (
           <button
             onClick={handleProfileClick}
-            className={`flex items-center gap-2 p-2 rounded-md flex-1 mr-2 transition-colors border-none ${
+            className={`flex items-center gap-2 p-2 rounded-md flex-1 mr-2 transition-colors border-none overflow-hidden ${
               theme === "dark"
                 ? "bg-black text-gray-200 hover:bg-gray-800"
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
             title="View Profile"
           >
-            {userProfile?.avatar ? (
-              <img 
-                src={userProfile.avatar} 
-                alt={displayName}
-                className="h-8 w-8 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-                {isLoading ? "..." : userInitial}
-              </div>
-            )}
-            <div className="min-w-0 flex-1 text-left">
+            <div className="flex-shrink-0">
+              {userProfile?.avatar ? (
+                <img 
+                  src={userProfile.avatar} 
+                  alt={displayName}
+                  className="h-8 w-8 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                  {isLoading ? "..." : userInitial}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1 overflow-hidden">
               <p
                 className={`text-xs font-medium truncate ${
                   theme === "dark" ? "text-gray-200" : "text-gray-700"
@@ -214,7 +216,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
               </p>
               {/* Show hint if name was extracted from email */}
               {userProfile && !userProfile.name && userProfile.email && displayName !== "User" && (
-                <p className={`text-[0.65rem] ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                <p className={`text-[0.65rem] truncate ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
                   Click to customize
                 </p>
               )}
@@ -223,7 +225,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
         ) : (
           <button
             onClick={handleProfileClick}
-            className={`p-1 rounded-md transition-colors border-none ${
+            className={`p-1 rounded-md transition-colors border-none flex-shrink-0 ${
               theme === "dark"
                 ? "bg-black text-gray-200 hover:bg-gray-800"
                 : "bg-white text-gray-700 hover:bg-gray-100"
@@ -246,7 +248,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
         
         <button
           onClick={handleLogout}
-          className={`p-2 rounded-md ${
+          className={`p-2 rounded-md flex-shrink-0 ${
             theme === "dark"
               ? "bg-black text-gray-400 hover:bg-gray-800 hover:text-gray-300 border-none"
               : "bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-600 border-none"
