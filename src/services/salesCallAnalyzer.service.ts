@@ -35,7 +35,7 @@ export class SalesCallAnalyzerService {
     
     try {
       const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-5-mini',
+        model: 'openai/gpt-4o',
         messages: [
           {
             role: 'system',
