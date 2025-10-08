@@ -21,7 +21,8 @@ import {
   BankOutlined,
   EnvironmentOutlined,
   LinkOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  CloseCircleOutlined
 } from '@ant-design/icons';
 import {
   Button,
@@ -29,6 +30,7 @@ import {
   Typography,
   Space,
   Progress,
+  Alert,
   Tag,
   Avatar,
   List,
@@ -52,6 +54,50 @@ const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
 
+interface CallStructureAnalysis {
+  callStructure: {
+    opening: {
+      assessment: 'Strong' | 'Good' | 'Needs Improvement';
+      strengths: string[];
+      weaknesses: string[];
+      recommendations: string[];
+    };
+    middle: {
+      assessment: 'Strong' | 'Good' | 'Needs Improvement';
+      discoveryQuality: 'Excellent' | 'Good' | 'Poor';
+      questionCount: number;
+      topicsCovered: string[];
+      recommendations: string[];
+    };
+    closing: {
+      assessment: 'Strong' | 'Good' | 'Needs Improvement';
+      nextStepsDefined: boolean;
+      commitmentLevel: 'High' | 'Medium' | 'Low';
+      recommendations: string[];
+    };
+  };
+  metrics: {
+    clarity: number;
+    energy: number;
+    professionalism: number;
+    rapport: number;
+    transitionSmoothness: number;
+    pacingOptimal: boolean;
+  };
+  keyMoments: Array<{
+    timestamp: string;
+    type: 'positive' | 'negative' | 'neutral' | 'critical';
+    description: string;
+    impact: string;
+  }>;
+  missedOpportunities: Array<{
+    area: string;
+    description: string;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    howToFix: string;
+  }>;
+}
+
 // Updated interface to match your ACTUAL data structure
 interface AnalysisData {
   id: string;
@@ -66,9 +112,11 @@ interface AnalysisData {
       status: string;
       duration: number;
        
-    detailedReport?: string;  // ADD THIS
-    followUpEmail?: string;   // ADD THIS
-    proposalTemplate?: string; // ADD THIS TOO (from your service)
+      detailedReport?: string;
+      followUpEmail?: string;
+      proposalTemplate?: string;
+      callStructureAnalysis?: CallStructureAnalysis; // ✅ ADD THIS LINE
+      
       participants: Array<{
         name: string;
         role: string;
@@ -182,6 +230,7 @@ interface AnalysisData {
     updated_at: string;
   };
 }
+
 
 export default function AnalysisDetailPage() {
   const { id } = useParams();
@@ -886,6 +935,294 @@ export default function AnalysisDetailPage() {
             )}
           </Card>
         </TabPane>
+
+
+<TabPane tab="Call Structure" key="call-structure">
+  {analysis?.analysis?.callResults?.callStructureAnalysis ? (
+    <div className="space-y-6">
+      {/* Opening Section */}
+      <Card 
+        title={
+          <div className="flex items-center justify-between">
+            <span>Opening (First 20%)</span>
+            <Tag color={
+              analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment === 'Strong' ? 'green' :
+              analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment === 'Good' ? 'blue' : 'orange'
+            }>
+              {analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment}
+            </Tag>
+          </div>
+        }
+      >
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <div className="mb-4">
+              <Text strong className="block mb-2">✅ Strengths:</Text>
+              <List
+                size="small"
+                dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.strengths || []}
+                renderItem={(item: string) => <List.Item>{item}</List.Item>}
+              />
+            </div>
+          </Col>
+          <Col xs={24} md={12}>
+            <div className="mb-4">
+              <Text strong className="block mb-2">⚠️ Areas to Improve:</Text>
+              <List
+                size="small"
+                dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.weaknesses || []}
+                renderItem={(item: string) => <List.Item>{item}</List.Item>}
+              />
+            </div>
+          </Col>
+        </Row>
+        <Divider />
+        <div>
+          <Text strong className="block mb-2">💡 Recommendations:</Text>
+          <List
+            size="small"
+            dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.recommendations || []}
+            renderItem={(item: string) => (
+              <List.Item>
+                <CheckCircleOutlined className="mr-2 text-blue-500" />
+                {item}
+              </List.Item>
+            )}
+          />
+        </div>
+      </Card>
+
+      {/* Middle Section */}
+      <Card 
+        title={
+          <div className="flex items-center justify-between">
+            <span>Discovery/Middle Section (20-70%)</span>
+            <Tag color={
+              analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment === 'Strong' ? 'green' :
+              analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment === 'Good' ? 'blue' : 'orange'
+            }>
+              {analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment}
+            </Tag>
+          </div>
+        }
+      >
+        <Row gutter={16} className="mb-4">
+          <Col xs={12} sm={6}>
+            <Statistic
+              title="Discovery Quality"
+              value={analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality}
+              valueStyle={{ 
+                color: analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality === 'Excellent' ? '#52c41a' : 
+                       analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality === 'Good' ? '#1890ff' : '#faad14'
+              }}
+            />
+          </Col>
+          <Col xs={12} sm={6}>
+            <Statistic
+              title="Questions Asked"
+              value={analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.questionCount || 0}
+              suffix="questions"
+            />
+          </Col>
+          <Col xs={24} sm={12}>
+            <div>
+              <Text strong className="block mb-2">Topics Covered:</Text>
+              <Space wrap>
+                {(analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.topicsCovered || []).map((topic: string, i: number) => (
+                  <Tag key={i} color="blue">{topic}</Tag>
+                ))}
+              </Space>
+            </div>
+          </Col>
+        </Row>
+        <Divider />
+        <div>
+          <Text strong className="block mb-2">💡 Recommendations:</Text>
+          <List
+            size="small"
+            dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.recommendations || []}
+            renderItem={(item: string) => (
+              <List.Item>
+                <CheckCircleOutlined className="mr-2 text-blue-500" />
+                {item}
+              </List.Item>
+            )}
+          />
+        </div>
+      </Card>
+
+      {/* Closing Section */}
+      <Card 
+        title={
+          <div className="flex items-center justify-between">
+            <span>Closing (Last 30%)</span>
+            <Tag color={
+              analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment === 'Strong' ? 'green' :
+              analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment === 'Good' ? 'blue' : 'orange'
+            }>
+              {analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment}
+            </Tag>
+          </div>
+        }
+      >
+        <Row gutter={16} className="mb-4">
+          <Col xs={12}>
+            <div className="text-center p-4 bg-gray-50 rounded">
+              <Text strong className="block mb-2">Next Steps Defined</Text>
+              <div className="text-3xl">
+                {analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.nextStepsDefined ? 
+                  <CheckCircleOutlined className="text-green-500" /> : 
+                  <CloseCircleOutlined className="text-red-500" />
+                }
+              </div>
+            </div>
+          </Col>
+          <Col xs={12}>
+            <Statistic
+              title="Commitment Level"
+              value={analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel || 'Unknown'}
+              valueStyle={{ 
+                color: analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel === 'High' ? '#52c41a' : 
+                       analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel === 'Medium' ? '#1890ff' : '#faad14'
+              }}
+            />
+          </Col>
+        </Row>
+        <Divider />
+        <div>
+          <Text strong className="block mb-2">💡 Recommendations:</Text>
+          <List
+            size="small"
+            dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.recommendations || []}
+            renderItem={(item: string) => (
+              <List.Item>
+                <CheckCircleOutlined className="mr-2 text-blue-500" />
+                {item}
+              </List.Item>
+            )}
+          />
+        </div>
+      </Card>
+
+      {/* Key Metrics Overview */}
+      <Card title="Call Quality Metrics">
+        <Row gutter={16}>
+          {Object.entries(analysis.analysis.callResults.callStructureAnalysis.metrics || {}).map(([key, value]) => {
+            if (typeof value === 'number') {
+              return (
+                <Col xs={12} sm={8} md={4} key={key}>
+                  <div className="text-center mb-4">
+                    <Progress
+                      type="circle"
+                      percent={value * 10}
+                      format={() => `${value}/10`}
+                      width={80}
+                      strokeColor={value >= 8 ? '#52c41a' : value >= 6 ? '#1890ff' : '#faad14'}
+                    />
+                    <Text className="block mt-2 capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </Text>
+                  </div>
+                </Col>
+              );
+            } else if (typeof value === 'boolean') {
+              return (
+                <Col xs={12} sm={8} md={4} key={key}>
+                  <div className="text-center mb-4">
+                    <div className="text-4xl">
+                      {value ? (
+                        <CheckCircleOutlined className="text-green-500" />
+                      ) : (
+                        <CloseCircleOutlined className="text-red-500" />
+                      )}
+                    </div>
+                    <Text className="block mt-2 capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </Text>
+                  </div>
+                </Col>
+              );
+            }
+            return null;
+          })}
+        </Row>
+      </Card>
+
+      {/* Key Moments Timeline */}
+      <Card title="Key Moments During Call">
+        <Timeline>
+          {(analysis.analysis.callResults.callStructureAnalysis.keyMoments || []).map((moment: any, index: number) => (
+            <Timeline.Item
+              key={index}
+              color={
+                moment.type === 'positive' ? 'green' :
+                moment.type === 'negative' ? 'red' :
+                moment.type === 'critical' ? 'orange' : 'blue'
+              }
+              dot={
+                moment.type === 'positive' ? <LikeOutlined /> :
+                moment.type === 'negative' ? <DislikeOutlined /> :
+                moment.type === 'critical' ? <WarningOutlined /> : <ClockCircleOutlined />
+              }
+            >
+              <Text strong>{moment.timestamp}</Text>
+              <div className="mt-1">
+                <Text>{moment.description}</Text>
+              </div>
+              <Text type="secondary" className="block mt-1 text-xs">
+                💡 Impact: {moment.impact}
+              </Text>
+            </Timeline.Item>
+          ))}
+        </Timeline>
+      </Card>
+
+      {/* Missed Opportunities */}
+      <Card title="Missed Opportunities & How to Fix Them">
+        <List
+          dataSource={analysis.analysis.callResults.callStructureAnalysis.missedOpportunities || []}
+          renderItem={(opp: any) => (
+            <List.Item>
+              <List.Item.Meta
+                avatar={
+                  <Badge 
+                    count={opp.priority} 
+                    style={{ 
+                      backgroundColor: opp.priority === 'HIGH' ? '#f5222d' : 
+                                     opp.priority === 'MEDIUM' ? '#faad14' : '#52c41a'
+                    }} 
+                  />
+                }
+                title={<Text strong>{opp.area}</Text>}
+                description={
+                  <div>
+                    <div className="mb-2">
+                      <Text type="secondary">{opp.description}</Text>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <Text strong className="text-blue-600">💡 How to Fix: </Text>
+                      <Text>{opp.howToFix}</Text>
+                    </div>
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </Card>
+    </div>
+  ) : (
+    <Card>
+      <Alert
+        message="Call Structure Analysis Not Available"
+        description="Detailed call structure analysis is not available for this call. This may be an older analysis created before this feature was added."
+        type="info"
+        showIcon
+      />
+    </Card>
+  )}
+</TabPane>
+
       </Tabs>
 
       {/* Action Buttons */}

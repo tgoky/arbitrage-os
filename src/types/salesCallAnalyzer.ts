@@ -33,6 +33,52 @@ export interface SalesCallInput {
   userId: string;
 }
 
+interface CallStructureAnalysis {
+  callStructure: {
+    opening: {
+      assessment: 'Strong' | 'Good' | 'Needs Improvement';
+      strengths: string[];
+      weaknesses: string[];
+      recommendations: string[];
+    };
+    middle: {
+      assessment: 'Strong' | 'Good' | 'Needs Improvement';
+      discoveryQuality: 'Excellent' | 'Good' | 'Poor';
+      questionCount: number;
+      topicsCovered: string[];
+      recommendations: string[];
+    };
+    closing: {
+      assessment: 'Strong' | 'Good' | 'Needs Improvement';
+      nextStepsDefined: boolean;
+      commitmentLevel: 'High' | 'Medium' | 'Low';
+      recommendations: string[];
+    };
+  };
+  metrics: {
+    clarity: number;
+    energy: number;
+    professionalism: number;
+    rapport: number;
+    transitionSmoothness: number;
+    pacingOptimal: boolean;
+  };
+  keyMoments: Array<{
+    timestamp: string;
+    type: 'positive' | 'negative' | 'neutral' | 'critical';
+    description: string;
+    impact: string;
+  }>;
+  missedOpportunities: Array<{
+    area: string;
+    description: string;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    howToFix: string;
+  }>;
+}
+
+
+
 export interface CallParticipant {
   name: string;
   email?: string;
@@ -140,6 +186,7 @@ export interface SalesCallResults {
   followUpEmail?: string;
   proposalTemplate?: string;
   contractClauses?: string[];
+   callStructureAnalysis?: CallStructureAnalysis;
   
   // Coaching & Improvement
   coachingFeedback: {

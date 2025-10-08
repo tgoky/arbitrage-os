@@ -1,6 +1,6 @@
 // services/salesCallAnalyzer.service.ts
 import { OpenRouterClient } from '@/lib/openrouter';
-import { SalesCallInput, GeneratedCallPackage, CallParticipant } from '@/types/salesCallAnalyzer';
+import { SalesCallInput, GeneratedCallPackage, CallParticipant, CallStructureAnalysis } from '@/types/salesCallAnalyzer';
 import { Redis } from '@upstash/redis';
 
 export class SalesCallAnalyzerService {
@@ -17,8 +17,6 @@ export class SalesCallAnalyzerService {
 
 // services/salesCallAnalyzer.service.ts - ADD LOGGING TO EVERY STEP
 
-// services/salesCallAnalyzer.service.ts - ADD THIS TO analyzeCall method
-
 async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   const startTime = Date.now();
   
@@ -34,10 +32,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   
   // Validate transcript
   if (!input.transcript || input.transcript.length < 50) {
-    console.error('❌ Transcript validation failed:', {
-      hasTranscript: !!input.transcript,
-      length: input.transcript?.length
-    });
+    console.error('❌ Transcript validation failed');
     throw new Error('Transcript must be at least 50 characters for meaningful analysis');
   }
   
@@ -45,7 +40,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   
   // Check cache
   const cacheKey = this.generateCacheKey(input);
-  console.log('🔍 Cache key:', cacheKey);
+  console.log('🔍 Checking cache...');
   
   try {
     const cached = await this.redis.get(cacheKey);
@@ -53,20 +48,17 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       console.log('✅ Cache hit');
       return JSON.parse(cached as string);
     }
-    console.log('📭 Cache miss');
+    console.log('📭 Cache miss - proceeding with analysis');
   } catch (cacheError) {
     console.warn('⚠️ Cache error (non-critical):', cacheError);
   }
 
-  console.log('📝 Building analysis prompt...');
-  const analysisPrompt = this.buildAnalysisPrompt(input);
-  console.log('✅ Prompt built, length:', analysisPrompt.length);
-  
   try {
-    console.log('🤖 Calling OpenRouter API...');
-    console.log('🤖 Model: openai/gpt-4o-mini');
+    // ✅ STEP 1: Main Analysis (Structured JSON)
+    console.log('🤖 Step 1: Generating main structured analysis...');
+    const mainAnalysisPrompt = this.buildAnalysisPrompt(input);
     
-    const response = await this.openRouterClient.complete({
+    const mainResponse = await this.openRouterClient.complete({
       model: 'openai/gpt-4o-mini',
       messages: [
         {
@@ -75,48 +67,704 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
         },
         {
           role: 'user',
-          content: analysisPrompt
+          content: mainAnalysisPrompt
         }
       ],
       temperature: 0.2,
       max_tokens: 8000
     });
 
-    console.log('✅ OpenRouter response received');
-    console.log('📊 Content length:', response.content?.length);
-    console.log('📊 Tokens used:', response.usage?.total_tokens);
-
-    console.log('🔍 Parsing response...');
-    const analysisResults = this.parseAnalysisResponse(response.content, input);
-    console.log('✅ Response parsed');
+    console.log('✅ Main analysis complete');
+    console.log('📊 Tokens used:', mainResponse.usage?.total_tokens);
     
+    // ✅ STEP 2: Parse response (NOW PROPERLY ASYNC)
+    let analysisResults = await this.parseAnalysisResponse(mainResponse.content, input);
+    
+    // Check if main parsing was successful
+    const wasMainParseSuccessful = mainResponse.content.includes('"callResults"');
+    
+    if (!wasMainParseSuccessful) {
+      console.warn('⚠️ Main analysis parse failed, already using enhanced fallback from parseAnalysisResponse');
+    }
+    
+    // ✅ STEP 3: Generate detailed report with AI (if not already present)
+    console.log('📝 Step 3: Generating detailed report with AI...');
+    let detailedReport: string;
+    try {
+      if (!analysisResults.callResults.detailedReport || analysisResults.callResults.detailedReport.includes('temporarily unavailable')) {
+        detailedReport = await this.generateDetailedReportWithAI(input, input.transcript);
+      } else {
+        detailedReport = analysisResults.callResults.detailedReport;
+      }
+    } catch (reportError) {
+      console.warn('⚠️ Detailed report generation failed, using fallback:', reportError);
+      detailedReport = this.generateBasicDetailedReport(input, input.transcript);
+    }
+    
+    // ✅ STEP 4: Generate call structure analysis (optional enhancement)
+    console.log('📊 Step 4: Generating call structure analysis...');
+    let callStructure: CallStructureAnalysis | null = null;
+    try {
+      callStructure = await this.generateCallStructureAnalysis(input, input.transcript);
+    } catch (structureError) {
+      console.warn('⚠️ Call structure analysis failed (non-critical):', structureError);
+    }
+    
+    // ✅ STEP 5: Generate AI-powered artifacts if needed
+    console.log('📄 Step 5: Generating AI-powered artifacts...');
+    
+    // Generate follow-up email if applicable and not already present
+    let followUpEmail = analysisResults.callResults.followUpEmail;
+    if (!followUpEmail && (input.callType === 'sales' || input.callType === 'discovery')) {
+      try {
+        followUpEmail = await this.generateFollowUpEmail(input);
+      } catch (emailError) {
+        console.warn('⚠️ Follow-up email generation failed (non-critical):', emailError);
+      }
+    }
+    
+    // Generate proposal template if applicable and not already present
+    let proposalTemplate = analysisResults.callResults.proposalTemplate;
+    if (!proposalTemplate && input.callType === 'sales') {
+      try {
+        proposalTemplate = await this.generateProposalTemplate(input);
+      } catch (proposalError) {
+        console.warn('⚠️ Proposal generation failed (non-critical):', proposalError);
+      }
+    }
+    
+    // ✅ STEP 6: Combine all results
     const callPackage: GeneratedCallPackage = {
       ...analysisResults,
-      tokensUsed: response.usage?.total_tokens || 0,
+      callResults: {
+        ...analysisResults.callResults,
+        detailedReport, // AI-generated or fallback
+        callStructureAnalysis: callStructure || undefined, // Optional enhancement
+        followUpEmail: followUpEmail || analysisResults.callResults.followUpEmail,
+        proposalTemplate: proposalTemplate || analysisResults.callResults.proposalTemplate
+      },
+      tokensUsed: mainResponse.usage?.total_tokens || 0,
       processingTime: Date.now() - startTime
     };
 
+    // ✅ STEP 7: Cache result
     console.log('💾 Caching result...');
     try {
       await this.redis.set(cacheKey, JSON.stringify(callPackage), { ex: 86400 });
-      console.log('✅ Cached');
+      console.log('✅ Result cached successfully');
     } catch (cacheError) {
       console.warn('⚠️ Cache set failed (non-critical):', cacheError);
     }
     
     console.log('🎉 analyzeCall completed successfully');
+    console.log('⏱️ Total processing time:', callPackage.processingTime, 'ms');
     return callPackage;
     
   } catch (error) {
     console.error('💥 analyzeCall error:', error);
     console.error('💥 Error type:', error?.constructor?.name);
     console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
-    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
     
-    console.log('⚠️ Returning fallback analysis');
+    console.log('⚠️ Returning enhanced fallback analysis');
     return this.generateFallbackAnalysis(input, Date.now() - startTime);
   }
 }
+
+private async generateEnhancedFallback(input: SalesCallInput): Promise<Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'>> {
+  console.log('🔄 Generating enhanced AI-powered fallback...');
+  
+  const transcript = input.transcript!;
+  const wordCount = transcript.split(' ').length;
+  const estimatedDuration = Math.max(Math.floor(wordCount * 1.2), 60);
+  const speakers = this.extractSpeakersFromTranscript(transcript);
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
+  
+  // ✅ Run AI generations in parallel for speed
+  const [
+    keyInsights,
+    actionItems,
+    coachingFeedback,
+    executiveSummary,
+    summaryPresentation, // ✅ ADDED THIS
+    followUpEmail,
+    proposalTemplate
+  ] = await Promise.allSettled([
+    this.generateKeyInsights(transcript, input.callType),
+    this.generateActionItems(input),
+    this.generateCoachingFeedback(transcript, input.callType),
+    this.generateExecutiveSummary(input, transcript),
+    this.generateSummaryPresentation(input, transcript), // ✅ ADDED THIS
+    (input.callType === 'sales' || input.callType === 'discovery') 
+      ? this.generateFollowUpEmail(input) 
+      : Promise.resolve(undefined),
+    input.callType === 'sales' 
+      ? this.generateProposalTemplate(input) 
+      : Promise.resolve(undefined)
+  ]);
+  
+  // ✅ Extract results with proper fallbacks
+  const insights = keyInsights.status === 'fulfilled' ? keyInsights.value : this.generateKeyInsightsFallback(transcript, input.callType);
+  const actions = actionItems.status === 'fulfilled' ? actionItems.value : this.generateActionItemsFallback(input);
+  const coaching = coachingFeedback.status === 'fulfilled' ? coachingFeedback.value : this.generateCoachingFeedbackFallback(transcript, input.callType);
+  const summary = executiveSummary.status === 'fulfilled' ? executiveSummary.value : this.generateExecutiveSummaryFallback(input, transcript);
+  const presentation = summaryPresentation.status === 'fulfilled' ? summaryPresentation.value : this.generateSummaryPresentationFallback(input, transcript); // ✅ ADDED FALLBACK
+  const email = followUpEmail.status === 'fulfilled' ? followUpEmail.value : undefined;
+  const proposal = proposalTemplate.status === 'fulfilled' ? proposalTemplate.value : undefined;
+  
+  return {
+    callResults: {
+      callId: `call_${Date.now()}`,
+      status: 'completed',
+      duration: estimatedDuration,
+      participants: speakers,
+      transcript: transcript.substring(0, 500) + '...',
+      analysis: {
+        overallScore,
+        sentiment: this.analyzeSentiment(transcript, overallScore),
+        keyInsights: insights,
+        actionItems: actions,
+        speakerBreakdown: this.generateSpeakerBreakdown(speakers, transcript),
+        ...(input.callType === 'sales' && {
+          salesMetrics: this.generateSalesMetrics(transcript)
+        }),
+        ...(input.callType === 'interview' && {
+          interviewMetrics: this.generateInterviewMetrics(transcript)
+        }),
+        ...(input.callType === 'discovery' && {
+          discoveryMetrics: this.generateDiscoveryMetrics(transcript)
+        })
+      },
+      executiveSummary: summary,
+      detailedReport: this.generateBasicDetailedReport(input, transcript), // ✅ FIXED METHOD NAME
+      followUpEmail: email,
+      proposalTemplate: proposal,
+      coachingFeedback: coaching,
+      benchmarks: this.generateBenchmarks(transcript, input.callType)
+    },
+    summaryPresentation: presentation, // ✅ NOW PROPERLY AWAITED
+    nextStepsStrategy: this.generateNextStepsStrategy(input, transcript),
+    performanceMetrics: this.calculatePerformanceMetrics(transcript, speakers)
+  };
+}
+
+private generateKeyInsightsFallback(transcript: string, callType: string): string[] {
+  const insights = [];
+  
+  if (transcript.includes('budget')) {
+    insights.push('Budget was discussed - good sign for qualification');
+  }
+  
+  if (transcript.includes('timeline')) {
+    insights.push('Timeline was established - shows buying intent');
+  }
+  
+  const questionCount = (transcript.match(/\?/g) || []).length;
+  if (questionCount > 10) {
+    insights.push('Strong discovery - many questions asked');
+  } else if (questionCount < 5) {
+    insights.push('Limited discovery - consider asking more questions');
+  }
+  
+  // Call type specific insights
+  switch (callType) {
+    case 'sales':
+      if (transcript.includes('pain') || transcript.includes('challenge')) {
+        insights.push('Pain points identified - good foundation for value prop');
+      }
+      break;
+    case 'interview':
+      if (transcript.includes('improve') || transcript.includes('better')) {
+        insights.push('Improvement opportunities identified');
+      }
+      break;
+  }
+  
+  return insights.slice(0, 5);
+}
+
+private generateActionItemsFallback(input: SalesCallInput): string[] {
+  const actions = [];
+  
+  actions.push('Send follow-up email within 24 hours');
+  
+  if (input.callType === 'sales') {
+    actions.push('Prepare customized proposal based on discussed needs');
+    actions.push('Schedule next meeting with decision makers');
+  }
+  
+  if (input.callType === 'discovery') {
+    actions.push('Research technical requirements mentioned');
+    actions.push('Prepare detailed solution overview');
+  }
+  
+  actions.push('Update CRM with call notes and insights');
+  
+  return actions;
+}
+
+private generateCoachingFeedbackFallback(transcript: string, callType: string) {
+  const questionCount = (transcript.match(/\?/g) || []).length;
+  
+  return {
+    strengths: [
+      'Clear communication throughout the conversation',
+      'Professional tone and approach maintained',
+      'Good rapport building with the prospect'
+    ],
+    improvements: [
+      questionCount < 8 ? 'Ask more discovery questions to uncover deeper insights' : 'Good questioning technique',
+      'Confirm understanding more frequently',
+      'Be more specific about timelines and next steps'
+    ],
+    specificSuggestions: [
+      'Use the "tell me more about..." technique for deeper discovery',
+      'Summarize key points at regular intervals',
+      'Set specific dates for all follow-up actions'
+    ],
+    communicationTips: [
+      'Pause for 2-3 seconds after asking questions',
+      'Use prospect\'s name more frequently for personalization',
+      'Mirror their communication style and energy level'
+    ],
+    nextCallPreparation: [
+      'Research company\'s recent news and developments',
+      'Prepare specific ROI examples relevant to their industry',
+      'Draft preliminary proposal addressing discussed points'
+    ]
+  };
+}
+
+private generateExecutiveSummaryFallback(input: SalesCallInput, transcript: string): string {
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
+  const sentiment = this.analyzeSentiment(transcript, overallScore);
+  const callType = input.callType;
+  const company = input.companyName || 'prospect';
+  
+  return `${callType} call with ${company} completed successfully with ${sentiment} sentiment. Key objectives were addressed and clear next steps established for continued engagement.`;
+}
+
+// ✅ UPDATE generateFallbackAnalysis to use the enhanced version
+private async generateFallbackAnalysis(input: SalesCallInput, processingTime: number): Promise<GeneratedCallPackage> {
+  const transcript = input.transcript!;
+  
+  try {
+    console.log('🔄 Attempting enhanced AI fallback...');
+    const enhanced = await this.generateEnhancedFallback(input);
+    return {
+      ...enhanced,
+      tokensUsed: Math.floor(transcript.length / 4),
+      processingTime
+    };
+  } catch (enhancedError) {
+    console.error('❌ Enhanced fallback failed, using hardcoded fallback:', enhancedError);
+    
+    // ✅ Last resort: fully synchronous hardcoded fallback
+    return this.generateHardcodedFallback(input, processingTime);
+  }
+}
+
+private generateSummaryPresentationFallback(input: SalesCallInput, transcript: string): Array<{
+  title: string;
+  content: string;
+  visualType: 'text' | 'chart' | 'bullet' | 'quote';
+}> {
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
+  const sentiment = this.analyzeSentiment(transcript, overallScore);
+  
+  return [
+    {
+      title: 'Call Overview',
+      content: `${input.callType} call with ${input.companyName || 'prospect'} completed. Overall sentiment: ${sentiment}.`,
+      visualType: 'text' as const
+    },
+    {
+      title: 'Performance Score',
+      content: `Overall Score: ${overallScore}/100`,
+      visualType: 'chart' as const
+    },
+    {
+      title: 'Key Insights',
+      content: 'Analysis in progress - detailed insights being generated.',
+      visualType: 'bullet' as const
+    },
+    {
+      title: 'Next Steps',
+      content: 'Follow up within 24 hours with detailed summary.',
+      visualType: 'bullet' as const
+    }
+  ];
+}
+
+
+private generateHardcodedFallback(input: SalesCallInput, processingTime: number): GeneratedCallPackage {
+  const transcript = input.transcript!;
+  const wordCount = transcript.split(' ').length;
+  const estimatedDuration = Math.max(Math.floor(wordCount * 1.2), 60);
+  const speakers = this.extractSpeakersFromTranscript(transcript);
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
+  
+  return {
+    callResults: {
+      callId: `call_${Date.now()}`,
+      status: 'completed',
+      duration: estimatedDuration,
+      participants: speakers,
+      transcript: transcript.substring(0, 500) + '...',
+      analysis: {
+        overallScore,
+        sentiment: this.analyzeSentiment(transcript, overallScore),
+        keyInsights: this.generateKeyInsightsFallback(transcript, input.callType),
+        actionItems: this.generateActionItemsFallback(input),
+        speakerBreakdown: this.generateSpeakerBreakdown(speakers, transcript),
+        ...(input.callType === 'sales' && {
+          salesMetrics: this.generateSalesMetrics(transcript)
+        }),
+        ...(input.callType === 'interview' && {
+          interviewMetrics: this.generateInterviewMetrics(transcript)
+        }),
+        ...(input.callType === 'discovery' && {
+          discoveryMetrics: this.generateDiscoveryMetrics(transcript)
+        })
+      },
+      executiveSummary: this.generateExecutiveSummaryFallback(input, transcript),
+      detailedReport: this.generateBasicDetailedReport(input, transcript),
+      coachingFeedback: this.generateCoachingFeedbackFallback(transcript, input.callType),
+      benchmarks: this.generateBenchmarks(transcript, input.callType)
+    },
+    summaryPresentation: this.generateSummaryPresentationFallback(input, transcript),
+    nextStepsStrategy: this.generateNextStepsStrategy(input, transcript),
+    performanceMetrics: this.calculatePerformanceMetrics(transcript, speakers),
+    tokensUsed: Math.floor(transcript.length / 4),
+    processingTime
+  };
+}
+
+
+
+private async generateCallStructureAnalysis(input: SalesCallInput, transcript: string): Promise<any> {
+  const prompt = `Analyze the structure and flow of this ${input.callType} call transcript:
+
+${transcript}
+
+Provide a JSON response with this exact structure:
+
+{
+  "callStructure": {
+    "opening": {
+      "assessment": "Strong/Good/Needs Improvement",
+      "strengths": ["strength 1", "strength 2"],
+      "weaknesses": ["weakness 1", "weakness 2"],
+      "recommendations": ["rec 1", "rec 2"]
+    },
+    "middle": {
+      "assessment": "Strong/Good/Needs Improvement",
+      "discoveryQuality": "Excellent/Good/Poor",
+      "questionCount": number,
+      "topicsCovered": ["topic 1", "topic 2"],
+      "recommendations": ["rec 1", "rec 2"]
+    },
+    "closing": {
+      "assessment": "Strong/Good/Needs Improvement",
+      "nextStepsDefined": boolean,
+      "commitmentLevel": "High/Medium/Low",
+      "recommendations": ["rec 1", "rec 2"]
+    }
+  },
+  "metrics": {
+    "clarity": number (1-10),
+    "energy": number (1-10),
+    "professionalism": number (1-10),
+    "rapport": number (1-10),
+    "transitionSmoothness": number (1-10),
+    "pacingOptimal": boolean
+  },
+  "keyMoments": [
+    {
+      "timestamp": "X:XX",
+      "type": "positive/negative/neutral/critical",
+      "description": "what happened",
+      "impact": "why it matters"
+    }
+  ],
+  "missedOpportunities": [
+    {
+      "area": "area name",
+      "description": "what was missed",
+      "priority": "HIGH/MEDIUM/LOW",
+      "howToFix": "specific recommendation"
+    }
+  ]
+}`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a sales call analyst. Return only valid JSON with no additional text.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 2000
+    });
+
+    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Call structure analysis failed:', error);
+    return null;
+  }
+}
+
+
+
+private async generateDetailedReportWithAI(input: SalesCallInput, transcript: string): Promise<string> {
+  console.log('🤖 Generating detailed report with AI...');
+  
+  const analysisPrompt = `You are an expert sales coach analyzing a ${input.callType} call. Generate a comprehensive, detailed analysis report in Markdown format.
+
+CALL CONTEXT:
+- Call Type: ${input.callType}
+- Company: ${input.companyName || 'Not specified'}
+- Prospect: ${input.prospectName || 'Not specified'}
+- Date: ${input.actualDate || 'Not specified'}
+
+TRANSCRIPT:
+${transcript}
+
+Generate a detailed report with the following structure:
+
+# ${input.callType.toUpperCase()} CALL ANALYSIS REPORT
+
+## EXECUTIVE SUMMARY
+Provide a 2-3 sentence overview of the call outcome, sentiment, and key takeaways.
+
+---
+
+## WHAT WENT WELL (Specific, Measurable)
+
+### Strengths Demonstrated:
+List 3-5 specific strengths with measurable examples from the transcript.
+
+### Quantitative Wins:
+- Questions Asked: [count] questions ([assessment])
+- Talk Time Balance: [analysis]
+- Engagement Indicators: [specific examples]
+- Sentiment Score: [score]/100
+
+### Key Moments of Success:
+List 3-5 specific moments with timestamps where things went exceptionally well.
+
+---
+
+## CALL STRUCTURE AND FLOW
+
+### Opening (First 20%):
+Analyze how the call started - greeting, rapport building, agenda setting.
+
+### Discovery/Middle Section (20-70%):
+Analyze the main discovery and discussion phase.
+
+### Closing (Last 30%):
+Analyze how the call was wrapped up - next steps, summary, commitment.
+
+### Flow Quality Assessment:
+- Transition Smoothness: [assessment]
+- Question Sequencing: [assessment]
+- Topic Coverage: [assessment]
+- Pacing: [assessment]
+
+---
+
+## MISSED OR WEAK AREAS (Opportunities to Improve)
+
+### Critical Gaps Identified:
+List 3-5 areas that were missed or handled poorly, with:
+1. The gap/weakness
+2. Impact: [HIGH/MEDIUM/LOW]
+3. How to fix it
+
+### Discovery Quality Analysis:
+Analyze the quality of discovery questions - open vs closed, depth, follow-ups.
+
+### Missed Opportunities:
+List specific opportunities that were missed during the call with priority levels.
+
+---
+
+## RECOMMENDED IMMEDIATE ARTIFACTS TO PREPARE
+
+### Within 24 Hours:
+1. **Follow-up Email** - What should be included and why
+2. **Internal Call Summary** - What to document
+3. **[Additional based on call type]** - Proposal, technical doc, etc.
+
+### Within 1 Week:
+4. **Stakeholder Alignment** - Who to connect with
+5. **Competitive Analysis** - What to research
+
+---
+
+## PROBABLE OUTCOME AND RISKS
+
+### Success Probability: [X]%
+Explain the likelihood of success based on call analysis.
+
+### Positive Indicators:
+List 3-5 positive signs detected in the call.
+
+### Risk Factors:
+List 2-4 risks with:
+- Risk Factor
+- Severity: [HIGH/MEDIUM/LOW]
+- Mitigation strategy
+
+### Deal Stage Assessment:
+- Current Stage: [assessment]
+- Next Logical Step: [recommendation]
+- Timeline to Close: [estimate]
+
+---
+
+## COACHING RECOMMENDATIONS
+
+### Top 3 Focus Areas for Next Call:
+
+For each area provide:
+- Current State: Where you are now
+- Target State: Where you should be
+- Practice Exercise: How to improve
+- Success Metric: How to measure improvement
+
+### Quick Win Techniques:
+List 5 specific, actionable techniques to improve immediately.
+
+---
+
+## APPENDIX: METRICS OBSERVED DURING CALL
+
+### Speaking Pattern Analysis:
+Create a table with metrics vs benchmarks vs assessment.
+
+### Engagement Indicators:
+Count sentiment words, confirmation words, hesitation words, etc.
+
+### Call Quality Metrics:
+Rate clarity, energy, professionalism, rapport on a 1-10 scale.
+
+---
+
+## SUMMARY RECOMMENDATION
+
+**Overall Assessment**: [2-3 sentence verdict]
+
+**Priority Actions** (Do These First):
+1. [Most critical action]
+2. [Second most critical action]
+3. [Third most critical action]
+
+**Long-term Strategy**:
+[Strategic recommendations for the relationship]
+
+**Confidence Level**: [HIGH/MEDIUM/LOW] with explanation
+
+---
+
+*Report generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}*
+
+IMPORTANT:
+- Be specific and use exact quotes/examples from the transcript
+- Provide quantitative metrics wherever possible
+- Make recommendations actionable and measurable
+- Focus on insights that will help improve performance
+- Be professional but constructive in criticism
+- Use emojis sparingly (✅ ❌ ⚠️ 🎯) for key points only`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini', // or gpt-4 for higher quality
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert sales coach and call analyst. Provide detailed, actionable insights based on sales call transcripts.'
+        },
+        {
+          role: 'user',
+          content: analysisPrompt
+        }
+      ],
+      temperature: 0.3, // Lower for more consistent analysis
+      max_tokens: 4000 // Enough for detailed report
+    });
+
+    console.log('✅ AI detailed report generated');
+    return response.content;
+
+  } catch (error) {
+    console.error('❌ AI detailed report generation failed:', error);
+    // Fallback to basic report
+    return this.generateBasicDetailedReport(input, transcript);
+  }
+}
+
+
+private generateBasicDetailedReport(input: SalesCallInput, transcript: string): string {
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
+  const sentiment = this.analyzeSentiment(transcript, overallScore);
+  const questionCount = (transcript.match(/\?/g) || []).length;
+  const speakers = this.extractSpeakersFromTranscript(transcript);
+  const wordCount = transcript.split(' ').length;
+  const estimatedDuration = Math.max(Math.floor(wordCount * 1.2), 60);
+  
+  return `# ${input.callType.toUpperCase()} CALL ANALYSIS REPORT
+
+## EXECUTIVE SUMMARY
+
+**Call Date**: ${input.actualDate ? new Date(input.actualDate).toLocaleDateString() : 'Not specified'}  
+**Duration**: ${Math.floor(estimatedDuration / 60)} minutes  
+**Overall Score**: ${overallScore}/100  
+**Sentiment**: ${sentiment.toUpperCase()}  
+**Participants**: ${speakers.map(s => s.name).join(', ')}
+
+This ${input.callType} call achieved a ${overallScore >= 75 ? 'strong' : overallScore >= 60 ? 'good' : 'moderate'} outcome with ${sentiment} sentiment.
+
+---
+
+## KEY METRICS
+
+- **Questions Asked**: ${questionCount}
+- **Talk Time**: Agent ${speakers.find(s => s.role === 'host')?.speakingPercentage || 40}% / Prospect ${speakers.find(s => s.role === 'prospect')?.speakingPercentage || 60}%
+- **Engagement Level**: ${overallScore >= 75 ? 'High' : 'Moderate'}
+
+---
+
+## RECOMMENDATIONS
+
+### Immediate Actions:
+1. Send follow-up email within 24 hours
+2. Update CRM with call notes
+3. Schedule next meeting if applicable
+
+### Areas for Improvement:
+- ${questionCount < 10 ? 'Ask more discovery questions' : 'Good question frequency'}
+- ${speakers.find(s => s.role === 'host')?.speakingPercentage! > 50 ? 'Reduce talk time, listen more' : 'Good talk/listen balance'}
+
+---
+
+*For a more detailed analysis, the AI service is temporarily unavailable. Please try again later.*
+
+*Report generated on ${new Date().toLocaleDateString()}*`;
+}
+
 
 
   private getSystemPrompt(callType: string): string {
@@ -379,72 +1027,26 @@ Make every insight specific, actionable, and tied to measurable outcomes. Provid
     }
   }
 
-  private parseAnalysisResponse(content: string, input: SalesCallInput): Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'> {
-    try {
-      // Extract JSON from response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        
-        // Validate required structure
-        if (parsed.callResults && parsed.summaryPresentation && parsed.nextStepsStrategy) {
-          return parsed;
-        }
+private async parseAnalysisResponse(content: string, input: SalesCallInput): Promise<Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'>> {
+  try {
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Validate required structure
+      if (parsed.callResults && parsed.summaryPresentation && parsed.nextStepsStrategy) {
+        return parsed;
       }
-    } catch (error) {
-      console.warn('Failed to parse JSON response, generating fallback analysis:', error);
     }
-
-    // Fallback to structured generation
-    return this.generateStructuredFallback(input);
+  } catch (error) {
+    console.warn('Failed to parse JSON response, generating fallback analysis:', error);
   }
 
-  private generateStructuredFallback(input: SalesCallInput): Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'> {
-    const transcript = input.transcript!;
-    const wordCount = transcript.split(' ').length;
-    const estimatedDuration = Math.max(Math.floor(wordCount * 1.2), 60);
-    const speakers = this.extractSpeakersFromTranscript(transcript);
-      const overallScore = this.calculateOverallScore(transcript, input.callType);
-    
-    return {
-      callResults: {
-        callId: `call_${Date.now()}`,
-        status: 'completed',
-        duration: estimatedDuration,
-        participants: speakers,
-        transcript: transcript.substring(0, 500) + '...',
-        analysis: {
-          overallScore: this.calculateOverallScore(transcript, input.callType),
-          sentiment: this.analyzeSentiment(transcript, overallScore),
-          keyInsights: this.generateKeyInsights(transcript, input.callType),
-          actionItems: this.generateActionItems(input),
-          speakerBreakdown: this.generateSpeakerBreakdown(speakers, transcript),
-          ...(input.callType === 'sales' && {
-            salesMetrics: this.generateSalesMetrics(transcript)
-          }),
-          ...(input.callType === 'interview' && {
-            interviewMetrics: this.generateInterviewMetrics(transcript)
-          }),
-          ...(input.callType === 'discovery' && {
-            discoveryMetrics: this.generateDiscoveryMetrics(transcript)
-          })
-        },
-        executiveSummary: this.generateExecutiveSummary(input, transcript),
-        detailedReport: this.generateDetailedReport(input, transcript),
-        ...(input.callType === 'sales' || input.callType === 'discovery' ? {
-          followUpEmail: this.generateFollowUpEmail(input)
-        } : {}),
-        ...(input.callType === 'sales' ? {
-          proposalTemplate: this.generateProposalTemplate(input)
-        } : {}),
-        coachingFeedback: this.generateCoachingFeedback(transcript, input.callType),
-        benchmarks: this.generateBenchmarks(transcript, input.callType)
-      },
-      summaryPresentation: this.generateSummaryPresentation(input, transcript),
-      nextStepsStrategy: this.generateNextStepsStrategy(input, transcript),
-      performanceMetrics: this.calculatePerformanceMetrics(transcript, speakers)
-    };
-  }
+  // ✅ Now properly awaits the async fallback
+  return await this.generateEnhancedFallback(input);
+}
+
 
 private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
   // Detect speaker patterns like "John:", "Speaker 1:", etc.
@@ -525,24 +1127,7 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
     return Math.max(10, Math.min(95, score));
   }
 
-  // private analyzeSentiment(transcript: string): 'positive' | 'neutral' | 'negative' | 'mixed' {
-  //   const positiveWords = ['great', 'excellent', 'love', 'perfect', 'amazing', 'good', 'yes', 'absolutely', 'definitely'];
-  //   const negativeWords = ['bad', 'terrible', 'hate', 'no', 'never', 'problem', 'issue', 'difficult', 'impossible'];
-    
-  //   const text = transcript.toLowerCase();
-  //   const positiveCount = positiveWords.reduce((count, word) => 
-  //     count + (text.match(new RegExp(`\\b${word}\\b`, 'g'))?.length || 0), 0);
-    
-  //   const negativeCount = negativeWords.reduce((count, word) => 
-  //     count + (text.match(new RegExp(`\\b${word}\\b`, 'g'))?.length || 0), 0);
-    
-  //   const ratio = positiveCount - negativeCount;
-    
-  //   if (ratio > 2) return 'positive';
-  //   if (ratio < -2) return 'negative';
-  //   if (positiveCount > 0 && negativeCount > 0) return 'mixed';
-  //   return 'neutral';
-  // }
+
 
   private analyzeSentiment(transcript: string, overallScore: number): 'positive' | 'neutral' | 'negative' | 'mixed' {
   // Use the performance score as primary indicator
@@ -552,65 +1137,118 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
   return 'negative';
 }
 
-  private generateKeyInsights(transcript: string, callType: string): string[] {
+private async generateKeyInsights(transcript: string, callType: string): Promise<string[]> {
+  console.log('💡 Generating AI-powered key insights...');
+  
+  const prompt = `Extract 3-5 key insights from this ${callType} call:
+
+${transcript.substring(0, 2000)} ${transcript.length > 2000 ? '...' : ''}
+
+Return ONLY a JSON array of strings:
+["insight 1", "insight 2", "insight 3", ...]
+
+Focus on:
+- Important discoveries
+- Buying signals or concerns
+- Strategic insights
+- Qualification status
+- Relationship indicators`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a sales analyst. Return only a JSON array of strings.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 500
+    });
+    
+    const jsonMatch = response.content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const insights = JSON.parse(jsonMatch[0]);
+      return Array.isArray(insights) ? insights.slice(0, 5) : [];
+    }
+    throw new Error('No array found in response');
+    
+  } catch (error) {
+    console.error('❌ AI insights generation failed:', error);
+    
+    // Fallback
     const insights = [];
-    
-    // Common insights
     if (transcript.includes('budget')) {
-      insights.push('Budget was discussed - good sign for qualification');
+      insights.push('Budget was discussed - good qualification sign');
     }
-    
     if (transcript.includes('timeline')) {
-      insights.push('Timeline was established - shows buying intent');
+      insights.push('Timeline established - shows buying intent');
     }
-    
     const questionCount = (transcript.match(/\?/g) || []).length;
     if (questionCount > 10) {
       insights.push('Strong discovery - many questions asked');
-    } else if (questionCount < 5) {
-      insights.push('Limited discovery - consider asking more questions');
-    }
-    
-    // Call type specific insights
-    switch (callType) {
-      case 'sales':
-        if (transcript.includes('pain') || transcript.includes('challenge')) {
-          insights.push('Pain points identified - good foundation for value prop');
-        }
-        if (transcript.includes('decision maker')) {
-          insights.push('Decision maker involvement confirmed');
-        }
-        break;
-        
-      case 'interview':
-        if (transcript.includes('improve') || transcript.includes('better')) {
-          insights.push('Improvement opportunities identified');
-        }
-        break;
     }
     
     return insights.slice(0, 5);
   }
+}
 
-  private generateActionItems(input: SalesCallInput): string[] {
-    const actions = [];
+  private async generateActionItems(input: SalesCallInput): Promise<string[]> {
+  console.log('✅ Generating AI-powered action items...');
+  
+  const prompt = `Based on this ${input.callType} call, what are the immediate action items?
+
+Transcript: ${input.transcript.substring(0, 1500)} ${input.transcript.length > 1500 ? '...' : ''}
+
+Return ONLY a JSON array of 3-5 specific, actionable items:
+["action 1", "action 2", "action 3"]
+
+Focus on what should be done in the next 24-48 hours.`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a sales operations expert. Return only a JSON array.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 400
+    });
     
-    actions.push('Send follow-up email within 24 hours');
+    const jsonMatch = response.content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const actions = JSON.parse(jsonMatch[0]);
+      return Array.isArray(actions) ? actions.slice(0, 5) : [];
+    }
+    throw new Error('No array found');
     
+  } catch (error) {
+    console.error('❌ AI action items failed:', error);
+    
+    const actions = ['Send follow-up email within 24 hours'];
     if (input.callType === 'sales') {
-      actions.push('Prepare customized proposal based on discussed needs');
-      actions.push('Schedule next meeting with decision makers');
+      actions.push('Prepare customized proposal');
+      actions.push('Schedule next meeting');
     }
-    
-    if (input.callType === 'discovery') {
-      actions.push('Research technical requirements mentioned');
-      actions.push('Prepare detailed solution overview');
-    }
-    
-    actions.push('Update CRM with call notes and insights');
+    actions.push('Update CRM with call notes');
     
     return actions;
   }
+}
+
+
 
   private generateSpeakerBreakdown(speakers: any[], transcript: string): any[] {
     return speakers.map(speaker => ({
@@ -672,106 +1310,223 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
     };
   }
 
- private generateExecutiveSummary(input: SalesCallInput, transcript: string): string {
-  const overallScore = this.calculateOverallScore(transcript, input.callType);
-  const sentiment = this.analyzeSentiment(transcript, overallScore);
-  const callType = input.callType;
-  const company = input.companyName || 'prospect';
+private async generateExecutiveSummary(input: SalesCallInput, transcript: string): Promise<string> {
+  console.log('📋 Generating AI-powered executive summary...');
   
-  return `${callType} call with ${company} completed successfully with ${sentiment} sentiment. Key objectives were addressed and clear next steps established for continued engagement.`;
-}
-  private generateDetailedReport(input: SalesCallInput, transcript: string): string {
-    return `# ${input.callType.toUpperCase()} CALL ANALYSIS REPORT
+  const prompt = `Create a 2-3 sentence executive summary of this ${input.callType} call:
 
-## Call Overview
-**Date**: ${input.actualDate || input.scheduledDate || 'Not specified'}
-**Duration**: ${Math.floor(transcript.split(' ').length * 1.2 / 60)} minutes
-**Participants**: ${input.prospectName || 'Prospect'}, Host
-**Company**: ${input.companyName || 'Not specified'}
+Company: ${input.companyName || 'Not specified'}
+Transcript: ${transcript.substring(0, 1500)} ${transcript.length > 1500 ? '...' : ''}
 
-## Executive Summary
-This ${input.callType} call demonstrated positive engagement and clear communication patterns. The conversation successfully covered key discussion points and established a foundation for next steps.
+Focus on:
+- Overall outcome
+- Key sentiment
+- Most important takeaway
+- Next steps (if mentioned)
 
-## Key Findings
-- **Engagement Level**: High participant involvement throughout
-- **Discovery Quality**: Adequate information gathering
-- **Relationship Building**: Strong rapport established
-- **Next Steps**: Clear action items defined
+Keep it concise and professional.`;
 
-## Recommendations
-1. **Immediate**: Follow up within 24 hours with meeting summary
-2. **Short-term**: Prepare detailed proposal addressing discussed needs
-3. **Long-term**: Build strategic partnership approach
-
-## Performance Assessment
-- **Communication**: Professional and clear
-- **Listening**: Active listening demonstrated
-- **Question Quality**: Good discovery techniques used
-- **Outcome**: Objectives achieved successfully
-
-This analysis provides actionable insights for improving future call performance and advancing business objectives.`;
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a business analyst expert at creating executive summaries.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 200
+    });
+    
+    return response.content.trim();
+  } catch (error) {
+    console.error('❌ AI summary failed:', error);
+    const overallScore = this.calculateOverallScore(transcript, input.callType);
+    const sentiment = this.analyzeSentiment(transcript, overallScore);
+    return `${input.callType} call with ${input.companyName || 'prospect'} completed with ${sentiment} sentiment. Key objectives were addressed and next steps established.`;
   }
+}
 
-  private generateFollowUpEmail(input: SalesCallInput): string {
+
+private async generateFollowUpEmail(input: SalesCallInput): Promise<string> {
+  console.log('📧 Generating AI-powered follow-up email...');
+  
+  const prompt = `Generate a professional, personalized follow-up email for this ${input.callType} call:
+
+CALL CONTEXT:
+- Prospect: ${input.prospectName || 'Prospect'}
+- Company: ${input.companyName || 'Company'}
+- Call Type: ${input.callType}
+- Transcript: ${input.transcript.substring(0, 2000)} ${input.transcript.length > 2000 ? '...' : ''}
+
+Generate a follow-up email that:
+1. References specific points discussed in the call
+2. Summarizes key takeaways
+3. Proposes clear next steps
+4. Maintains a professional yet warm tone
+5. Is concise (under 300 words)
+
+Format:
+Subject: [compelling subject line]
+
+[Email body]
+
+Best regards,
+[Your Name]`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at writing effective sales follow-up emails.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.4,
+      max_tokens: 800
+    });
+    
+    return response.content;
+  } catch (error) {
+    console.error('❌ AI follow-up email failed:', error);
+    // Fallback to basic template
     return `Subject: Thank you for our ${input.callType} call today - Next steps
 
 Hi ${input.prospectName || 'there'},
 
 Thank you for taking the time to speak with me today about ${input.title}. I enjoyed learning more about ${input.companyName || 'your company'} and your current challenges.
 
-## Key Points Discussed:
-- [Main topic 1 from our conversation]
-- [Key challenge or opportunity identified]
-- [Solution area we explored]
+Based on our conversation, I'll prepare a detailed proposal addressing your specific needs and send it over by [date].
 
-## Next Steps:
-1. I'll prepare a detailed [proposal/overview] addressing your specific needs
-2. [Specific follow-up action discussed]
-3. Let's schedule a follow-up meeting for [suggested timeframe]
-
-I'm excited about the opportunity to help ${input.companyName || 'your organization'} achieve your goals. Please let me know if you have any questions.
+Looking forward to our next conversation.
 
 Best regards,
 [Your Name]`;
   }
+}
 
-  private generateProposalTemplate(input: SalesCallInput): string {
+
+private async generateProposalTemplate(input: SalesCallInput): Promise<string> {
+  console.log('📄 Generating AI-powered proposal template...');
+  
+  const prompt = `Based on this sales call transcript, generate a proposal outline:
+
+CALL CONTEXT:
+- Company: ${input.companyName || 'Company'}
+- Industry: ${input.companyIndustry || 'Not specified'}
+- Company Size: ${input.companyHeadcount || 'Not specified'}
+- Transcript: ${input.transcript.substring(0, 2000)} ${input.transcript.length > 2000 ? '...' : ''}
+
+Generate a proposal outline that includes:
+1. Executive Summary (based on discussed pain points)
+2. Current Situation (challenges mentioned in call)
+3. Proposed Solution (tailored to their needs)
+4. Expected Outcomes (specific to their goals)
+5. Investment & Timeline
+6. Next Steps
+
+Use actual details from the transcript - be specific!`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a sales proposal expert. Create compelling, specific proposals based on call transcripts.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 1500
+    });
+    
+    return response.content;
+  } catch (error) {
+    console.error('❌ AI proposal generation failed:', error);
     return `# PROPOSAL FOR ${input.companyName?.toUpperCase() || 'CLIENT'}
 
 ## Executive Summary
 Based on our conversation, we understand your key objectives and are prepared to help you achieve them.
 
 ## Your Current Situation
-- [Challenge 1 discussed]
-- [Challenge 2 discussed]
-- [Current process/solution]
+[Details from call to be added]
 
 ## Our Proposed Solution
-**Phase 1**: Assessment and Planning
-**Phase 2**: Implementation and Integration  
-**Phase 3**: Optimization and Support
+[Customized solution based on discussion]
 
 ## Expected Outcomes
-- [Specific benefit 1]
-- [Quantified improvement]
-- [Strategic advantage]
+[Specific benefits aligned with their goals]
 
 ## Investment & Timeline
-- Project timeline: [Duration]
-- Investment: [Range discussed]
-- ROI timeline: [Expected payback]
+[To be determined based on scope]
 
 ## Next Steps
 1. Review this proposal internally
-2. Address any questions or concerns
-3. Proceed with contract and implementation
-
-We look forward to partnering with ${input.companyName || 'your organization'}.`;
+2. Address any questions
+3. Proceed with implementation`;
   }
+}
 
-  private generateCoachingFeedback(transcript: string, callType: string) {
+
+
+private async generateCoachingFeedback(transcript: string, callType: string): Promise<any> {
+  console.log('🎓 Generating AI-powered coaching feedback...');
+  
+  const prompt = `Analyze this ${callType} call transcript and provide coaching feedback:
+
+${transcript.substring(0, 2000)} ${transcript.length > 2000 ? '...' : ''}
+
+Return ONLY valid JSON with this structure:
+{
+  "strengths": ["specific strength 1", "specific strength 2", "specific strength 3"],
+  "improvements": ["specific improvement 1", "specific improvement 2", "specific improvement 3"],
+  "specificSuggestions": ["actionable suggestion 1", "actionable suggestion 2", "actionable suggestion 3"],
+  "communicationTips": ["tip 1", "tip 2", "tip 3"],
+  "nextCallPreparation": ["preparation item 1", "preparation item 2", "preparation item 3"]
+}
+
+Be specific - reference actual moments from the transcript!`;
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert sales coach. Return only valid JSON.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000
+    });
+    
+    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error('No JSON found in response');
+    
+  } catch (error) {
+    console.error('❌ AI coaching feedback failed:', error);
     const questionCount = (transcript.match(/\?/g) || []).length;
-    const wordCount = transcript.split(' ').length;
     
     return {
       strengths: [
@@ -791,16 +1546,17 @@ We look forward to partnering with ${input.companyName || 'your organization'}.`
       ],
       communicationTips: [
         'Pause for 2-3 seconds after asking questions',
-        'Use prospect\'s name more frequently for personalization',
-        'Mirror their communication style and energy level'
+        'Use prospect\'s name more frequently',
+        'Mirror their communication style'
       ],
       nextCallPreparation: [
-        'Research company\'s recent news and developments',
-        'Prepare specific ROI examples relevant to their industry',
-        'Draft preliminary proposal addressing discussed points'
+        'Research company\'s recent news',
+        'Prepare specific ROI examples',
+        'Draft preliminary proposal'
       ]
     };
   }
+}
 
   private generateBenchmarks(transcript: string, callType: string) {
     const questionCount = (transcript.match(/\?/g) || []).length;
@@ -874,9 +1630,13 @@ We look forward to partnering with ${input.companyName || 'your organization'}.`
     return areas.slice(0, 4); // Limit to top 4 areas
   }
 
- private generateSummaryPresentation(input: SalesCallInput, transcript: string) {
-const overallScore = this.calculateOverallScore(transcript, input.callType);
+private async generateSummaryPresentation(input: SalesCallInput, transcript: string) {
+  const overallScore = this.calculateOverallScore(transcript, input.callType);
   const sentiment = this.analyzeSentiment(transcript, overallScore);
+  
+  // ✅ Await the async methods
+  const keyInsights = await this.generateKeyInsights(transcript, input.callType);
+  const actionItems = await this.generateActionItems(input);
   
   return [
     {
@@ -891,12 +1651,12 @@ const overallScore = this.calculateOverallScore(transcript, input.callType);
     },
     {
       title: 'Key Insights',
-      content: this.generateKeyInsights(transcript, input.callType).join('\n• '),
+      content: keyInsights.join('\n• '), // ✅ Now properly awaited
       visualType: 'bullet' as const
     },
     {
       title: 'Action Items & Next Steps',
-      content: this.generateActionItems(input).join('\n• '),
+      content: actionItems.join('\n• '), // ✅ Now properly awaited
       visualType: 'bullet' as const
     }
   ];
@@ -1274,14 +2034,8 @@ ${slide.content}
     return Buffer.from(contextHash).toString('base64').substring(0, 50);
   }
 
-  private generateFallbackAnalysis(input: SalesCallInput, processingTime: number): GeneratedCallPackage {
-    const transcript = input.transcript!;
-    return {
-      ...this.generateStructuredFallback(input),
-      tokensUsed: Math.floor(transcript.length / 4), // Rough estimate
-      processingTime
-    };
-  }
+  
+
 
   // Analytics and reporting methods
   async getCallAnalyticsSummary(userId: string, workspaceId?: string, timeframe: 'week' | 'month' | 'quarter' = 'month') {
