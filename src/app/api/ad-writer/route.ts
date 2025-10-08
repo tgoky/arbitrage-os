@@ -12,9 +12,10 @@ import { convertToPlatforms, type Platform } from '@/types/adWriter';
 import { createNotification } from '@/lib/notificationHelper';
 
 // MOVED INSIDE: Authentication function (no longer exported)
-async function getAuthenticatedUser(request: NextRequest) {
+export async function getAuthenticatedUser(request: NextRequest) {
   try {
-    const cookieStore = cookies();
+  
+     const cookieStore = await cookies();
     
     // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');

@@ -7,7 +7,8 @@ import { cookies } from 'next/headers';
 
  async function getAuthenticatedUser(request: NextRequest) {
   try {
-    const cookieStore = cookies();
+    
+      const cookieStore = await cookies();
     
     // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');

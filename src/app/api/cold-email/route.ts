@@ -15,7 +15,8 @@ import { createNotification } from '@/lib/notificationHelper';
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
-    const cookieStore = cookies();
+    
+   const cookieStore = await cookies();
     
     // Method 1: Authorization header (most reliable for API calls)
     const authHeader = request.headers.get('authorization');

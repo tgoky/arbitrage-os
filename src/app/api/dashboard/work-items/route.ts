@@ -1,11 +1,12 @@
-// app/api/dashboard/work-items/route.ts - FIXED AUTHENTICATION
+// app/api/dashboard/work-items/route.ts - CLEANED UP VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 
 interface WorkItem {
   id: string;
-  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation';
+ type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation';
   title: string;
   subtitle: string;
   status: 'completed' | 'processing' | 'failed' | 'draft';
@@ -15,45 +16,96 @@ interface WorkItem {
   rawData: any;
 }
 
-// ✅ FIXED: Simplified authentication that works for new users
-async function getAuthenticatedUser() {
+export async function getAuthenticatedUser(request?: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const cookieStore =  await cookies();
     
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {}
-          },
-        },
+    // Method 1: Authorization header
+    if (request) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.substring(7);
+          const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { cookies: { get: () => undefined } }
+          );
+          
+          const { data: { user }, error } = await supabase.auth.getUser(token);
+          if (!error && user) {
+            return { user, error: null };
+          }
+        } catch (tokenError) {
+          console.warn('Token auth failed:', tokenError);
+        }
       }
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
-      console.error('❌ Authentication failed:', error);
-      return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
-    return { user, error: null };
+    // Method 2: SSR cookies
+    try {
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              try {
+                const cookie = cookieStore.get(name);
+                if (!cookie?.value) return undefined;
+                
+                if (cookie.value.startsWith('base64-')) {
+                  try {
+                    const decoded = atob(cookie.value.substring(7));
+                    JSON.parse(decoded);
+                    return cookie.value;
+                  } catch (e) {
+                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
+                    return undefined;
+                  }
+                }
+                
+                return cookie.value;
+              } catch (error) {
+                console.warn(`Error reading cookie ${name}:`, error);
+                return undefined;
+              }
+            },
+          },
+        }
+      );
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        return { user, error: null };
+      }
+    } catch (ssrError) {
+      console.warn('SSR cookie auth failed:', ssrError);
+    }
+    
+    // Method 3: Route handler client
+    try {
+      const supabase = createRouteHandlerClient({
+        cookies: () => cookieStore
+      });
+      
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user) {
+        return { user, error: null };
+      }
+    } catch (routeError) {
+      console.warn('Route handler auth failed:', routeError);
+    }
+    
+    return { user: null, error: new Error('All authentication methods failed') };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('Authentication error:', error);
     return { user: null, error };
   }
 }
+
+
 
 export async function GET(req: NextRequest) {
   console.log('🔄 Work Items API Route called');
@@ -62,8 +114,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // Use robust authentication
+    const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
       console.error('❌ Auth failed in work-items:', authError);
@@ -120,6 +172,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
+
+
 async function validateWorkspaceAccess(userId: string, workspaceId: string): Promise<boolean> {
   try {
     const { prisma } = await import('@/lib/prisma');
@@ -152,9 +206,9 @@ async function fetchAllWorkItemsFromDeliverables(userId: string, workspaceId?: s
           'cold_email_generation',
           'ad_writer',
           'n8n_workflow',
-          'signature_offers',
+          'signature_offers' ,
           'proposal',       
-          'lead_generation' 
+      'lead_generation' 
         ]
       }
     };
@@ -245,25 +299,26 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
         actions = ['view', 'copy', 'optimize', 'delete'];
         break;
 
-      case 'signature_offers':
-        workItemType = 'offer-creator';
-        subtitle = `${metadata.targetMarket || 'Market'} • ${metadata.conversionScore || 0}% score`;
-        actions = ['view', 'export', 'optimize', 'delete'];
-        break;
+    case 'signature_offers':
+  workItemType = 'offer-creator';
+  subtitle = `${metadata.targetMarket || 'Market'} • ${metadata.conversionScore || 0}% score`;
+  actions = ['view', 'export', 'optimize', 'delete'];
+  break;
 
-      case 'ad_writer':
-        workItemType = 'ad-writer';
-        subtitle = `${metadata.platform || 'Multi-platform'} • ${metadata.adCount || 0} ads`;
-        actions = ['view', 'export', 'optimize', 'delete'];
-        break;
+// ✅ FIXED: Separate cases for ad_writer and n8n_workflow
+case 'ad_writer':
+  workItemType = 'ad-writer';
+  subtitle = `${metadata.platform || 'Multi-platform'} • ${metadata.adCount || 0} ads`;
+  actions = ['view', 'export', 'optimize', 'delete'];
+  break;
 
-      case 'n8n_workflow':
-        workItemType = 'n8n-workflow';
-        subtitle = `${metadata.triggerType || 'Webhook'} • ${metadata.integrationCount || 0} nodes`;
-        actions = ['view', 'export', 'optimize', 'delete'];
-        break;
+case 'n8n_workflow':
+  workItemType = 'n8n-workflow';
+  subtitle = `${metadata.triggerType || 'Webhook'} • ${metadata.integrationCount || 0} nodes`;
+  actions = ['view', 'export', 'optimize', 'delete'];
+  break;
 
-      case 'proposal':
+   case 'proposal':
         workItemType = 'proposal';
         const clientName = metadata.clientName || 'Unknown Client';
         const totalValue = metadata.totalValue || 0;
@@ -271,7 +326,7 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
         actions = ['view', 'export', 'delete'];
         break;
 
-      case 'lead_generation':
+          case 'lead_generation':
         workItemType = 'lead-generation';
         const leadCount = metadata.leadCount || 0;
         const industries = metadata.criteria?.targetIndustry?.slice(0, 2).join(', ') || 'Multiple';
