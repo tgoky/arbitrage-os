@@ -16,7 +16,7 @@ interface WorkItem {
   rawData: any;
 }
 
-export async function getAuthenticatedUser(request?: NextRequest) {
+ async function getAuthenticatedUser(request?: NextRequest) {
   try {
     const cookieStore =  await cookies();
     
