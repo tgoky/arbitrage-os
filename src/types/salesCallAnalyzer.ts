@@ -33,7 +33,7 @@ export interface SalesCallInput {
   userId: string;
 }
 
-interface CallStructureAnalysis {
+export interface CallStructureAnalysis {
   callStructure: {
     opening: {
       assessment: 'Strong' | 'Good' | 'Needs Improvement';
