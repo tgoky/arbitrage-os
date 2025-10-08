@@ -7,107 +7,54 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
 // ✅ IMPROVED AUTH FUNCTION
-async function getAuthenticatedUser(request: NextRequest) {
+
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get: () => undefined,
-            },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (!error && user) {
-          return { user, error: null };
-        }
-      } catch (tokenError) {
-        console.warn('⚠️ Token auth error:', tokenError);
-      }
-    }
-    
-    const supabaseSSR = createServerClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
             try {
-              const cookie = cookieStore.get(name);
-              if (!cookie?.value) return undefined;
-              
-              if (cookie.value.startsWith('base64-')) {
-                try {
-                  const decoded = atob(cookie.value.substring(7));
-                  JSON.parse(decoded);
-                  return cookie.value;
-                } catch (e) {
-                  return undefined;
-                }
-              }
-              
-              if (cookie.value.startsWith('{') || cookie.value.startsWith('[')) {
-                try {
-                  JSON.parse(cookie.value);
-                  return cookie.value;
-                } catch (e) {
-                  return undefined;
-                }
-              }
-              
-              return cookie.value;
-            } catch (error) {
-              return undefined;
-            }
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
           },
         },
       }
     );
     
-    const { data: { user }, error } = await supabaseSSR.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!error && user) {
-      return { user, error: null };
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (helperError) {
-      console.warn('⚠️ Route handler failed:', helperError);
-    }
-    
-    return { user: null, error: error || new Error('All auth methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('💥 Auth error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
+
+
 
 export async function GET(req: NextRequest) {
   console.log('🚀 Skills Suggestions API Route called');
   
   try {
     // ✅ AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(req);
+     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in skills suggestions:', authError);
@@ -403,7 +350,7 @@ export async function POST(req: NextRequest) {
   
   try {
     // ✅ AUTHENTICATION
-    const { user, error: authError } = await getAuthenticatedUser(req);
+   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       return NextResponse.json(
