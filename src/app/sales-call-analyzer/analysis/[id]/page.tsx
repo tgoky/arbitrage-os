@@ -655,7 +655,7 @@ export default function AnalysisDetailPage() {
                         moment.type === 'action' ? 'blue' : 'gray'
                       }
                     >
-                      <Text strong>{moment.timestamp}</Text>
+                      {/* <Text strong>{moment.timestamp}</Text> */}
                       <br />
                       {moment.description}
                     </Timeline.Item>
