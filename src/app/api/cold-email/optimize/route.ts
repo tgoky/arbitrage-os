@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { ColdEmailService } from '@/services/coldEmail.service';
@@ -6,7 +7,8 @@ import { logUsage } from '@/lib/usage';
 import { rateLimit } from '@/lib/rateLimit';
 import { ColdEmailOptimizationType } from '@/types/coldEmail';
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+// ✅ Use the SAME robust authentication function as main route
+// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -46,28 +48,46 @@ async function getAuthenticatedUser() {
   }
 }
 
+
 export async function POST(req: NextRequest) {
   try {
     console.log('🚀 Cold Email Optimize API Route called');
     
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // ✅ Use robust authentication (same as main route)
+      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in optimize:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token', 
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', {
+          expires: new Date(0),
+          path: '/',
+        });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Add rate limiting - 30 optimizations per minute
+    // ✅ Add rate limiting - 30 optimizations per minute
     const rateLimitResult = await rateLimit(user.id, 30, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -136,8 +156,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to optimize email',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        error: 'Failed to optimize email' 
       },
       { status: 500 }
     );

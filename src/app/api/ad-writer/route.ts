@@ -1,5 +1,6 @@
-// app/api/ad-writer/route.ts - UPDATED WITH SIMPLIFIED AUTH
+// app/api/ad-writer/route.ts - FIXED VERSION (No named exports)
 import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
@@ -10,7 +11,7 @@ import { logUsage } from '@/lib/usage';
 import { convertToPlatforms, type Platform } from '@/types/adWriter';
 import { createNotification } from '@/lib/notificationHelper';
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+// MOVED INSIDE: Authentication function (no longer exported)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -50,23 +51,42 @@ async function getAuthenticatedUser() {
   }
 }
 
+
+
 export async function POST(req: NextRequest) {
   try {
     console.log('=== AD WRITER API START ===');
     
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // Use robust authentication
+   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in ad writer:', authError);
-      return NextResponse.json(
+      console.error('Auth failed in ad writer:', authError);
+      
+      // Clear corrupted cookies in response
+      const response = NextResponse.json(
         { 
-          success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
-        },
+        }, 
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', {
+          expires: new Date(0),
+          path: '/',
+        });
+      });
+      
+      return response;
     }
     
     console.log('User authenticated:', user.id);
@@ -186,28 +206,28 @@ export async function POST(req: NextRequest) {
     });
 
     // After successful ad generation and saving
-    try {
-      await createNotification({
-        userId: user.id,
-        workspaceId: workspace.id,
-        workspaceSlug: workspace.slug,
-        type: 'ad_writer',
-        itemId: result.deliverableId,
-        metadata: {
-          adCount: result.ads.length,
-          platforms: validation.data.activePlatforms || [],
-          businessName: validation.data.businessName,
-          offerName: validation.data.offerName,
-          adLength: validation.data.adLength,
-          adType: validation.data.adType
-        }
-      });
-      
-      console.log('✅ Notification created for ad generation:', result.deliverableId);
-    } catch (notifError) {
-      console.error('Failed to create notification:', notifError);
-      // Don't fail the request if notification fails
+try {
+  await createNotification({
+    userId: user.id,
+    workspaceId: workspace.id,
+    workspaceSlug: workspace.slug,
+    type: 'ad_writer',
+    itemId: result.deliverableId,
+    metadata: {
+      adCount: result.ads.length,
+      platforms: validation.data.activePlatforms || [],
+      businessName: validation.data.businessName,
+      offerName: validation.data.offerName,
+      adLength: validation.data.adLength,
+      adType: validation.data.adType
     }
+  });
+  
+  console.log('✅ Notification created for ad generation:', result.deliverableId);
+} catch (notifError) {
+  console.error('Failed to create notification:', notifError);
+  // Don't fail the request if notification fails
+}
 
     // Log usage for analytics/billing
     try {
@@ -257,7 +277,6 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(
       { 
-        success: false,
         error: 'Failed to generate ads. Please try again.',
         debug: process.env.NODE_ENV === 'development' ? {
           message: error instanceof Error ? error.message : 'Unknown error',

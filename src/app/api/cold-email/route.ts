@@ -1,5 +1,6 @@
 // app/api/cold-email/route.ts - COMPLETE DEBUG VERSION
 import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma'; // Import at top
@@ -9,7 +10,8 @@ import { rateLimit } from '../../../lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+
+// ✅ Exact same robust authentication function as pricing calculator
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -49,23 +51,44 @@ async function getAuthenticatedUser() {
   }
 }
 
+
+
+
 export async function POST(req: NextRequest) {
   console.log('🚀 Cold Email API Route called');
   
   try {
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // ✅ Use robust authentication (same as pricing calculator)
+   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in cold email:', authError);
-      return NextResponse.json(
+      
+      // Clear corrupted cookies in response
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', {
+          expires: new Date(0),
+          path: '/',
+        });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
@@ -110,25 +133,6 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // Fetch the actual workspace for notification
-    const workspace = await prisma.workspace.findFirst({
-      where: {
-        id: workspaceId,
-        user_id: user.id
-      },
-      select: {
-        id: true,
-        slug: true
-      }
-    });
-
-    if (!workspace) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Workspace not found',
-        code: 'WORKSPACE_NOT_FOUND'
-      }, { status: 404 });
-    }
 
     console.log('🔍 Backend received body keys:', Object.keys(body));
 console.log('🔍 Backend body sample:', {
@@ -191,6 +195,40 @@ console.log('🔍 Backend body sample:', {
     console.log('✅ Input validation passed');
     console.log('✅ Validated data keys:', Object.keys(validation.data));
 
+    // ✅ GET USER'S WORKSPACE with error handling (same pattern as pricing calc)
+    console.log('🔍 Getting/creating workspace for user:', user.id);
+    let workspace;
+    try {
+      workspace = await prisma.workspace.findFirst({
+        where: { user_id: user.id }
+      });
+
+      if (!workspace) {
+        console.log('📁 Creating default workspace for user:', user.id);
+        workspace = await prisma.workspace.create({
+          data: {
+            user_id: user.id,
+            name: 'Default Workspace',
+            slug: 'default',
+            description: 'Default workspace for cold emails'
+          }
+        });
+        console.log('✅ Created workspace:', workspace.id);
+      } else {
+        console.log('✅ Found existing workspace:', workspace.id);
+      }
+    } catch (dbError) {
+      console.error('💥 Database error getting/creating workspace:', dbError);
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Database error. Please try again.',
+          debug: dbError instanceof Error ? dbError.message : 'Unknown DB error'
+        },
+        { status: 500 }
+      );
+    }
+
     // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE with error handling
     console.log('🤖 Starting email generation...');
     let result;
@@ -233,7 +271,7 @@ console.log('🔍 Backend body sample:', {
         { 
           success: false,
           error: 'Failed to generate emails. Please try again.',
-          details: process.env.NODE_ENV === 'development' ? (serviceError instanceof Error ? serviceError.message : 'Unknown service error') : undefined
+          debug: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
         },
         { status: 500 }
       );
@@ -242,7 +280,7 @@ console.log('🔍 Backend body sample:', {
     try {
   await createNotification({
     userId: user.id,
-    workspaceId: workspace.id,
+    workspaceId: workspace.id, // Use existing workspace variable
     workspaceSlug: workspace.slug,
     type: 'cold_email',
     itemId: result.deliverableId,
@@ -304,7 +342,7 @@ console.log('🔍 Backend body sample:', {
       { 
         success: false,
         error: 'Failed to generate emails. Please try again.',
-        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+        debug: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -316,19 +354,28 @@ export async function GET(req: NextRequest) {
   console.log('🚀 Cold Email GET API Route called');
   
   try {
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // Use robust authentication
+ const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in cold email GET:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+      });
+      
+      return response;
     }
 
     // Rate limiting for list fetches
@@ -346,17 +393,6 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
-
-    if (workspaceId) {
-      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
-      if (!hasAccess) {
-        return NextResponse.json({ 
-          success: false,
-          error: 'Workspace not found or access denied.',
-          code: 'WORKSPACE_ACCESS_DENIED'
-        }, { status: 403 });
-      }
-    }
 
     // ✅ USE SERVICE METHOD (consistent with architecture)
     const coldEmailService = new ColdEmailService();
@@ -382,9 +418,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: generations,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count,
-        workspaceId: workspaceId,
-        timestamp: new Date().toISOString()
+        remaining: rateLimitResult.limit - rateLimitResult.count
       }
     });
 
@@ -393,8 +427,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to fetch email generations',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        error: 'Failed to fetch email generations' 
       },
       { status: 500 }
     );

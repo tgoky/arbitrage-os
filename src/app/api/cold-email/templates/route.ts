@@ -1,12 +1,12 @@
 // app/api/cold-email/templates/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { ColdEmailService } from '@/services/coldEmail.service';
 import { logUsage } from '@/lib/usage';
 import { rateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
 
 // Validation schema for creating/updating templates
 const templateSchema = z.object({
@@ -20,7 +20,8 @@ const templateSchema = z.object({
   isPublic: z.boolean().default(false)
 });
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+// ✅ Robust authentication function (same as main route)
+// Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -60,29 +61,40 @@ async function getAuthenticatedUser() {
   }
 }
 
+
+
 // GET - Fetch user's templates
 export async function GET(req: NextRequest) {
   try {
     console.log('🚀 Templates GET API Route called');
     
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // ✅ Use robust authentication
+      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in templates GET:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Add rate limiting for template fetching - 100 requests per minute
+    // ✅ Add rate limiting for template fetching - 100 requests per minute
     const rateLimitResult = await rateLimit(user.id, 100, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -98,10 +110,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
     const includePublic = searchParams.get('includePublic') === 'true';
-    const workspaceId = searchParams.get('workspaceId') ?? undefined; // Convert null to undefined
+     const workspaceId = searchParams.get('workspaceId') ?? undefined; // Convert null to undefined
 
-    // Validate workspace access if provided
+         // ADDED: Validate workspace access if provided
     if (workspaceId) {
+      const { prisma } = await import('@/lib/prisma');
       const workspace = await prisma.workspace.findFirst({
         where: {
           id: workspaceId,
@@ -109,7 +122,7 @@ export async function GET(req: NextRequest) {
         }
       });
 
-      if (!workspace) {
+            if (!workspace) {
         return NextResponse.json({ 
           success: false,
           error: 'Workspace not found or access denied.',
@@ -118,6 +131,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
+
+
     const coldEmailService = new ColdEmailService();
     const templates = await coldEmailService.getUserTemplates(user.id, {
       category: category as any,
@@ -125,7 +140,7 @@ export async function GET(req: NextRequest) {
       workspaceId 
     });
 
-    // Log template fetch usage
+    // ✅ Log template fetch usage
     await logUsage({
       userId: user.id,
       feature: 'template_fetch',
@@ -134,7 +149,7 @@ export async function GET(req: NextRequest) {
       metadata: {
         category,
         includePublic,
-        workspaceId, 
+            workspaceId, 
         resultCount: templates.length
       }
     });
@@ -143,8 +158,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: templates,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count,
-        timestamp: new Date().toISOString()
+        remaining: rateLimitResult.limit - rateLimitResult.count
       }
     });
   } catch (error) {
@@ -152,8 +166,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to fetch templates',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        error: 'Failed to fetch templates' 
       },
       { status: 500 }
     );
@@ -165,24 +178,33 @@ export async function POST(req: NextRequest) {
   try {
     console.log('🚀 Templates POST API Route called');
     
-    // Use simplified authentication
-    const { user, error: authError } = await getAuthenticatedUser();
+    // ✅ Use robust authentication
+      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in templates POST:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Add rate limiting for template creation - 10 templates per minute
+    // ✅ Add rate limiting for template creation - 10 templates per minute
     const rateLimitResult = await rateLimit(user.id, 10, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -199,9 +221,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validation = templateSchema.safeParse(body);
 
-    const workspaceId = body.workspaceId;
+      const workspaceId = body.workspaceId;
 
-    if (!workspaceId) {
+          if (!workspaceId) {
       return NextResponse.json({ 
         success: false,
         error: 'Workspace ID required.',
@@ -209,7 +231,8 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate workspace access
+    // ADDED: Validate workspace access
+    const { prisma } = await import('@/lib/prisma');
     const workspace = await prisma.workspace.findFirst({
       where: {
         id: workspaceId,
@@ -225,6 +248,7 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+
     if (!validation.success) {
       return NextResponse.json(
         { 
@@ -237,9 +261,9 @@ export async function POST(req: NextRequest) {
     }
 
     const coldEmailService = new ColdEmailService();
-    const template = await coldEmailService.createTemplate(user.id, workspaceId, validation.data);
+  const template = await coldEmailService.createTemplate(user.id, workspaceId, validation.data);
 
-    // Log template creation usage
+    // ✅ Log template creation usage
     await logUsage({
       userId: user.id,
       feature: 'template_create',
@@ -247,7 +271,7 @@ export async function POST(req: NextRequest) {
       timestamp: new Date(),
       metadata: {
         templateId: template.id,
-        workspaceId, 
+               workspaceId, 
         category: validation.data.category,
         bodyLength: validation.data.body.length
       }
@@ -257,8 +281,7 @@ export async function POST(req: NextRequest) {
       success: true,
       data: template,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count,
-        timestamp: new Date().toISOString()
+        remaining: rateLimitResult.limit - rateLimitResult.count
       }
     }, { status: 201 });
 
@@ -267,8 +290,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to create template',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        error: 'Failed to create template' 
       },
       { status: 500 }
     );
@@ -280,24 +302,33 @@ export async function PUT(req: NextRequest) {
   try {
     console.log('🚀 Templates PUT API Route called');
     
-    // Use simplified authentication
+    // ✅ Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in templates PUT:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Add rate limiting for template updates - 20 updates per minute
+    // ✅ Add rate limiting for template updates - 20 updates per minute
     const rateLimitResult = await rateLimit(user.id, 20, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -345,14 +376,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Template not found or access denied',
-          code: 'TEMPLATE_NOT_FOUND'
+          error: 'Template not found or access denied' 
         },
         { status: 404 }
       );
     }
 
-    // Log template update usage
+    // ✅ Log template update usage
     await logUsage({
       userId: user.id,
       feature: 'template_update',
@@ -368,8 +398,7 @@ export async function PUT(req: NextRequest) {
       success: true,
       data: template,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count,
-        timestamp: new Date().toISOString()
+        remaining: rateLimitResult.limit - rateLimitResult.count
       }
     });
 
@@ -378,8 +407,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to update template',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        error: 'Failed to update template' 
       },
       { status: 500 }
     );
@@ -391,24 +419,33 @@ export async function DELETE(req: NextRequest) {
   try {
     console.log('🚀 Templates DELETE API Route called');
     
-    // Use simplified authentication
+    // ✅ Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in templates DELETE:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
 
-    // Add rate limiting for template deletion - 10 deletions per minute
+    // ✅ Add rate limiting for template deletion - 10 deletions per minute
     const rateLimitResult = await rateLimit(user.id, 10, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -441,14 +478,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Template not found or access denied',
-          code: 'TEMPLATE_NOT_FOUND'
+          error: 'Template not found or access denied' 
         },
         { status: 404 }
       );
     }
 
-    // Log template deletion usage
+    // ✅ Log template deletion usage
     await logUsage({
       userId: user.id,
       feature: 'template_delete',
@@ -463,8 +499,7 @@ export async function DELETE(req: NextRequest) {
       success: true,
       message: 'Template deleted successfully',
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count,
-        timestamp: new Date().toISOString()
+        remaining: rateLimitResult.limit - rateLimitResult.count
       }
     });
 
@@ -473,8 +508,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to delete template',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        error: 'Failed to delete template' 
       },
       { status: 500 }
     );

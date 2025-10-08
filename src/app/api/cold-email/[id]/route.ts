@@ -1,12 +1,13 @@
 // app/api/cold-email/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { ColdEmailService } from '@/services/coldEmail.service';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+// ✅ Same robust authentication function as main route
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -55,18 +56,27 @@ export async function GET(
   
   try {
     // Authenticate user
-    const { user, error: authError } = await getAuthenticatedUser();
+      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in cold email detail GET:', authError);
-      return NextResponse.json(
+      
+      const response = NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required',
+          error: 'Authentication required. Please clear your browser cookies and sign in again.',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
+      
+      // Clear potentially corrupted cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
+      cookiesToClear.forEach(cookieName => {
+        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
+      });
+      
+      return response;
     }
 
     console.log('✅ User authenticated:', user.id);
@@ -182,7 +192,7 @@ export async function GET(
       { 
         success: false,
         error: 'Failed to fetch email generation details',
-        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+        debug: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -198,7 +208,7 @@ export async function DELETE(
   
   try {
     // Authenticate user
-    const { user, error: authError } = await getAuthenticatedUser();
+  const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in cold email detail DELETE:', authError);
@@ -276,7 +286,7 @@ export async function DELETE(
       { 
         success: false,
         error: 'Failed to delete email generation',
-        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+        debug: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
