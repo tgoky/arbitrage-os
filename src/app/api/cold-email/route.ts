@@ -1,4 +1,4 @@
-// app/api/cold-email/route.ts - SIMPLIFIED AUTH VERSION
+// app/api/cold-email/route.ts - COMPLETE DEBUG VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -122,6 +122,14 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    if (!workspace) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Workspace not found',
+        code: 'WORKSPACE_NOT_FOUND'
+      }, { status: 404 });
+    }
+
     console.log('🔍 Backend received body keys:', Object.keys(body));
 console.log('🔍 Backend body sample:', {
   firstName: body.firstName,
@@ -234,7 +242,7 @@ console.log('🔍 Backend body sample:', {
     try {
   await createNotification({
     userId: user.id,
-    workspaceId: workspace.id, // Use existing workspace variable
+    workspaceId: workspace.id,
     workspaceSlug: workspace.slug,
     type: 'cold_email',
     itemId: result.deliverableId,
