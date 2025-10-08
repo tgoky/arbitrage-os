@@ -1,99 +1,45 @@
-// app/api/workspaces/[id]/route.ts
+// app/api/workspaces/[id]/route.ts - SIMPLIFIED AUTH VERSION
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 
-// Robust authentication function (same as your main workspaces route)
-async function getAuthenticatedUser(request?: NextRequest) {
+// ✅ SIMPLIFIED: Authentication function from work-items
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Authorization header (most reliable for API calls)
-    if (request) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        try {
-          const token = authHeader.substring(7);
-          const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-              cookies: { get: () => undefined },
-            }
-          );
-          
-          const { data: { user }, error } = await supabase.auth.getUser(token);
-          if (!error && user) {
-            return { user, error: null };
-          }
-        } catch (tokenError) {
-          console.warn('Token auth failed:', tokenError);
-        }
-      }
-    }
-    
-    // Method 2: SSR cookies (FIXED cookie handling)
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // FIXED: Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined; // Skip corrupted cookies
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -104,12 +50,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    console.log('🔄 Workspace GET API called for ID:', params.id);
+    
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in workspace GET:', authError);
       return NextResponse.json(
         { 
+          success: false,
           error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         }, 
@@ -126,16 +76,29 @@ export async function GET(
 
     if (!workspace) {
       return NextResponse.json(
-        { error: 'Workspace not found' },
+        { 
+          success: false,
+          error: 'Workspace not found',
+          code: 'WORKSPACE_NOT_FOUND'
+        },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(workspace);
+    console.log('✅ Workspace fetched:', workspace.id);
+
+    return NextResponse.json({
+      success: true,
+      data: workspace
+    });
   } catch (error) {
     console.error('Error fetching workspace:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch workspace' },
+      { 
+        success: false,
+        error: 'Failed to fetch workspace',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
@@ -150,12 +113,14 @@ export async function PATCH(
     console.log('=== WORKSPACE PATCH API START ===');
     console.log('Workspace ID:', params.id);
     
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in workspace PATCH:', authError);
       return NextResponse.json(
         { 
+          success: false,
           error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         }, 
@@ -174,7 +139,10 @@ export async function PATCH(
     // Validate required fields
     if (name !== undefined && (!name || name.trim() === '')) {
       return NextResponse.json(
-        { error: 'Workspace name cannot be empty' },
+        { 
+          success: false,
+          error: 'Workspace name cannot be empty' 
+        },
         { status: 400 }
       );
     }
@@ -189,7 +157,11 @@ export async function PATCH(
 
     if (!existingWorkspace) {
       return NextResponse.json(
-        { error: 'Workspace not found or access denied' },
+        { 
+          success: false,
+          error: 'Workspace not found or access denied',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        },
         { status: 404 }
       );
     }
@@ -250,11 +222,18 @@ export async function PATCH(
 
     console.log('Workspace updated successfully:', updatedWorkspace.id);
 
-    return NextResponse.json(updatedWorkspace);
+    return NextResponse.json({
+      success: true,
+      data: updatedWorkspace
+    });
   } catch (error) {
     console.error('Error updating workspace:', error);
     return NextResponse.json(
-      { error: 'Failed to update workspace' },
+      { 
+        success: false,
+        error: 'Failed to update workspace',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
@@ -268,12 +247,14 @@ export async function DELETE(
   try {
     console.log('=== WORKSPACE DELETE API START ===');
     
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in workspace DELETE:', authError);
       return NextResponse.json(
         { 
+          success: false,
           error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         }, 
@@ -293,7 +274,11 @@ export async function DELETE(
 
     if (!existingWorkspace) {
       return NextResponse.json(
-        { error: 'Workspace not found or access denied' },
+        { 
+          success: false,
+          error: 'Workspace not found or access denied',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        },
         { status: 404 }
       );
     }
@@ -307,11 +292,18 @@ export async function DELETE(
 
     console.log('Workspace deleted successfully:', params.id);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: 'Workspace deleted successfully'
+    });
   } catch (error) {
     console.error('Error deleting workspace:', error);
     return NextResponse.json(
-      { error: 'Failed to delete workspace' },
+      { 
+        success: false,
+        error: 'Failed to delete workspace',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     );
   }

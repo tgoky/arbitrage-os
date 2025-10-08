@@ -1,100 +1,46 @@
-// app/api/workspaces/route.ts - ROBUST VERSION with Multi-Method Auth
+// app/api/workspaces/route.ts - SIMPLIFIED AUTH VERSION
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { ensureUserExists } from '@/lib/auth-helper';
 
-// Robust authentication function (same as ad-writer)
-async function getAuthenticatedUser(request?: NextRequest) {
+// ✅ SIMPLIFIED: Authentication function from work-items
+async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
-    // Method 1: Authorization header (most reliable for API calls)
-    if (request) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        try {
-          const token = authHeader.substring(7);
-          const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-              cookies: { get: () => undefined },
-            }
-          );
-          
-          const { data: { user }, error } = await supabase.auth.getUser(token);
-          if (!error && user) {
-            return { user, error: null };
-          }
-        } catch (tokenError) {
-          console.warn('Token auth failed:', tokenError);
-        }
-      }
-    }
-    
-    // Method 2: SSR cookies (FIXED cookie handling)
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // FIXED: Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined; // Skip corrupted cookies
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -104,36 +50,19 @@ export async function GET(request: NextRequest) {
   try {
     console.log('=== WORKSPACES GET API START ===');
     
-    // Use robust authentication
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in workspaces GET:', authError);
-      
-      // Clear corrupted cookies in response
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
+          success: false,
           error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         }, 
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = [
-        'sb-access-token',
-        'sb-refresh-token',
-        'supabase-auth-token'
-      ];
-      
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', {
-          expires: new Date(0),
-          path: '/',
-        });
-      });
-      
-      return response;
     }
     
     console.log('User authenticated for workspaces:', user.id);
@@ -145,28 +74,36 @@ export async function GET(request: NextRequest) {
 
     console.log(`Found ${workspaces.length} workspaces for user ${user.id}`);
     
-    return NextResponse.json(workspaces);
+    return NextResponse.json({
+      success: true,
+      data: workspaces
+    });
   } catch (error) {
     console.error('Error fetching workspaces:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch workspaces' },
+      { 
+        success: false,
+        error: 'Failed to fetch workspaces',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
 }
 
 // POST /api/workspaces
-
 export async function POST(request: NextRequest) {
   try {
     console.log('=== WORKSPACES POST API START ===');
     
-    const { user, error: authError } = await getAuthenticatedUser(request);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('Auth failed in workspaces POST:', authError);
       return NextResponse.json(
         { 
+          success: false,
           error: 'Authentication required. Please sign in again.',
           code: 'AUTH_REQUIRED'
         }, 
@@ -176,7 +113,7 @@ export async function POST(request: NextRequest) {
     
     console.log('User authenticated:', user.id);
 
-    // ✅ CRITICAL: Ensure user exists in database
+    // Ensure user exists in database
     await ensureUserExists(user);
     console.log('User verified in database');
 
@@ -185,7 +122,10 @@ export async function POST(request: NextRequest) {
 
     if (!name || name.trim() === '') {
       return NextResponse.json(
-        { error: 'Workspace name is required' },
+        { 
+          success: false,
+          error: 'Workspace name is required' 
+        },
         { status: 400 }
       );
     }
@@ -225,7 +165,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Created workspace ${workspace.id} for user ${user.id}`);
     
-    return NextResponse.json(workspace, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: workspace
+    }, { status: 201 });
   } catch (error: any) {
     console.error('❌ DETAILED ERROR creating workspace:');
     console.error('Error name:', error.name);
@@ -234,13 +177,17 @@ export async function POST(request: NextRequest) {
     
     if (error.code === 'P2003') {
       return NextResponse.json(
-        { error: 'Invalid user reference. Please try logging out and back in.' },
+        { 
+          success: false,
+          error: 'Invalid user reference. Please try logging out and back in.' 
+        },
         { status: 400 }
       );
     }
     
     return NextResponse.json(
       { 
+        success: false,
         error: 'Failed to create workspace',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       },
