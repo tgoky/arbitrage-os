@@ -1,6 +1,5 @@
-// app/api/cold-email/route.ts - COMPLETE DEBUG VERSION
+// app/api/cold-email/route.ts - SIMPLIFIED AUTH VERSION
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma'; // Import at top
@@ -10,96 +9,42 @@ import { rateLimit } from '../../../lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
-
-// ✅ Exact same robust authentication function as pricing calculator
-// Use this IMPROVED 3-method approach in ALL routes
-async function getAuthenticatedUser(request: NextRequest) {
+// ✅ SIMPLIFIED: Authentication function from work-items
+async function getAuthenticatedUser() {
   try {
+    const cookieStore = await cookies();
     
-   const cookieStore = await cookies();
-    
-    // Method 1: Authorization header (most reliable for API calls)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: { get: () => undefined },
-          }
-        );
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) {
-          return { user, error: null };
-        }
-      } catch (tokenError) {
-        console.warn('Token auth failed:', tokenError);
-      }
-    }
-    
-    // Method 2: SSR cookies (FIXED cookie handling)
-    try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              try {
-                const cookie = cookieStore.get(name);
-                if (!cookie?.value) return undefined;
-                
-                // FIXED: Proper base64 cookie handling
-                if (cookie.value.startsWith('base64-')) {
-                  try {
-                    const decoded = atob(cookie.value.substring(7));
-                    JSON.parse(decoded); // Validate it's valid JSON
-                    return cookie.value;
-                  } catch (e) {
-                    console.warn(`Corrupted base64 cookie ${name}, skipping`);
-                    return undefined; // Skip corrupted cookies
-                  }
-                }
-                
-                return cookie.value;
-              } catch (error) {
-                console.warn(`Error reading cookie ${name}:`, error);
-                return undefined;
-              }
-            },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
           },
-        }
-      );
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
       }
-    } catch (ssrError) {
-      console.warn('SSR cookie auth failed:', ssrError);
+    );
+    
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('❌ Authentication failed:', error);
+      return { user: null, error: error || new Error('No user found') };
     }
     
-    // Method 3: Route handler client (fallback)
-    try {
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookieStore
-      });
-      
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        return { user, error: null };
-      }
-    } catch (routeError) {
-      console.warn('Route handler auth failed:', routeError);
-    }
-    
-    return { user: null, error: new Error('All authentication methods failed') };
+    console.log('✅ User authenticated:', user.id);
+    return { user, error: null };
     
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('❌ Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -108,37 +53,19 @@ export async function POST(req: NextRequest) {
   console.log('🚀 Cold Email API Route called');
   
   try {
-    // ✅ Use robust authentication (same as pricing calculator)
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in cold email:', authError);
-      
-      // Clear corrupted cookies in response
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = [
-        'sb-access-token',
-        'sb-refresh-token',
-        'supabase-auth-token'
-      ];
-      
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', {
-          expires: new Date(0),
-          path: '/',
-        });
-      });
-      
-      return response;
     }
 
     console.log('✅ User authenticated successfully:', user.id);
@@ -183,6 +110,17 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+    // Fetch the actual workspace for notification
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        user_id: user.id
+      },
+      select: {
+        id: true,
+        slug: true
+      }
+    });
 
     console.log('🔍 Backend received body keys:', Object.keys(body));
 console.log('🔍 Backend body sample:', {
@@ -245,40 +183,6 @@ console.log('🔍 Backend body sample:', {
     console.log('✅ Input validation passed');
     console.log('✅ Validated data keys:', Object.keys(validation.data));
 
-    // ✅ GET USER'S WORKSPACE with error handling (same pattern as pricing calc)
-    console.log('🔍 Getting/creating workspace for user:', user.id);
-    let workspace;
-    try {
-      workspace = await prisma.workspace.findFirst({
-        where: { user_id: user.id }
-      });
-
-      if (!workspace) {
-        console.log('📁 Creating default workspace for user:', user.id);
-        workspace = await prisma.workspace.create({
-          data: {
-            user_id: user.id,
-            name: 'Default Workspace',
-            slug: 'default',
-            description: 'Default workspace for cold emails'
-          }
-        });
-        console.log('✅ Created workspace:', workspace.id);
-      } else {
-        console.log('✅ Found existing workspace:', workspace.id);
-      }
-    } catch (dbError) {
-      console.error('💥 Database error getting/creating workspace:', dbError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Database error. Please try again.',
-          debug: dbError instanceof Error ? dbError.message : 'Unknown DB error'
-        },
-        { status: 500 }
-      );
-    }
-
     // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE with error handling
     console.log('🤖 Starting email generation...');
     let result;
@@ -321,7 +225,7 @@ console.log('🔍 Backend body sample:', {
         { 
           success: false,
           error: 'Failed to generate emails. Please try again.',
-          debug: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
+          details: process.env.NODE_ENV === 'development' ? (serviceError instanceof Error ? serviceError.message : 'Unknown service error') : undefined
         },
         { status: 500 }
       );
@@ -392,7 +296,7 @@ console.log('🔍 Backend body sample:', {
       { 
         success: false,
         error: 'Failed to generate emails. Please try again.',
-        debug: error instanceof Error ? error.message : 'Unknown error'
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
       },
       { status: 500 }
     );
@@ -404,28 +308,19 @@ export async function GET(req: NextRequest) {
   console.log('🚀 Cold Email GET API Route called');
   
   try {
-    // Use robust authentication
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    // Use simplified authentication
+    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
       console.error('❌ Auth failed in cold email GET:', authError);
-      
-      const response = NextResponse.json(
+      return NextResponse.json(
         { 
           success: false,
-          error: 'Authentication required. Please clear your browser cookies and sign in again.',
+          error: 'Authentication required',
           code: 'AUTH_REQUIRED'
         },
         { status: 401 }
       );
-      
-      // Clear potentially corrupted cookies
-      const cookiesToClear = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token'];
-      cookiesToClear.forEach(cookieName => {
-        response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' });
-      });
-      
-      return response;
     }
 
     // Rate limiting for list fetches
@@ -443,6 +338,17 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
+
+    if (workspaceId) {
+      const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
+      if (!hasAccess) {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Workspace not found or access denied.',
+          code: 'WORKSPACE_ACCESS_DENIED'
+        }, { status: 403 });
+      }
+    }
 
     // ✅ USE SERVICE METHOD (consistent with architecture)
     const coldEmailService = new ColdEmailService();
@@ -468,7 +374,9 @@ export async function GET(req: NextRequest) {
       success: true,
       data: generations,
       meta: {
-        remaining: rateLimitResult.limit - rateLimitResult.count
+        remaining: rateLimitResult.limit - rateLimitResult.count,
+        workspaceId: workspaceId,
+        timestamp: new Date().toISOString()
       }
     });
 
@@ -477,7 +385,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to fetch email generations' 
+        error: 'Failed to fetch email generations',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
       },
       { status: 500 }
     );
