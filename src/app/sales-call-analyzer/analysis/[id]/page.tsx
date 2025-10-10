@@ -658,7 +658,7 @@ export default function AnalysisDetailPage() {
         <TabPane tab="Overview" key="overview">
           <Row gutter={16}>
             <Col xs={24} lg={12}>
-            <Card title="Detailed Report Preview" className="mb-4">
+            <Card title="Report Preview" className="mb-4">
   <Paragraph ellipsis={{ rows: 3, expandable: true }}>
     {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
   </Paragraph>
@@ -843,196 +843,7 @@ export default function AnalysisDetailPage() {
             </div>
           </Card>
         </TabPane>
-        <TabPane tab="Detailed Report" key="detailed-report">
-  <Card>
-    <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '14px' }}>
-      {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
-    </div>
-  </Card>
-</TabPane>
-
-<TabPane tab="Follow-up Email" key="follow-up">
-  <Card title="Generated Follow-up Email Template">
-    {analysis?.analysis?.callResults?.followUpEmail ? (
-      <div style={{ 
-        whiteSpace: 'pre-wrap', 
-        lineHeight: 1.6, 
-        fontFamily: 'monospace', 
-     
-        padding: '16px', 
-        borderRadius: '4px',
-        fontSize: '13px'
-      }}>
-        {analysis.analysis.callResults.followUpEmail}
-      </div>
-    ) : (
-      <Text type="secondary">No follow-up email template available for this call type.</Text>
-    )}
-  </Card>
-</TabPane>
-
-        <TabPane tab="Analysis" key="analysis">
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Card title="Key Insights" className="mb-4">
-                <List
-                  dataSource={analysis?.analysis?.callResults?.analysis?.keyInsights || []}
-                  renderItem={(insight, index) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Badge count={index + 1} />}
-                        description={insight}
-                      />
-                    </List.Item>
-                  )}
-                />
-                {(!analysis?.analysis?.callResults?.analysis?.keyInsights || analysis.analysis.callResults.analysis.keyInsights.length === 0) && (
-                  <Text type="secondary">No key insights available.</Text>
-                )}
-              </Card>
-
-              <Card title="Performance Metrics">
-                <Row gutter={16}>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Talk Time"
-                      value={performanceMetrics.talkTime}
-                      suffix="%"
-                    />
-                  </Col>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Engagement Score"
-                      value={performanceMetrics.engagement}
-                      suffix="/10"
-                    />
-                  </Col>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Clarity Score"
-                      value={performanceMetrics.clarity}
-                      suffix="/10"
-                    />
-                  </Col>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Professionalism"
-                      value={performanceMetrics.professionalism}
-                      suffix="/10"
-                    />
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Card title="Discovery Metrics" className="mb-4">
-                <div className="space-y-3">
-                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.challengesUncovered && (
-                    <div>
-                      <Text strong>Challenges Uncovered:</Text>
-                      <div className="mt-1">
-                        {analysis.analysis.callResults.analysis.discoveryMetrics.challengesUncovered.map((challenge, index) => (
-                          <Tag key={index} color="orange" className="mb-1">{challenge}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.technicalRequirements && (
-                    <div>
-                      <Text strong>Technical Requirements:</Text>
-                      <div className="mt-1">
-                        {analysis.analysis.callResults.analysis.discoveryMetrics.technicalRequirements.map((req, index) => (
-                          <Tag key={index} color="blue" className="mb-1">{req}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.stakeholdersIdentified && (
-                    <div>
-                      <Text strong>Stakeholders:</Text>
-                      <div className="mt-1">
-                        {analysis.analysis.callResults.analysis.discoveryMetrics.stakeholdersIdentified.map((stakeholder, index) => (
-                          <Tag key={index} color="green" className="mb-1">{stakeholder}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              <Card title="Buying Signals">
-                {buyingSignals.length > 0 ? (
-                  <List
-                    dataSource={buyingSignals}
-                    renderItem={(signal, index) => (
-                      <List.Item>
-                        <List.Item.Meta
-                          avatar={<BulbOutlined style={{ color: '#52c41a' }} />}
-                          description={signal}
-                        />
-                      </List.Item>
-                    )}
-                  />
-                ) : (
-                  <Text type="secondary">No buying signals detected.</Text>
-                )}
-              </Card>
-            </Col>
-          </Row>
-        </TabPane>
-
-        <TabPane tab="Competitive Intel" key="competitive">
-          <Card title="Current Vendors">
-            {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.currentVendors?.length ? (
-              <List
-                dataSource={analysis.analysis.callResults.analysis.discoveryMetrics.currentVendors}
-                renderItem={(vendor, index) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={<BankOutlined />}
-                      title={vendor}
-                      description="Current service provider"
-                    />
-                  </List.Item>
-                )}
-              />
-            ) : (
-              <Text type="secondary">No current vendors identified in this call.</Text>
-            )}
-          </Card>
-        </TabPane>
-
-        <TabPane tab="Buying Signals" key="buying">
-          <Card title="Buying Signals Detected">
-            {buyingSignals.length > 0 ? (
-              <List
-                dataSource={buyingSignals}
-                renderItem={(signal, index) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={
-                        <Progress
-                          type="circle"
-                          percent={75} // Default confidence
-                          width={40}
-                          strokeColor="#52c41a"
-                        />
-                      }
-                      title={signal}
-                      description="Detected buying signal"
-                    />
-                  </List.Item>
-                )}
-              />
-            ) : (
-              <Text type="secondary">No strong buying signals detected in this call.</Text>
-            )}
-          </Card>
-        </TabPane>
-
+        
 
 <TabPane tab="Call Structure" key="call-structure">
   {analysis?.analysis?.callResults?.callStructureAnalysis ? (
@@ -1164,7 +975,7 @@ export default function AnalysisDetailPage() {
       >
         <Row gutter={16} className="mb-4">
           <Col xs={12}>
-            <div className="text-center p-4 bg-gray-50 rounded">
+            <div className="text-center p-4  rounded">
               <Text strong className="block mb-2">Next Steps Defined</Text>
               <div className="text-3xl">
                 {analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.nextStepsDefined ? 
@@ -1389,6 +1200,198 @@ export default function AnalysisDetailPage() {
     </Card>
   )}
 </TabPane>
+
+<TabPane tab="Detailed Report" key="detailed-report">
+  <Card>
+    <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '14px' }}>
+      {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
+    </div>
+  </Card>
+</TabPane>
+
+<TabPane tab="Follow-up Email" key="follow-up">
+  <Card title="Generated Follow-up Email Template">
+    {analysis?.analysis?.callResults?.followUpEmail ? (
+      <div style={{ 
+        whiteSpace: 'pre-wrap', 
+        lineHeight: 1.6, 
+        fontFamily: 'monospace', 
+     
+        padding: '16px', 
+        borderRadius: '4px',
+        fontSize: '13px'
+      }}>
+        {analysis.analysis.callResults.followUpEmail}
+      </div>
+    ) : (
+      <Text type="secondary">No follow-up email template available for this call type.</Text>
+    )}
+  </Card>
+</TabPane>
+
+        <TabPane tab="Analysis" key="analysis">
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Card title="Key Insights" className="mb-4">
+                <List
+                  dataSource={analysis?.analysis?.callResults?.analysis?.keyInsights || []}
+                  renderItem={(insight, index) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        avatar={<Badge count={index + 1} />}
+                        description={insight}
+                      />
+                    </List.Item>
+                  )}
+                />
+                {(!analysis?.analysis?.callResults?.analysis?.keyInsights || analysis.analysis.callResults.analysis.keyInsights.length === 0) && (
+                  <Text type="secondary">No key insights available.</Text>
+                )}
+              </Card>
+
+              <Card title="Performance Metrics">
+                <Row gutter={16}>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Talk Time"
+                      value={performanceMetrics.talkTime}
+                      suffix="%"
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Engagement Score"
+                      value={performanceMetrics.engagement}
+                      suffix="/10"
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Clarity Score"
+                      value={performanceMetrics.clarity}
+                      suffix="/10"
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Professionalism"
+                      value={performanceMetrics.professionalism}
+                      suffix="/10"
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Card title="Discovery Metrics" className="mb-4">
+                <div className="space-y-3">
+                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.challengesUncovered && (
+                    <div>
+                      <Text strong>Challenges Uncovered:</Text>
+                      <div className="mt-1">
+                        {analysis.analysis.callResults.analysis.discoveryMetrics.challengesUncovered.map((challenge, index) => (
+                          <Tag key={index} color="orange" className="mb-1">{challenge}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.technicalRequirements && (
+                    <div>
+                      <Text strong>Technical Requirements:</Text>
+                      <div className="mt-1">
+                        {analysis.analysis.callResults.analysis.discoveryMetrics.technicalRequirements.map((req, index) => (
+                          <Tag key={index} color="blue" className="mb-1">{req}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.stakeholdersIdentified && (
+                    <div>
+                      <Text strong>Stakeholders:</Text>
+                      <div className="mt-1">
+                        {analysis.analysis.callResults.analysis.discoveryMetrics.stakeholdersIdentified.map((stakeholder, index) => (
+                          <Tag key={index} color="green" className="mb-1">{stakeholder}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              <Card title="Buying Signals">
+                {buyingSignals.length > 0 ? (
+                  <List
+                    dataSource={buyingSignals}
+                    renderItem={(signal, index) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={<BulbOutlined style={{ color: '#52c41a' }} />}
+                          description={signal}
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Text type="secondary">No buying signals detected.</Text>
+                )}
+              </Card>
+            </Col>
+          </Row>
+        </TabPane>
+
+        <TabPane tab="Competitive Intel" key="competitive">
+          <Card title="Current Vendors">
+            {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.currentVendors?.length ? (
+              <List
+                dataSource={analysis.analysis.callResults.analysis.discoveryMetrics.currentVendors}
+                renderItem={(vendor, index) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<BankOutlined />}
+                      title={vendor}
+                      description="Current service provider"
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Text type="secondary">No current vendors identified in this call.</Text>
+            )}
+          </Card>
+        </TabPane>
+
+        <TabPane tab="Buying Signals" key="buying">
+          <Card title="Buying Signals Detected">
+            {buyingSignals.length > 0 ? (
+              <List
+                dataSource={buyingSignals}
+                renderItem={(signal, index) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={
+                        <Progress
+                          type="circle"
+                          percent={75} // Default confidence
+                          width={40}
+                          strokeColor="#52c41a"
+                        />
+                      }
+                      title={signal}
+                      description="Detected buying signal"
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Text type="secondary">No strong buying signals detected in this call.</Text>
+            )}
+          </Card>
+        </TabPane>
+
+
 
       </Tabs>
 
