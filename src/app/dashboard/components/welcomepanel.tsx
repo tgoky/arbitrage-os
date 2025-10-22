@@ -399,22 +399,50 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   fontWeight: 'bold',
   border: theme === 'dark' ? 'none' : '1px solid #E5E7EB'
 }}>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <FolderOutlined style={{ 
-      fontSize: '14px', 
-      color: theme === 'dark' ? '#5CC49D' : '#5CC49D' 
-    }} />
-    <span>Workspace: {workspaceName}</span>
-    {workspaceId && (
-      <span style={{ 
-        opacity: 0.8, 
-        fontSize: '11px',
-        fontFamily: 'monospace'
-      }}>
-        ({workspaceId})
-      </span>
-    )}
-  </div>
+  <div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    letterSpacing: '0.12em',    
+    textTransform: 'uppercase', 
+    fontWeight: 600,           
+    fontSize: '9px',          
+    color: theme === 'dark' ? '#f9fafb' : '#111827',
+  }}
+>
+  <FolderOutlined
+    style={{
+      fontSize: '13px',
+      color: '#5CC49D',     
+    }}
+  />
+  <span style={{ fontWeight: 600 }}>
+    Workspace:
+    <span
+      style={{
+        marginLeft: 4,
+        color: theme === 'dark' ? '#e5e7eb' : '#374151',
+      }}
+    >
+      {workspaceName}
+    </span>
+  </span>
+
+  {workspaceId && (
+    <span
+      style={{
+        opacity: 0.6,
+        fontSize: '9px',
+        fontFamily: 'monospace',
+        letterSpacing: '0.05em',
+      }}
+    >
+      ({workspaceId})
+    </span>
+  )}
+</div>
+
   
   {workItems.length > 0 && (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
