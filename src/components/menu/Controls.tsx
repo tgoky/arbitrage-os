@@ -15,7 +15,7 @@ export const Controls = ({ collapsed, setCollapsed }: ControlsProps) => {
       theme === "dark" ? "border-gray-800" : "border-gray-100"
     }`}>
       {!collapsed && (
-        <div className={`text-sm font-small uppercase tracking-wide ${
+        <div className={`text-[11px] font-medium tracking-[0.15em] ${
           theme === "dark" ? "text-gray-400" : "text-gray-500"
         }`}>
           ARBITRAGE-OS
