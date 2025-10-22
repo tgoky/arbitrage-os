@@ -261,35 +261,44 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         gap: screens.xs ? '8px' : '12px', // Reduced gaps
 
       }}>
-      <Title
+    <Title
   level={2}
   style={{
     margin: 0,
-    color: theme === 'dark' ? '#f9fafb' : '#111827', // This sets the base color
+    color: theme === 'dark' ? '#f9fafb' : '#111827',
     fontWeight: 700,
     fontSize: screens.xs ? '16px' : '18px',
     lineHeight: '1.2',
-    flex: 1
+    flex: 1,
+    letterSpacing: '0.15em', // ✅ This gives that premium spacing
+    textTransform: 'uppercase', // Optional, but makes it more modern/luxury
   }}
 >
   <span style={{ color: theme === 'dark' ? 'white' : '#111827' }}>
-    <span style={{ 
-      color: '#5CC49D',
-      textShadow: '0 0 5px #5CC49D, 0 0 10px #5CC49D',
-      animation: 'glow-pulse 2s ease-in-out infinite'
-    }}>a</span>
+    <span
+      style={{
+        color: '#5CC49D',
+        textShadow: '0 0 5px #5CC49D, 0 0 10px #5CC49D',
+        animation: 'glow-pulse 2s ease-in-out infinite',
+      }}
+    >
+      a
+    </span>
     rb
-    <span style={{ 
-      color: '#5CC49D',
-      textShadow: '0 0 5px #5CC49D, 0 0 10px #5CC49D',
-      animation: 'glow-pulse 2s ease-in-out infinite'
-    }}>i</span>
-    trage
-  </span>OS by{' '}
-  <span style={{ color: theme === 'dark' ? 'white' : '#111827' }}>
-    GrowAI
+    <span
+      style={{
+        color: '#5CC49D',
+        textShadow: '0 0 5px #5CC49D, 0 0 10px #5CC49D',
+        animation: 'glow-pulse 2s ease-in-out infinite',
+      }}
+    >
+      i
+    </span>
+    trageOS by{' '}
   </span>
+  <span style={{ color: theme === 'dark' ? 'white' : '#111827' }}>GrowAI</span>
 </Title>
+
         
         {/* Refresh controls with better spacing */}
         <div style={{ 
