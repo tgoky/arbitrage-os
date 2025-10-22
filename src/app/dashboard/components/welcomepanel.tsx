@@ -266,20 +266,19 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   style={{
     margin: 0,
     color: theme === 'dark' ? '#f9fafb' : '#111827',
-    fontWeight: 700,
-    fontSize: screens.xs ? '16px' : '18px',
-    lineHeight: '1.2',
-    flex: 1,
-    letterSpacing: '0.15em', // ✅ This gives that premium spacing
-    textTransform: 'uppercase', // Optional, but makes it more modern/luxury
+    fontWeight: 600,
+    fontSize: screens.xs ? '15px' : '17px',
+    letterSpacing: '0.12em',
+    lineHeight: '1.3',
+    textTransform: 'uppercase',
   }}
 >
   <span style={{ color: theme === 'dark' ? 'white' : '#111827' }}>
     <span
       style={{
         color: '#5CC49D',
-        textShadow: '0 0 5px #5CC49D, 0 0 10px #5CC49D',
-        animation: 'glow-pulse 2s ease-in-out infinite',
+        textShadow: '0 0 4px #5CC49D',
+        animation: 'glow-pulse 3s ease-in-out infinite',
       }}
     >
       a
@@ -288,15 +287,15 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     <span
       style={{
         color: '#5CC49D',
-        textShadow: '0 0 5px #5CC49D, 0 0 10px #5CC49D',
-        animation: 'glow-pulse 2s ease-in-out infinite',
+        textShadow: '0 0 4px #5CC49D',
+        animation: 'glow-pulse 3s ease-in-out infinite',
       }}
     >
       i
     </span>
-    trageOS by{' '}
+    trageOS <span style={{ opacity: 0.7 }}>by</span>{' '}
+    <span style={{ color: theme === 'dark' ? '#fff' : '#111827' }}>GrowAI</span>
   </span>
-  <span style={{ color: theme === 'dark' ? 'white' : '#111827' }}>GrowAI</span>
 </Title>
 
         
