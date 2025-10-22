@@ -93,14 +93,21 @@ export const WorkspaceHeader = ({
               {currentWorkspace.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 text-left min-w-0">
-              <div
-                className={`font-semibold truncate text-sm ${
-                  theme === "dark" ? "text-gray-100" : "text-gray-900"
-                }`}
-                title={currentWorkspace.name} // Show full name on hover
-              >
-                {currentWorkspace.name}
-              </div>
+             <div
+  className={`font-semibold truncate text-sm ${
+    theme === "dark" ? "text-gray-100" : "text-gray-900"
+  }`}
+  title={currentWorkspace.name}
+  style={{
+    letterSpacing: '0.12em',  // ✅ adds the premium spacing
+    textTransform: 'uppercase', // ✅ optional, looks sleek and uniform
+    fontWeight: 600,           // ✅ slightly bolder for presence
+    fontSize: '10px',          // ✅ tighter modern dashboard scale
+  }}
+>
+  {currentWorkspace.name}
+</div>
+
               <div
                 className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
               >

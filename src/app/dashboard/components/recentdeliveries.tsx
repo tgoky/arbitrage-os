@@ -194,6 +194,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       style={{
         backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
         borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
+        
         height: '100%',
         display: 'flex',
         flexDirection: 'column',

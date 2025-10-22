@@ -67,7 +67,17 @@ export const MenuGroup = ({
             {group.icon}
           </span>
           {!collapsed && (
-            <span className="font-medium text-sm">{group.label}</span>
+            <span 
+              className="font-medium text-sm"
+              style={{
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+                fontSize: '10px',
+              }}
+            >
+              {group.label}
+            </span>
           )}
         </div>
         {!collapsed && (groupItems.length > 0 || hasSubGroups) && (
@@ -149,7 +159,14 @@ export const MenuGroup = ({
                 theme === "dark" ? "border-gray-700" : "border-gray-100"
               }`}
             >
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <div 
+                className="text-xs font-medium uppercase tracking-wide text-gray-500"
+                style={{
+                  letterSpacing: '0.12em',
+                  fontWeight: 600,
+                  fontSize: '10px',
+                }}
+              >
                 {group.label}
               </div>
             </div>

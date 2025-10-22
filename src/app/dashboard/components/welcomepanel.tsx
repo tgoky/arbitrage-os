@@ -267,7 +267,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     margin: 0,
     color: theme === 'dark' ? '#f9fafb' : '#111827',
     fontWeight: 600,
-    fontSize: screens.xs ? '15px' : '17px',
+    fontSize: screens.xs ? '11px' : '14px',
     letterSpacing: '0.12em',
     lineHeight: '1.3',
     textTransform: 'uppercase',

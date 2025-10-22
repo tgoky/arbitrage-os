@@ -319,7 +319,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       data-tour="quick-actions"
       title={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <Text strong style={{ fontSize: '18px', color: theme === 'dark' ? '#f9fafb' : '#111827' }}>
+          <Text strong style={{ fontSize: '12px', color: theme === 'dark' ? '#f9fafb' : '#111827' , letterSpacing: '0.12em', textTransform: 'uppercase',  }}>
             <CalendarOutlined style={{ color: '#5CC49D', marginRight: 8 }} /> 
             Submissions Analytics
           </Text>

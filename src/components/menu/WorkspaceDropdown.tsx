@@ -51,38 +51,42 @@ export const WorkspaceDropdown = ({
     <div
       ref={dropdownRef}
       className={`absolute left-1/2 -translate-x-1/2 top-full mt-1 rounded-lg shadow-lg z-50 w-64 ${
-        theme === "dark" ? "bg-zinc-900" : "bg-white"
+        theme === "dark" ? "bg-zinc-900 border border-zinc-800" : "bg-white border border-gray-200"
       }`}
     >
       {/* Search Bar */}
       <div className="p-2">
         <div
-          className={`flex items-center gap-2 px-2 py-1.5 ${
-            theme === "dark" ? "bg-zinc-900" : "bg-white"
+          className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+            theme === "dark" ? "bg-zinc-800" : "bg-gray-50"
           }`}
         >
-          <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <Search className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
           <input
             type="text"
             placeholder="Search..."
             className={`w-full bg-transparent text-sm outline-none border-none ${
-              theme === "dark" ? "text-gray-200 placeholder-gray-500" : "text-gray-700 placeholder-gray-400"
+              theme === "dark" ? "text-gray-200 placeholder-gray-500" : "text-gray-900 placeholder-gray-400"
             }`}
           />
         </div>
       </div>
 
       {/* Personal Account */}
-      <div className="py-0.5">
+      <div className="px-2 pb-2">
         <button
           onClick={() => setWorkspaceDropdownOpen(false)}
-          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded border-none ${
-            theme === "dark" ? "bg-gray-800 hover:bg-gray-900 text-white" : "bg-white hover:bg-gray-50 text-gray-700"
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors ${
+            theme === "dark" 
+              ? "bg-zinc-800 hover:bg-zinc-700 text-white" 
+              : "bg-gray-50 hover:bg-gray-100 text-gray-900"
           }`}
         >
-          <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center text-white font-medium text-xs shadow-sm ">
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center shadow-sm ${
+            theme === "dark" ? "bg-zinc-700 text-gray-300" : "bg-gray-700 text-white"
+          }`}>
             <svg
-              className="w-3.5 h-3.5"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
@@ -93,20 +97,29 @@ export const WorkspaceDropdown = ({
             </svg>
           </div>
           <div className="flex-1 text-left">
-            <div className="font-medium text-xs">Personal Account</div>
+            <div 
+              style={{
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+                fontSize: '9px',
+              }}
+            >
+              Personal Account
+            </div>
           </div>
         </button>
       </div>
 
       {/* Workspaces Header */}
       <div
-        className={`px-2 py-1.5 border-t ${
-          theme === "dark" ? "border-gray-800" : "border-gray-100"
+        className={`px-4 py-2 border-t ${
+          theme === "dark" ? "border-zinc-800" : "border-gray-200"
         }`}
       >
         <div
-          className={`text-[10px] font-medium uppercase tracking-wide ${
-            theme === "dark" ? "text-gray-400" : "text-gray-500"
+          className={`text-[9px] font-semibold uppercase tracking-wider ${
+            theme === "dark" ? "text-gray-500" : "text-gray-400"
           }`}
         >
           Workspaces ({workspaces.length})
@@ -114,54 +127,59 @@ export const WorkspaceDropdown = ({
       </div>
 
       {/* Workspace List */}
-      <div className="py-0.5 max-h-48 overflow-y-auto">
+      <div className="px-2 pb-2 max-h-48 overflow-y-auto">
         {workspaces.map((workspace) => (
           <button
-            key={workspace.id} // Use ID as key
+            key={workspace.id}
             onClick={() => {
               console.log('Switching to workspace:', workspace.slug);
               switchWorkspace(workspace.slug);
-           
             }}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 border-none ${
-              currentWorkspace?.id === workspace.id // Compare IDs for active state
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors mb-1 ${
+              currentWorkspace?.id === workspace.id
                 ? theme === "dark"
-                  ? "bg-zinc-900"
-                  : "bg-gray-100"
+                  ? "bg-zinc-800 text-white"
+                  : "bg-gray-100 text-gray-900"
                 : theme === "dark"
-                ? "bg-gray-900 hover:bg-gray-900"
-                : "bg-white hover:bg-gray-50"
+                ? "bg-transparent hover:bg-zinc-800/50 text-gray-300"
+                : "bg-white hover:bg-gray-50 text-gray-700"
             }`}
           >
             <div
-              className={`w-6 h-6 rounded ${workspace.color} flex items-center justify-center text-white font-medium text-xs shadow-sm`}
+              className={`w-7 h-7 rounded-md ${workspace.color} flex items-center justify-center text-white font-semibold text-sm shadow-sm`}
             >
               {workspace.name.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 text-left">
+            <div className="flex-1 text-left min-w-0">
               <div
-                className={`font-medium text-xs truncate ${
-                  currentWorkspace?.id === workspace.id // Compare IDs for text color
+                className={`truncate ${
+                  currentWorkspace?.id === workspace.id
                     ? theme === "dark"
-                      ? "text-indigo-300"
-                      : "text-indigo-600"
+                      ? "text-white"
+                      : "text-gray-900"
                     : theme === "dark"
-                    ? "text-gray-200"
+                    ? "text-gray-300"
                     : "text-gray-700"
                 }`}
+                title={workspace.name}
+                style={{
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  fontSize: '9px',
+                }}
               >
                 {workspace.name}
               </div>
             </div>
-            {currentWorkspace?.id === workspace.id && ( // Compare IDs for checkmark
-              <div className="text-green-500">
+            {currentWorkspace?.id === workspace.id && (
+              <div className={theme === "dark" ? "text-green-400" : "text-green-600"}>
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-3.5 h-3.5"
+                  className="w-4 h-4"
                   fill="currentColor"
-                  viewBox="0 0 24 24"
+                  viewBox="0 0 20 20"
                 >
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
               </div>
             )}
@@ -171,8 +189,8 @@ export const WorkspaceDropdown = ({
 
       {/* Create Workspace */}
       <div
-        className={`border-t p-1.5  ${
-          theme === "dark" ? "border-gray-800" : "border-gray-100"
+        className={`border-t px-2 py-2 ${
+          theme === "dark" ? "border-zinc-800" : "border-gray-200"
         }`}
       >
         <button
@@ -180,22 +198,33 @@ export const WorkspaceDropdown = ({
             setWorkspaceDropdownOpen(false);
             setCreateWorkspaceModalOpen(true);
           }}
-          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded border-none ${
-            theme === "dark" ? "bg-zinc-900 text-gray-300 hover:bg-gray-900" : "bg-white text-gray-600 hover:bg-gray-50"
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors ${
+            theme === "dark" 
+              ? "bg-zinc-800 text-gray-300 hover:bg-zinc-700" 
+              : "bg-gray-50 text-gray-600 hover:bg-gray-100"
           }`}
         >
           <div
-            className={`w-6 h-6 rounded border-2 border-dashed ${
-              theme === "dark" ? "border-gray-600" : "border-gray-300"
-            } flex items-center justify-center`}
+            className={`w-7 h-7 rounded-md border-2 border-dashed flex items-center justify-center ${
+              theme === "dark" ? "border-zinc-600" : "border-gray-300"
+            }`}
           >
             <Plus
-              className={`h-2.5 w-2.5 ${
+              className={`h-4 w-4 ${
                 theme === "dark" ? "text-gray-500" : "text-gray-400"
               }`}
             />
           </div>
-          <span className="font-medium text-xs">Create workspace</span>
+          <span 
+            style={{
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              fontWeight: 600,
+              fontSize: '9px',
+            }}
+          >
+            Create workspace
+          </span>
         </button>
       </div>
     </div>
