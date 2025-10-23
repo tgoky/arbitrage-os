@@ -1327,8 +1327,15 @@ const renderPlanView = () => {
         <Title level={2} className="flex items-center justify-center">
      
           <span className="bg-clip-text">
-             <span style={{ color: '#5CC49D' }}>a</span>rb
+         <span style={{
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  fontSize: '17px',
+}}>
+  <span style={{ color: '#5CC49D' }}>a</span>rb
   <span style={{ color: '#5CC49D' }}>i</span>trageOS Growth Plan Creator
+</span>
           </span>
         </Title>
         <Text type="secondary" className="text-lg">

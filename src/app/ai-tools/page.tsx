@@ -545,7 +545,12 @@ const AIToolsDashboard = () => {
               style={{
                 margin: 0,
                 color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                fontWeight: 700
+                fontWeight: 600,
+                    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+  
+    fontSize: '18px',
+
               }}
             >
               <span style={{ color: '#5CC49D' }}>a</span>rb

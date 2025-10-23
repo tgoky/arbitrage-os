@@ -375,7 +375,11 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <TrophyOutlined style={{ color: '#faad14' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' ,   letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            fontSize: '10px',
+}}>
               Recent Achievements
             </span>
           </div>
@@ -439,7 +443,10 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <StarOutlined style={{ color: '#1890ff' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' , letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            fontSize: '10px',}}>
               Milestone Progress
             </span>
           </div>

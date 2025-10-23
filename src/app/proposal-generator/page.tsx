@@ -318,9 +318,16 @@ const [effectiveDate, setEffectiveDate] = useState<string>(dayjs().format("MMMM 
       </Button>
 
       <div className="text-center mb-8">
-        <Title level={1} className="mb-2">
-          Proposal Generator
-        </Title>
+       <Title level={1} className="mb-2">
+  <span style={{
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '17px',
+  }}>
+    Proposal Generator
+  </span>
+</Title>
         <Text type="secondary" className="text-lg">
           Generate customized service agreements and statements of work
         </Text>

@@ -1202,8 +1202,15 @@ const AdWriter = () => {
 
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
-          <span style={{ color: '#5CC49D' }}>a</span>rb
-          <span style={{ color: '#5CC49D' }}>i</span>trageOS Ad Writer
+         <span style={{
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  fontSize: '19px',
+}}>
+  <span style={{ color: '#5CC49D' }}>a</span>rb
+  <span style={{ color: '#5CC49D' }}>i</span>trageOS ad Writer 
+</span>
         </Title>
         <Text type="secondary" className="text-lg">
           Generate high-converting ad copy tailored to your business and audience

@@ -169,8 +169,13 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ color: '#ef4444' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',   letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            fontSize: '10px',
+ }}>
               Activity Heatmap
+              
             </span>
           </div>
         }
@@ -194,7 +199,10 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalendarOutlined style={{ color: '#52c41a' }} />
-          <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
+          <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a', letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            fontSize: '10px', }}>
             Activity Heatmap
           </span>
         </div>

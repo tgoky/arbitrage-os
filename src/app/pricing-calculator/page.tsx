@@ -460,9 +460,16 @@ const handleExport = async (format: 'proposal' | 'presentation' | 'contract' | '
 </Button>
       <div className="text-center mb-8">
         <Title level={2} className="flex items-center justify-center">
-          <CalculatorOutlined className="mr-2 text-blue-600" />
-          <span style={{ color: '#5CC49D' }}>a</span>rb
+        
+         <span style={{
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  fontSize: '17px',
+}}>
+  <span style={{ color: '#5CC49D' }}>a</span>rb
   <span style={{ color: '#5CC49D' }}>i</span>trageOS Pricing Calculator
+</span>
         </Title>
         <Text type="secondary" className="text-lg">
           Generate comprehensive pricing strategies with AI-powered insights and industry benchmarks

@@ -430,8 +430,17 @@ export default function SalesCallAnalyzerPage() {
         
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Title level={3} className="mb-1"> <span style={{ color: '#5CC49D' }}>a</span>rb
-  <span style={{ color: '#5CC49D' }}>i</span>trageOS Sales Calls Analyzer</Title>
+       <Title level={3} className="mb-1">
+  <span style={{
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '17px',
+  }}>
+    <span style={{ color: '#5CC49D' }}>a</span>rb
+    <span style={{ color: '#5CC49D' }}>i</span>trageOS Sales Calls Analyzer
+  </span>
+</Title>
           <Text type="secondary">View and manage your AI-analyzed sales calls</Text>
         </div>
         <Space>

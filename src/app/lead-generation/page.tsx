@@ -912,10 +912,17 @@ const leadColumns: ColumnsType<Lead> = [
         <div className="flex justify-between items-center mb-4">
           <Space align="center">
 
-            <Title level={2} className="mb-0">
-                 <span style={{ color: '#5CC49D' }}>a</span>rb
-  <span style={{ color: '#5CC49D' }}>i</span>trageOS  Lead Generation
-            </Title>
+           <Title level={2} className="mb-0">
+  <span style={{
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '17px',
+  }}>
+    <span style={{ color: '#5CC49D' }}>a</span>rb
+    <span style={{ color: '#5CC49D' }}>i</span>trageOS Lead Generation
+  </span>
+</Title>
           </Space>
           <Button
             type="primary"

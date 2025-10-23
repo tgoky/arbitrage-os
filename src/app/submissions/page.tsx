@@ -472,9 +472,16 @@ const IntegratedWorkDashboard = () => {
       {/* Header with workspace context */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Title level={2} style={{ margin: 0, color: '#493c3c' }}>
-            My Submissions
-          </Title>
+        <Title level={2} style={{ margin: 0, }}>
+  <span style={{
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '18px',
+  }}>
+    My Submissions
+  </span>
+</Title>
           <Text style={{ color: '#666666' }}>
             All your AI-generated content in {currentWorkspace?.name} workspace
           </Text>

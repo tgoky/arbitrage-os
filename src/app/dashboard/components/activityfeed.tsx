@@ -456,8 +456,14 @@ case 'lead-generation':
       data-tour="activity-feed"
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          
-          Activity Feed
+          <span style={{
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            fontSize: '10px',
+          }}>
+            Activity Feed
+          </span>
           {activities.some(a => a.status === 'processing') && (
             <Badge status="processing" />
           )}

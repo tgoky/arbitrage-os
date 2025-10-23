@@ -611,7 +611,10 @@ if (isLoading || workspaceLoading || userLoading) {
           </div>
           
           <div className="space-y-4">
-            <div>
+            <div style={{  letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '11px',}}>
               <Text className="text-sm font-medium">Initializing System</Text>
               <div className="flex justify-between items-center mt-2">
                 <Progress 
@@ -747,7 +750,10 @@ if (isLoading || workspaceLoading || userLoading) {
           <Title 
             level={4} 
             className="mb-1 font-semibold truncate"
-            style={{ color: theme === 'dark' ? '#fff' : '#1a1a1a' }}
+            style={{ color: theme === 'dark' ? '#fff' : '#1a1a1a' ,   letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '12px',}}
           >
             Opening {selectedWorkspace}
           </Title>

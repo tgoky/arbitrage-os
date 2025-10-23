@@ -1417,8 +1417,16 @@ if (!currentWorkspace) {
             </Button>
             <Title level={2} className="mb-0 flex items-center">
            
-              <span style={{ color: '#5CC49D' }}>a</span>rb
+              <span style={{
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  fontSize: '15px',
+}}>
+  <span style={{ color: '#5CC49D' }}>a</span>rb
   <span style={{ color: '#5CC49D' }}>i</span>trageOS Niche Research Reports
+</span>
+
             </Title>
           </div>
           

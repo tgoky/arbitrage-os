@@ -116,12 +116,24 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     },
   });
 
+  // Premium title component
+  const PremiumTitle = () => (
+    <span style={{
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      fontWeight: 600,
+      fontSize: '10px',
+    }}>
+      Recent Deliverables
+    </span>
+  );
+
   // Don't render until workspace is ready
   if (!isWorkspaceReady) {
     return (
       <Card
         data-tour="recent-deliverables"
-        title="Recent Deliverables"
+        title={<PremiumTitle />}
         styles={getCardStyles()}
         style={{
           backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
@@ -150,7 +162,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     return (
       <Card
         data-tour="recent-deliverables"
-        title="Recent Deliverables"
+        title={<PremiumTitle />}
         styles={getCardStyles()}
         style={{
           backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
@@ -189,7 +201,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
   return (
     <Card
       data-tour="recent-deliverables"
-      title="Recent Deliverables"
+      title={<PremiumTitle />}
       styles={getCardStyles()}
       style={{
         backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
