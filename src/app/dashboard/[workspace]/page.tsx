@@ -201,7 +201,7 @@ const WorkspaceDashboard = () => {
       className="w-full h-full"
       style={{
         background: theme === 'dark' 
-          ? 'radial-gradient(ellipse at top, rgba(15, 23, 42, 0.5) 0%, rgba(0, 0, 0, 1) 50%)'
+          ? 'radial-gradient(ellipse at top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 1) 50%)'
           : 'radial-gradient(ellipse at top, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 1) 50%)',
         padding: screens.xs ? '16px' : '24px',
         paddingTop: screens.xs ? '8px' : '12px',
@@ -216,7 +216,7 @@ const WorkspaceDashboard = () => {
             marginBottom: 16,
             borderRadius: '12px',
             background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+              ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)'
               : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
             boxShadow: theme === 'dark'
               ? '0 2px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
@@ -238,7 +238,7 @@ const WorkspaceDashboard = () => {
           marginBottom: 24,
           borderRadius: '16px',
           background: theme === 'dark' 
-            ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+            ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)'
             : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
           boxShadow: theme === 'dark'
             ? '0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
@@ -259,7 +259,7 @@ const WorkspaceDashboard = () => {
           marginBottom: 24,
           height: '450px',
           background: theme === 'dark' 
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)'
+            ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%)'
             : 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)',
           borderRadius: '20px',
           padding: '12px',
@@ -328,7 +328,7 @@ const WorkspaceDashboard = () => {
         <div
           style={{
             background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+              ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)'
               : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
             borderRadius: '16px',
             boxShadow: theme === 'dark'
@@ -348,7 +348,7 @@ const WorkspaceDashboard = () => {
         <div
           style={{
             background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
+              ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)'
               : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
             borderRadius: '16px',
             boxShadow: theme === 'dark'
