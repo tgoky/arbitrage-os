@@ -702,7 +702,19 @@ return (
 </Button>
     <div className="mb-8 text-center">
    
-      <Title level={2} className="mb-2">Top 50 Profitable Niches</Title>
+      <Title
+  level={2}
+  className="mb-2"
+  style={{
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    fontWeight: 600,
+    fontSize: '22px',
+  }}
+>
+  Top 50 Profitable Niches
+</Title>
+
       <Text type="secondary" className="text-lg block mb-4">
         Discover high-potential industries with detailed metrics on revenue potential, market size, and growth rates.
       </Text>
