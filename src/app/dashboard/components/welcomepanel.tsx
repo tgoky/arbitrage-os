@@ -8,8 +8,9 @@ import {
   RocketOutlined ,
     FolderOutlined, 
   FolderOpenOutlined, 
-
   FileDoneOutlined,
+  ToolOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkItems } from '../../hooks/useDashboardData';
@@ -57,10 +58,9 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
   const summaryStats = useMemo(() => {
     if (!Array.isArray(workItems) || workItems.length === 0) {
       return [
-        { title: 'Total Generated', value: 0, icon: <FileTextOutlined />, color: '#1890ff', growth: 0 },
         { title: 'This Month', value: 0, icon: <CalendarOutlined />, color: '#52c41a', growth: 0 },
-        { title: 'In Progress', value: 0, icon: <BarChartOutlined />, color: '#faad14', growth: 0 },
-        { title: 'Completed', value: 0, icon: <RocketOutlined />, color: '#13c2c2', growth: 0 }
+        { title: 'Most Recent Tool', value: 'None', icon: <ToolOutlined />, color: '#1890ff', isText: true },
+        { title: 'Last Used', value: 'N/A', icon: <ClockCircleOutlined />, color: '#faad14', isText: true },
       ];
     }
 
@@ -94,25 +94,49 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
       ? Math.round(((thisMonthItems.length - lastMonthItems.length) / lastMonthItems.length) * 100)
       : thisMonthItems.length > 0 ? 100 : 0;
 
-    const processingStatuses = ['processing', 'in_progress', 'pending', 'running', 'active'];
-    const completedStatuses = ['completed', 'done', 'finished', 'success', 'complete'];
+    // Get most recent item
+    const sortedItems = [...workItems].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA;
+    });
     
-    const processingItems = workItems.filter(item => 
-      processingStatuses.includes(item.status?.toLowerCase?.() || '')
-    ).length;
+    const mostRecentItem = sortedItems[0];
+
+    // Tool display names
+    const toolNames: Record<string, string> = {
+      'sales-call': 'Sales Call',
+      'growth-plan': 'Growth Plan',
+      'pricing-calc': 'Pricing Calc',
+      'niche-research': 'Niche Research',
+      'cold-email': 'Cold Email',
+      'offer-creator': 'Offer Creator',
+      'ad-writer': 'Ad Writer',
+      'n8n-workflow': 'Workflow',
+      'proposal': 'Proposal',
+      'lead-generation': 'Lead Gen'
+    };
+
+    const recentToolName = mostRecentItem ? toolNames[mostRecentItem.type] || 'Tool' : 'None';
+    const recentToolTime = mostRecentItem?.createdAt || null;
     
-    const completedItems = workItems.filter(item => 
-      completedStatuses.includes(item.status?.toLowerCase?.() || '')
-    ).length;
+    // Calculate relative time
+    let relativeTime = 'N/A';
+    if (recentToolTime) {
+      const itemDate = new Date(recentToolTime);
+      const diffMs = now.getTime() - itemDate.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffMins < 1) relativeTime = 'Just now';
+      else if (diffMins < 60) relativeTime = `${diffMins}m ago`;
+      else if (diffHours < 24) relativeTime = `${diffHours}h ago`;
+      else if (diffDays === 1) relativeTime = 'Yesterday';
+      else relativeTime = `${diffDays}d ago`;
+    }
 
     return [
-      { 
-        title: 'Total Generated', 
-        value: workItems.length, 
-        icon: <FileTextOutlined />, 
-        color: '#1890ff', 
-        growth: 12 
-      },
       { 
         title: 'This Month', 
         value: thisMonthItems.length, 
@@ -121,19 +145,19 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         growth: thisMonthGrowth 
       },
       { 
-        title: 'In Progress', 
-        value: processingItems, 
-        icon: <BarChartOutlined />, 
-        color: '#faad14', 
-        growth: 0 
+        title: 'Most Recent Tool', 
+        value: recentToolName, 
+        icon: <ToolOutlined />, 
+        color: '#1890ff',
+        isText: true
       },
       { 
-        title: 'Completed', 
-        value: completedItems, 
-        icon: <RocketOutlined />, 
-        color: '#13c2c2', 
-        growth: 5 
-      }
+        title: 'Last Used', 
+        value: relativeTime, 
+        icon: <ClockCircleOutlined />, 
+        color: '#faad14',
+        isText: true
+      },
     ];
   }, [workItems]);
 
@@ -349,11 +373,11 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
           borderColor: theme === 'dark' ? '#374151' : '#E5E7EB',
         }}
       >
-        {/* Statistics grid with proper spacing */}
+        {/* Statistics grid with proper spacing - NOW 3 COLUMNS */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : screens.md ? 'repeat(2, 1fr)' : '1fr',
+            gridTemplateColumns: screens.lg ? 'repeat(3, 1fr)' : screens.md ? 'repeat(3, 1fr)' : '1fr',
             gap: screens.xs ? '8px' : '12px', // Reduced gap for slimmer look
             marginBottom: '12px', // Reduced margin below stats
           }}
@@ -369,9 +393,9 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
                 value={stat.value}
                 valueStyle={{ 
                   color: theme === 'dark' ? '#F9FAFB' : '#111827', 
-                  fontSize: '16px', // Reduced from 18px for slimmer look
+                  fontSize: stat.isText ? '14px' : '16px', // Smaller font for text values
                   lineHeight: '1.2',
-                  fontWeight: 600
+                  fontWeight: stat.isText ? 500 : 600
                 }}
                 prefix={
                   <span style={{ color: stat.color, fontSize: '16px', marginRight: '6px' }}>
