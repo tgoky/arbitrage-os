@@ -54,14 +54,14 @@ const menuGroups: MenuGroupConfig[] = [
         id: "tools",
         label: "Tools",
         icon: <BoltIcon className="h-4 w-4" />,
-        items: [ "AI_Tools",  "Lead_Generation", "Proposal_Generator"],
+        items: [  "Lead_Generation", ],
         //commented out lead gen and playbooks
       },
       {
         id: "agents",
         label: "Agents",
         icon: <CubeIcon className="h-4 w-4" />,
-        items: [],
+        items: ["Email_Agent"],
         //commented out agent and workflow
       },
     ],
@@ -79,6 +79,7 @@ const menuGroups: MenuGroupConfig[] = [
       "Cold_Email_Writer",
     "Sales_Call_Analyzer",
       "Growth_Plan_Creator",
+      "Proposal_Generator",
       "categories",
     ],
   },
@@ -86,7 +87,7 @@ const menuGroups: MenuGroupConfig[] = [
     id: "automations",
     label: "Automations",
     icon: <Workflow className="h-4 w-4" />,
-    items: [ "N8n_Builder", "N8n_Library", "Prompt_Directory"],
+    items: [ "N8n_Builder", "N8n_Library", "Prompt_Directory", "AI_Tools"],
     //commented out automations
   },
 ];

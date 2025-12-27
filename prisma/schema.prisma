@@ -1,4 +1,4 @@
-// schema.prisma - COMPLETE WITH ADMIN, INVITES, CREDITS SYSTEM AND USER MODEL + RELATIONS
+// schema.prisma - COMPLETE WITH EMAIL AGENT, ADMIN, INVITES, CREDITS SYSTEM
 
 generator client {
   provider = "prisma-client-js"
@@ -11,7 +11,7 @@ datasource db {
   schemas   = ["public"]
 }
 
-// ------------------ USER MODEL ------------------
+// ==================== USER MODEL ====================
 model User {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email          String    @unique
@@ -23,7 +23,7 @@ model User {
   created_at     DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
   updated_at     DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Relations
+  // Existing Relations
   workspaces         Workspace[]
   deliverables       Deliverable[]
   userFavorites      UserFavorite[]
@@ -31,13 +31,18 @@ model User {
   userCredits        UserCredit?
   creditTransactions CreditTransaction[]
   notifications      Notification[]
+  
+  // Email Agent Relations
+  emailAccounts      EmailAccount[]
+  emailCampaigns     EmailCampaign[]
+  leads              Lead[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
   @@schema("public")
 }
 
-// ------------------ ADMIN MODELS ------------------
+// ==================== ADMIN MODELS ====================
 model AdminProfile {
   id         String   @id @db.Uuid
   role       String   @default("admin") @db.VarChar(50)
@@ -65,7 +70,7 @@ model UserInvite {
   @@schema("public")
 }
 
-// ------------------ WORKSPACE ------------------
+// ==================== WORKSPACE ====================
 model Workspace {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id     String    @map("user_id") @db.Uuid
@@ -76,11 +81,19 @@ model Workspace {
   created_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
   updated_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Relations
+  // Existing Relations
   user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   deliverables       Deliverable[]
   creditTransactions CreditTransaction[]
   notifications      Notification[]
+  
+  // Email Agent Relations
+  emailAccounts      EmailAccount[]
+  sentEmails         SentEmail[]
+  emailThreads       EmailThread[]
+  inboundEmails      InboundEmail[]
+  emailCampaigns     EmailCampaign[]
+  leads              Lead[]
   
   @@unique([user_id, slug])
   @@index([slug], map: "idx_workspaces_slug")
@@ -89,7 +102,7 @@ model Workspace {
   @@schema("public")
 }
 
-// ------------------ DELIVERABLE ------------------
+// ==================== DELIVERABLE ====================
 model Deliverable {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title        String   @db.VarChar(255)
@@ -103,7 +116,6 @@ model Deliverable {
   created_at   DateTime @default(now()) @db.Timestamptz(6)
   updated_at   DateTime @updatedAt @db.Timestamptz(6)
 
-  // Relations
   user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   
@@ -115,14 +127,13 @@ model Deliverable {
   @@schema("public")
 }
 
-// ------------------ USER FAVORITE ------------------
+// ==================== USER FAVORITES ====================
 model UserFavorite {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String   @db.Uuid
   prompt_id  Int
   created_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
   
-  // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
     
   @@unique([user_id, prompt_id])
@@ -131,14 +142,12 @@ model UserFavorite {
   @@schema("public")
 }
 
-// ------------------ AI TOOL FAVORITE ------------------
 model AIToolFavorite {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String   @db.Uuid
   tool_id    String
   created_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
   
-  // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
        
   @@unique([user_id, tool_id])
@@ -147,7 +156,7 @@ model AIToolFavorite {
   @@schema("public")
 }
 
-// ------------------ USER CREDITS ------------------
+// ==================== CREDITS SYSTEM ====================
 model UserCredit {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id           String   @unique @db.Uuid
@@ -157,7 +166,6 @@ model UserCredit {
   created_at        DateTime @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
   updated_at        DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id], map: "idx_user_credits_user_id")
@@ -165,7 +173,6 @@ model UserCredit {
   @@schema("public")
 }
 
-// ------------------ CREDIT TRANSACTION ------------------
 model CreditTransaction {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id          String    @db.Uuid
@@ -177,7 +184,6 @@ model CreditTransaction {
   metadata         Json?
   created_at       DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
 
-  // Relations
   user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
   workspace Workspace? @relation(fields: [workspace_id], references: [id], onDelete: SetNull)
   
@@ -189,23 +195,22 @@ model CreditTransaction {
   @@schema("public")
 }
 
-// ------------------ NOTIFICATION MODEL ------------------
+// ==================== NOTIFICATIONS ====================
 model Notification {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id      String    @db.Uuid
   workspace_id String    @db.Uuid
-  type         String    @db.VarChar(50)  // 'pricing_calculation', 'sales_call', etc.
+  type         String    @db.VarChar(50)
   title        String    @db.VarChar(255)
   message      String    @db.Text
   status       String    @default("unread") @db.VarChar(20) // 'unread', 'read', 'archived'
-  item_id      String    @db.Uuid  // ID of the generated item (deliverable, calculation, etc.)
-  route        String    @db.Text  // The URL route to navigate to
+  item_id      String    @db.Uuid
+  route        String    @db.Text
   metadata     Json?
   read_at      DateTime? @map("read_at") @db.Timestamptz(6)
   created_at   DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
   updated_at   DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Relations
   user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
 
@@ -215,5 +220,282 @@ model Notification {
   @@index([status], map: "idx_notifications_status")
   @@index([created_at], map: "idx_notifications_created_at")
   @@map("notifications")
+  @@schema("public")
+}
+
+// ==================== EMAIL AGENT - ACCOUNT ====================
+model EmailAccount {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String   @db.Uuid
+  workspace_id String   @db.Uuid
+  provider     String   @db.VarChar(50) // 'gmail', 'outlook', 'smtp'
+  email        String   @db.VarChar(255)
+  
+  // OAuth tokens (ENCRYPTED - never store plain text)
+  access_token  String?  @db.Text
+  refresh_token String?  @db.Text
+  token_expiry  DateTime? @db.Timestamptz(6)
+  
+  // SMTP credentials (ENCRYPTED - never store plain text)
+  smtp_host     String?  @db.VarChar(255)
+  smtp_port     Int?
+  smtp_username String?  @db.VarChar(255)
+  smtp_password String?  @db.Text
+  
+  // Settings
+  daily_limit       Int     @default(50)
+  enabled           Boolean @default(true)
+  signature         String? @db.Text
+  reply_to          String? @db.VarChar(255)
+  
+  created_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  last_sync_at DateTime? @db.Timestamptz(6)
+  
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  
+  // Relations
+  sentEmails     SentEmail[]
+  emailThreads   EmailThread[]
+  inboundEmails  InboundEmail[]
+  emailCampaigns EmailCampaign[]
+  
+  @@unique([user_id, workspace_id, email])
+  @@index([user_id, workspace_id])
+  @@index([email])
+  @@index([enabled])
+  @@map("email_accounts")
+  @@schema("public")
+}
+
+// ==================== EMAIL AGENT - SENT EMAILS ====================
+model SentEmail {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email_account_id String  @db.Uuid
+  workspace_id    String   @db.Uuid
+  
+  // Email details
+  to              String   @db.VarChar(255)
+  cc              String[] @default([])
+  bcc             String[] @default([])
+  subject         String   @db.VarChar(500)
+  body            String   @db.Text
+  html_body       String?  @db.Text
+  
+  // Tracking
+  message_id      String?  @db.VarChar(255)
+  thread_id       String?  @db.Uuid
+  campaign_id     String?  @db.Uuid
+  lead_id         String?  @db.Uuid
+  
+  // Status
+  status          String   @default("queued") @db.VarChar(50) // 'queued', 'sent', 'failed', 'bounced', 'opened', 'clicked', 'replied'
+  sent_at         DateTime? @db.Timestamptz(6)
+  opened_at       DateTime? @db.Timestamptz(6)
+  clicked_at      DateTime? @db.Timestamptz(6)
+  replied_at      DateTime? @db.Timestamptz(6)
+  
+  // Error handling
+  error_message   String?  @db.Text
+  retry_count     Int      @default(0)
+  
+  metadata        Json?
+  created_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  
+  emailAccount EmailAccount  @relation(fields: [email_account_id], references: [id], onDelete: Cascade)
+  workspace    Workspace     @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  thread       EmailThread?  @relation(fields: [thread_id], references: [id])
+  campaign     EmailCampaign? @relation(fields: [campaign_id], references: [id])
+  lead         Lead?         @relation(fields: [lead_id], references: [id])
+  
+  @@index([email_account_id, status])
+  @@index([workspace_id, created_at])
+  @@index([thread_id])
+  @@index([campaign_id])
+  @@index([lead_id])
+  @@index([status])
+  @@map("sent_emails")
+  @@schema("public")
+}
+
+// ==================== EMAIL AGENT - THREADS ====================
+model EmailThread {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email_account_id String  @db.Uuid
+  workspace_id    String   @db.Uuid
+  lead_id         String?  @db.Uuid
+  
+  // Thread info
+  subject         String   @db.VarChar(500)
+  participants    String[] // Email addresses
+  
+  // Status
+  status          String   @default("active") @db.VarChar(50) // 'active', 'replied', 'closed', 'bounced'
+  last_activity   DateTime @db.Timestamptz(6)
+  
+  metadata        Json?
+  created_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  
+  emailAccount EmailAccount   @relation(fields: [email_account_id], references: [id], onDelete: Cascade)
+  workspace    Workspace      @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  lead         Lead?          @relation(fields: [lead_id], references: [id])
+  
+  sentEmails   SentEmail[]
+  inboundEmails InboundEmail[]
+  
+  @@index([email_account_id, status])
+  @@index([workspace_id, last_activity])
+  @@index([lead_id])
+  @@index([status])
+  @@map("email_threads")
+  @@schema("public")
+}
+
+// ==================== EMAIL AGENT - INBOUND EMAILS ====================
+model InboundEmail {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email_account_id String  @db.Uuid
+  workspace_id    String   @db.Uuid
+  thread_id       String?  @db.Uuid
+  
+  // Email details
+  from            String   @db.VarChar(255)
+  to              String   @db.VarChar(255)
+  subject         String   @db.VarChar(500)
+  body            String   @db.Text
+  html_body       String?  @db.Text
+  
+  // Provider info
+  message_id      String   @db.VarChar(255)
+  in_reply_to     String?  @db.VarChar(255)
+  
+  // AI Processing
+  processed       Boolean  @default(false)
+  requires_action Boolean  @default(false)
+  sentiment       String?  @db.VarChar(50) // 'positive', 'negative', 'neutral', 'interested'
+  ai_summary      String?  @db.Text
+  
+  metadata        Json?
+  received_at     DateTime @db.Timestamptz(6)
+  created_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  archived Boolean @default(false) 
+  
+  emailAccount EmailAccount @relation(fields: [email_account_id], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  thread       EmailThread? @relation(fields: [thread_id], references: [id])
+  
+  @@index([email_account_id, processed])
+  @@index([workspace_id, received_at])
+  @@index([thread_id])
+  @@index([processed])
+  @@index([requires_action])
+  @@index([sentiment])
+  @@map("inbound_emails")
+  @@schema("public")
+}
+
+// ==================== EMAIL AGENT - LEADS ====================
+model Lead {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String   @db.Uuid
+  user_id      String   @db.Uuid
+  
+  // Lead info
+  email        String   @db.VarChar(255)
+  first_name   String?  @db.VarChar(100)
+  last_name    String?  @db.VarChar(100)
+  company      String?  @db.VarChar(255)
+  job_title    String?  @db.VarChar(255)
+  industry     String?  @db.VarChar(100)
+  company_size String?  @db.VarChar(50)
+  
+  // Contact info
+  phone        String?  @db.VarChar(50)
+  linkedin_url String?  @db.VarChar(500)
+  website      String?  @db.VarChar(500)
+  
+  // Status
+  status       String   @default("new") @db.VarChar(50) // 'new', 'contacted', 'replied', 'interested', 'not_interested', 'converted'
+  
+  // Source
+  source       String?  @db.VarChar(100) // 'lead_generator', 'manual', 'import', 'api'
+  source_data  Json?
+  
+  // Engagement
+  last_contacted DateTime? @db.Timestamptz(6)
+  last_reply     DateTime? @db.Timestamptz(6)
+  
+  tags         String[] @default([])
+  notes        String?  @db.Text
+  metadata     Json?
+  
+  created_at   DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at   DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  
+  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  // Relations
+  sentEmails   SentEmail[]
+  emailThreads EmailThread[]
+  
+  @@unique([workspace_id, email])
+  @@index([workspace_id, status])
+  @@index([user_id, created_at])
+  @@index([email])
+  @@index([status])
+  @@index([source])
+  @@map("leads")
+  @@schema("public")
+}
+
+// ==================== EMAIL AGENT - CAMPAIGNS ====================
+model EmailCampaign {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id    String   @db.Uuid
+  user_id         String   @db.Uuid
+  email_account_id String  @db.Uuid
+  
+  // Campaign details
+  name            String   @db.VarChar(255)
+  description     String?  @db.Text
+  target_leads    String[] // Lead IDs
+  
+  // Schedule
+  schedule_type   String   @db.VarChar(50) // 'immediate', 'scheduled', 'drip'
+  start_date      DateTime? @db.Timestamptz(6)
+  drip_interval   Int?     // Days between emails
+  
+  // Status
+  status          String   @default("draft") @db.VarChar(50) // 'draft', 'active', 'paused', 'completed'
+  emails_sent     Int      @default(0)
+  emails_opened   Int      @default(0)
+  emails_replied  Int      @default(0)
+  
+  // AI Agent settings
+  auto_reply      Boolean  @default(false)
+  auto_followup   Boolean  @default(false)
+  max_followups   Int      @default(3)
+  
+  metadata        Json?
+  created_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  
+  workspace    Workspace    @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  emailAccount EmailAccount @relation(fields: [email_account_id], references: [id])
+  
+  // Relations
+  sentEmails SentEmail[]
+  
+  @@index([workspace_id, status])
+  @@index([user_id, created_at])
+  @@index([email_account_id])
+  @@index([status])
+  @@map("email_campaigns")
   @@schema("public")
 }

@@ -158,6 +158,16 @@ export default function RootLayout({
                             canDelete: true,
                           },
                         },
+                          {
+                          name: "Email_Agent",
+                          list: "/email-agent",
+                          create: "/email-agent/create",
+                          edit: "/email-agent/edit/:id",
+                          show: "/email-agent/show/:id",
+                          meta: {
+                            canDelete: true,
+                          },
+                        },
                        
                         {
                           name: "Sales_Call_Settings",
