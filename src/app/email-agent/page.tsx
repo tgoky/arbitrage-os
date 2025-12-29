@@ -179,27 +179,40 @@ const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: 
   });
 
   // Check for OAuth callback success
-  useEffect(() => {
-    const connected = searchParams.get('connected');
-    if (connected === 'true') {
-      notification.success({
-        message: 'Email Connected',
-        description: 'Your Gmail account has been successfully connected!',
-      });
-      // Remove query param
-      router.replace(`/dashboard/${workspaceId}/email-agent`);
-      loadDashboardData();
-    }
+useEffect(() => {
+  const connected = searchParams.get('connected');
+  const error = searchParams.get('error');
+  const workspaceIdFromQuery = searchParams.get('workspaceId');
+  
+  if (connected === 'true') {
+    notification.success({
+      message: 'Email Connected',
+      description: 'Your Gmail account has been successfully connected!',
+    });
+    
+    // Remove query params (clean URL)
+    const cleanUrl = workspaceIdFromQuery 
+      ? `/email-agent?workspaceId=${workspaceIdFromQuery}`
+      : '/email-agent';
+    router.replace(cleanUrl);
+    
+    // Reload dashboard data
+    loadDashboardData();
+  }
 
-    const error = searchParams.get('error');
-    if (error) {
-      notification.error({
-        message: 'Connection Failed',
-        description: getErrorMessage(error),
-      });
-      router.replace(`/dashboard/${workspaceId}/email-agent`);
-    }
-  }, [searchParams]);
+  if (error) {
+    notification.error({
+      message: 'Connection Failed',
+      description: getErrorMessage(error),
+    });
+    
+    // Remove error query param
+    const cleanUrl = workspaceIdFromQuery 
+      ? `/email-agent?workspaceId=${workspaceIdFromQuery}`
+      : '/email-agent';
+    router.replace(cleanUrl);
+  }
+}, [searchParams, router]);
 
   useEffect(() => {
     loadDashboardData();
@@ -216,6 +229,14 @@ const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: 
   };
 
   const loadDashboardData = async () => {
+
+      if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping analytics load - invalid workspace ID');
+    setAnalytics(null);
+    return;
+  }
+
+  
     setPageLoading(true);
     try {
       await Promise.all([
@@ -237,69 +258,139 @@ const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: 
   };
 
   const loadEmailAccounts = async () => {
+
+      if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping analytics load - invalid workspace ID');
+    setAnalytics(null);
+    return;
+  }
+
+
     try {
       const res = await fetch(`/api/email-agent/accounts?workspaceId=${workspaceId}`);
       const data = await res.json();
       
       if (data.success) {
-        setEmailAccounts(data.accounts);
+        // ✅ FIXED: Correct path is data.data.accounts
+        setEmailAccounts(data.data?.accounts || []);
+      } else {
+        console.error('Failed to load accounts:', data.error);
+        setEmailAccounts([]);
       }
     } catch (error) {
       console.error('Failed to load email accounts:', error);
+      setEmailAccounts([]);
     }
   };
 
-  const loadCampaigns = async () => {
+
+
+ const loadCampaigns = async () => {
+
+    if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping analytics load - invalid workspace ID');
+    setAnalytics(null);
+    return;
+  }
+
     try {
       const res = await fetch(`/api/email-agent/campaigns?workspaceId=${workspaceId}`);
       const data = await res.json();
       
       if (data.success) {
-        setCampaigns(data.campaigns);
+        // ✅ FIXED: Correct path is data.data (array directly)
+        setCampaigns(data.data || []);
+      } else {
+        console.error('Failed to load campaigns:', data.error);
+        setCampaigns([]);
       }
     } catch (error) {
       console.error('Failed to load campaigns:', error);
+      setCampaigns([]);
     }
   };
 
-  const loadLeads = async () => {
+
+ 
+    const loadLeads = async () => {
+
+        if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping analytics load - invalid workspace ID');
+    setAnalytics(null);
+    return;
+  }
+
+
     try {
       const res = await fetch(`/api/email-agent/leads?workspaceId=${workspaceId}`);
       const data = await res.json();
       
       if (data.success) {
-        setLeads(data.leads);
+        // ✅ FIXED: Correct path is data.data.leads
+        setLeads(data.data?.leads || []);
+      } else {
+        console.error('Failed to load leads:', data.error);
+        setLeads([]);
       }
     } catch (error) {
       console.error('Failed to load leads:', error);
+      setLeads([]);
     }
   };
 
+
   const loadInbox = async () => {
+
+      if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping analytics load - invalid workspace ID');
+    setAnalytics(null);
+    return;
+  }
+
+
     try {
       const res = await fetch(`/api/email-agent/inbox?workspaceId=${workspaceId}`);
       const data = await res.json();
       
       if (data.success) {
-        setInboxItems(data.emails);
+        // ✅ FIXED: Correct path is data.data.emails
+        setInboxItems(data.data?.emails || []);
+      } else {
+        console.error('Failed to load inbox:', data.error);
+        setInboxItems([]);
       }
     } catch (error) {
       console.error('Failed to load inbox:', error);
+      setInboxItems([]);
     }
   };
 
-  const loadAnalytics = async () => {
+
+   const loadAnalytics = async () => {
+
+      if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping analytics load - invalid workspace ID');
+    setAnalytics(null);
+    return;
+  }
+
     try {
-      const res = await fetch(`/api/email-agent/analytics?workspaceId=${workspaceId}&timeframe=month`);
+      const res = await fetch(`/api/email-agent/analytics?workspaceId=${workspaceId}`);
       const data = await res.json();
       
       if (data.success) {
-        setAnalytics(data.analytics);
+        // ✅ FIXED: Correct path is data.data
+        setAnalytics(data.data || null);
+      } else {
+        console.error('Failed to load analytics:', data.error);
+        setAnalytics(null);
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
+      setAnalytics(null);
     }
   };
+  
 
   const handleConnectGmail = () => {
     // Redirect to Google OAuth

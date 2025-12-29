@@ -83,6 +83,9 @@ export class EmailConnectionService {
       threadId?: string;
       campaignId?: string;
       leadId?: string;
+       leadName?: string;           // ✅ NEW
+    generationId?: string;       // ✅ NEW
+    generationTitle?: string;    // ✅ NEW
     }
   ) {
     try {

@@ -1,213 +1,234 @@
-// services/emailCampaignAgent.service.ts - PRODUCTION VERSION
+// services/emailCampaignAgent.service.ts - COMPLETE DELIVERABLES INTEGRATION
 import { prisma } from '@/lib/prisma';
-import { EmailConnectionService } from './emailConnection.service';
 import { Redis } from '@upstash/redis';
-import { OpenRouterClient } from '@/lib/openrouter';
 
 // Types
 interface CampaignConfig {
   name: string;
   description?: string;
   emailAccountId: string;
-  leadIds: string[];
+  leads: any[];  // ✅ Full lead objects from deliverables
+  leadGenerationMap: { [leadId: string]: string };  // ✅ Track source generation
   scheduleType: 'immediate' | 'scheduled' | 'drip';
   startDate?: Date;
+  endDate?: Date;
+  timezone?: string;
   dripInterval?: number;
   autoReply?: boolean;
   autoFollowup?: boolean;
+  followupInterval?: number;
   maxFollowups?: number;
   emailTemplate: {
-    method: string;
-    tone: string;
-    valueProposition: string;
-    targetIndustry: string;
-    targetRole: string;
+    subject: string;
+    body: string;
   };
 }
 
 interface PersonalizedEmail {
   subject: string;
   body: string;
-  htmlBody: string;
-}
-
-interface CampaignAnalytics {
-  totalCampaigns: number;
-  activeCampaigns: number;
-  emailsSent: number;
-  emailsOpened: number;
-  emailsReplied: number;
-  averageOpenRate: number;
-  averageReplyRate: number;
-  topPerformingCampaigns: Array<{
-    id: string;
-    name: string;
-    openRate: number;
-    replyRate: number;
-  }>;
-  sentimentDistribution: {
-    interested: number;
-    neutral: number;
-    negative: number;
-    not_interested: number;
-  };
+  htmlBody?: string;
 }
 
 export class EmailCampaignAgent {
-  private emailService: EmailConnectionService;
   private redis: Redis;
-  private openRouterClient: OpenRouterClient;
 
   constructor() {
-    this.emailService = new EmailConnectionService();
     this.redis = new Redis({
       url: process.env.UPSTASH_REDIS_URL!,
       token: process.env.UPSTASH_REDIS_TOKEN!
     });
-    this.openRouterClient = new OpenRouterClient(process.env.OPENROUTER_API_KEY!);
   }
 
   // ==================== CAMPAIGN MANAGEMENT ====================
 
-  async createCampaign(
-    userId: string,
-    workspaceId: string,
-    config: CampaignConfig
-  ) {
+  /**
+   * Create new email campaign with leads stored in metadata
+   * No database validation - API already validated leads against deliverables
+   */
+  async createCampaign(userId: string, workspaceId: string, config: CampaignConfig) {
+    console.log('📧 Creating email campaign:', config.name);
+    
     try {
-      console.log('📧 Creating email campaign:', config.name);
-
-      // Validate email account
-      const emailAccount = await prisma.emailAccount.findUnique({
-        where: { id: config.emailAccountId }
-      });
-
-      if (!emailAccount || !emailAccount.enabled) {
-        throw new Error('Email account not found or disabled');
-      }
-
-      // Validate leads exist
-      const leads = await prisma.lead.findMany({
+      // Validate email account exists and is enabled
+      const emailAccount = await prisma.emailAccount.findFirst({
         where: {
-          id: { in: config.leadIds },
-          workspace_id: workspaceId
+          id: config.emailAccountId,
+          user_id: userId
         }
       });
 
-      if (leads.length === 0) {
-        throw new Error('No valid leads found');
+      if (!emailAccount) {
+        throw new Error('Email account not found or access denied');
       }
 
-      console.log(`✅ Validated ${leads.length} leads for campaign`);
+      if (!emailAccount.enabled) {
+        throw new Error('Email account is disabled. Please reconnect your email account.');
+      }
 
-      // Create campaign
+      console.log(`✅ Email account validated: ${emailAccount.email}`);
+
+      // Validate we have leads
+      if (!config.leads || config.leads.length === 0) {
+        throw new Error('No leads provided for campaign');
+      }
+
+      console.log(`✅ Campaign will target ${config.leads.length} leads`);
+
+      // ✅ Create campaign with ALL lead data in metadata (NO separate leads table)
       const campaign = await prisma.emailCampaign.create({
         data: {
-          workspace_id: workspaceId,
-          user_id: userId,
           name: config.name,
           description: config.description,
-          target_leads: config.leadIds,
+          user_id: userId,
+          workspace_id: workspaceId,
           email_account_id: config.emailAccountId,
-          schedule_type: config.scheduleType,
+          
+          // Campaign settings
+          status: config.scheduleType === 'immediate' ? 'active' : 'scheduled',
+          schedule_type: config.scheduleType || 'immediate',
           start_date: config.startDate,
-          drip_interval: config.dripInterval,
+          drip_interval: config.dripInterval || 3,
           auto_reply: config.autoReply || false,
           auto_followup: config.autoFollowup || false,
           max_followups: config.maxFollowups || 3,
-          status: config.scheduleType === 'immediate' ? 'active' : 'draft',
+          
+          // Tracking (updated as campaign runs)
+          emails_sent: 0,
+          emails_opened: 0,
+          emails_replied: 0,
+          
+          // ✅ Store ALL lead data in metadata (single source of truth for campaign)
           metadata: {
             emailTemplate: config.emailTemplate,
-            createdAt: new Date().toISOString()
+            leads: config.leads,  // ✅ Full lead objects with all fields
+            leadGenerationMap: config.leadGenerationMap,  // ✅ Track source deliverable
+            totalLeads: config.leads.length,
+            createdAt: new Date().toISOString(),
+            scheduleConfig: {
+              type: config.scheduleType,
+              startDate: config.startDate?.toISOString(),
+              endDate: config.endDate?.toISOString(),
+              timezone: config.timezone || 'UTC',
+              dripInterval: config.dripInterval
+            },
+            stats: {
+              sentCount: 0,
+              errorCount: 0,
+              successRate: 0
+            }
           }
         }
       });
 
-      console.log('✅ Campaign created:', campaign.id);
+      console.log(`✅ Campaign created: ${campaign.id} with ${config.leads.length} leads in metadata`);
 
-      // If immediate, start sending
+      // If immediate send, trigger campaign processing in background
       if (config.scheduleType === 'immediate') {
-        // Run in background (don't await)
+        console.log('🚀 Queuing campaign for immediate processing...');
+        
+        // Don't await - let it run in background
         this.processCampaign(campaign.id).catch(error => {
           console.error('Background campaign processing error:', error);
         });
       }
 
-      // Invalidate campaign cache
-      await this.invalidateCampaignCache(userId, workspaceId);
-
       return {
         success: true,
+        campaignId: campaign.id,
+        message: `Campaign created with ${config.leads.length} leads`,
         campaign: {
           id: campaign.id,
           name: campaign.name,
           status: campaign.status,
-          targetLeads: leads.length,
+          leadCount: config.leads.length,
           createdAt: campaign.created_at
         }
       };
 
     } catch (error) {
-      console.error('Failed to create campaign:', error);
+      console.error('❌ Create campaign error:', error);
       throw error;
     }
   }
 
+  /**
+   * Process campaign - send emails to leads from metadata
+   * ✅ NO database queries for leads - everything from metadata
+   */
   async processCampaign(campaignId: string) {
     const startTime = Date.now();
+    console.log('🚀 Processing campaign:', campaignId);
     
     try {
+      // Fetch campaign with email account
       const campaign = await prisma.emailCampaign.findUnique({
         where: { id: campaignId },
         include: {
-          emailAccount: true,
-          workspace: true
+          emailAccount: true
         }
       });
 
-      if (!campaign || campaign.status !== 'active') {
-        console.log('⏭️ Campaign not active or not found:', campaignId);
+      if (!campaign) {
+        throw new Error('Campaign not found');
+      }
+
+      if (campaign.status !== 'active') {
+        console.log('⏭️ Campaign not active, skipping processing');
         return;
       }
 
-      // Get leads to email
-      const leads = await prisma.lead.findMany({
-        where: {
-          id: { in: campaign.target_leads },
-          workspace_id: campaign.workspace_id
-        }
-      });
+      // ✅ Get leads from campaign metadata (NOT from database)
+      const campaignMetadata = campaign.metadata as any;
+      const leads = campaignMetadata.leads || [];
+      const emailTemplate = campaignMetadata.emailTemplate;
 
-      console.log(`📧 Processing campaign ${campaign.name} for ${leads.length} leads`);
+      if (leads.length === 0) {
+        console.log('⚠️ No leads in campaign metadata');
+        await prisma.emailCampaign.update({
+          where: { id: campaignId },
+          data: { status: 'completed' }
+        });
+        return;
+      }
 
-      let emailsSent = 0;
-      let tokensUsed = 0;
+      console.log(`📊 Processing ${leads.length} leads from campaign metadata`);
 
-      for (const lead of leads) {
+      // Import email service
+      const { EmailConnectionService } = await import('./emailConnection.service');
+      const emailService = new EmailConnectionService();
+
+      let sentCount = 0;
+      let errorCount = 0;
+      const errors: any[] = [];
+
+      // Process each lead
+      for (let i = 0; i < leads.length; i++) {
+        const lead = leads[i];
+        
         try {
-          // Check if already contacted recently
-          if (lead.last_contacted) {
-            const daysSinceContact = Math.floor(
-              (Date.now() - lead.last_contacted.getTime()) / (1000 * 60 * 60 * 24)
-            );
-            
-            if (daysSinceContact < 7) {
-              console.log(`⏭️ Skipping ${lead.email} - contacted ${daysSinceContact} days ago`);
-              continue;
-            }
+          console.log(`📧 Processing lead ${i + 1}/${leads.length}: ${lead.email}`);
+
+          // Skip if already sent in this campaign
+          if (lead.emailCampaignStatus === 'sent') {
+            console.log(`⏭️ Already sent to ${lead.email}, skipping`);
+            continue;
+          }
+
+          // Skip if no valid email
+          if (!lead.email || !lead.email.includes('@')) {
+            console.log(`⏭️ Invalid email for ${lead.name}, skipping`);
+            lead.emailCampaignStatus = 'failed';
+            lead.lastError = 'Invalid email address';
+            errorCount++;
+            continue;
           }
 
           // Generate personalized email using AI
-          const emailTemplate = campaign.metadata as any;
-          const { email: personalizedEmail, tokens } = await this.generatePersonalizedEmail(
-            lead, 
-            emailTemplate.emailTemplate
-          );
+          const personalizedEmail = await this.generatePersonalizedEmail(lead, emailTemplate);
 
-          tokensUsed += tokens;
-
-          // Send email
-          const result = await this.emailService.sendEmail(
+          // Send email via connected account
+          await emailService.sendEmail(
             campaign.email_account_id,
             lead.email,
             personalizedEmail.subject,
@@ -215,207 +236,255 @@ export class EmailCampaignAgent {
             {
               html: personalizedEmail.htmlBody,
               campaignId: campaign.id,
-              leadId: lead.id
+              leadId: lead.id,
+              leadName: lead.name,
+              generationId: lead.generationId,
+              generationTitle: lead.generationTitle
             }
           );
 
-          if (result.success) {
-            emailsSent++;
-            
-            // Update lead status
-            await prisma.lead.update({
-              where: { id: lead.id },
-              data: {
-                status: 'contacted',
-                last_contacted: new Date()
-              }
-            });
+          // ✅ Update lead status in metadata (in-memory)
+          lead.emailCampaignStatus = 'sent';
+          lead.lastEmailSent = new Date().toISOString();
+          lead.emailsSent = (lead.emailsSent || 0) + 1;
+          lead.lastContacted = new Date().toISOString();
 
-            console.log(`✅ Sent email to ${lead.email}`);
+          sentCount++;
+          console.log(`✅ Sent email ${sentCount}/${leads.length} to ${lead.email}`);
+
+          // Rate limiting: 2 seconds between emails to avoid spam filters
+          if (i < leads.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
 
-          // Rate limiting - wait between sends (2 seconds)
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
         } catch (error) {
-          console.error(`Failed to send to ${lead.email}:`, error);
+          console.error(`❌ Failed to send to ${lead.email}:`, error);
           
-          // Log failed send
-          await prisma.sentEmail.create({
-            data: {
-              email_account_id: campaign.email_account_id,
-              workspace_id: campaign.workspace_id,
-              to: lead.email,
-              subject: 'Failed to generate',
-              body: 'Email generation failed',
-              status: 'failed',
-              error_message: error instanceof Error ? error.message : 'Unknown error',
-              campaign_id: campaign.id,
-              lead_id: lead.id
-            }
+          // ✅ Update lead status in metadata (in-memory)
+          lead.emailCampaignStatus = 'failed';
+          lead.lastError = error instanceof Error ? error.message : 'Unknown error';
+          lead.lastAttempt = new Date().toISOString();
+          
+          errorCount++;
+          errors.push({
+            leadEmail: lead.email,
+            error: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       }
 
-      // Update campaign stats
+      // ✅ Save ALL updated leads back to campaign metadata
       await prisma.emailCampaign.update({
         where: { id: campaignId },
         data: {
-          emails_sent: { increment: emailsSent },
-          status: emailsSent === leads.length ? 'completed' : 'active',
           metadata: {
-            ...(campaign.metadata as any),
-            tokensUsed,
+            ...campaignMetadata,
+            leads,  // ✅ Updated with email statuses
+            lastProcessed: new Date().toISOString(),
             processingTime: Date.now() - startTime,
-            lastProcessed: new Date().toISOString()
-          }
+            stats: {
+              sentCount,
+              errorCount,
+              successRate: leads.length > 0 ? (sentCount / leads.length) * 100 : 0
+            },
+            errors: errors.length > 0 ? errors : undefined
+          },
+          emails_sent: sentCount,
+          status: sentCount === leads.length ? 'completed' : 
+                  errorCount === leads.length ? 'failed' : 'active'
         }
       });
 
-      console.log(`✅ Campaign processed: ${emailsSent}/${leads.length} emails sent in ${Date.now() - startTime}ms`);
+      console.log(`✅ Campaign processing complete: ${sentCount} sent, ${errorCount} errors in ${Date.now() - startTime}ms`);
+
+      return {
+        success: true,
+        sentCount,
+        errorCount,
+        totalLeads: leads.length,
+        processingTime: Date.now() - startTime
+      };
 
     } catch (error) {
-      console.error('Failed to process campaign:', error);
+      console.error('❌ Process campaign error:', error);
       
       // Mark campaign as failed
       await prisma.emailCampaign.update({
         where: { id: campaignId },
-        data: {
-          status: 'paused',
+        data: { 
+          status: 'failed',
           metadata: {
             error: error instanceof Error ? error.message : 'Unknown error',
             failedAt: new Date().toISOString()
           }
         }
       });
+      
+      throw error;
     }
   }
 
-  // ==================== AI EMAIL GENERATION ====================
-
+  /**
+   * Generate personalized email using AI
+   * Uses OpenRouter with caching
+   */
   private async generatePersonalizedEmail(
     lead: any, 
     template: any
-  ): Promise<{ email: PersonalizedEmail; tokens: number }> {
+  ): Promise<PersonalizedEmail> {
+    
+    // Check cache first
+    const cacheKey = `email:${lead.id}:${template.subject}`;
+    
     try {
-      // Check cache first
-      const cacheKey = `email:${lead.id}:${template.method}:${template.tone}`;
       const cached = await this.redis.get(cacheKey);
-      
       if (cached) {
         console.log('✅ Using cached email for:', lead.email);
-        if (typeof cached === 'string') {
-          return { email: JSON.parse(cached), tokens: 0 };
-        }
-        return { email: cached as PersonalizedEmail, tokens: 0 };
+        return typeof cached === 'string' ? JSON.parse(cached) : cached as PersonalizedEmail;
       }
+    } catch (cacheError) {
+      console.warn('⚠️ Cache read error:', cacheError);
+    }
 
-      const prompt = `Generate a highly personalized cold email for:
+    // Generate using AI
+    const prompt = `Generate a professional, personalized cold email based on this template and lead information.
 
-Lead Information:
-- Name: ${lead.first_name} ${lead.last_name}
-- Email: ${lead.email}
+LEAD INFORMATION:
+- Name: ${lead.name}
+- First Name: ${lead.first_name || lead.name.split(' ')[0]}
+- Last Name: ${lead.last_name || lead.name.split(' ').slice(1).join(' ')}
+- Title: ${lead.title}
 - Company: ${lead.company}
-- Job Title: ${lead.job_title}
 - Industry: ${lead.industry}
+- Location: ${lead.location}
+${lead.companySize ? `- Company Size: ${lead.companySize}` : ''}
+${lead.website ? `- Website: ${lead.website}` : ''}
 
-Email Strategy:
-- Method: ${template.method}
-- Tone: ${template.tone}
-- Value Proposition: ${template.valueProposition}
-- Target Industry: ${template.targetIndustry}
-- Target Role: ${template.targetRole}
+EMAIL TEMPLATE:
+Subject: ${template.subject}
+Body: ${template.body}
 
-Generate a professional cold email that:
-1. Addresses them by name
-2. References their company and role
-3. Shows understanding of their industry challenges
-4. Presents the value proposition naturally
-5. Has a clear, low-pressure call to action
+INSTRUCTIONS:
+1. Personalize the email using the lead's information
+2. Replace {{firstName}}, {{company}}, {{title}}, {{industry}}, etc. with actual values
+3. Keep it professional and concise (under 200 words)
+4. Include a clear but low-pressure call-to-action
+5. Make it feel natural and conversational, not robotic or sales-y
+6. Reference their specific role, company, or industry when relevant
 
-CRITICAL: Return ONLY valid JSON with this exact structure:
+Return ONLY a JSON object with this EXACT structure:
 {
-  "subject": "compelling subject line",
-  "body": "email body text with proper formatting",
-  "htmlBody": "<p>HTML formatted email body</p>"
+  "subject": "personalized subject line",
+  "body": "personalized email body with proper line breaks",
+  "htmlBody": "<p>HTML formatted version with proper paragraph tags</p>"
 }`;
 
-      const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert email copywriter. Generate personalized, high-converting cold emails. Always return valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 1000
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          'X-Title': 'ArbitrageOS Email Agent'
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert email copywriter who creates personalized, professional cold emails that convert. Always return valid JSON only, never include markdown code blocks or extra text.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 1000,
+          response_format: { type: 'json_object' }
+        })
       });
 
-      // Parse JSON response
-      let emailData: PersonalizedEmail;
-      try {
-        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          emailData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (parseError) {
-        console.warn('Failed to parse AI response, using fallback:', parseError);
-        emailData = this.generateFallbackEmail(lead, template);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenRouter API error:', response.status, errorText);
+        throw new Error(`AI email generation failed: ${response.status}`);
       }
 
-      // Validate email structure
-      if (!emailData.subject || !emailData.body) {
-        console.warn('Invalid email structure, using fallback');
-        emailData = this.generateFallbackEmail(lead, template);
+      const data = await response.json();
+      let generatedEmail: PersonalizedEmail;
+
+      try {
+        const content = data.choices[0].message.content;
+        
+        // Try to parse directly
+        generatedEmail = JSON.parse(content);
+        
+        // Validate structure
+        if (!generatedEmail.subject || !generatedEmail.body) {
+          throw new Error('Invalid email structure from AI');
+        }
+
+        // Ensure HTML body exists
+        if (!generatedEmail.htmlBody) {
+          generatedEmail.htmlBody = generatedEmail.body
+            .split('\n\n')
+            .map(para => `<p>${para}</p>`)
+            .join('\n');
+        }
+
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        throw parseError;
       }
 
       // Cache for 1 hour
-      await this.redis.set(cacheKey, JSON.stringify(emailData), { ex: 3600 });
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(generatedEmail), { ex: 3600 });
+      } catch (cacheError) {
+        console.warn('⚠️ Cache write error:', cacheError);
+      }
 
-      return {
-        email: emailData,
-        tokens: response.usage.total_tokens
-      };
+      return generatedEmail;
 
     } catch (error) {
-      console.error('Failed to generate personalized email:', error);
+      console.error('❌ AI generation failed, using template fallback:', error);
+      
+      // Fallback: simple template variable replacement
       return {
-        email: this.generateFallbackEmail(lead, template),
-        tokens: 0
+        subject: this.replaceTemplateVariables(template.subject, lead),
+        body: this.replaceTemplateVariables(template.body, lead),
+        htmlBody: this.replaceTemplateVariables(template.body, lead)
+          .split('\n\n')
+          .map(para => `<p>${para}</p>`)
+          .join('\n')
       };
     }
   }
 
-  private generateFallbackEmail(lead: any, template: any): PersonalizedEmail {
-    const subject = `Quick question about ${lead.company}`;
-    const body = `Hi ${lead.first_name},
-
-I noticed ${lead.company} is in the ${lead.industry} space. ${template.valueProposition}
-
-Would you be open to a brief 15-minute call to discuss how this could benefit ${lead.company}?
-
-Best regards`;
-
-    const htmlBody = `
-      <p>Hi ${lead.first_name},</p>
-      <p>I noticed ${lead.company} is in the ${lead.industry} space. ${template.valueProposition}</p>
-      <p>Would you be open to a brief 15-minute call to discuss how this could benefit ${lead.company}?</p>
-      <p>Best regards</p>
-    `;
-
-    return { subject, body, htmlBody };
+  /**
+   * Simple template variable replacement (fallback)
+   */
+  private replaceTemplateVariables(text: string, lead: any): string {
+    return text
+      .replace(/\{\{firstName\}\}/g, lead.first_name || lead.name.split(' ')[0])
+      .replace(/\{\{lastName\}\}/g, lead.last_name || lead.name.split(' ').slice(1).join(' ') || '')
+      .replace(/\{\{name\}\}/g, lead.name)
+      .replace(/\{\{title\}\}/g, lead.title)
+      .replace(/\{\{company\}\}/g, lead.company)
+      .replace(/\{\{industry\}\}/g, lead.industry)
+      .replace(/\{\{location\}\}/g, lead.location)
+      .replace(/\{\{companySize\}\}/g, lead.companySize || 'your organization')
+      .replace(/\{\{website\}\}/g, lead.website || lead.company);
   }
 
   // ==================== INBOUND EMAIL PROCESSING ====================
 
-  async processInboundEmails(emailAccountId: string) {
+  /**
+   * Process inbound emails and match to leads in campaign metadata
+   */
+  async processInboundEmails(emailAccountId: string, workspaceId: string) {
     try {
       console.log('📥 Processing inbound emails for account:', emailAccountId);
 
@@ -423,6 +492,7 @@ Best regards`;
       const inboundEmails = await prisma.inboundEmail.findMany({
         where: {
           email_account_id: emailAccountId,
+          workspace_id: workspaceId,
           processed: false
         },
         orderBy: { received_at: 'desc' },
@@ -435,15 +505,32 @@ Best regards`;
 
       for (const email of inboundEmails) {
         try {
-          // Find related lead
-          const lead = await prisma.lead.findFirst({
+          // ✅ Find campaign that has this lead (search in metadata)
+          const campaigns = await prisma.emailCampaign.findMany({
             where: {
-              email: email.from,
-              workspace_id: email.workspace_id
+              workspace_id: workspaceId,
+              email_account_id: emailAccountId,
+              status: { in: ['active', 'completed'] }
             }
           });
 
-          if (!lead) {
+          let matchedLead: any = null;
+          let matchedCampaign: any = null;
+
+          // Search through campaign metadata for matching lead
+          for (const campaign of campaigns) {
+            const campaignMetadata = campaign.metadata as any;
+            const leads = campaignMetadata?.leads || [];
+            
+            const lead = leads.find((l: any) => l.email === email.from);
+            if (lead) {
+              matchedLead = lead;
+              matchedCampaign = campaign;
+              break;
+            }
+          }
+
+          if (!matchedLead) {
             console.log(`No lead found for ${email.from}`);
             await prisma.inboundEmail.update({
               where: { id: email.id },
@@ -452,18 +539,35 @@ Best regards`;
             continue;
           }
 
+          console.log(`✅ Matched email from ${email.from} to campaign ${matchedCampaign.name}`);
+
           // Analyze sentiment using AI
           const { sentiment, summary } = await this.analyzeSentiment(email.body);
           
-          // Update lead based on sentiment
-          await prisma.lead.update({
-            where: { id: lead.id },
-            data: {
-              status: sentiment === 'interested' ? 'interested' : 
-                     sentiment === 'negative' ? 'not_interested' : 'replied',
-              last_reply: new Date()
-            }
-          });
+          // ✅ Update lead in campaign metadata
+          const campaignMetadata = matchedCampaign.metadata as any;
+          const leads = campaignMetadata.leads || [];
+          const leadIndex = leads.findIndex((l: any) => l.email === email.from);
+          
+          if (leadIndex !== -1) {
+            leads[leadIndex].status = sentiment === 'interested' ? 'interested' : 
+                                      sentiment === 'negative' ? 'not_interested' : 'replied';
+            leads[leadIndex].last_reply = new Date().toISOString();
+            leads[leadIndex].emailsReplied = (leads[leadIndex].emailsReplied || 0) + 1;
+            leads[leadIndex].lastSentiment = sentiment;
+            
+            // Save back to campaign
+            await prisma.emailCampaign.update({
+              where: { id: matchedCampaign.id },
+              data: {
+                metadata: {
+                  ...campaignMetadata,
+                  leads
+                },
+                emails_replied: { increment: 1 }
+              }
+            });
+          }
 
           // Update email record
           await prisma.inboundEmail.update({
@@ -477,8 +581,8 @@ Best regards`;
           });
 
           // If interested and auto-reply enabled, generate response
-          if (sentiment === 'interested') {
-            await this.handleInterestedReply(email, lead);
+          if (sentiment === 'interested' && matchedCampaign.auto_reply) {
+            await this.handleInterestedReply(email, matchedLead, matchedCampaign);
           }
 
           processedCount++;
@@ -502,91 +606,121 @@ Best regards`;
 
       console.log(`✅ Processed ${processedCount}/${inboundEmails.length} inbound emails`);
 
+      return {
+        success: true,
+        processed: processedCount,
+        total: inboundEmails.length
+      };
+
     } catch (error) {
       console.error('Failed to process inbound emails:', error);
+      throw error;
     }
   }
 
+  /**
+   * Analyze email sentiment using AI
+   */
   private async analyzeSentiment(emailBody: string): Promise<{ sentiment: string; summary: string }> {
     try {
       // Check cache
-      const cacheKey = `sentiment:${Buffer.from(emailBody).toString('base64').substring(0, 50)}`;
-      const cached = await this.redis.get(cacheKey);
+      const cacheKey = `sentiment:${Buffer.from(emailBody.substring(0, 100)).toString('base64')}`;
       
-      if (cached) {
-        if (typeof cached === 'string') {
-          return JSON.parse(cached);
+      try {
+        const cached = await this.redis.get(cacheKey);
+        if (cached) {
+          return typeof cached === 'string' ? JSON.parse(cached) : cached as { sentiment: string; summary: string };
         }
-        return cached as { sentiment: string; summary: string };
+      } catch (cacheError) {
+        console.warn('⚠️ Cache read error:', cacheError);
       }
 
-      const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o-mini',
-        messages: [{
-          role: 'user',
-          content: `Analyze this email reply and return ONLY valid JSON:
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          'X-Title': 'ArbitrageOS Email Agent'
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-4o-mini',
+          messages: [{
+            role: 'user',
+            content: `Analyze this email reply and determine the sender's sentiment. Return ONLY valid JSON:
 
 Email: ${emailBody}
 
 Return format:
 {
   "sentiment": "interested" | "neutral" | "negative" | "not_interested",
-  "summary": "brief summary of the email content"
-}`
-        }],
-        temperature: 0.3,
-        max_tokens: 200
+  "summary": "brief 1-sentence summary"
+}
+
+Sentiment definitions:
+- interested: Positive response, wants to learn more, asks questions, requests meeting
+- neutral: Acknowledges but non-committal, asks for more info later
+- negative: Politely declines, not right fit, wrong timing
+- not_interested: Explicitly not interested, unsubscribe, do not contact`
+          }],
+          temperature: 0.3,
+          max_tokens: 200,
+          response_format: { type: 'json_object' }
+        })
       });
 
-      // Parse response
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const result = JSON.parse(jsonMatch[0]);
-        
-        // Validate sentiment
-        const validSentiments = ['interested', 'neutral', 'negative', 'not_interested'];
-        if (!validSentiments.includes(result.sentiment)) {
-          result.sentiment = 'neutral';
-        }
-
-        // Cache for 24 hours
-        await this.redis.set(cacheKey, JSON.stringify(result), { ex: 86400 });
-        
-        return result;
+      if (!response.ok) {
+        throw new Error('Sentiment analysis failed');
       }
 
-      return { sentiment: 'neutral', summary: 'Unable to analyze' };
+      const data = await response.json();
+      const result = JSON.parse(data.choices[0].message.content);
+
+      // Validate sentiment
+      const validSentiments = ['interested', 'neutral', 'negative', 'not_interested'];
+      if (!validSentiments.includes(result.sentiment)) {
+        result.sentiment = 'neutral';
+      }
+
+      // Cache for 24 hours
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(result), { ex: 86400 });
+      } catch (cacheError) {
+        console.warn('⚠️ Cache write error:', cacheError);
+      }
+      
+      return result;
 
     } catch (error) {
       console.error('Failed to analyze sentiment:', error);
-      return { sentiment: 'neutral', summary: 'Analysis failed' };
+      return { sentiment: 'neutral', summary: 'Unable to analyze' };
     }
   }
 
-  private async handleInterestedReply(email: any, lead: any) {
+  /**
+   * Handle auto-reply for interested responses
+   */
+  private async handleInterestedReply(email: any, lead: any, campaign: any) {
     try {
       console.log(`💚 Handling interested reply from ${lead.email}`);
 
-      // Find campaign to check auto-reply setting
-      const campaign = await prisma.emailCampaign.findFirst({
-        where: {
-          workspace_id: email.workspace_id,
-          auto_reply: true,
-          status: 'active'
-        }
-      });
-
-      if (!campaign) {
-        console.log('No active campaign with auto-reply enabled');
-        return;
-      }
+      const { EmailConnectionService } = await import('./emailConnection.service');
+      const emailService = new EmailConnectionService();
 
       // Generate appropriate response
-      const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o-mini',
-        messages: [{
-          role: 'user',
-          content: `The prospect ${lead.first_name} ${lead.last_name} from ${lead.company} replied positively.
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          'X-Title': 'ArbitrageOS Email Agent'
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-4o-mini',
+          messages: [{
+            role: 'user',
+            content: `${lead.first_name} ${lead.last_name} from ${lead.company} replied positively to our email.
 
 Their reply: ${email.body}
 
@@ -601,38 +735,33 @@ The response should:
 1. Thank them for their interest
 2. Suggest a specific next step (call, demo, meeting)
 3. Offer to answer questions
-4. Be warm but professional`
-        }],
-        temperature: 0.7,
-        max_tokens: 800
+4. Be warm but professional
+5. Include a clear call-to-action`
+          }],
+          temperature: 0.7,
+          max_tokens: 800,
+          response_format: { type: 'json_object' }
+        })
       });
 
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const reply = JSON.parse(jsonMatch[0]);
+      if (response.ok) {
+        const data = await response.json();
+        const reply = JSON.parse(data.choices[0].message.content);
         
-        // Send the reply
-        const emailAccount = await prisma.emailAccount.findFirst({
-          where: {
-            workspace_id: email.workspace_id,
-            email: email.to
+        // Send the auto-reply
+        await emailService.sendEmail(
+          campaign.email_account_id,
+          lead.email,
+          reply.subject || `Re: ${email.subject}`,
+          reply.body,
+          {
+            html: reply.htmlBody,
+            campaignId: campaign.id,
+            leadId: lead.id
           }
-        });
+        );
 
-        if (emailAccount) {
-          await this.emailService.sendEmail(
-            emailAccount.id,
-            lead.email,
-            reply.subject || `Re: ${email.subject}`,
-            reply.body,
-            {
-              html: reply.htmlBody,
-              leadId: lead.id
-            }
-          );
-
-          console.log(`✅ Sent auto-reply to ${lead.email}`);
-        }
+        console.log(`✅ Sent auto-reply to ${lead.email}`);
       }
 
     } catch (error) {
@@ -640,232 +769,19 @@ The response should:
     }
   }
 
-  // ==================== FOLLOW-UP AUTOMATION ====================
+  // ==================== CAMPAIGN CONTROL ====================
 
-  async scheduleFollowups(campaignId: string) {
-    try {
-      const campaign = await prisma.emailCampaign.findUnique({
-        where: { id: campaignId }
-      });
-
-      if (!campaign || !campaign.auto_followup) {
-        return;
-      }
-
-      // Find leads that haven't replied
-      const dripDays = campaign.drip_interval || 3;
-      const cutoffDate = new Date(Date.now() - dripDays * 24 * 60 * 60 * 1000);
-
-      const sentEmails = await prisma.sentEmail.findMany({
-        where: {
-          campaign_id: campaignId,
-          status: 'sent',
-          replied_at: null,
-          sent_at: { lte: cutoffDate }
-        },
-        include: {
-          thread: true,
-          lead: true
-        }
-      });
-
-      console.log(`📅 Scheduling ${sentEmails.length} follow-ups for campaign ${campaign.name}`);
-
-      for (const sentEmail of sentEmails) {
-        if (!sentEmail.lead) continue;
-
-        // Check if already sent max followups
-        const followupCount = await prisma.sentEmail.count({
-          where: {
-            thread_id: sentEmail.thread_id,
-            lead_id: sentEmail.lead_id
-          }
-        });
-
-        if (followupCount >= campaign.max_followups) {
-          console.log(`Max follow-ups reached for ${sentEmail.lead.email}`);
-          continue;
-        }
-
-        // Generate and send followup
-        await this.sendFollowup(campaign, sentEmail);
-      }
-
-    } catch (error) {
-      console.error('Failed to schedule followups:', error);
-    }
-  }
-
-  private async sendFollowup(campaign: any, originalEmail: any) {
-    try {
-      const lead = originalEmail.lead;
-      if (!lead) return;
-
-      const followupNumber = await prisma.sentEmail.count({
-        where: {
-          thread_id: originalEmail.thread_id,
-          lead_id: lead.id
-        }
-      }) + 1;
-
-      // Generate followup content
-      const response = await this.openRouterClient.complete({
-        model: 'openai/gpt-4o-mini',
-        messages: [{
-          role: 'user',
-          content: `Generate follow-up email #${followupNumber} as JSON:
-
-Original email:
-Subject: ${originalEmail.subject}
-Body: ${originalEmail.body}
-
-Lead: ${lead.first_name} ${lead.last_name} from ${lead.company}
-
-Return format:
-{
-  "subject": "Re: [original subject]",
-  "body": "follow-up email text",
-  "htmlBody": "<p>HTML formatted follow-up</p>"
-}
-
-This is follow-up #${followupNumber}. Make it:
-1. Brief and respectful
-2. Add new value or perspective
-3. Low pressure but clear CTA
-4. Professional tone`
-        }],
-        temperature: 0.7,
-        max_tokens: 800
-      });
-
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const followup = JSON.parse(jsonMatch[0]);
-        
-        // Send followup
-        await this.emailService.sendEmail(
-          campaign.email_account_id,
-          lead.email,
-          followup.subject || `Re: ${originalEmail.subject}`,
-          followup.body,
-          {
-            html: followup.htmlBody,
-            threadId: originalEmail.thread_id,
-            campaignId: campaign.id,
-            leadId: lead.id
-          }
-        );
-
-        console.log(`✅ Sent follow-up #${followupNumber} to ${lead.email}`);
-      }
-
-    } catch (error) {
-      console.error('Failed to send followup:', error);
-    }
-  }
-
-  // ==================== ANALYTICS & REPORTING ====================
-
-  async getCampaignAnalytics(
-    userId: string,
-    workspaceId: string,
-    timeframe: 'week' | 'month' | 'quarter' = 'month'
-  ): Promise<CampaignAnalytics> {
-    try {
-      // Calculate date filter
-      const now = new Date();
-      const dateFilter = new Date();
-      
-      switch (timeframe) {
-        case 'week':
-          dateFilter.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          dateFilter.setMonth(now.getMonth() - 1);
-          break;
-        case 'quarter':
-          dateFilter.setMonth(now.getMonth() - 3);
-          break;
-      }
-
-      // Get all campaigns
-      const campaigns = await prisma.emailCampaign.findMany({
-        where: {
-          user_id: userId,
-          workspace_id: workspaceId
-        }
-      });
-
-      // Get sentiment distribution
-      const sentimentCounts = await prisma.inboundEmail.groupBy({
-        by: ['sentiment'],
-        where: {
-          workspace_id: workspaceId,
-          received_at: { gte: dateFilter }
-        },
-        _count: true
-      });
-
-      const sentimentDistribution = {
-        interested: 0,
-        neutral: 0,
-        negative: 0,
-        not_interested: 0
-      };
-
-      sentimentCounts.forEach(item => {
-        if (item.sentiment && item.sentiment in sentimentDistribution) {
-          sentimentDistribution[item.sentiment as keyof typeof sentimentDistribution] = item._count;
-        }
-      });
-
-      // Calculate metrics
-      const totalEmailsSent = campaigns.reduce((sum, c) => sum + c.emails_sent, 0);
-      const totalEmailsOpened = campaigns.reduce((sum, c) => sum + c.emails_opened, 0);
-      const totalEmailsReplied = campaigns.reduce((sum, c) => sum + c.emails_replied, 0);
-
-      // Top performing campaigns
-      const topPerforming = campaigns
-        .map(c => ({
-          id: c.id,
-          name: c.name,
-          openRate: c.emails_sent > 0 ? (c.emails_opened / c.emails_sent) * 100 : 0,
-          replyRate: c.emails_sent > 0 ? (c.emails_replied / c.emails_sent) * 100 : 0
-        }))
-        .sort((a, b) => b.replyRate - a.replyRate)
-        .slice(0, 5);
-
-      return {
-        totalCampaigns: campaigns.length,
-        activeCampaigns: campaigns.filter(c => c.status === 'active').length,
-        emailsSent: totalEmailsSent,
-        emailsOpened: totalEmailsOpened,
-        emailsReplied: totalEmailsReplied,
-        averageOpenRate: totalEmailsSent > 0 ? (totalEmailsOpened / totalEmailsSent) * 100 : 0,
-        averageReplyRate: totalEmailsSent > 0 ? (totalEmailsReplied / totalEmailsSent) * 100 : 0,
-        topPerformingCampaigns: topPerforming,
-        sentimentDistribution
-      };
-
-    } catch (error) {
-      console.error('Failed to get campaign analytics:', error);
-      throw error;
-    }
-  }
-
-  // ==================== HELPER METHODS ====================
-
-  private async invalidateCampaignCache(userId: string, workspaceId: string) {
-    const cacheKey = `campaigns:${userId}:${workspaceId}`;
-    await this.redis.del(cacheKey);
-  }
-
+  /**
+   * Pause campaign
+   */
   async pauseCampaign(campaignId: string): Promise<boolean> {
     try {
       await prisma.emailCampaign.update({
         where: { id: campaignId },
         data: { status: 'paused' }
       });
+      
+      console.log(`⏸️ Campaign ${campaignId} paused`);
       return true;
     } catch (error) {
       console.error('Failed to pause campaign:', error);
@@ -873,12 +789,23 @@ This is follow-up #${followupNumber}. Make it:
     }
   }
 
+  /**
+   * Resume campaign
+   */
   async resumeCampaign(campaignId: string): Promise<boolean> {
     try {
       await prisma.emailCampaign.update({
         where: { id: campaignId },
         data: { status: 'active' }
       });
+      
+      console.log(`▶️ Campaign ${campaignId} resumed`);
+      
+      // Resume processing in background
+      this.processCampaign(campaignId).catch(error => {
+        console.error('Background campaign resume error:', error);
+      });
+      
       return true;
     } catch (error) {
       console.error('Failed to resume campaign:', error);
@@ -886,6 +813,9 @@ This is follow-up #${followupNumber}. Make it:
     }
   }
 
+  /**
+   * Delete campaign
+   */
   async deleteCampaign(userId: string, campaignId: string): Promise<boolean> {
     try {
       const result = await prisma.emailCampaign.deleteMany({
@@ -894,10 +824,167 @@ This is follow-up #${followupNumber}. Make it:
           user_id: userId
         }
       });
+      
+      console.log(`🗑️ Campaign ${campaignId} deleted`);
       return result.count > 0;
     } catch (error) {
       console.error('Failed to delete campaign:', error);
       return false;
     }
   }
+
+  // ==================== ANALYTICS ====================
+
+  /**
+   * Get campaign analytics
+   */
+  async getCampaignAnalytics(campaignId: string) {
+    try {
+      const campaign = await prisma.emailCampaign.findUnique({
+        where: { id: campaignId },
+        include: {
+          sentEmails: true
+        }
+      });
+
+      if (!campaign) {
+        throw new Error('Campaign not found');
+      }
+
+      const metadata = campaign.metadata as any;
+      const leads = metadata?.leads || [];
+
+      // Calculate metrics from SentEmail table
+      const sentEmails = campaign.sentEmails;
+      const openedCount = sentEmails.filter((e: any) => e.opened_at).length;
+      const clickedCount = sentEmails.filter((e: any) => e.clicked_at).length;
+      const repliedCount = sentEmails.filter((e: any) => e.replied_at).length;
+
+      // Calculate rates
+      const openRate = sentEmails.length > 0 ? (openedCount / sentEmails.length) * 100 : 0;
+      const clickRate = sentEmails.length > 0 ? (clickedCount / sentEmails.length) * 100 : 0;
+      const replyRate = sentEmails.length > 0 ? (repliedCount / sentEmails.length) * 100 : 0;
+
+      // Sentiment distribution from leads in metadata
+      const sentimentDistribution = {
+        interested: leads.filter((l: any) => l.status === 'interested').length,
+        neutral: leads.filter((l: any) => l.status === 'replied' || l.status === 'neutral').length,
+        negative: leads.filter((l: any) => l.status === 'not_interested').length,
+        not_sent: leads.filter((l: any) => l.emailCampaignStatus === 'not_sent').length,
+        sent: leads.filter((l: any) => l.emailCampaignStatus === 'sent').length,
+        failed: leads.filter((l: any) => l.emailCampaignStatus === 'failed').length
+      };
+
+      return {
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        status: campaign.status,
+        
+        // Lead metrics
+        totalLeads: leads.length,
+        
+        // Email metrics
+        emailsSent: sentEmails.length,
+        emailsOpened: openedCount,
+        emailsClicked: clickedCount,
+        emailsReplied: repliedCount,
+        
+        // Rates
+        openRate: Math.round(openRate * 10) / 10,
+        clickRate: Math.round(clickRate * 10) / 10,
+        replyRate: Math.round(replyRate * 10) / 10,
+        
+        // Sentiment
+        sentimentDistribution,
+        
+        // Processing stats
+        processingTime: metadata?.processingTime,
+        lastProcessed: metadata?.lastProcessed,
+        
+        // Metadata stats
+        stats: metadata?.stats
+      };
+
+    } catch (error) {
+      console.error('Failed to get campaign analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get workspace-wide email analytics
+   */
+async getWorkspaceAnalytics(userId: string, workspaceId: string) {
+  try {
+    const campaigns = await prisma.emailCampaign.findMany({
+      where: {
+        user_id: userId,
+        workspace_id: workspaceId
+      },
+      include: {
+        sentEmails: true
+      }
+    });
+
+    const totalCampaigns = campaigns.length;
+    const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
+    
+    // Aggregate metrics
+    let totalLeads = 0;
+    let totalSent = 0;
+    let totalOpened = 0;
+    let totalClicked = 0;
+    let totalReplied = 0;
+
+    campaigns.forEach(campaign => {
+      const metadata = campaign.metadata as any;
+      totalLeads += metadata?.leads?.length || 0;
+      
+      totalSent += campaign.sentEmails.length;
+      totalOpened += campaign.sentEmails.filter((e: any) => e.opened_at).length;
+      totalClicked += campaign.sentEmails.filter((e: any) => e.clicked_at).length;
+      totalReplied += campaign.sentEmails.filter((e: any) => e.replied_at).length;
+    });
+
+    // ✅ Calculate top performing campaigns
+    const campaignPerformance = campaigns
+      .filter(c => c.sentEmails.length > 0) // Only campaigns with sent emails
+      .map(campaign => {
+        const opened = campaign.sentEmails.filter((e: any) => e.opened_at).length;
+        const replied = campaign.sentEmails.filter((e: any) => e.replied_at).length;
+        const sent = campaign.sentEmails.length;
+        
+        return {
+          id: campaign.id,
+          name: campaign.name,
+          openRate: sent > 0 ? (opened / sent) * 100 : 0,
+          replyRate: sent > 0 ? (replied / sent) * 100 : 0
+        };
+      })
+      .sort((a, b) => b.replyRate - a.replyRate) // Sort by reply rate (most important)
+      .slice(0, 5); // Top 5
+
+    return {
+      totalCampaigns,
+      activeCampaigns,
+      totalLeads,
+      emailsSent: totalSent,  // ✅ FIXED: Changed from totalSent
+      emailsOpened: totalOpened,  // ✅ FIXED: Changed from totalOpened
+      emailsReplied: totalReplied,  // ✅ FIXED: Changed from totalReplied
+      averageOpenRate: totalSent > 0 ? Math.round((totalOpened / totalSent) * 1000) / 10 : 0,
+      averageReplyRate: totalSent > 0 ? Math.round((totalReplied / totalSent) * 1000) / 10 : 0,
+      topPerformingCampaigns: campaignPerformance,  // ✅ NEW: Added top campaigns
+      sentimentDistribution: {  // ✅ NEW: Added to match interface
+        interested: 0,
+        neutral: 0,
+        negative: 0,
+        not_interested: 0
+      }
+    };
+
+  } catch (error) {
+    console.error('Failed to get workspace analytics:', error);
+    throw error;
+  }
+}
 }
