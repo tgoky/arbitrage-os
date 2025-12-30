@@ -30,6 +30,7 @@ import {
   SendOutlined,
   UserOutlined,
   RobotOutlined,
+  TeamOutlined,
   ThunderboltOutlined,
   CheckCircleOutlined,
   EyeOutlined,
@@ -156,6 +157,31 @@ const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: 
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+
+  const [leadGenerations, setLeadGenerations] = useState<any[]>([]);
+const [selectedGeneration, setSelectedGeneration] = useState<string>('');
+const [generationLeads, setGenerationLeads] = useState<any[]>([]);
+const [leadImportMode, setLeadImportMode] = useState<'generation' | 'manual'>('generation');
+
+
+const loadLeadGenerations = async () => {
+  if (!workspaceId || workspaceId === 'undefined') {
+    console.warn('⚠️ Skipping lead generations load - invalid workspace ID');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/lead-generation?workspaceId=${workspaceId}`);
+    const data = await res.json();
+    
+    if (data.success && data.data) {
+      setLeadGenerations(data.data);
+      console.log(`✅ Loaded ${data.data.length} lead generation campaigns`);
+    }
+  } catch (error) {
+    console.error('Failed to load lead generations:', error);
+  }
+};
   
   const [connectModalVisible, setConnectModalVisible] = useState(false);
   const [campaignModalVisible, setCampaignModalVisible] = useState(false);
@@ -164,6 +190,7 @@ const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: 
     description: '',
     emailAccountId: '',
     leadIds: [] as string[],
+     manualLeadEmails: '',
     scheduleType: 'immediate' as 'immediate' | 'scheduled' | 'drip',
     autoReply: true,
     autoFollowup: true,
@@ -214,9 +241,52 @@ useEffect(() => {
   }
 }, [searchParams, router]);
 
-  useEffect(() => {
+useEffect(() => {
+  if (workspaceId && workspaceId !== 'undefined') {
     loadDashboardData();
-  }, [workspaceId]);
+    loadLeadGenerations(); // ✅ ADD THIS
+  }
+}, [workspaceId]);
+
+
+const handleGenerationSelect = async (generationId: string) => {
+  setSelectedGeneration(generationId);
+  
+  try {
+    const res = await fetch(`/api/lead-generation/${generationId}`);
+    const data = await res.json();
+    
+    if (data.success && data.data.leads) {
+      setGenerationLeads(data.data.leads);
+      
+      // Auto-select all leads with valid emails
+      const leadsWithEmail = data.data.leads
+        .filter((lead: any) => 
+          lead.email && 
+          lead.email !== "email_not_unlocked@domain.com" &&
+          !lead.email.includes('example.com')
+        )
+        .map((lead: any) => lead.id);
+      
+      setCampaignForm({
+        ...campaignForm,
+        leadIds: leadsWithEmail
+      });
+      
+      notification.success({
+        message: 'Leads Loaded',
+        description: `Selected ${leadsWithEmail.length} leads with valid emails from this campaign`,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load generation leads:', error);
+    notification.error({
+      message: 'Load Failed',
+      description: 'Failed to load leads from this campaign',
+    });
+  }
+};
+
 
   const getErrorMessage = (error: string) => {
     const messages: Record<string, string> = {
@@ -236,7 +306,7 @@ useEffect(() => {
     return;
   }
 
-  
+
     setPageLoading(true);
     try {
       await Promise.all([
@@ -443,80 +513,126 @@ useEffect(() => {
     });
   };
 
+
   const handleCreateCampaign = async () => {
-    if (!campaignForm.name || !campaignForm.emailAccountId || campaignForm.leadIds.length === 0) {
-      notification.error({
-        message: 'Validation Error',
-        description: 'Please fill in campaign name, select an email account, and choose at least one lead',
-      });
-      return;
-    }
-
-    if (!campaignForm.emailTemplate.valueProposition) {
-      notification.error({
-        message: 'Validation Error',
-        description: 'Please provide your value proposition',
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/email-agent/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId,
-          ...campaignForm,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        notification.success({
-          message: 'Campaign Created',
-          description: `Campaign "${campaignForm.name}" has been created and ${campaignForm.scheduleType === 'immediate' ? 'is now sending emails' : 'saved as draft'}`,
-          duration: 5,
-        });
-        
-        setCampaignModalVisible(false);
-        resetCampaignForm();
-        loadCampaigns();
-        loadAnalytics();
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      notification.error({
-        message: 'Campaign Creation Failed',
-        description: error.message || 'Failed to create campaign',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetCampaignForm = () => {
-    setCampaignForm({
-      name: '',
-      description: '',
-      emailAccountId: '',
-      leadIds: [],
-      scheduleType: 'immediate',
-      autoReply: true,
-      autoFollowup: true,
-      maxFollowups: 3,
-      dripInterval: 3,
-      emailTemplate: {
-        method: 'value_proposition',
-        tone: 'professional',
-        valueProposition: '',
-        targetIndustry: '',
-        targetRole: '',
-      }
+  if (!campaignForm.name || !campaignForm.emailAccountId || campaignForm.leadIds.length === 0) {
+    notification.error({
+      message: 'Validation Error',
+      description: 'Please fill in campaign name, select an email account, and choose at least one lead',
     });
-  };
+    return;
+  }
+
+  if (!campaignForm.emailTemplate.valueProposition) {
+    notification.error({
+      message: 'Validation Error',
+      description: 'Please provide your value proposition',
+    });
+    return;
+  }
+
+  setLoading(true);
+  try {
+    // ✅ Process manual leads if in manual mode
+    let finalLeadIds = campaignForm.leadIds;
+    
+    if (leadImportMode === 'manual' && campaignForm.manualLeadEmails) {
+      // Parse manual emails
+      const manualEmails = campaignForm.manualLeadEmails
+        .split(/[\n,]+/)
+        .map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          const email = parts[0];
+          const name = parts[1] || email.split('@')[0];
+          const company = parts[2] || email.split('@')[1]?.split('.')[0] || 'Unknown';
+          
+          return {
+            email,
+            name,
+            company
+          };
+        })
+        .filter(lead => lead.email && lead.email.includes('@'));
+      
+      // Create manual lead objects that match the expected format
+      finalLeadIds = manualEmails.map(lead => lead.email);
+    }
+
+    const res = await fetch('/api/email-agent/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workspaceId,
+        campaignName: campaignForm.name,
+        description: campaignForm.description,
+        emailAccountId: campaignForm.emailAccountId,
+        leadIds: finalLeadIds,
+        isManualEntry: leadImportMode === 'manual', // ✅ Flag for backend
+        manualLeadData: leadImportMode === 'manual' ? campaignForm.manualLeadEmails : undefined, // ✅ Send raw data
+        scheduleType: campaignForm.scheduleType,
+        autoReply: campaignForm.autoReply,
+        autoFollowup: campaignForm.autoFollowup,
+        maxFollowups: campaignForm.maxFollowups,
+        dripInterval: campaignForm.dripInterval,
+        emailTemplate: {
+          subject: `Reaching out from ${currentWorkspace?.name || 'our company'}`,
+          body: campaignForm.emailTemplate.valueProposition
+        }
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      notification.success({
+        message: 'Campaign Created',
+        description: `Campaign "${campaignForm.name}" has been created and ${campaignForm.scheduleType === 'immediate' ? 'is now sending emails' : 'saved as draft'}`,
+        duration: 5,
+      });
+      
+      setCampaignModalVisible(false);
+      resetCampaignForm();
+      loadCampaigns();
+      loadAnalytics();
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (error: any) {
+    notification.error({
+      message: 'Campaign Creation Failed',
+      description: error.message || 'Failed to create campaign',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const resetCampaignForm = () => {
+  setCampaignForm({
+    name: '',
+    description: '',
+    emailAccountId: '',
+    leadIds: [],
+    manualLeadEmails: '', // ✅ ADD THIS LINE
+    scheduleType: 'immediate',
+    autoReply: true,
+    autoFollowup: true,
+    maxFollowups: 3,
+    dripInterval: 3,
+    emailTemplate: {
+      method: 'value_proposition',
+      tone: 'professional',
+      valueProposition: '',
+      targetIndustry: '',
+      targetRole: '', 
+    }
+  });
+  
+  setSelectedGeneration('');
+  setGenerationLeads([]);
+  setLeadImportMode('generation');
+};
+
 
   const handlePauseCampaign = async (campaignId: string) => {
     try {
@@ -1182,29 +1298,286 @@ useEffect(() => {
             </Select>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
-              Select Leads *
-            </label>
-            <Select 
-              mode="multiple" 
-              placeholder="Select leads to email"
-              style={{ width: '100%' }}
-              value={campaignForm.leadIds}
-              onChange={(value) => setCampaignForm({...campaignForm, leadIds: value})}
-              maxTagCount="responsive"
-            >
-              {leads.filter((l) => l.status === 'new' || l.status === 'contacted').map((lead) => (
+
+
+<div>
+  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+    Select Leads *
+  </label>
+  
+  {/* Import Mode Selector */}
+  <div style={{ marginBottom: '12px' }}>
+    <Button.Group style={{ width: '100%' }}>
+      <Button
+        type={leadImportMode === 'generation' ? 'primary' : 'default'}
+        onClick={() => setLeadImportMode('generation')}
+        style={{ 
+          width: '50%',
+          backgroundColor: leadImportMode === 'generation' ? '#5CC49D' : undefined,
+          borderColor: leadImportMode === 'generation' ? '#5CC49D' : undefined,
+          color: leadImportMode === 'generation' ? '#000' : undefined
+        }}
+        icon={<TeamOutlined />}
+      >
+        Import from Lead Gen
+      </Button>
+      <Button
+        type={leadImportMode === 'manual' ? 'primary' : 'default'}
+        onClick={() => {
+          setLeadImportMode('manual');
+          setSelectedGeneration('');
+          setGenerationLeads([]);
+        }}
+        style={{ 
+          width: '50%',
+          backgroundColor: leadImportMode === 'manual' ? '#5CC49D' : undefined,
+          borderColor: leadImportMode === 'manual' ? '#5CC49D' : undefined,
+          color: leadImportMode === 'manual' ? '#000' : undefined
+        }}
+        icon={<UserOutlined />}
+      >
+        Manual Entry
+      </Button>
+    </Button.Group>
+  </div>
+
+  {/* IMPORT MODE: From Lead Generation */}
+  {leadImportMode === 'generation' ? (
+    <div>
+      {/* Step 1: Select Campaign */}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#666' }}>
+          1. Choose Lead Generation Campaign
+        </label>
+        <Select
+          placeholder="Select a lead generation campaign"
+          style={{ width: '100%' }}
+          value={selectedGeneration || undefined}
+          onChange={handleGenerationSelect}
+          loading={leadGenerations.length === 0}
+          showSearch
+          optionFilterProp="children"
+        >
+          {leadGenerations.map((gen) => (
+            <Option key={gen.id} value={gen.id}>
+              <div>
+                <div style={{ fontWeight: 500 }}>{gen.title}</div>
+                <div style={{ fontSize: '11px', color: '#666' }}>
+                  {gen.metadata?.leadCount || 0} leads • 
+                  Created {new Date(gen.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </Option>
+          ))}
+        </Select>
+        
+        {leadGenerations.length === 0 && (
+          <Alert
+            message="No Lead Campaigns Found"
+            description={
+              <span>
+                You have not generated any leads yet.{' '}
+                <a 
+                  href="/lead-generation/create" 
+                  target="_blank"
+                  style={{ color: '#5CC49D', fontWeight: 500 }}
+                >
+                  Create your first lead generation campaign
+                </a>
+              </span>
+            }
+            type="info"
+            showIcon
+            style={{ marginTop: '12px' }}
+          />
+        )}
+      </div>
+
+      {/* Step 2: Select Specific Leads */}
+      {selectedGeneration && generationLeads.length > 0 && (
+        <div>
+          <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#666' }}>
+            2. Select Leads to Email
+          </label>
+          <Select
+            mode="multiple"
+            placeholder="Select leads from this campaign"
+            style={{ width: '100%' }}
+            value={campaignForm.leadIds}
+            onChange={(value) => setCampaignForm({...campaignForm, leadIds: value})}
+            maxTagCount="responsive"
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) => {
+              const lead = generationLeads.find(l => l.id === option?.value);
+              if (!lead) return false;
+              const searchStr = `${lead.name} ${lead.company} ${lead.title} ${lead.email}`.toLowerCase();
+              return searchStr.includes(input.toLowerCase());
+            }}
+          >
+            {generationLeads
+              .filter((lead) => 
+                lead.email && 
+                lead.email !== "email_not_unlocked@domain.com" &&
+                !lead.email.includes('example.com')
+              )
+              .map((lead) => (
                 <Option key={lead.id} value={lead.id}>
-                  {lead.first_name} {lead.last_name} - {lead.company || lead.email}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead.title} at {lead.company}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead.email}
+                      </div>
+                    </div>
+                    <div style={{ 
+                      marginLeft: '12px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      color: '#fff',
+                      backgroundColor: lead.score >= 80 ? '#52c41a' : 
+                                     lead.score >= 60 ? '#faad14' : '#ff4d4f'
+                    }}>
+                      {lead.score}
+                    </div>
+                  </div>
                 </Option>
               ))}
-            </Select>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              {campaignForm.leadIds.length} lead(s) selected
-            </div>
+          </Select>
+
+          {/* Quick Action Buttons */}
+          <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+            <Button
+              size="small"
+              onClick={() => {
+                const allIds = generationLeads
+                  .filter((lead) => 
+                    lead.email && 
+                    lead.email !== "email_not_unlocked@domain.com" &&
+                    !lead.email.includes('example.com')
+                  )
+                  .map(l => l.id);
+                setCampaignForm({...campaignForm, leadIds: allIds});
+              }}
+            >
+              Select All ({generationLeads.filter(l => 
+                l.email && 
+                l.email !== "email_not_unlocked@domain.com" &&
+                !l.email.includes('example.com')
+              ).length})
+            </Button>
+            <Button
+              size="small"
+              onClick={() => {
+                const highScoreIds = generationLeads
+                  .filter((lead) => 
+                    lead.score >= 80 &&
+                    lead.email && 
+                    lead.email !== "email_not_unlocked@domain.com" &&
+                    !lead.email.includes('example.com')
+                  )
+                  .map(l => l.id);
+                setCampaignForm({...campaignForm, leadIds: highScoreIds});
+              }}
+            >
+              High Score Only (80+)
+            </Button>
+            <Button
+              size="small"
+              onClick={() => setCampaignForm({...campaignForm, leadIds: []})}
+            >
+              Clear
+            </Button>
           </div>
 
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+            ✓ {campaignForm.leadIds.length} lead(s) selected
+          </div>
+        </div>
+      )}
+    </div>
+  ) : (
+    /* MANUAL MODE: Traditional manual entry */
+    <div>
+      <Alert
+        message="Manual Lead Entry"
+        description="Enter lead information manually. You can add multiple leads by separating emails with commas."
+        type="info"
+        showIcon
+        style={{ marginBottom: '12px' }}
+      />
+      
+      {/* Manual Lead Input Fields */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 500 }}>
+            Lead Emails *
+          </label>
+          <TextArea
+            rows={4}
+            placeholder="Enter email addresses (one per line or comma-separated)&#10;e.g.,&#10;john@company.com&#10;sarah@business.com&#10;mike@startup.com"
+            value={campaignForm.manualLeadEmails || ''}
+            onChange={(e) => {
+              // Parse emails and create leadIds
+              const emailLines = e.target.value
+                .split(/[\n,]+/)
+                .map(email => email.trim())
+                .filter(email => email && email.includes('@'));
+              
+              // Create synthetic lead IDs from emails
+              const syntheticLeadIds = emailLines.map(email => `manual_${email}`);
+              
+              setCampaignForm({
+                ...campaignForm,
+                manualLeadEmails: e.target.value,
+                leadIds: syntheticLeadIds
+              });
+            }}
+          />
+          <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            Separate multiple emails with commas or new lines
+          </div>
+        </div>
+
+        {/* Show parsed emails count */}
+        {campaignForm.manualLeadEmails && (
+          <div style={{ 
+            padding: '8px 12px', 
+            backgroundColor: '#f0f9ff', 
+            border: '1px solid #bae7ff',
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}>
+            <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
+            {(() => {
+              const emails = campaignForm.manualLeadEmails
+                .split(/[\n,]+/)
+                .map(email => email.trim())
+                .filter(email => email && email.includes('@'));
+              return `${emails.length} valid email${emails.length !== 1 ? 's' : ''} detected`;
+            })()}
+          </div>
+        )}
+
+        {/* Optional: Add names and companies */}
+        <Alert
+          message="Pro Tip"
+          description="For better personalization, you can add lead information in this format: name@company.com | John Doe | Company Name"
+          type="info"
+          showIcon={false}
+          style={{ fontSize: '11px' }}
+        />
+      </div>
+    </div>
+  )}
+</div>
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
               Value Proposition *

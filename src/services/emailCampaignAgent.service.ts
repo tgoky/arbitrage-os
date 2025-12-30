@@ -124,14 +124,18 @@ export class EmailCampaignAgent {
       console.log(`✅ Campaign created: ${campaign.id} with ${config.leads.length} leads in metadata`);
 
       // If immediate send, trigger campaign processing in background
-      if (config.scheduleType === 'immediate') {
-        console.log('🚀 Queuing campaign for immediate processing...');
-        
-        // Don't await - let it run in background
-        this.processCampaign(campaign.id).catch(error => {
-          console.error('Background campaign processing error:', error);
-        });
-      }
+     if (config.scheduleType === 'immediate') {
+  console.log('🚀 Starting SYNCHRONOUS campaign processing for debugging...');
+  
+  try {
+    const result = await this.processCampaign(campaign.id);
+    console.log('✅ Campaign processed:', result);
+  } catch (error) {
+    console.error('❌ CAMPAIGN PROCESSING FAILED:');
+    console.error(error);
+    throw error; // This will show in API response
+  }
+}
 
       return {
         success: true,
@@ -228,20 +232,21 @@ export class EmailCampaignAgent {
           const personalizedEmail = await this.generatePersonalizedEmail(lead, emailTemplate);
 
           // Send email via connected account
-          await emailService.sendEmail(
-            campaign.email_account_id,
-            lead.email,
-            personalizedEmail.subject,
-            personalizedEmail.body,
-            {
-              html: personalizedEmail.htmlBody,
-              campaignId: campaign.id,
-              leadId: lead.id,
-              leadName: lead.name,
-              generationId: lead.generationId,
-              generationTitle: lead.generationTitle
-            }
-          );
+       await emailService.sendEmail(
+  campaign.email_account_id,
+  lead.email,
+  personalizedEmail.subject,
+  personalizedEmail.body,
+  {
+    html: personalizedEmail.htmlBody,
+    campaignId: campaign.id,
+    leadId: lead.isManualEntry ? undefined : lead.id, // ✅ Don't pass leadId for manual
+    leadName: lead.name,
+    generationId: lead.generationId,
+    generationTitle: lead.generationTitle,
+    isManualEntry: lead.isManualEntry || false // ✅ ADD THIS FLAG
+  }
+);
 
           // ✅ Update lead status in metadata (in-memory)
           lead.emailCampaignStatus = 'sent';
@@ -328,141 +333,288 @@ export class EmailCampaignAgent {
    * Generate personalized email using AI
    * Uses OpenRouter with caching
    */
-  private async generatePersonalizedEmail(
-    lead: any, 
-    template: any
-  ): Promise<PersonalizedEmail> {
-    
-    // Check cache first
-    const cacheKey = `email:${lead.id}:${template.subject}`;
-    
-    try {
-      const cached = await this.redis.get(cacheKey);
-      if (cached) {
-        console.log('✅ Using cached email for:', lead.email);
-        return typeof cached === 'string' ? JSON.parse(cached) : cached as PersonalizedEmail;
-      }
-    } catch (cacheError) {
-      console.warn('⚠️ Cache read error:', cacheError);
+private async generatePersonalizedEmail(
+  lead: any, 
+  template: any
+): Promise<PersonalizedEmail> {
+  
+  // ✅ Extract workspace name from subject line
+  const workspaceName = template?.subject?.includes('from') 
+    ? template.subject.split('from')[1]?.trim() 
+    : 'our team';
+  
+  // ✅ Extract value proposition (the actual message content)
+  const valueProposition = template?.body || template?.valueProposition || '';
+  
+  // ✅ Validate we have a value proposition
+  if (!valueProposition || valueProposition.length < 10) {
+    console.warn('⚠️ No value proposition provided, using generic message');
+  }
+  
+  // Check cache first
+  const cacheKey = `email:${lead.id}:${valueProposition.substring(0, 50)}`;
+  
+  try {
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      console.log('✅ Using cached email for:', lead.email);
+      return typeof cached === 'string' ? JSON.parse(cached) : cached as PersonalizedEmail;
     }
+  } catch (cacheError) {
+    console.warn('⚠️ Cache read error:', cacheError);
+  }
 
-    // Generate using AI
-    const prompt = `Generate a professional, personalized cold email based on this template and lead information.
+  // ✅ IMPROVED PROMPT - Explicit about body requirement
+  const prompt = `You are writing a B2B cold email for business development.
 
-LEAD INFORMATION:
-- Name: ${lead.name}
-- First Name: ${lead.first_name || lead.name.split(' ')[0]}
-- Last Name: ${lead.last_name || lead.name.split(' ').slice(1).join(' ')}
-- Title: ${lead.title}
-- Company: ${lead.company}
-- Industry: ${lead.industry}
-- Location: ${lead.location}
+RECIPIENT PROFILE:
+- Name: ${lead.name || lead.first_name || lead.email.split('@')[0]}
+- First Name: ${lead.first_name || lead.name?.split(' ')[0] || lead.email.split('@')[0]}
+- Title: ${lead.title || lead.job_title || 'Professional'}
+- Company: ${lead.company || 'their company'}
+- Industry: ${lead.industry || 'their industry'}
+- Location: ${lead.location || 'their area'}
 ${lead.companySize ? `- Company Size: ${lead.companySize}` : ''}
 ${lead.website ? `- Website: ${lead.website}` : ''}
 
-EMAIL TEMPLATE:
-Subject: ${template.subject}
-Body: ${template.body}
+YOUR VALUE PROPOSITION:
+${valueProposition}
 
-INSTRUCTIONS:
-1. Personalize the email using the lead's information
-2. Replace {{firstName}}, {{company}}, {{title}}, {{industry}}, etc. with actual values
-3. Keep it professional and concise (under 200 words)
-4. Include a clear but low-pressure call-to-action
-5. Make it feel natural and conversational, not robotic or sales-y
-6. Reference their specific role, company, or industry when relevant
+SENDER: ${workspaceName}
 
-Return ONLY a JSON object with this EXACT structure:
+YOUR TASK:
+Write ONE complete cold email with BOTH subject line AND full body.
+
+⚠️ CRITICAL REQUIREMENT: You MUST generate a COMPLETE email body. Do NOT generate only a subject line.
+
+SUBJECT LINE (40-60 characters):
+- Mention their company OR a relevant pain point
+- Create curiosity without being salesy
+- Examples: 
+  • "Quick question about ${lead.company}'s growth"
+  • "${lead.first_name} - idea for ${lead.company}"
+  • "Noticed ${lead.company} is expanding"
+
+EMAIL BODY (REQUIRED - 150-250 words):
+You MUST write a COMPLETE email with these three parts:
+
+1. OPENING PARAGRAPH (2-3 sentences):
+   Start with a SPECIFIC observation about ${lead.company} or ${lead.industry}
+   - NO "I hope this email finds you well"
+   - NO "I came across your profile"
+   - Make it feel like you researched them specifically
+   - Example: "I noticed ${lead.company} recently expanded to ${lead.location}. Companies at your stage often face..."
+   
+2. VALUE PROPOSITION PARAGRAPH (2-3 sentences):
+   Explain how your solution helps THEIR specific situation
+   - Focus on "you" and "your" (not "we" and "our")
+   - Connect to their industry: ${lead.industry}
+   - Mention ONE specific benefit for ${lead.title} at ${lead.company}
+   - Example: "This typically helps ${lead.title}s save 10+ hours per week on..."
+   
+3. CLOSING PARAGRAPH (1-2 sentences):
+   End with a soft, specific call-to-action
+   - NO "Are you available for a call?"
+   - NO "Let me know if you're interested"
+   - Ask something conversational
+   - Example: "Would you be open to a quick 15-minute call next week?"
+
+TONE: Professional but conversational. Like you've done homework on ${lead.company}.
+
+RETURN THIS EXACT JSON STRUCTURE (no markdown, no code blocks):
 {
-  "subject": "personalized subject line",
-  "body": "personalized email body with proper line breaks",
-  "htmlBody": "<p>HTML formatted version with proper paragraph tags</p>"
-}`;
+  "subject": "your subject line here (40-60 characters)",
+  "body": "Hi ${lead.first_name || lead.name?.split(' ')[0]},\\n\\n[Opening paragraph with specific observation about ${lead.company}]\\n\\n[Value proposition paragraph explaining benefits for ${lead.title}]\\n\\n[Closing with soft CTA]\\n\\nBest regards,\\n${workspaceName}"
+}
+
+VALIDATION REQUIREMENTS (CRITICAL):
+✓ subject: Must be 40-60 characters long
+✓ body: Must be minimum 150 words
+✓ body: Must include greeting (Hi ${lead.first_name})
+✓ body: Must include 3 distinct paragraphs separated by \\n\\n
+✓ body: Must include signature (Best regards, ${workspaceName})
+✓ Both fields are MANDATORY - never return empty body
+
+EXAMPLE OF VALID OUTPUT:
+{
+  "subject": "Quick question about ${lead.company}'s sales workflow",
+  "body": "Hi ${lead.first_name},\\n\\nI noticed ${lead.company} recently expanded operations in ${lead.location}. Most ${lead.title}s at companies your size struggle with manual lead qualification eating up 15-20 hours per week.\\n\\nWe've helped similar ${lead.industry} companies automate their qualification process, which typically saves teams like yours 10+ hours weekly and increases conversion rates by 30%. ${lead.title}s particularly appreciate not having to manually score every inbound lead.\\n\\nWould you be open to a 15-minute call next week to explore if this could help ${lead.company} scale more efficiently?\\n\\nBest regards,\\n${workspaceName}"
+}
+
+REMEMBER: 
+- The body field must contain a COMPLETE email
+- Never return just a subject line
+- Always include all three paragraphs
+- Always include proper greeting and signature`;
+
+  try {
+    console.log('🤖 Generating personalized email for:', lead.email);
+    console.log('📝 Value proposition:', valueProposition.substring(0, 100) + '...');
+    
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'ArbitrageOS Email Agent'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert B2B email copywriter who writes personalized cold emails that get replies. You ALWAYS return valid JSON with BOTH subject and body fields. The body must be a complete email with greeting, content paragraphs, and signature. Never return only a subject line.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.9, // Higher for more creativity and personalization
+        max_tokens: 1000,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ OpenRouter API error:', response.status, errorText);
+      throw new Error(`AI email generation failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let generatedEmail: PersonalizedEmail;
 
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-          'X-Title': 'ArbitrageOS Email Agent'
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert email copywriter who creates personalized, professional cold emails that convert. Always return valid JSON only, never include markdown code blocks or extra text.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.8,
-          max_tokens: 1000,
-          response_format: { type: 'json_object' }
-        })
+      const content = data.choices[0].message.content;
+      
+      console.log('📝 Raw AI response preview:', content.substring(0, 200) + '...');
+      
+      // Parse JSON response
+      generatedEmail = JSON.parse(content);
+      
+      // ✅ ROBUST VALIDATION - Check structure
+      if (!generatedEmail.subject || !generatedEmail.body) {
+        console.error('❌ Invalid email structure from AI:', {
+          hasSubject: !!generatedEmail.subject,
+          hasBody: !!generatedEmail.body,
+          subjectLength: generatedEmail.subject?.length || 0,
+          bodyLength: generatedEmail.body?.length || 0
+        });
+        throw new Error('AI returned incomplete email - missing subject or body');
+      }
+
+      // ✅ VALIDATE BODY CONTENT
+      const bodyText = generatedEmail.body.trim();
+      
+      // Check minimum length
+      if (bodyText.length < 50) {
+        console.error('❌ Email body too short:', {
+          length: bodyText.length,
+          content: bodyText
+        });
+        throw new Error('Email body is too short (less than 50 characters)');
+      }
+
+      // Check body isn't just the subject
+      if (bodyText === generatedEmail.subject || bodyText === generatedEmail.subject.trim()) {
+        console.error('❌ Body is same as subject');
+        throw new Error('AI generated subject but no body content');
+      }
+
+      // Check for greeting
+      const firstName = lead.first_name || lead.name?.split(' ')[0] || lead.email.split('@')[0];
+      if (!bodyText.toLowerCase().includes('hi ') && !bodyText.toLowerCase().includes('hello ')) {
+        console.warn('⚠️ Email body missing greeting, adding it...');
+        generatedEmail.body = `Hi ${firstName},\n\n${bodyText}`;
+      }
+
+      // Check for signature
+      if (!bodyText.includes('Best regards') && !bodyText.includes('best regards')) {
+        console.warn('⚠️ Email body missing signature, adding it...');
+        generatedEmail.body = `${generatedEmail.body}\n\nBest regards,\n${workspaceName}`;
+      }
+
+      console.log('✅ Generated and validated personalized email:', {
+        subject: generatedEmail.subject,
+        subjectLength: generatedEmail.subject.length,
+        bodyLength: generatedEmail.body.length,
+        bodyPreview: generatedEmail.body.substring(0, 150) + '...',
+        recipient: lead.email,
+        hasGreeting: generatedEmail.body.toLowerCase().includes('hi '),
+        hasSignature: generatedEmail.body.toLowerCase().includes('best regards')
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenRouter API error:', response.status, errorText);
-        throw new Error(`AI email generation failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      let generatedEmail: PersonalizedEmail;
-
-      try {
-        const content = data.choices[0].message.content;
-        
-        // Try to parse directly
-        generatedEmail = JSON.parse(content);
-        
-        // Validate structure
-        if (!generatedEmail.subject || !generatedEmail.body) {
-          throw new Error('Invalid email structure from AI');
-        }
-
-        // Ensure HTML body exists
-        if (!generatedEmail.htmlBody) {
-          generatedEmail.htmlBody = generatedEmail.body
-            .split('\n\n')
-            .map(para => `<p>${para}</p>`)
-            .join('\n');
-        }
-
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError);
-        throw parseError;
-      }
-
-      // Cache for 1 hour
-      try {
-        await this.redis.set(cacheKey, JSON.stringify(generatedEmail), { ex: 3600 });
-      } catch (cacheError) {
-        console.warn('⚠️ Cache write error:', cacheError);
-      }
-
-      return generatedEmail;
-
-    } catch (error) {
-      console.error('❌ AI generation failed, using template fallback:', error);
-      
-      // Fallback: simple template variable replacement
-      return {
-        subject: this.replaceTemplateVariables(template.subject, lead),
-        body: this.replaceTemplateVariables(template.body, lead),
-        htmlBody: this.replaceTemplateVariables(template.body, lead)
+      // ✅ Create HTML version with proper formatting
+      if (!generatedEmail.htmlBody) {
+        generatedEmail.htmlBody = generatedEmail.body
           .split('\n\n')
-          .map(para => `<p>${para}</p>`)
-          .join('\n')
-      };
-    }
-  }
+          .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+          .join('\n');
+      }
 
+    } catch (parseError: unknown) {
+  const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+  console.error('❌ Failed to parse or validate AI response:', parseError);
+  console.error('Full AI response:', data.choices[0]?.message?.content);
+  
+  // Re-throw to trigger fallback
+  throw new Error(`AI generation validation failed: ${errorMessage}`);
+}
+
+    // Cache for 1 hour
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(generatedEmail), { ex: 3600 });
+      console.log('💾 Cached email for future use');
+    } catch (cacheError) {
+      console.warn('⚠️ Cache write error:', cacheError);
+    }
+
+    return generatedEmail;
+
+  } catch (error) {
+    console.error('❌ AI generation failed completely, using guaranteed fallback:', error);
+    
+    // ✅ GUARANTEED FALLBACK - Never fails
+    const firstName = lead.first_name || lead.name?.split(' ')[0] || 'there';
+    const company = lead.company || 'your company';
+    const title = lead.title || lead.job_title || 'there';
+    const industry = lead.industry || 'your';
+    
+    // Create guaranteed non-empty body with actual content
+    const fallbackBody = `Hi ${firstName},
+
+I came across ${company} and noticed you're working in the ${industry} space. ${title === 'there' ? 'I' : `${title}s like yourself often`} face challenges with time-consuming manual processes that slow down growth.
+
+${valueProposition || 'We help companies like yours automate repetitive business processes, typically saving teams 10+ hours per week. Our clients in similar industries have seen significant improvements in efficiency and revenue.'}
+
+Would you be open to a brief 15-minute conversation about how this could help ${company} scale more efficiently?
+
+Best regards,
+${workspaceName}`;
+
+    const fallbackHtml = `
+<p>Hi ${firstName},</p>
+<p>I came across ${company} and noticed you're working in the ${industry} space. ${title === 'there' ? 'I' : `${title}s like yourself often`} face challenges with time-consuming manual processes that slow down growth.</p>
+<p>${valueProposition || 'We help companies like yours automate repetitive business processes, typically saving teams 10+ hours per week. Our clients in similar industries have seen significant improvements in efficiency and revenue.'}</p>
+<p>Would you be open to a brief 15-minute conversation about how this could help ${company} scale more efficiently?</p>
+<br>
+<p><strong>Best regards,</strong><br>${workspaceName}</p>`;
+
+    console.log('✅ Using fallback email:', {
+      subject: `Quick question about ${company}`,
+      bodyLength: fallbackBody.length,
+      bodyPreview: fallbackBody.substring(0, 100) + '...'
+    });
+
+    return {
+      subject: `Quick question about ${company}`,
+      body: fallbackBody,
+      htmlBody: fallbackHtml
+    };
+  }
+}
   /**
    * Simple template variable replacement (fallback)
    */

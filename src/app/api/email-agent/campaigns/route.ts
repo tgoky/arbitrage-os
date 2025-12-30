@@ -1,8 +1,9 @@
-// app/api/email-agent/campaigns/route.ts
+// app/api/email-agent/campaigns/route.ts - UPDATED WITH GMAIL HALLUCINATION FIX
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 // Same authentication pattern as Lead Gen
 async function getAuthenticatedUser() {
@@ -59,14 +60,25 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { workspaceId, leadIds, emailAccountId, campaignName, emailTemplate, scheduleType, ...otherData } = body;
+    const { 
+      workspaceId, 
+      leadIds, 
+      emailAccountId, 
+      campaignName, 
+      emailTemplate, 
+      scheduleType,
+      isManualEntry,
+      manualLeadData,
+      ...otherData 
+    } = body;
 
     console.log('📝 Campaign creation request:', {
       workspaceId,
       leadCount: leadIds?.length || 0,
       emailAccountId,
       campaignName,
-      scheduleType
+      scheduleType,
+      isManualEntry
     });
 
     if (!workspaceId) {
@@ -90,58 +102,123 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // ✅ Validate leads exist in deliverables (SAME AS LEAD GEN PATTERN)
-    console.log('🔍 Validating leads from deliverables...');
-    
-    const deliverables = await prisma.deliverable.findMany({
-      where: {
-        workspace_id: workspaceId,
-        user_id: user.id,
-        type: 'lead-generation'
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true
-      }
-    });
+    let validLeads: any[] = [];
+    const leadGenerationMap: { [leadId: string]: string } = {};
 
-    console.log(`📊 Found ${deliverables.length} lead generation deliverables`);
-
-    // Extract and validate lead IDs
-    const validLeads: any[] = [];
-    const leadGenerationMap: { [leadId: string]: string } = {}; // Track which generation each lead came from
-    
-    deliverables.forEach(deliverable => {
-      try {
-        const parsedContent = JSON.parse(deliverable.content);
-        if (parsedContent.leads && Array.isArray(parsedContent.leads)) {
-          const matchingLeads = parsedContent.leads.filter((lead: any) => 
-            leadIds.includes(lead.id)
-          );
+    // ✅ HANDLE MANUAL ENTRY WITH PROPER UUIDs AND SMART COMPANY EXTRACTION
+    if (isManualEntry && manualLeadData) {
+      console.log('📝 Processing manual lead entry with UUIDs...');
+      
+      // Parse manual lead data
+      const manualLines = manualLeadData.split(/[\n,]+/).map((line: string) => line.trim()).filter(Boolean);
+      
+      manualLines.forEach((line: string, index: number) => {
+        const parts = line.split('|').map((p: string) => p.trim());
+        const email = parts[0];
+        
+        if (email && email.includes('@')) {
+          const name = parts[1] || email.split('@')[0];
+          const providedCompany = parts[2];  // ✅ User-provided company name
           
-          matchingLeads.forEach((lead: any) => {
-            validLeads.push({
-              ...lead,
-              generationId: deliverable.id,
-              generationTitle: deliverable.title
-            });
-            leadGenerationMap[lead.id] = deliverable.id;
+          const [firstName, ...lastNameParts] = name.split(' ');
+          const lastName = lastNameParts.join(' ') || '';
+          
+          // ✅ SMART COMPANY EXTRACTION (avoids "gmail" problem)
+          const emailDomain = email.split('@')[1]?.split('.')[0] || '';
+          const isGenericDomain = ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'protonmail'].includes(emailDomain.toLowerCase());
+          
+          // Priority: 1) User provided, 2) Domain if not generic, 3) Placeholder
+          let companyName = providedCompany;
+          if (!companyName) {
+            if (isGenericDomain) {
+              companyName = 'their company';  // ✅ Generic placeholder instead of "gmail"
+            } else {
+              companyName = emailDomain.charAt(0).toUpperCase() + emailDomain.slice(1);
+            }
+          }
+          
+          // ✅ Generate proper UUID for manual leads
+          const leadUUID = randomUUID();
+          
+          validLeads.push({
+            id: leadUUID,
+            name: name,
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            company: companyName,  // ✅ FIXED: No more "gmail" as company
+            title: 'Contact',
+            job_title: 'Contact',
+            industry: 'Unknown',
+            location: 'Unknown',
+            score: 50,
+            isManualEntry: true,
+            manualEntryIndex: index,
+            originalEmail: email
           });
+          
+          leadGenerationMap[leadUUID] = 'manual_entry';
         }
-      } catch (error) {
-        console.error(`Failed to parse deliverable ${deliverable.id}`);
-      }
-    });
+      });
+      
+      console.log(`✅ Processed ${validLeads.length} manual leads with proper UUIDs and company names`);
+      
+    } else {
+      // ✅ HANDLE LEAD GENERATION IMPORT
+      console.log('🔍 Validating leads from deliverables...');
+      
+      const deliverables = await prisma.deliverable.findMany({
+        where: {
+          workspace_id: workspaceId,
+          user_id: user.id,
+          type: 'lead-generation'
+        },
+        select: {
+          id: true,
+          title: true,
+          content: true
+        }
+      });
+
+      console.log(`📊 Found ${deliverables.length} lead generation deliverables`);
+      
+      deliverables.forEach(deliverable => {
+        try {
+          const parsedContent = JSON.parse(deliverable.content);
+          if (parsedContent.leads && Array.isArray(parsedContent.leads)) {
+            const matchingLeads = parsedContent.leads.filter((lead: any) => 
+              leadIds.includes(lead.id)
+            );
+            
+            matchingLeads.forEach((lead: any) => {
+              validLeads.push({
+                ...lead,
+                first_name: lead.name.split(' ')[0],
+                last_name: lead.name.split(' ').slice(1).join(' '),
+                job_title: lead.title,
+                generationId: deliverable.id,
+                generationTitle: deliverable.title,
+                isManualEntry: false
+              });
+              leadGenerationMap[lead.id] = deliverable.id;
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to parse deliverable ${deliverable.id}`);
+        }
+      });
+      
+      console.log(`✅ Validated ${validLeads.length} leads from deliverables`);
+    }
 
     if (validLeads.length === 0) {
       return NextResponse.json({ 
         success: false,
-        error: 'No valid leads found from your lead generation campaigns' 
+        error: isManualEntry 
+          ? 'No valid email addresses found in manual entry' 
+          : 'No valid leads found from your lead generation campaigns' 
       }, { status: 400 });
     }
-
-    console.log(`✅ Validated ${validLeads.length} leads from deliverables`);
 
     // ✅ Create campaign with validated leads stored in metadata
     const { EmailCampaignAgent } = await import('@/services/emailCampaignAgent.service');
@@ -159,8 +236,9 @@ export async function POST(req: NextRequest) {
       autoFollowup: otherData.autoFollowup || false,
       followupInterval: otherData.followupInterval || 3,
       maxFollowups: otherData.maxFollowups || 3,
-      leads: validLeads, // ✅ Pass full lead objects with generation context
-      leadGenerationMap // ✅ Track source generation for each lead
+      leads: validLeads,
+      leadGenerationMap,
+      isManualEntry
     };
 
     console.log('🎯 Creating campaign with config:', {
@@ -168,7 +246,9 @@ export async function POST(req: NextRequest) {
       leadCount: campaignConfig.leads.length,
       scheduleType: campaignConfig.scheduleType,
       hasAutoReply: campaignConfig.autoReply,
-      hasAutoFollowup: campaignConfig.autoFollowup
+      hasAutoFollowup: campaignConfig.autoFollowup,
+      isManualEntry: campaignConfig.isManualEntry,
+      sampleLeadIds: validLeads.slice(0, 2).map(l => l.id)
     });
 
     const result = await agent.createCampaign(user.id, workspaceId, campaignConfig);
@@ -252,7 +332,8 @@ export async function GET(req: NextRequest) {
         clickedCount: campaign.sentEmails.filter((e: any) => e.clicked_at).length,
         repliedCount: campaign.sentEmails.filter((e: any) => e.replied_at).length,
         leadGenerations: metadata?.leadGenerationMap ? 
-          [...new Set(Object.values(metadata.leadGenerationMap))] : []
+          [...new Set(Object.values(metadata.leadGenerationMap))] : [],
+        isManualEntry: metadata?.isManualEntry || false
       };
     });
 

@@ -86,6 +86,7 @@ export class EmailConnectionService {
        leadName?: string;           // ✅ NEW
     generationId?: string;       // ✅ NEW
     generationTitle?: string;    // ✅ NEW
+     isManualEntry?: boolean;  
     }
   ) {
     try {
@@ -146,16 +147,16 @@ export class EmailConnectionService {
       const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
       // Create email message
-      const messageParts = [
-        `To: ${to}`,
-        options?.cc && options.cc.length > 0 ? `Cc: ${options.cc.join(', ')}` : '',
-        options?.bcc && options.bcc.length > 0 ? `Bcc: ${options.bcc.join(', ')}` : '',
-        `Subject: ${subject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/html; charset=utf-8',
-        '',
-        options?.html || body
-      ].filter(Boolean);
+  const messageParts = [
+  `To: ${to}`,
+  options?.cc && options.cc.length > 0 ? `Cc: ${options.cc.join(', ')}` : '',
+  options?.bcc && options.bcc.length > 0 ? `Bcc: ${options.bcc.join(', ')}` : '',
+  `Subject: ${subject}`,
+  'MIME-Version: 1.0',
+  'Content-Type: text/plain; charset=utf-8',  // ✅ FIXED
+  '',
+  body  // ✅ FIXED - always use body parameter
+].filter(Boolean);
 
       const message = messageParts.join('\n');
 
@@ -190,9 +191,16 @@ export class EmailConnectionService {
           html_body: options?.html,
           message_id: result.data.id!,
           campaign_id: options?.campaignId,
-          lead_id: options?.leadId,
+           lead_id: options?.isManualEntry ? null : options?.leadId, 
           status: 'sent',
           sent_at: new Date(),
+           metadata: {                                                // ✅ ADD THIS
+      leadName: options?.leadName,
+      generationId: options?.generationId,
+      generationTitle: options?.generationTitle,
+      isManualEntry: options?.isManualEntry,
+      manualEmail: options?.isManualEntry ? to : undefined
+    }
         }
       });
 
