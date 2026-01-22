@@ -11,14 +11,16 @@ import {
   FireOutlined,
   HeartOutlined,
   ArrowLeftOutlined,
-  HeartFilled
+  HeartFilled,
+  FilterOutlined,
+  ThunderboltFilled
 } from '@ant-design/icons'
-import { Input, Card, Button, Typography, Tag, Divider, Space, Row, Col, Select, Tabs } from 'antd';
+import { Input, Card, Button, Typography, Tag, Divider, Space, Row, Col, Select, Tabs, ConfigProvider, Empty } from 'antd';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useRouter } from 'next/navigation';
 import { markdownContentById } from './safe-prompt-templates';
 
-// Import Markdown files as strings (updated path to './prompt-libraries/json/')
+// ... (Keep your imports for md1 through md46 here) ...
 import md1 from './jsons/1-brand-storytelling-about-page.md';
 import md2 from './jsons/2-product-market-fit-analysis.md';
 import md3 from './jsons/3-ad-hook-generator.md';
@@ -69,14 +71,21 @@ import md46 from './jsons/46-sales-script-gen.md';
 
 
 import { useFavorites } from '../hooks/useFavorites';
-
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
-
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
 const { Option } = Select;
-const { TabPane } = Tabs;
+
+// --- STYLING CONSTANTS ---
+const BRAND_COLOR = '#9DA2B3'; 
+const BRAND_COLOR_HOVER = '#B4B8C5';
+const SPACE_BG_DARK = '#0B0C10'; // Deep space black
+const CARD_BG_DARK = 'rgba(255, 255, 255, 0.03)';
+const BORDER_DARK = 'rgba(255, 255, 255, 0.08)';
+
+// Selected Grayscale for Tag
+const TAG_COLOR = '#9DA2B3'; // Steel
 
 interface Prompt {
   id: number;
@@ -96,7 +105,7 @@ interface TagCount {
   count: number;
 }
 
-// Hardcoded promptTemplates with associated markdown content
+// Mock Data (Partial for display)
 const promptTemplates: Prompt[] = [
   {
     id: 1,
@@ -726,32 +735,23 @@ const promptTemplates: Prompt[] = [
 ];
 
 
-
 const categories = [
-  "Content Creation",
-  "Marketing",
-  "Copywriting",
-  "Research",
-  "Social Media",
-  "Sales",
-  "Productivity"
+  "Content Creation", "Marketing", "Copywriting", "Research", "Social Media", "Sales", "Productivity"
 ];
 
 const calculateTagCounts = (prompts: Prompt[]): TagCount[] => {
   const tagCounts: Record<string, number> = {};
-  
   prompts.forEach(prompt => {
     prompt.tags.forEach(tag => {
-      if (tag) {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      }
+      if (tag) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
     });
   });
-  
   return Object.entries(tagCounts)
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 };
+
+// --- COMPONENTS ---
 
 const PromptCard = ({ 
   prompt, 
@@ -762,24 +762,18 @@ const PromptCard = ({
   isFavorite: boolean;
   onToggleFavorite: (id: number) => void;
 }) => {
-
-  
   const [showFullSystem, setShowFullSystem] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(prompt.shortDescription).then(() => {
-      console.log(`Copied prompt: ${prompt.title}`);
-    }).catch(err => {
-      console.error('Failed to copy prompt:', err);
-    });
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(prompt.shortDescription);
   };
 
-       const router = useRouter();
-
-  const handleDownload = () => {
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (prompt.markdown) {
       const blob = new Blob([prompt.markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
@@ -787,542 +781,441 @@ const PromptCard = ({
       link.href = url;
       link.download = `${prompt.id}-${prompt.title.toLowerCase().replace(/\s+/g, '-')}.md`;
       link.click();
-      URL.revokeObjectURL(url);
-      console.log(`Downloaded Markdown for prompt: ${prompt.title}`);
-    } else {
-      console.error('Markdown content not available for prompt:', prompt.title);
     }
   };
 
   return (
-    <Card
-      hoverable
-      className={`h-full flex flex-col border border-solid ${
-        isDark ? 'border-gray-700 bg-zinc-900' : 'border-gray-200 bg-white'
-      } ${isDark ? 'hover:border-blue-500' : 'hover:border-blue-300'}`}
-      bodyStyle={{ 
-        padding: '24px',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%'
-      }}
-   actions={[
-  <div key="actions" className="flex justify-between items-center w-full px-4 py-2">
-    <Button 
-      type="text" 
-      icon={isFavorite ? <HeartFilled /> : <HeartOutlined />}
-      onClick={() => onToggleFavorite(prompt.id)}
-      className={`flex items-center justify-center ${
-        isFavorite 
-          ? 'text-red-500 hover:text-red-600' 
-          : isDark 
-            ? 'text-gray-400 hover:text-red-400' 
-            : 'text-gray-500 hover:text-red-500'
+    <div 
+      className={`group relative h-full flex flex-col rounded-2xl transition-all duration-300 ${
+        isDark 
+          ? 'hover:shadow-[0_0_20px_rgba(157,162,179,0.15)]' 
+          : 'hover:shadow-xl hover:shadow-gray-200'
       }`}
-      size="small"
-    />
-    <div className="flex gap-2">
-      <Button 
-        type="text" 
-        icon={<CopyOutlined />}
-        onClick={handleCopy}
-        className={`flex items-center ${
-          isDark 
-            ? 'text-gray-400 hover:text-blue-400' 
-            : 'text-gray-500 hover:text-blue-500'
-        }`}
-        size="small"
-      >
-        Copy
-      </Button>
-      <Button 
-        type="text" 
-        icon={<DownloadOutlined />}
-        onClick={handleDownload}
-        className={`flex items-center ${
-          isDark 
-            ? 'text-gray-400 hover:text-blue-400' 
-            : 'text-gray-500 hover:text-blue-500'
-        }`}
-        size="small"
-      >
-        Download
-      </Button>
-    </div>
-  </div>
-]}
+      style={{
+        background: isDark ? CARD_BG_DARK : '#ffffff',
+        border: `1px solid ${isDark ? BORDER_DARK : '#f0f0f0'}`,
+        backdropFilter: 'blur(10px)',
+      }}
     >
-      <div className="flex flex-col h-full">
-        <div className="min-h-[3rem] mb-3">
-          <Title 
-            level={4} 
-            className={`mb-0 font-semibold leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
-          >
-            {prompt.title}
-          </Title>
+      {/* Card Header / Top Actions */}
+      <div className="flex justify-between items-start p-5 pb-0">
+        <div className="flex gap-2">
+            {prompt.integrations.includes('ChatGPT') && (
+                <Tag 
+                    className="mr-0"
+                    style={{ 
+                        color: TAG_COLOR, 
+                        borderColor: isDark ? 'rgba(157, 162, 179, 0.3)' : '#d9d9d9',
+                        background: 'transparent',
+                        fontWeight: 500
+                    }}
+                >
+                    Prompt Template
+                </Tag>
+            )}
         </div>
-        
+        <Button 
+          type="text"
+          shape="circle"
+          icon={isFavorite ? <HeartFilled /> : <HeartOutlined />}
+          onClick={() => onToggleFavorite(prompt.id)}
+          className={`transition-colors ${isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+        />
+      </div>
+
+      <div className="p-5 pt-3 flex flex-col h-full">
+        {/* Title */}
+        <h3 className={`font-manrope text-lg font-bold mb-2 leading-snug ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {prompt.title}
+        </h3>
+
+        {/* Prompt Preview Block */}
         <div 
-          className={`p-4 rounded-md mb-3 border border-solid min-h-[6rem] ${
-            isDark ? 'bg-black border-gray-700' : 'bg-gray-50 border-gray-100'
+          className={`relative rounded-lg p-3 mb-3 border transition-all ${
+            isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50 border-gray-100'
           }`}
         >
-          <div className="flex flex-col h-full">
-         <Text 
-  className={`font-mono text-sm flex-grow ${isDark ? 'text-gray-200' : 'text-gray-800'}`}
-  style={{ whiteSpace: 'pre-wrap' }}
->
-  {showFullSystem 
-    ? prompt.shortDescription 
-    : `${prompt.shortDescription.substring(0, 100)}...`}
-</Text>
-            <Button 
-              type="text" 
-              size="small"
-              icon={showFullSystem ? <UpOutlined /> : <DownOutlined />}
-              onClick={() => setShowFullSystem(!showFullSystem)}
-              className={`p-0 self-start mt-2 ${isDark ? 'text-blue-400' : 'text-blue-500'}`}
+            <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wider opacity-50">
+                <ThunderboltFilled /> System Prompt
+            </div>
+            
+            {/* Scrollable/Expandable Content Area */}
+            <div 
+                className={`font-mono text-xs transition-all duration-300 ease-in-out ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
+                style={{ 
+                    whiteSpace: 'pre-wrap',
+                    // Logic: If showing full system, let it be natural (max-h-96 for safety scroll), else fixed minimized height
+                    maxHeight: showFullSystem ? '400px' : '80px', 
+                    overflowY: showFullSystem ? 'auto' : 'hidden',
+                }}
             >
-              {showFullSystem ? 'Show less' : 'Show more'}
-            </Button>
-          </div>
+                {prompt.shortDescription}
+            </div>
+
+            {/* Expand/Collapse Trigger */}
+            <div 
+                onClick={() => setShowFullSystem(!showFullSystem)}
+                className={`
+                    mt-2 text-xs cursor-pointer hover:underline opacity-60 flex items-center justify-between
+                    ${!showFullSystem ? 'pt-2 border-t border-dashed border-gray-700/50' : ''}
+                `}
+            >
+                <span className="flex items-center gap-1">
+                    {showFullSystem ? 'Minimize View' : 'View Full Prompt'} 
+                </span>
+                {showFullSystem ? <UpOutlined/> : <DownOutlined/>}
+            </div>
         </div>
 
-        <div className="flex-grow mb-4">
-          <div className="mb-2">
-            <Text 
-              type={isDark ? undefined : "secondary"} 
-              className={`${expanded ? '' : 'line-clamp-3'} ${isDark ? 'text-gray-300' : ''}`}
-            >
-              {prompt.description}
-            </Text>
-          </div>
-          <Button 
-            type="text" 
-            size="small"
-            onClick={() => setExpanded(!expanded)}
-            className={`p-0 ${isDark ? 'text-blue-400' : 'text-blue-500'}`}
+        {/* Description */}
+        <div className="flex-grow">
+          <Paragraph 
+            className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
+            ellipsis={{ rows: expanded ? 0 : 2, expandable: false, symbol: 'more' }}
           >
-            {expanded ? 'Show less' : 'Show more'}
-          </Button>
+            {prompt.description}
+          </Paragraph>
         </div>
 
-        <div className="mb-4">
-          <Space size={[0, 8]} wrap>
-            {prompt.tags.map(tag => (
-              <Tag 
+        {/* Tags */}
+        <div className="mt-3 mb-4 flex flex-wrap gap-2">
+          {prompt.tags.slice(0, 3).map(tag => (
+            <span 
                 key={tag} 
-                className={`cursor-pointer ${isDark ? '!bg-gray-700 !text-gray-200' : ''}`}
-              >
-                {tag}
-              </Tag>
-            ))}
-          </Space>
+                className={`text-[10px] px-2 py-1 rounded-full border ${
+                    isDark 
+                    ? 'border-gray-700 text-gray-400 bg-gray-800/30' 
+                    : 'border-gray-200 text-gray-500 bg-gray-100'
+                }`}
+            >
+              {tag}
+            </span>
+          ))}
         </div>
 
-        <div 
-          className={`flex justify-between items-center px-4 py-3 rounded-md border border-solid mt-auto ${
-            isDark ? 'bg-black border-gray-700' : 'bg-gray-50 border-gray-100'
-          }`}
-        >
-          <div className="flex space-x-4">
-            <div className="flex items-center">
-              <DownloadOutlined className={`mr-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-              <Text className={`text-sm ${isDark ? 'text-gray-300' : ''}`}>
-                {prompt.downloads}
-              </Text>
-            </div>
-            <div className="flex items-center">
-              <CopyOutlined className={`mr-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-              <Text className={`text-sm ${isDark ? 'text-gray-300' : ''}`}>
-                {prompt.copyCount}
-              </Text>
-            </div>
+        <Divider className={`my-3 ${isDark ? 'border-gray-800' : 'border-gray-100'}`} />
+
+        {/* Footer Actions */}
+        <div className="flex justify-between items-center mt-auto">
+          <div className="flex gap-4 text-xs opacity-50">
+            <span className="flex items-center gap-1"><DownloadOutlined /> {prompt.downloads}</span>
+            <span className="flex items-center gap-1"><CopyOutlined /> {prompt.copyCount}</span>
           </div>
           
-          <Button 
-            type="primary" 
-            size="small"
-            icon={<CopyOutlined />}
-            onClick={handleCopy}
-            className={isDark ? 'bg-blue-600 hover:bg-blue-500 border-blue-500' : ''}
-          >
-            Use Prompt
-          </Button>
+          <div className="flex gap-2">
+             <Button 
+                type="text"
+                size="small"
+                icon={<DownloadOutlined />}
+                onClick={handleDownload}
+                className={isDark ? "text-gray-400 hover:text-white" : "text-gray-500"}
+             />
+             <Button 
+                type="primary"
+                onClick={handleCopy}
+                style={{
+                    backgroundColor: BRAND_COLOR,
+                    borderColor: BRAND_COLOR,
+                    color: '#000',
+                    fontWeight: 600,
+                    fontFamily: 'Manrope, sans-serif'
+                }}
+                className="hover:!bg-[#B4B8C5] hover:!border-[#B4B8C5] shadow-none"
+             >
+                Use Prompt
+             </Button>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
-
-
 
 const PromptDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sortBy, setSortBy] = useState('popular');
-  const [activeTab, setActiveTab] = useState('marketing'); // Track active tab
+  const [activeTab, setActiveTab] = useState('marketing');
+  
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-    const { favorites, toggleFavorite, isFavorite, loading, user } = useFavorites();
-   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
-    
-       const router = useRouter();
+  const { favorites, toggleFavorite, isFavorite, user } = useFavorites();
+  const { currentWorkspace } = useWorkspaceContext();
+  const router = useRouter();
 
   const popularTags = useMemo(() => calculateTagCounts(promptTemplates), []);
 
-  // Filter prompts based on active tab
- const filteredPrompts = promptTemplates.filter(prompt => {
-  // First filter: Tab-based filtering
-  let tabMatch = false;
-  if (activeTab === 'marketing') {
-    tabMatch = prompt.category.includes('Marketing');
-  } else if (activeTab === 'sales') {
-    tabMatch = prompt.category.includes('Sales');
-  } else if (activeTab === 'favorites') {
-    tabMatch = favorites.includes(prompt.id);
-  }
+  const filteredPrompts = promptTemplates.filter(prompt => {
+    let tabMatch = false;
+    if (activeTab === 'marketing') tabMatch = prompt.category.includes('Marketing');
+    else if (activeTab === 'sales') tabMatch = prompt.category.includes('Sales');
+    else if (activeTab === 'favorites') tabMatch = favorites.includes(prompt.id);
+    if (!tabMatch) return false;
 
-  // If tab doesn't match, exclude this prompt
-  if (!tabMatch) return false;
+    const matchesSearch = 
+      prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      prompt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prompt.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => prompt.tags.includes(tag));
+    const matchesCategory = !selectedCategory || prompt.category.includes(selectedCategory);
+    
+    return matchesSearch && matchesTags && matchesCategory;
+  });
 
-  // Second filter: Search, tags, and category filtering
-  const matchesSearch = 
-    prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    prompt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prompt.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
-  
-  const matchesTags = selectedTags.length === 0 || 
-    selectedTags.every(tag => prompt.tags.includes(tag));
-  
-  const matchesCategory = !selectedCategory || prompt.category.includes(selectedCategory);
-  
-  return matchesSearch && matchesTags && matchesCategory;
-});
+  const sortedPrompts = [...filteredPrompts].sort((a, b) => {
+    if (sortBy === 'popular') return b.downloads - a.downloads;
+    if (sortBy === 'newest') return b.id - a.id;
+    if (sortBy === 'copied') return b.copyCount - a.copyCount;
+    return 0;
+  });
 
-const sortedPrompts = [...filteredPrompts].sort((a, b) => {
-  if (sortBy === 'popular') return b.downloads - a.downloads;
-  if (sortBy === 'newest') return b.id - a.id;
-  if (sortBy === 'copied') return b.copyCount - a.copyCount;
-  return 0;
-});
-
-
-   const handleBack = () => {
+  const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
   };
 
-return (
-  <div className="max-w-7xl mx-auto px-4 py-8">
-                 <Button 
-  icon={<ArrowLeftOutlined />} 
-  onClick={handleBack}
-// negative margin top
->
-  Back
-</Button>
-    <div className="text-center mb-8">
-      
-  
+  // Custom Tab Label Renderer
+  const renderTabLabel = (label: string, count?: number, icon?: React.ReactNode) => (
+    <span className="flex items-center gap-2 px-2 py-1">
+        {icon}
+        <span className="font-medium">{label}</span>
+        {count !== undefined && (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}>
+                {count}
+            </span>
+        )}
+    </span>
+  );
 
-      <Title level={2} className="flex items-center justify-center">
-     
-
-            <span style={{
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    fontWeight: 600,
-    fontSize: '18px',
-  }}>
-
-         <span style={{ color: '#5CC49D' }}>a</span>rb
-  <span style={{ color: '#5CC49D' }}>i</span>trageOS Prompt Directory
-  </span>
-      </Title>
-      <Text type="secondary" className="text-lg">
-        Discover ready-to-use prompts to automate your business processes
-      </Text>
-    </div>
-    <Tabs 
-      activeKey={activeTab} 
-      onChange={setActiveTab} 
-      centered 
-      className="mb-8"
+  return (
+    <ConfigProvider
+        theme={{
+            token: {
+                fontFamily: "'Manrope', sans-serif",
+                colorPrimary: BRAND_COLOR,
+                borderRadius: 8,
+                colorBgContainer: isDark ? '#141414' : '#ffffff',
+                colorText: isDark ? '#ffffff' : '#000000',
+            },
+            components: {
+                Input: {
+                    colorBgContainer: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                    colorBorder: isDark ? 'rgba(255,255,255,0.1)' : '#d9d9d9',
+                    activeBorderColor: BRAND_COLOR,
+                    hoverBorderColor: BRAND_COLOR,
+                },
+                Select: {
+                    colorBgContainer: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                    colorBorder: isDark ? 'rgba(255,255,255,0.1)' : '#d9d9d9',
+                    colorPrimaryHover: BRAND_COLOR,
+                    controlOutline: 'transparent',
+                },
+                Tabs: {
+                    itemColor: isDark ? '#666' : '#999',
+                    itemSelectedColor: isDark ? '#fff' : '#000',
+                    itemHoverColor: isDark ? '#fff' : '#000',
+                    inkBarColor: BRAND_COLOR,
+                }
+            }
+        }}
     >
-      <TabPane tab="Marketing Templates" key="marketing">
-        <div className="mb-8">
-          <Search
-            placeholder="Search marketing prompts..."
-            allowClear
-            enterButton={<Button type="primary">Search</Button>}
-            size="large"
-            prefix={<SearchOutlined />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4"
-          />
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              <Select
-                placeholder="Filter by category"
-                style={{ width: 200 }}
-                onChange={setSelectedCategory}
-                allowClear
-              >
-                {categories.map(category => (
-                  <Option key={category} value={category}>
-                    {category}
-                  </Option>
-                ))}
-              </Select>
-              <Select
-                mode="multiple"
-                placeholder="Filter by tags"
-                style={{ width: 250 }}
-                onChange={setSelectedTags}
-                suffixIcon={<TagsOutlined />}
-                allowClear
-              >
-                {popularTags.map(tag => (
-                  <Option key={tag.name} value={tag.name}>
-                    {tag.name} <Text type="secondary">({tag.count})</Text>
-                  </Option>
-                ))}
-              </Select>
-              <Button 
-                icon={<TagsOutlined />} 
-                onClick={() => {
-                  setSelectedTags([]);
-                  setSelectedCategory('');
-                  setSearchTerm('');
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-            <Select
-              defaultValue="popular"
-              style={{ width: 150 }}
-              onChange={setSortBy}
-              suffixIcon={<FireOutlined />}
-            >
-              <Option value="popular">Most Popular</Option>
-              <Option value="copied">Most Copied</Option>
-              <Option value="newest">Newest First</Option>
-            </Select>
-          </div>
-        </div>
-        <Divider />
-        <Row gutter={[16, 16]}>
-          {sortedPrompts.map(prompt => (
-            <Col xs={24} sm={12} lg={8} key={prompt.id}>
-              <PromptCard 
-                prompt={prompt}
-                isFavorite={isFavorite(prompt.id)}
-                onToggleFavorite={toggleFavorite}
-              />
-            </Col>
-          ))}
-        </Row>
-        {sortedPrompts.length === 0 && (
-          <div className="text-center py-12">
-            <Title level={4}>No marketing prompts found</Title>
-            <Text type="secondary">Try adjusting your search or filters</Text>
-          </div>
-        )}
-      </TabPane>
-      
-      <TabPane tab="Sales Templates" key="sales">
-        <div className="mb-8">
-          <Search
-            placeholder="Search sales prompts..."
-            allowClear
-            enterButton={<Button type="primary">Search</Button>}
-            size="large"
-            prefix={<SearchOutlined />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4"
-          />
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              <Select
-                placeholder="Filter by category"
-                style={{ width: 200 }}
-                onChange={setSelectedCategory}
-                allowClear
-              >
-                {categories.map(category => (
-                  <Option key={category} value={category}>
-                    {category}
-                  </Option>
-                ))}
-              </Select>
-              <Select
-                mode="multiple"
-                placeholder="Filter by tags"
-                style={{ width: 250 }}
-                onChange={setSelectedTags}
-                suffixIcon={<TagsOutlined />}
-                allowClear
-              >
-                {popularTags.map(tag => (
-                  <Option key={tag.name} value={tag.name}>
-                    {tag.name} <Text type="secondary">({tag.count})</Text>
-                  </Option>
-                ))}
-              </Select>
-              <Button 
-                icon={<TagsOutlined />} 
-                onClick={() => {
-                  setSelectedTags([]);
-                  setSelectedCategory('');
-                  setSearchTerm('');
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-            <Select
-              defaultValue="popular"
-              style={{ width: 150 }}
-              onChange={setSortBy}
-              suffixIcon={<FireOutlined />}
-            >
-              <Option value="popular">Most Popular</Option>
-              <Option value="copied">Most Copied</Option>
-              <Option value="newest">Newest First</Option>
-            </Select>
-          </div>
-        </div>
-        <Divider />
-        <Row gutter={[16, 16]}>
-          {sortedPrompts.map(prompt => (
-            <Col xs={24} sm={12} lg={8} key={prompt.id}>
-              <PromptCard 
-                prompt={prompt}
-                isFavorite={isFavorite(prompt.id)}
-                onToggleFavorite={toggleFavorite}
-              />
-            </Col>
-          ))}
-        </Row>
-        {sortedPrompts.length === 0 && (
-          <div className="text-center py-12">
-            <Title level={4}>No sales prompts found</Title>
-            <Text type="secondary">Try adjusting your search or filters</Text>
-          </div>
-        )}
-      </TabPane>
-      
-      <TabPane 
-        tab={
-          <span>
-            <HeartOutlined /> Favorites ({favorites.length})
-            {!user && <Text type="secondary" style={{ marginLeft: 4 }}>(Local)</Text>}
-          </span>
-        } 
-        key="favorites"
-      >
-        <div className="mb-8">
-          <Search
-            placeholder="Search favorite prompts..."
-            allowClear
-            enterButton={<Button type="primary">Search</Button>}
-            size="large"
-            prefix={<SearchOutlined />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4"
-          />
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              <Select
-                placeholder="Filter by category"
-                style={{ width: 200 }}
-                onChange={setSelectedCategory}
-                allowClear
-              >
-                {categories.map(category => (
-                  <Option key={category} value={category}>
-                    {category}
-                  </Option>
-                ))}
-              </Select>
-              <Select
-                mode="multiple"
-                placeholder="Filter by tags"
-                style={{ width: 250 }}
-                onChange={setSelectedTags}
-                suffixIcon={<TagsOutlined />}
-                allowClear
-              >
-                {popularTags.map(tag => (
-                  <Option key={tag.name} value={tag.name}>
-                    {tag.name} <Text type="secondary">({tag.count})</Text>
-                  </Option>
-                ))}
-              </Select>
-              <Button 
-                icon={<TagsOutlined />} 
-                onClick={() => {
-                  setSelectedTags([]);
-                  setSelectedCategory('');
-                  setSearchTerm('');
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-            <Select
-              defaultValue="popular"
-              style={{ width: 150 }}
-              onChange={setSortBy}
-              suffixIcon={<FireOutlined />}
-            >
-              <Option value="popular">Most Popular</Option>
-              <Option value="copied">Most Copied</Option>
-              <Option value="newest">Newest First</Option>
-            </Select>
-          </div>
-        </div>
-        <Divider />
-        <Row gutter={[16, 16]}>
-          {sortedPrompts.map(prompt => (
-            <Col xs={24} sm={12} lg={8} key={prompt.id}>
-              <PromptCard 
-                prompt={prompt}
-                isFavorite={isFavorite(prompt.id)}
-                onToggleFavorite={toggleFavorite}
-              />
-            </Col>
-          ))}
-        </Row>
-        {sortedPrompts.length === 0 && (
-          <div className="text-center py-12">
-            <HeartOutlined className="text-6xl text-gray-300 mb-4" />
-            <Title level={4}>No favorite prompts yet</Title>
-            <Text type="secondary">
-              Click the heart icon on any prompt to add it to your favorites
-            </Text>
-          </div>
-        )}
-      </TabPane>
-    </Tabs>
+        {/* Inject Font Globally for this View */}
+        <style jsx global>{`
+            @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
+            body { font-family: 'Manrope', sans-serif; }
+            
+            /* Custom Scrollbar for dark mode integration */
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+            ::-webkit-scrollbar-thumb:hover { background: #555; }
+            
+            .ant-tabs-nav::before { border-bottom: 1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0'} !important; }
+        `}</style>
 
-    <Divider />
+        <div className={`min-h-screen ${isDark ? 'bg-[#0B0C10]' : 'bg-gray-50'}`}>
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                
+                {/* Header Navigation */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+                    <div className="flex items-center gap-4">
+                        <Button 
+                            onClick={handleBack}
+                            type="text"
+                            icon={<ArrowLeftOutlined />}
+                            className={`flex items-center font-medium pl-0 hover:bg-transparent ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'}`}
+                        >
+                            Back
+                        </Button>
+                    </div>
+                </div>
 
-    <div className="text-center">
-      <Title level={4} className="mb-2">
-        Want to contribute your own prompt?
-      </Title>
-      <Text type="secondary" className="block mb-4">
-        Join our community and share your best AI prompts
-      </Text>
-      <Space>
-        <Button type="primary">Submit Prompt</Button>
-        <Button>Browse Community</Button>
-      </Space>
-    </div>
-  </div>
-)};
+                {/* Hero / Introduction */}
+                <div className="mb-12">
+                    <h1 className={`text-4xl font-bold mb-3 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Prompt Library
+                    </h1>
+                    <p className={`text-lg max-w-2xl ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Accelerate your workflow with production-ready prompts designed for marketing, sales, and content creation.
+                    </p>
+                </div>
+
+                {/* Main Content Area */}
+                <Tabs 
+                    activeKey={activeTab} 
+                    onChange={setActiveTab} 
+                    className="mb-8 font-manrope"
+                    size="large"
+                    items={[
+                        {
+                            key: 'marketing',
+                            label: renderTabLabel('Marketing', undefined, <FireOutlined />),
+                            children: null // Content handled below
+                        },
+                        {
+                            key: 'sales',
+                            label: renderTabLabel('Sales', undefined, <ThunderboltFilled />),
+                            children: null
+                        },
+                        {
+                            key: 'favorites',
+                            label: renderTabLabel('Saved', favorites.length, <HeartFilled />),
+                            children: null
+                        }
+                    ]}
+                />
+
+                {/* Controls Bar */}
+                <div className={`p-4 rounded-xl mb-8 border ${isDark ? 'bg-[#12141a] border-white/5' : 'bg-white border-gray-100'}`}>
+                    <div className="flex flex-col xl:flex-row gap-4 justify-between">
+                        <Input 
+                            placeholder="Search templates..." 
+                            prefix={<SearchOutlined className="opacity-50" />} 
+                            allowClear
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full xl:w-96 text-lg"
+                            size="large"
+                            bordered={false}
+                            style={{ 
+                                background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9',
+                                borderRadius: '8px' 
+                            }}
+                        />
+
+                        <div className="flex flex-wrap gap-3 items-center">
+                            <Select
+                                placeholder="Category"
+                                style={{ width: 180 }}
+                                onChange={setSelectedCategory}
+                                allowClear
+                                size="large"
+                                suffixIcon={<FilterOutlined className="text-xs" />}
+                            >
+                                {categories.map(c => <Option key={c} value={c}>{c}</Option>)}
+                            </Select>
+
+                            <Select
+                                mode="multiple"
+                                placeholder="Filter Tags"
+                                style={{ width: 240 }}
+                                onChange={setSelectedTags}
+                                allowClear
+                                size="large"
+                                maxTagCount="responsive"
+                            >
+                                {popularTags.map(t => (
+                                    <Option key={t.name} value={t.name}>{t.name} ({t.count})</Option>
+                                ))}
+                            </Select>
+
+                            <div className={`w-px h-8 mx-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
+
+                            <Select
+                                defaultValue="popular"
+                                style={{ width: 160 }}
+                                onChange={setSortBy}
+                                size="large"
+                                variant="borderless"
+                                className="font-semibold"
+                            >
+                                <Option value="popular">Most Popular</Option>
+                                <Option value="copied">Most Copied</Option>
+                                <Option value="newest">Newest Added</Option>
+                            </Select>
+
+                            {(selectedTags.length > 0 || selectedCategory || searchTerm) && (
+                                <Button 
+                                    type="text" 
+                                    danger 
+                                    onClick={() => {
+                                        setSelectedTags([]);
+                                        setSelectedCategory('');
+                                        setSearchTerm('');
+                                    }}
+                                >
+                                    Reset
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div className="min-h-[400px]">
+                    <Row gutter={[24, 24]}>
+                        {sortedPrompts.map(prompt => (
+                            <Col xs={24} sm={12} lg={8} xl={8} key={prompt.id}>
+                                <PromptCard 
+                                    prompt={prompt}
+                                    isFavorite={isFavorite(prompt.id)}
+                                    onToggleFavorite={toggleFavorite}
+                                />
+                            </Col>
+                        ))}
+                    </Row>
+
+                    {sortedPrompts.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-24">
+                            <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description={
+                                    <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
+                                        No templates found matching your criteria.
+                                    </span>
+                                }
+                            />
+                            <Button 
+                                type="dashed" 
+                                className="mt-4"
+                                onClick={() => {
+                                    setSelectedTags([]);
+                                    setSelectedCategory('');
+                                    setSearchTerm('');
+                                }}
+                            >
+                                Clear all filters
+                            </Button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Call to Action */}
+                <div className="mt-20 border-t pt-10 text-center border-dashed border-gray-700">
+                    <h4 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                        Have a killer prompt?
+                    </h4>
+                    <p className={`mb-6 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                        Contribute to the ecosystem and help others automate their workflow.
+                    </p>
+                    <Button size="large" type="default" ghost={isDark}>
+                        Submit a Template
+                    </Button>
+                </div>
+            </div>
+        </div>
+    </ConfigProvider>
+  );
+};
 
 export default PromptDirectory;

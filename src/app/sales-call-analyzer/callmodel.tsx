@@ -11,10 +11,6 @@ import {
   message
 } from 'antd';
 import {
-  PhoneOutlined,
-  UploadOutlined,
-  EditOutlined,
-  LinkOutlined,
   PlusOutlined,
   UserOutlined,
   SoundOutlined
@@ -35,38 +31,6 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
 
   const callOptions = [
     {
-      key: 'live',
-      title: 'Advanced Call Analysis',
-      description: 'Sign up for TalkIQ for advanced call analysis',
-      icon: <PhoneOutlined className="text-2xl text-blue-500" />,
-      badge: 'pro',
-      badgeColor: 'bg-green-500',
-      action: () => {
-        message.info('Live call feature coming soon!');
-        onClose();
-      }
-    },
-    // {
-    //   key: 'upload',
-    //   title: '',
-    //   description: 'Sign up for TalkIQ for advanced call analysis',
-    //   icon: <UploadOutlined className="text-2xl text-purple-500" />,
-    //   action: () => {
-    //     go({ to: "/sales-call-analyzer/review-recording" });
-    //     onClose();
-    //   }
-    // },
-    // {
-    //   key: 'transcript',
-    //   title: '',
-    //   description: '',
-    //   icon: <PhoneOutlined className="text-2xl text-orange-500" />,
-    //   action: () => {
-    //     go({ to: "/sales-call-analyzer/review-recording" });
-    //     onClose();
-    //   }
-    // },
-    {
       key: 'transcript',
       title: 'Native Call Analysis',
       description: 'Paste or upload a text transcript for analysis',
@@ -74,7 +38,7 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
       badge: 'basic',
       badgeColor: 'bg-blue-500',
       action: () => {
-         go({ to: "/sales-call-analyzer/review-recording" });
+        go({ to: "/sales-call-analyzer/review-recording" });
         onClose();
       }
     }
@@ -96,17 +60,16 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
       open={visible}
       onCancel={onClose}
       footer={null}
-      width={800}
+      width={600}
       className="new-call-modal"
     >
       <div className="mb-6">
         <Text type="secondary">
-          Choose how you will like to analyze your sales call. You can join live calls, 
-          upload recordings, or analyze transcripts.
+          Choose how you would like to analyze your sales call.
         </Text>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {callOptions.map((option) => (
           <Card
             key={option.key}
@@ -144,34 +107,8 @@ export function NewCallModal({ visible, onClose }: NewCallModalProps) {
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    {option.key === 'live' && (
-                      <>
-                        <span className="flex items-center">
-                          <SoundOutlined className="mr-1" /> Real-time
-                        </span>
-                        <span className="flex items-center">
-                          <UserOutlined className="mr-1" /> Live coaching
-                        </span>
-                      </>
-                    )}
-                    {option.key === 'upload' && (
-                      <>
-                        <span>MP3, WAV, MP4</span>
-                        <span>Up to 25MB</span>
-                      </>
-                    )}
-                    {option.key === 'transcript' && (
-                      <>
-                        <span>Text analysis</span>
-                        <span>Instant results</span>
-                      </>
-                    )}
-                    {option.key === 'meeting' && (
-                      <>
-                        <span>Auto-sync</span>
-                        <span>Zoom, Teams, Meet</span>
-                      </>
-                    )}
+                    <span>Text analysis</span>
+                    <span>Instant results</span>
                   </div>
                   
                   <Button 
