@@ -17,22 +17,16 @@ import {
   Calendar,
   Mail,
   Image,
-  Download,
-  Upload,
-  Edit3,
   Plus,
+  Edit3,
   Search,
-  Filter,
   Tag,
   Star,
-  Heart,
-  MessageCircle,
   Bell,
   Shield,
   Key,
   Globe,
   Map,
-  Camera,
   Video,
   Music,
   Book,
@@ -44,113 +38,58 @@ import {
   TrendingUp
 } from "lucide-react";
 
-// Icon mapping based on breadcrumb labels or paths
+// --- STYLING CONSTANTS (Matched to previous design) ---
+const BRAND_COLOR = '#9DA2B3'; 
+const BRAND_COLOR_RGB = '157, 162, 179'; // For rgba usage
+const GLASS_BG_DARK = 'rgba(255, 255, 255, 0.03)';
+const GLASS_BORDER_DARK = 'rgba(255, 255, 255, 0.08)';
+const GLASS_BG_LIGHT = 'rgba(255, 255, 255, 0.6)';
+const GLASS_BORDER_LIGHT = 'rgba(0, 0, 0, 0.04)';
+
+// Icon mapping (Kept largely the same, just streamlined)
 const getIconForBreadcrumb = (label: string, href?: string) => {
   const lowerLabel = label.toLowerCase();
   const lowerHref = href?.toLowerCase() || "";
 
-  // Home/Dashboard detection
-  if (lowerLabel.includes("home") || lowerLabel.includes("dashboard") || lowerHref === "/" || lowerHref.includes("dashboard")) {
-    return Home;
-  }
+  if (lowerLabel.includes("home") || lowerLabel.includes("dashboard") || lowerHref === "/" || lowerHref.includes("dashboard")) return Home;
+  if (lowerLabel.includes("user") || lowerLabel.includes("profile") || lowerLabel.includes("account")) return User;
+  if (lowerLabel.includes("setting") || lowerLabel.includes("config")) return Settings;
+  if (lowerLabel.includes("document") || lowerLabel.includes("file") || lowerLabel.includes("report")) return FileText;
+  if (lowerLabel.includes("folder") || lowerLabel.includes("category")) return Folder;
+  if (lowerLabel.includes("data") || lowerLabel.includes("database")) return Database;
+  if (lowerLabel.includes("product") || lowerLabel.includes("shop") || lowerLabel.includes("order")) return ShoppingCart;
+  if (lowerLabel.includes("team") || lowerLabel.includes("member")) return Users;
+  if (lowerLabel.includes("analytic") || lowerLabel.includes("chart")) return BarChart3;
+  if (lowerLabel.includes("calendar") || lowerLabel.includes("event")) return Calendar;
+  if (lowerLabel.includes("mail") || lowerLabel.includes("message")) return Mail;
+  if (lowerLabel.includes("image") || lowerLabel.includes("gallery")) return Image;
+  if (lowerLabel.includes("create") || lowerLabel.includes("add")) return Plus;
+  if (lowerLabel.includes("edit") || lowerLabel.includes("update")) return Edit3;
+  if (lowerLabel.includes("search")) return Search;
+  if (lowerLabel.includes("business") || lowerLabel.includes("company")) return Briefcase;
+  if (lowerLabel.includes("tag")) return Tag;
+  if (lowerLabel.includes("star")) return Star;
+  if (lowerLabel.includes("notification")) return Bell;
+  if (lowerLabel.includes("security")) return Shield;
+  if (lowerLabel.includes("key")) return Key;
+  if (lowerLabel.includes("global")) return Globe;
+  if (lowerLabel.includes("location")) return Map;
+  if (lowerLabel.includes("video")) return Video;
+  if (lowerLabel.includes("music")) return Music;
+  if (lowerLabel.includes("book")) return Book;
+  if (lowerLabel.includes("code")) return Code;
+  if (lowerLabel.includes("performance")) return Zap;
+  if (lowerLabel.includes("goal")) return Target;
+  if (lowerLabel.includes("time")) return Clock;
+  if (lowerLabel.includes("trend")) return TrendingUp;
   
-  // User-related
-  if (lowerLabel.includes("user") || lowerLabel.includes("profile") || lowerLabel.includes("account")) {
-    return User;
-  }
-  
-  // Settings
-  if (lowerLabel.includes("setting") || lowerLabel.includes("config") || lowerLabel.includes("preference")) {
-    return Settings;
-  }
-  
-  // Documents/Files
-  if (lowerLabel.includes("document") || lowerLabel.includes("file") || lowerLabel.includes("report")) {
-    return FileText;
-  }
-  
-  // Folders/Categories
-  if (lowerLabel.includes("folder") || lowerLabel.includes("category") || lowerLabel.includes("group")) {
-    return Folder;
-  }
-  
-  // Data/Database
-  if (lowerLabel.includes("data") || lowerLabel.includes("database") || lowerLabel.includes("table")) {
-    return Database;
-  }
-  
-  // E-commerce
-  if (lowerLabel.includes("product") || lowerLabel.includes("shop") || lowerLabel.includes("cart") || lowerLabel.includes("order")) {
-    return ShoppingCart;
-  }
-  
-  // Users/Teams
-  if (lowerLabel.includes("team") || lowerLabel.includes("member") || lowerLabel.includes("staff")) {
-    return Users;
-  }
-  
-  // Analytics/Charts
-  if (lowerLabel.includes("analytic") || lowerLabel.includes("chart") || lowerLabel.includes("metric") || lowerLabel.includes("stat")) {
-    return BarChart3;
-  }
-  
-  // Calendar/Events
-  if (lowerLabel.includes("calendar") || lowerLabel.includes("event") || lowerLabel.includes("schedule")) {
-    return Calendar;
-  }
-  
-  // Communication
-  if (lowerLabel.includes("mail") || lowerLabel.includes("email") || lowerLabel.includes("message")) {
-    return Mail;
-  }
-  
-  // Media
-  if (lowerLabel.includes("image") || lowerLabel.includes("photo") || lowerLabel.includes("gallery")) {
-    return Image;
-  }
-  
-  // Actions
-  if (lowerLabel.includes("create") || lowerLabel.includes("add") || lowerLabel.includes("new")) {
-    return Plus;
-  }
-  
-  if (lowerLabel.includes("edit") || lowerLabel.includes("modify") || lowerLabel.includes("update")) {
-    return Edit3;
-  }
-  
-  if (lowerLabel.includes("search") || lowerLabel.includes("find")) {
-    return Search;
-  }
-  
-  // Business
-  if (lowerLabel.includes("business") || lowerLabel.includes("company") || lowerLabel.includes("enterprise")) {
-    return Briefcase;
-  }
-  
-  // Default fallback icons based on position or content
-  if (lowerLabel.includes("tag") || lowerLabel.includes("label")) return Tag;
-  if (lowerLabel.includes("star") || lowerLabel.includes("favorite")) return Star;
-  if (lowerLabel.includes("notification") || lowerLabel.includes("alert")) return Bell;
-  if (lowerLabel.includes("security") || lowerLabel.includes("permission")) return Shield;
-  if (lowerLabel.includes("key") || lowerLabel.includes("token")) return Key;
-  if (lowerLabel.includes("global") || lowerLabel.includes("world")) return Globe;
-  if (lowerLabel.includes("location") || lowerLabel.includes("address")) return Map;
-  if (lowerLabel.includes("video") || lowerLabel.includes("media")) return Video;
-  if (lowerLabel.includes("music") || lowerLabel.includes("audio")) return Music;
-  if (lowerLabel.includes("book") || lowerLabel.includes("guide")) return Book;
-  if (lowerLabel.includes("code") || lowerLabel.includes("api")) return Code;
-  if (lowerLabel.includes("performance") || lowerLabel.includes("speed")) return Zap;
-  if (lowerLabel.includes("goal") || lowerLabel.includes("target")) return Target;
-  if (lowerLabel.includes("time") || lowerLabel.includes("history")) return Clock;
-  if (lowerLabel.includes("trend") || lowerLabel.includes("growth")) return TrendingUp;
-  
-  // Default folder icon for unknown items
   return Folder;
 };
 
 export const Breadcrumb = () => {
   const { breadcrumbs } = useBreadcrumb();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   if (!breadcrumbs || breadcrumbs.length === 0) {
     return null;
@@ -158,82 +97,90 @@ export const Breadcrumb = () => {
 
   return (
     <nav
-      className={`flex items-center py-2 px-3 rounded-lg ${
-        theme === "dark" ? "text-gray-200" : "text-gray-800"
-      } transition-colors duration-200`}
       aria-label="Breadcrumb navigation"
+      className="w-fit"
     >
-      
-      <ul className="flex items-center space-x-1 text-sm font-medium">
-        {breadcrumbs.map((breadcrumb, index) => {
-          const IconComponent = getIconForBreadcrumb(breadcrumb.label, breadcrumb.href);
-          const isLast = index === breadcrumbs.length - 1;
-          const isFirst = index === 0;
-          
-          return (
-            <li key={`breadcrumb-${breadcrumb.label}-${index}`} className="flex items-center">
-              {breadcrumb.href ? (
-                <Link
-                  href={breadcrumb.href}
-                  className={`group flex items-center space-x-2 px-2 py-1 rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 no-underline ${
-                    theme === "dark"
-                      ? "text-indigo-300 hover:text-indigo-200 hover:bg-indigo-900/30 focus:ring-indigo-400 focus:ring-offset-gray-900"
-                      : "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/70 focus:ring-indigo-500 focus:ring-offset-white"
-                  } ${isFirst ? "font-semibold" : ""}`}
-                  title={`Navigate to ${breadcrumb.label}`}
-                >
-                  <IconComponent 
-                    className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${
-                      isFirst ? "w-5 h-5" : ""
-                    }`} 
-                  />
-                  <span className="whitespace-nowrap">{breadcrumb.label}</span>
-                  {isFirst && (
-                    <div 
-                      className={`w-1 h-1 rounded-full ml-1 ${
-                        theme === "dark" ? "bg-indigo-400" : "bg-indigo-500"
+      <div 
+        className="flex items-center px-4 py-2 rounded-full transition-all duration-300 backdrop-blur-md"
+        style={{
+            background: isDark ? GLASS_BG_DARK : GLASS_BG_LIGHT,
+            border: `1px solid ${isDark ? GLASS_BORDER_DARK : GLASS_BORDER_LIGHT}`,
+            boxShadow: isDark ? 'none' : '0 2px 10px rgba(0,0,0,0.03)',
+        }}
+      >
+        <ol className="flex items-center space-x-1">
+          {breadcrumbs.map((breadcrumb, index) => {
+            const IconComponent = getIconForBreadcrumb(breadcrumb.label, breadcrumb.href);
+            const isLast = index === breadcrumbs.length - 1;
+            const isFirst = index === 0;
+            
+            return (
+              <li key={`breadcrumb-${breadcrumb.label}-${index}`} className="flex items-center">
+                
+                {/* Separator - Hidden for first item */}
+                {!isFirst && (
+                    <div className={`px-2 opacity-30 ${isDark ? 'text-gray-400' : 'text-gray-400'}`}>
+                        <svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 9L5 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                    </div>
+                )}
+
+                {breadcrumb.href ? (
+                  // --- Interactive Link (Parent Levels) ---
+                  <Link
+                    href={breadcrumb.href}
+                    className="group flex items-center gap-2 px-2 py-0.5 rounded-md transition-all duration-200 focus:outline-none"
+                  >
+                    <IconComponent 
+                      className={`w-3.5 h-3.5 transition-colors duration-200 ${
+                        isDark 
+                          ? 'text-gray-500 group-hover:text-white' 
+                          : 'text-gray-400 group-hover:text-gray-800'
                       }`} 
                     />
-                  )}
-                </Link>
-              ) : (
-                <div
-                  className={`flex items-center space-x-2 px-2 py-1 rounded-lg ${
-                    theme === "dark" 
-                      ? "text-gray-300 bg-gray-800/50" 
-                      : "text-gray-600 bg-gray-100/50"
-                  } ${isLast ? "font-semibold shadow-sm" : ""}`}
-                  title={`Current page: ${breadcrumb.label}`}
-                >
-                  <IconComponent className={`w-4 h-4 ${isLast ? "w-5 h-5" : ""}`} />
-                  <span className="truncate max-w-[200px] whitespace-nowrap">
-                    {breadcrumb.label}
-                  </span>
-                  {isLast && (
-                    <div 
-                      className={`w-2 h-2 rounded-full ml-2 animate-pulse ${
-                        theme === "dark" ? "bg-emerald-400" : "bg-emerald-500"
-                      }`} 
-                      title="Current location"
+                    <span 
+                        className={`text-sm font-medium font-manrope transition-colors duration-200 ${
+                            isDark 
+                             ? 'text-gray-400 group-hover:text-[#9DA2B3]' 
+                             : 'text-gray-500 group-hover:text-[#9DA2B3]'
+                        }`}
+                    >
+                        {breadcrumb.label}
+                    </span>
+                  </Link>
+                ) : (
+                  // --- Current Page (Active) ---
+                  <div
+                    className="flex items-center gap-2 px-2 py-0.5 rounded-md relative overflow-hidden"
+                  >
+                     {/* Subtle Glow Background for Active Item */}
+                    {isDark && (
+                        <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                             style={{ background: `radial-gradient(circle at center, ${BRAND_COLOR} 0%, transparent 70%)` }} 
+                        />
+                    )}
+
+                    <IconComponent 
+                        className="w-3.5 h-3.5"
+                        style={{ color: isDark ? '#fff' : '#000' }}
                     />
-                  )}
-                </div>
-              )}
-              
-              {!isLast && (
-                <div className="flex items-center mx-2">
-                  <ChevronRight 
-                    className={`w-4 h-4 transition-colors duration-200 ${
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    }`}
-                    aria-hidden="true"
-                  />
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                    <span 
+                        className="text-sm font-bold font-manrope tracking-wide"
+                        style={{ 
+                            color: isDark ? '#fff' : '#000',
+                            textShadow: isDark ? `0 0 20px ${BRAND_COLOR}` : 'none'
+                        }}
+                    >
+                      {breadcrumb.label}
+                    </span>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 };

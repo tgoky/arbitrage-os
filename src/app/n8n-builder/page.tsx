@@ -17,7 +17,10 @@ import {
   EditOutlined,
   ArrowLeftOutlined,
   DeleteOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  RocketOutlined,
+  SettingOutlined,
+  CopyOutlined
 } from '@ant-design/icons';
 import { 
   Button, 
@@ -44,45 +47,47 @@ import {
   message,
   Col,
   Statistic,
-  Progress
+  Progress,
+  ConfigProvider,
+  Empty
 } from 'antd';
 
-// import { useRouter } from "next/navigation";
 import { useParsed } from "@refinedev/core";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import LoadingOverlay from './loadingOverlay';
-
 import { useN8nWorkflowBuilder, useWorkflowExport, useIntegrationTemplates } from '../hooks/useN8nWorkflowBuilder';
-
 import { N8nWorkflowInput, SavedWorkflow, ExportFormat, RequiredCredential } from '@/types/n8nWorkflowBuilder';
+import { useTheme } from '../../providers/ThemeProvider';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
 const { Panel } = Collapse;
 const { Option } = Select;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 
+// --- STYLING CONSTANTS ---
+const MINT_COLOR = '#5CC49D';
+const STEEL_COLOR = '#9DA2B3';
+const SPACE_BG = '#0B0C10';
+const GLASS_BG = 'rgba(255, 255, 255, 0.03)';
+const GLASS_BORDER = 'rgba(255, 255, 255, 0.08)';
 
 const N8nWorkflowCreator = () => {
   const [form] = Form.useForm();
   const [activeStep, setActiveStep] = useState(0);
-  const { params, id } = useParsed();
-    const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+  const { params } = useParsed();
+  const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+  const { theme } = useTheme();
+  const isDark = true;
 
-      const router = useRouter();
-
+  const router = useRouter();
   const searchParams = useSearchParams();
-  // const [workflowName, setWorkflowName] = useState('');
-  // const [workflowDescription, setWorkflowDescription] = useState('');
-    // const router = useRouter();
-  // const workspaceId = router.query.workspaceId as string | undefined;
-  // const initialMode = (router.query.mode as 'create' | 'list') || 'create';
-    const workspaceId = (params?.workspaceId as string) || searchParams?.get('workspaceId') || undefined;
+
+  const workspaceId = (params?.workspaceId as string) || searchParams?.get('workspaceId') || undefined;
   
-  // Get mode from route params or search params
   const initialMode = (params?.mode as 'create' | 'list') || 
                      (searchParams?.get('mode') as 'create' | 'list') || 
                      'create';
@@ -93,7 +98,7 @@ const N8nWorkflowCreator = () => {
   const [newCustomIntegration, setNewCustomIntegration] = useState('');
   const [mode, setMode] = useState<'create' | 'list' | 'view'>(initialMode);
   const [currentWorkflow, setCurrentWorkflow] = useState<SavedWorkflow | null>(null);
-const [selectedTrigger, setSelectedTrigger] = useState("schedule");
+  const [selectedTrigger, setSelectedTrigger] = useState("schedule");
 
   // Hooks
   const {
@@ -125,35 +130,36 @@ const [selectedTrigger, setSelectedTrigger] = useState("schedule");
   }, [workspaceId, loadWorkflows]);
 
   // Initialize form with default values
-useEffect(() => {
-  form.setFieldValue('triggerType', 'schedule');
-  setSelectedTrigger('schedule');
-}, [form]);
+  useEffect(() => {
+    form.setFieldValue('triggerType', 'schedule');
+    setSelectedTrigger('schedule');
+  }, [form]);
 
   const triggerTypes = [
     {
       value: 'schedule',
       label: 'Scheduled',
       description: 'Run at specific times or intervals',
-      icon: <ClockCircleOutlined />,
-      examples: ['Daily at 8 AM', 'Every hour', 'On the 1st of each month']
+      icon: <ClockCircleOutlined className="text-xl"/>,
+      examples: ['Daily at 8 AM', 'Every hour', 'Monthly']
     },
     {
       value: 'webhook',
       label: 'Webhook',
       description: 'Triggered by an external HTTP request',
-      icon: <ApiOutlined />,
-      examples: ['When form is submitted', 'When payment is received', 'When GitHub event occurs']
+      icon: <ApiOutlined className="text-xl"/>,
+      examples: ['Form submission', 'Payment received', 'Git push']
     },
     {
       value: 'event',
       label: 'Event',
       description: 'Triggered by system or app events',
-      icon: <ThunderboltOutlined />,
-      examples: ['New email received', 'File uploaded to folder', 'Database record created']
+      icon: <ThunderboltOutlined className="text-xl"/>,
+      examples: ['New email', 'File uploaded', 'DB record created']
     }
   ];
 
+  // Full integration options list from the working version
   const integrationOptions = [
     // Messaging & Chat
     'Slack', 'Discord', 'Telegram', 'Microsoft Teams', 'Mattermost', 'Rocket.Chat', 'WhatsApp Business (Cloud API)',
@@ -190,147 +196,137 @@ useEffect(() => {
     }
   };
 
-const onFinish = async (values: any) => {
-  console.log('Form Values on Submit:', values);
-
-    console.log('Form Values on Submit (values param):', values);
+  const onFinish = async (values: any) => {
+    console.log('Form Values on Submit:', values);
     
-  
-  // Get all form values
-  const allValues = form.getFieldsValue(true); // true forces all fields
-  console.log('All Form Values (getFieldsValue):', allValues);
-  
-  // Debug each step's values
-  console.log('Step 0 fields:', {
-    workflowName: allValues.workflowName,
-    workflowDescription: allValues.workflowDescription,
-    additionalContext: allValues.additionalContext,
-    workflowGoals: allValues.workflowGoals
-  });
-  
-  console.log('Step 1 fields:', {
-    triggerType: allValues.triggerType,
-    scheduleDetails: allValues.scheduleDetails,
-    webhookDetails: allValues.webhookDetails,
-    eventDetails: allValues.eventDetails,
-    triggerData: allValues.triggerData
-  });
-  
-  console.log('Step 2 fields:', {
-    integrations: allValues.integrations,
-    actionDescription: allValues.actionDescription,
-    specificRequirements: allValues.specificRequirements
-  });
-  
-  
-  // Get all form values (not just the current step)
- 
-  console.log('All Form Values:', allValues);
-  
-  const triggerTypeToUse = allValues.triggerType || selectedTrigger;
-  
-  // Validate required fields before submission
-  if (!allValues.workflowName) {
-    message.error('Workflow name is required');
-    setActiveStep(0); // Go back to step 1
-    return;
-  }
-  
-  if (!allValues.actionDescription) {
-    message.error('Action description is required');
-    setActiveStep(2); // Go back to step 3
-    return;
-  }
-  
-  if (!allValues.integrations || allValues.integrations.length === 0) {
-    message.error('At least one integration is required');
-    setActiveStep(2); // Go back to step 3
-    return;
-  }
-  
-  // Validate trigger-specific required fields
-  if (triggerTypeToUse === 'schedule' && !allValues.scheduleDetails) {
-    message.error('Schedule details are required for scheduled workflows');
-    setActiveStep(1); // Go back to step 2
-    return;
-  }
-  
-  if (triggerTypeToUse === 'webhook' && !allValues.webhookDetails) {
-    message.error('Webhook details are required for webhook workflows');
-    setActiveStep(1); // Go back to step 2
-    return;
-  }
-  
-  if (triggerTypeToUse === 'event' && !allValues.eventDetails) {
-    message.error('Event details are required for event workflows');
-    setActiveStep(1); // Go back to step 2
-    return;
-  }
+    // Get all form values
+    const allValues = form.getFieldsValue(true);
+    console.log('All Form Values (getFieldsValue):', allValues);
+    
+    // Debug each step's values
+    console.log('Step 0 fields:', {
+      workflowName: allValues.workflowName,
+      workflowDescription: allValues.workflowDescription,
+      additionalContext: allValues.additionalContext,
+      workflowGoals: allValues.workflowGoals
+    });
+    
+    console.log('Step 1 fields:', {
+      triggerType: allValues.triggerType,
+      scheduleDetails: allValues.scheduleDetails,
+      webhookDetails: allValues.webhookDetails,
+      eventDetails: allValues.eventDetails,
+      triggerData: allValues.triggerData
+    });
+    
+    console.log('Step 2 fields:', {
+      integrations: allValues.integrations,
+      actionDescription: allValues.actionDescription,
+      specificRequirements: allValues.specificRequirements
+    });
+    
+    const triggerTypeToUse = allValues.triggerType || selectedTrigger;
+    
+    // Validate required fields before submission
+    if (!allValues.workflowName) {
+      message.error('Workflow name is required');
+      setActiveStep(0);
+      return;
+    }
+    
+    if (!allValues.actionDescription) {
+      message.error('Action description is required');
+      setActiveStep(2);
+      return;
+    }
+    
+    if (!allValues.integrations || allValues.integrations.length === 0) {
+      message.error('At least one integration is required');
+      setActiveStep(2);
+      return;
+    }
+    
+    // Validate trigger-specific required fields
+    if (triggerTypeToUse === 'schedule' && !allValues.scheduleDetails) {
+      message.error('Schedule details are required for scheduled workflows');
+      setActiveStep(1);
+      return;
+    }
+    
+    if (triggerTypeToUse === 'webhook' && !allValues.webhookDetails) {
+      message.error('Webhook details are required for webhook workflows');
+      setActiveStep(1);
+      return;
+    }
+    
+    if (triggerTypeToUse === 'event' && !allValues.eventDetails) {
+      message.error('Event details are required for event workflows');
+      setActiveStep(1);
+      return;
+    }
 
-  const workflowInput: N8nWorkflowInput = {
-    workflowName: allValues.workflowName,
-    workflowDescription: allValues.workflowDescription || '',
-    triggerType: triggerTypeToUse as 'schedule' | 'webhook' | 'event',
-    scheduleDetails: allValues.scheduleDetails,
-    webhookDetails: allValues.webhookDetails,
-    eventDetails: allValues.eventDetails,
-    triggerData: allValues.triggerData,
-    integrations: allValues.integrations || [],
-    actionDescription: allValues.actionDescription,
-    additionalContext: allValues.additionalContext,
-    specificRequirements: allValues.specificRequirements || [],
-    workflowGoals: allValues.workflowGoals || []
+    const workflowInput: N8nWorkflowInput = {
+      workflowName: allValues.workflowName,
+      workflowDescription: allValues.workflowDescription || '',
+      triggerType: triggerTypeToUse as 'schedule' | 'webhook' | 'event',
+      scheduleDetails: allValues.scheduleDetails,
+      webhookDetails: allValues.webhookDetails,
+      eventDetails: allValues.eventDetails,
+      triggerData: allValues.triggerData,
+      integrations: allValues.integrations || [],
+      actionDescription: allValues.actionDescription,
+      additionalContext: allValues.additionalContext,
+      specificRequirements: allValues.specificRequirements || [],
+      workflowGoals: allValues.workflowGoals || []
+    };
+
+    console.log('Processed Workflow Input:', workflowInput);
+
+    try {
+      const result = await generateWorkflow(workflowInput);
+      console.log('🔍 Full result from generateWorkflow:', result);
+      
+      if (result) {
+        console.log('🔍 result.workflow:', result.workflow);
+        console.log('🔍 result.workflow.workflowConfig:', result.workflow.workflowConfig);
+        
+        const savedWorkflow: SavedWorkflow = {
+          id: result.workflowId,
+          title: result.workflow.workflowConfig?.name || workflowInput.workflowName,
+          workflowName: result.workflow.workflowConfig?.name || workflowInput.workflowName,
+          workflowDescription: workflowInput.workflowDescription || '',
+          triggerType: workflowInput.triggerType,
+          integrations: workflowInput.integrations,
+          complexity: result.workflow.analysis?.complexity || 'moderate',
+          nodeCount: result.workflow.analysis?.nodeCount || 0,
+          status: 'draft' as const,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          workflowConfig: result.workflow.workflowConfig || {},
+          setupInstructions: result.workflow.setupInstructions || { steps: [], credentialSetup: [], testingGuidance: [], troubleshooting: [] },
+          analysis: result.workflow.analysis || { nodeCount: 0, connectionCount: 0, complexity: 'moderate', estimatedExecutionTime: 30, potentialIssues: [], optimizationSuggestions: [], securityConsiderations: [], scalabilityNotes: [] },
+          workspace: {
+            id: workspaceId || 'default',
+            name: 'Default Workspace'
+          }
+        };
+        
+        console.log('🔍 Created savedWorkflow:', savedWorkflow);
+        
+        setCurrentWorkflow(savedWorkflow);
+        setActiveStep(3);
+        console.log('🔍 Set activeStep to 3');
+      } else {
+        console.error('❌ No result returned from generateWorkflow');
+      }
+    } catch (error) {
+      console.error('❌ Error generating workflow:', error);
+    }
   };
 
-  console.log('Processed Workflow Input:', workflowInput);
-try {
-  const result = await generateWorkflow(workflowInput);
-  console.log('🔍 Full result from generateWorkflow:', result);
-  
-  if (result) {
-    console.log('🔍 result.workflow:', result.workflow);
-    console.log('🔍 result.workflow.workflowConfig:', result.workflow.workflowConfig);
-    
-    const savedWorkflow: SavedWorkflow = {
-      id: result.workflowId,
-      title: result.workflow.workflowConfig?.name || workflowInput.workflowName, // Add fallback
-      workflowName: result.workflow.workflowConfig?.name || workflowInput.workflowName, // Add fallback
-      workflowDescription: workflowInput.workflowDescription || '',
-      triggerType: workflowInput.triggerType,
-      integrations: workflowInput.integrations,
-      complexity: result.workflow.analysis?.complexity || 'moderate', // Add fallback
-      nodeCount: result.workflow.analysis?.nodeCount || 0, // Add fallback
-      status: 'draft' as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      workflowConfig: result.workflow.workflowConfig || {}, // Add fallback
-      setupInstructions: result.workflow.setupInstructions || { steps: [], credentialSetup: [], testingGuidance: [], troubleshooting: [] }, // Add fallback
-      analysis: result.workflow.analysis || { nodeCount: 0, connectionCount: 0, complexity: 'moderate', estimatedExecutionTime: 30, potentialIssues: [], optimizationSuggestions: [], securityConsiderations: [], scalabilityNotes: [] }, // Add fallback
-      workspace: {
-        id: workspaceId || 'default',
-        name: 'Default Workspace'
-      }
-    };
-    
-    console.log('🔍 Created savedWorkflow:', savedWorkflow);
-    
-    setCurrentWorkflow(savedWorkflow);
-    setActiveStep(3);
-    console.log('🔍 Set activeStep to 3');
-  } else {
-    console.error('❌ No result returned from generateWorkflow');
-  }
-} catch (error) {
-  console.error('❌ Error generating workflow:', error);
-}
-};
-
-
-
-    const handleBack = () => {
+  const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
   };
-
 
   const handleViewWorkflow = async (workflowId: string) => {
     const workflow = await getWorkflow(workflowId);
@@ -367,6 +363,8 @@ try {
 
   const allIntegrationOptions = [...integrationOptions, ...customIntegrations];
 
+  // --- SUB-COMPONENTS ---
+
   // Workflow List Component
   const WorkflowList = () => {
     const columns = [
@@ -376,8 +374,8 @@ try {
         key: 'name',
         render: (text: string, record: any) => (
           <div>
-            <div className="font-medium">{text}</div>
-            <div className="text-sm text-gray-500">{record.triggerType} trigger</div>
+            <div className="font-medium text-white">{text}</div>
+            <div className="text-xs text-gray-500">{record.triggerType} trigger</div>
           </div>
         )
       },
@@ -386,12 +384,12 @@ try {
         dataIndex: 'integrations',
         key: 'integrations',
         render: (integrations: string[]) => (
-          <div>
+          <div className="flex flex-wrap gap-1">
             {integrations.slice(0, 3).map(integration => (
-              <Tag key={integration} className="mb-1">{integration}</Tag>
+              <Tag key={integration} bordered={false} className="bg-white/10 text-gray-300 mr-0">{integration}</Tag>
             ))}
             {integrations.length > 3 && (
-              <Tag>+{integrations.length - 3} more</Tag>
+              <Tag bordered={false} className="bg-white/5 text-gray-500">+{integrations.length - 3} more</Tag>
             )}
           </div>
         )
@@ -405,7 +403,7 @@ try {
             complexity === 'simple' ? 'green' : 
             complexity === 'moderate' ? 'orange' : 'red'
           }>
-            {complexity.toUpperCase()}
+            {complexity?.toUpperCase() || 'N/A'}
           </Tag>
         )
       },
@@ -414,9 +412,7 @@ try {
         dataIndex: 'status',
         key: 'status',
         render: (status: string) => (
-          <Tag color={status === 'active' ? 'green' : 'default'}>
-            {status.toUpperCase()}
-          </Tag>
+          <Badge status={status === 'active' ? 'success' : 'default'} text={<span className="text-gray-400">{status?.toUpperCase() || 'DRAFT'}</span>} />
         )
       },
       {
@@ -426,58 +422,61 @@ try {
         render: (date: Date) => new Date(date).toLocaleDateString()
       },
       {
-        title: 'Actions',
+        title: '',
         key: 'actions',
+        align: 'right' as const,
         render: (_: any, record: any) => (
           <Space>
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewWorkflow(record.id)}
-            />
-            <Button
-              type="text"
-              icon={<DownloadOutlined />}
-              onClick={() => handleExportWorkflow(record.id, 'json')}
-            />
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDeleteWorkflow(record.id)}
-            />
+            <Tooltip title="View">
+              <Button type="text" icon={<EyeOutlined />} onClick={() => handleViewWorkflow(record.id)} className="text-gray-400 hover:text-white"/>
+            </Tooltip>
+            <Tooltip title="Download JSON">
+              <Button type="text" icon={<DownloadOutlined />} onClick={() => handleExportWorkflow(record.id, 'json')} className="text-gray-400 hover:text-white"/>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDeleteWorkflow(record.id)} />
+            </Tooltip>
           </Space>
         )
       }
     ];
 
     return (
-      <div>
-        <div className="flex justify-between items-center mb-6">
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <Title level={3}>Your n8n Workflows</Title>
-            <Text type="secondary">Manage and view your automated workflows</Text>
+            <Title level={2} style={{ color: 'white', marginBottom: 0 }}>Your n8n Workflows</Title>
+            <Text style={{ color: STEEL_COLOR }}>Manage and view your automated workflows</Text>
           </div>
           <Space>
             <Button
               icon={<ReloadOutlined />}
               onClick={refreshWorkflows}
               loading={isLoading}
+              className="border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
             >
               Refresh
             </Button>
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setMode('create');
-                setActiveStep(1);
-                form.resetFields();
-                setCurrentWorkflow(null);
-              }}
-            >
-              Create Workflow
-            </Button>
+  type="primary"
+  icon={<PlusOutlined />}
+  size="large"
+  onClick={() => {
+    setMode('create');
+    setActiveStep(0);
+    form.resetFields();
+    setCurrentWorkflow(null);
+  }}
+  style={{ 
+    backgroundColor: MINT_COLOR, 
+    borderColor: MINT_COLOR, 
+    color: '#000', 
+   
+    fontFamily: "'Manrope', sans-serif"
+  }}
+>
+  Create Workflow
+</Button>
           </Space>
         </div>
 
@@ -492,44 +491,56 @@ try {
           />
         )}
 
-        <Row gutter={[16, 16]} className="mb-6">
+        <Row gutter={[16, 16]} className="mb-8">
           <Col xs={24} sm={8}>
-            <Card>
-              <Statistic
-                title="Total Workflows"
-                value={workflows.length}
-                prefix={<ThunderboltOutlined />}
+            <Card bordered={false} style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}` }}>
+              <Statistic 
+                title={<span style={{ color: STEEL_COLOR }}>Total Workflows</span>} 
+                value={workflows.length} 
+                prefix={<RocketOutlined style={{ color: MINT_COLOR }} />} 
+                valueStyle={{ color: 'white' }} 
               />
             </Card>
           </Col>
           <Col xs={24} sm={8}>
-            <Card>
-              <Statistic
-                title="Active Workflows"
-                value={workflows.filter(w => w.status === 'active').length}
-                prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: '#3f8600' }}
+            <Card bordered={false} style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}` }}>
+              <Statistic 
+                title={<span style={{ color: STEEL_COLOR }}>Active Workflows</span>} 
+                value={workflows.filter(w => w.status === 'active').length} 
+                prefix={<CheckCircleOutlined style={{ color: MINT_COLOR }} />} 
+                valueStyle={{ color: 'white' }} 
               />
             </Card>
           </Col>
           <Col xs={24} sm={8}>
-            <Card>
-              <Statistic
-                title="Total Integrations"
-                value={workflows.reduce((sum, w) => sum + w.integrations.length, 0)}
-                prefix={<DatabaseOutlined />}
+            <Card bordered={false} style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}` }}>
+              <Statistic 
+                title={<span style={{ color: STEEL_COLOR }}>Total Integrations</span>} 
+                value={workflows.reduce((sum, w) => sum + w.integrations.length, 0)} 
+                prefix={<DatabaseOutlined style={{ color: MINT_COLOR }} />} 
+                valueStyle={{ color: 'white' }} 
               />
             </Card>
           </Col>
         </Row>
 
-        <Table
-          columns={columns}
-          dataSource={workflows}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSize: 10 }}
-        />
+        <div style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+          <Table
+            columns={columns}
+            dataSource={workflows}
+            rowKey="id"
+            loading={isLoading}
+            pagination={{ pageSize: 10 }}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={<span style={{ color: STEEL_COLOR }}>Click the  Refresh button to see saved  workflows or create your first one!</span>}
+                />
+              )
+            }}
+          />
+        </div>
       </div>
     );
   };
@@ -539,18 +550,12 @@ try {
     if (!currentWorkflow) return null;
 
     return (
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <Button
-              type="text"
-              onClick={() => setMode('list')}
-              className="mb-2"
-            >
-              ← Back to Workflows
-            </Button>
-            <Title level={3}>{currentWorkflow.workflowName}</Title>
-            <Text type="secondary">{currentWorkflow.workflowDescription}</Text>
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="flex items-center gap-4 mb-8">
+          <Button icon={<ArrowLeftOutlined />} onClick={() => setMode('list')} type="text" className="text-gray-400 hover:text-white">Back</Button>
+          <div className="flex-1">
+            <Title level={3} style={{ color: 'white', margin: 0 }}>{currentWorkflow.workflowName}</Title>
+            <Text style={{ color: STEEL_COLOR }}>{currentWorkflow.workflowDescription}</Text>
           </div>
           <Space>
             <Button
@@ -563,15 +568,18 @@ try {
                   integrations: currentWorkflow.integrations,
                 });
                 setTriggerType(currentWorkflow.triggerType);
+                setSelectedTrigger(currentWorkflow.triggerType);
                 setMode('create');
                 setActiveStep(0);
               }}
+              className="border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
             >
               Edit
             </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => handleExportWorkflow(currentWorkflow.id, 'json')}
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={() => handleExportWorkflow(currentWorkflow.id, 'json')} 
+              ghost
             >
               Download JSON
             </Button>
@@ -587,140 +595,242 @@ try {
 
         <Row gutter={[24, 24]}>
           <Col xs={24} lg={16}>
-            <Card title="Workflow Configuration" className="mb-4">
-              <Tabs defaultActiveKey="1">
-                <TabPane tab="Visual Overview" key="1">
-                  <div className="space-y-4">
-                    <div>
-                      <Text strong>Trigger Type: </Text>
-                      <Tag color="blue">{currentWorkflow.triggerType}</Tag>
-                    </div>
-                    <div>
-                      <Text strong>Complexity: </Text>
-                      <Tag color={
-                        currentWorkflow.complexity === 'simple' ? 'green' :
-                        currentWorkflow.complexity === 'moderate' ? 'orange' : 'red'
-                      }>
-                        {currentWorkflow.complexity.toUpperCase()}
-                      </Tag>
-                    </div>
-                    <div>
-                      <Text strong>Nodes: </Text>
-                      <Badge count={currentWorkflow.nodeCount} />
-                    </div>
-                    <div>
-                      <Text strong>Integrations:</Text>
-                      <div className="mt-2">
-                        {currentWorkflow.integrations.map(integration => (
-                          <Tag key={integration} className="mb-1">{integration}</Tag>
-                        ))}
+            <Card bordered={false} style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}` }} className="h-full">
+              <Tabs defaultActiveKey="1" items={[
+                {
+                  key: '1',
+                  label: 'Visual Overview',
+                  children: (
+                    <div className="space-y-4">
+                      <div>
+                        <Text strong className="text-gray-400">Trigger Type: </Text>
+                        <Tag color="blue">{currentWorkflow.triggerType}</Tag>
                       </div>
-                    </div>
-                  </div>
-                </TabPane>
-                <TabPane tab="JSON Configuration" key="2">
-                  <div className=" p-4 rounded-lg">
-                    <pre className="whitespace-pre-wrap font-mono text-sm overflow-x-auto">
-                      {JSON.stringify(currentWorkflow.workflowConfig, null, 2)}
-                    </pre>
-                  </div>
-                </TabPane>
-                <TabPane tab="Setup Instructions" key="3">
-                  <div className="space-y-4">
-                    <Alert
-                      message="Setup Steps"
-                      description={
-                        <ol className="mt-2">
-                          {currentWorkflow.setupInstructions.steps.map((step: string, i: number)  => (
-                            <li key={i} className="mb-1">{step}</li>
-                          ))}
-                        </ol>
-                      }
-                      type="info"
-                    />
-                    <Alert
-                      message="Required Credentials"
-                      description={
-                        <div className="mt-2">
-                          {currentWorkflow.setupInstructions.credentialSetup.map((cred: RequiredCredential, i: number) => (
-                            <div key={i} className="mb-2">
-                              <Text strong>{cred.name}</Text> ({cred.type})
-                              <br />
-                              <a href={cred.setupLink} target="_blank" rel="noopener noreferrer">
-                                Setup Guide →
-                              </a>
-                            </div>
+                      <div>
+                        <Text strong className="text-gray-400">Complexity: </Text>
+                        <Tag color={
+                          currentWorkflow.complexity === 'simple' ? 'green' :
+                          currentWorkflow.complexity === 'moderate' ? 'orange' : 'red'
+                        }>
+                          {currentWorkflow.complexity?.toUpperCase() || 'MODERATE'}
+                        </Tag>
+                      </div>
+                      <div>
+                        <Text strong className="text-gray-400">Nodes: </Text>
+                        <Badge count={currentWorkflow.nodeCount} style={{ backgroundColor: MINT_COLOR }} />
+                      </div>
+                      <div>
+                        <Text strong className="text-gray-400">Integrations:</Text>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {currentWorkflow.integrations.map(integration => (
+                            <Tag key={integration} bordered={false} className="bg-white/10 text-gray-300">{integration}</Tag>
                           ))}
                         </div>
-                      }
-                      type="warning"
-                    />
-                  </div>
-                </TabPane>
-              </Tabs>
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  key: '2',
+                  label: 'JSON Configuration',
+                  children: (
+                    <div className="relative group">
+                      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Space>
+                          <Button 
+                            size="small" 
+                            icon={<CopyOutlined />}
+                            onClick={() => copyToClipboard(JSON.stringify(currentWorkflow.workflowConfig, null, 2))}
+                          >
+                            Copy
+                          </Button>
+                          <Button 
+                            size="small" 
+                            icon={<DownloadOutlined />}
+                            onClick={() => handleExportWorkflow(currentWorkflow.id, 'json')}
+                          >
+                            Download
+                          </Button>
+                        </Space>
+                      </div>
+                      <div className="bg-[#1e1e1e] p-4 rounded-lg border border-white/10">
+                        <pre className="text-xs font-mono text-gray-300 overflow-auto max-h-[500px] whitespace-pre-wrap">
+                          {JSON.stringify(currentWorkflow.workflowConfig, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  key: '3',
+                  label: 'Setup Instructions',
+                  children: (
+                    <div className="space-y-4">
+                      <Alert
+                        message="Importing Your Workflow"
+                        description={
+                          <ol className="mt-2 text-gray-300">
+                            {currentWorkflow.setupInstructions.steps.map((step: string, i: number) => (
+                              <li key={i} className="mb-1">{step}</li>
+                            ))}
+                          </ol>
+                        }
+                        type="info"
+                        showIcon
+                        style={{ background: 'rgba(24, 144, 255, 0.1)', border: '1px solid rgba(24, 144, 255, 0.2)' }}
+                      />
+
+                      <Alert
+                        message="Required Credentials"
+                        description={
+                          <div className="mt-2">
+                            {currentWorkflow.setupInstructions?.credentialSetup && 
+                             currentWorkflow.setupInstructions.credentialSetup.length > 0 ? (
+                              currentWorkflow.setupInstructions.credentialSetup.map((cred: any, i: number) => {
+                                const serviceName = cred.name || cred.service || cred.integration || `${currentWorkflow.integrations[i] || 'Service ' + (i + 1)}`;
+                                const credType = cred.type || cred.credentialType || 'OAuth2/API Key';
+                                const setupUrl = cred.setupLink || cred.setupUrl || cred.documentationUrl;
+                                
+                                return (
+                                  <div key={i} className="mb-2">
+                                    <Text strong className="text-white">{serviceName}</Text> <span className="text-xs text-gray-500">({credType})</span>
+                                    <br />
+                                    {setupUrl && setupUrl !== '#' ? (
+                                      <a 
+                                        href={setupUrl.startsWith('http') ? setupUrl : `https://docs.n8n.io/integrations/credentials/${serviceName.toLowerCase()}/`}
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-blue-400 hover:text-blue-300"
+                                      >
+                                        Setup Guide →
+                                      </a>
+                                    ) : (
+                                      <a 
+                                        href={`https://docs.n8n.io/integrations/credentials/`}
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-blue-400 hover:text-blue-300"
+                                      >
+                                        n8n Credentials Guide →
+                                      </a>
+                                    )}
+                                    {cred.description && (
+                                      <div className="text-sm text-gray-500 mt-1">
+                                        {cred.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="text-gray-300">
+                                Configure credentials for: {currentWorkflow.integrations.join(', ')}
+                                <br />
+                                <a 
+                                  href="https://docs.n8n.io/integrations/credentials/"
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-400 hover:text-blue-300"
+                                >
+                                  View n8n Credentials Documentation →
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        }
+                        type="warning"
+                        showIcon
+                        style={{ background: 'rgba(250, 173, 20, 0.1)', border: '1px solid rgba(250, 173, 20, 0.2)' }}
+                      />
+
+                      <Alert
+                        message="Need Help?"
+                        description={
+                          <div className="text-gray-300">
+                            <p>Visit the <a href="https://docs.n8n.io" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">n8n documentation</a> for detailed guides</p>
+                            <p>Or join the <a href="https://community.n8n.io" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">community forum</a> for support</p>
+                          </div>
+                        }
+                        type="info"
+                        showIcon
+                        style={{ background: 'rgba(24, 144, 255, 0.1)', border: '1px solid rgba(24, 144, 255, 0.2)' }}
+                      />
+                    </div>
+                  )
+                }
+              ]} />
             </Card>
           </Col>
 
           <Col xs={24} lg={8}>
-            <Card title="Analysis & Metrics" className="mb-4">
-              <div className="space-y-4">
+            <Card title={<span className="text-white">Analysis & Metrics</span>} bordered={false} style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}` }} className="mb-4">
+              <div className="space-y-6">
                 <div>
-                  <Text type="secondary">Estimated Execution Time</Text>
-                  <div className="text-lg font-medium">
-                    {currentWorkflow.analysis.estimatedExecutionTime}s
-                  </div>
+                  <div className="text-xs text-gray-500 uppercase">Estimated Execution Time</div>
+                  <div className="text-2xl text-white font-semibold">{currentWorkflow.analysis.estimatedExecutionTime}s</div>
                 </div>
                 <div>
-                  <Text type="secondary">Security Level</Text>
-                  <div>
-                    <Tag color={currentWorkflow.analysis.securityConsiderations.length > 2 ? 'red' : 'green'}>
-                      {currentWorkflow.analysis.securityConsiderations.length > 2 ? 'HIGH' : 'MEDIUM'}
-                    </Tag>
-                  </div>
+                  <div className="text-xs text-gray-500 uppercase mb-2">Security Level</div>
+                  <Tag color={currentWorkflow.analysis.securityConsiderations?.length > 2 ? 'red' : 'green'}>
+                    {currentWorkflow.analysis.securityConsiderations?.length > 2 ? 'HIGH RISK' : 'MEDIUM'}
+                  </Tag>
                 </div>
-                <Divider />
+                <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }}/>
                 <div>
-                  <Text type="secondary">Potential Issues</Text>
-                  <ul className="mt-2">
-                    {currentWorkflow.analysis.potentialIssues.map((issue, i) => (
-                      <li key={i} className="text-sm text-orange-600">{issue}</li>
-                    ))}
-                  </ul>
+                  <div className="text-xs text-gray-500 uppercase mb-2">Potential Issues</div>
+                  {currentWorkflow.analysis.potentialIssues?.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {currentWorkflow.analysis.potentialIssues.map((issue: string, i: number) => (
+                        <li key={i} className="text-sm text-orange-400">• {issue}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Text className="text-gray-500 text-sm">No issues detected</Text>
+                  )}
                 </div>
                 <div>
-                  <Text type="secondary">Optimization Suggestions</Text>
-                  <ul className="mt-2">
-                    {currentWorkflow.analysis.optimizationSuggestions.map((suggestion, i) => (
-                      <li key={i} className="text-sm text-green-600">{suggestion}</li>
-                    ))}
-                  </ul>
+                  <div className="text-xs text-gray-500 uppercase mb-2">Optimization Suggestions</div>
+                  {currentWorkflow.analysis.optimizationSuggestions?.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {currentWorkflow.analysis.optimizationSuggestions.map((suggestion: string, i: number) => (
+                        <li key={i} className="text-sm text-green-400">• {suggestion}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Text className="text-gray-500 text-sm">Workflow is optimized</Text>
+                  )}
                 </div>
               </div>
             </Card>
 
-            <Card title="Export Options">
+            <Card title={<span className="text-white">Export Options</span>} bordered={false} style={{ background: GLASS_BG, border: `1px solid ${GLASS_BORDER}` }}>
               <Space direction="vertical" className="w-full">
                 <Button
                   block
                   onClick={() => handleExportWorkflow(currentWorkflow.id, 'json')}
+                  className="border-gray-700 text-gray-300 hover:text-white hover:border-gray-500"
                 >
                   Download n8n JSON
                 </Button>
                 <Button
                   block
                   onClick={() => handleExportWorkflow(currentWorkflow.id, 'summary')}
+                  className="border-gray-700 text-gray-300 hover:text-white hover:border-gray-500"
                 >
                   Download Summary
                 </Button>
                 <Button
                   block
                   onClick={() => handleExportWorkflow(currentWorkflow.id, 'setup-guide')}
+                  className="border-gray-700 text-gray-300 hover:text-white hover:border-gray-500"
                 >
                   Download Setup Guide
                 </Button>
                 <Button
                   block
+                  icon={<CopyOutlined />}
                   onClick={() => copyToClipboard(JSON.stringify(currentWorkflow.workflowConfig, null, 2))}
+                  className="border-gray-700 text-gray-300 hover:text-white hover:border-gray-500"
                 >
                   Copy JSON to Clipboard
                 </Button>
@@ -732,553 +842,618 @@ try {
     );
   };
 
-  // Main Create Workflow Component
-const CreateWorkflow = () => (
-  <div>
-    <div className="flex justify-between items-center mb-6" style={{padding: 9}}>
-      
-      <Button 
-        icon={<ArrowLeftOutlined />} 
-        onClick={handleBack}
-      >
-        Back
-      </Button>
-      
-      <Button 
-        type="default"
-        icon={<EyeOutlined />}
-        onClick={() => setMode('list')}
-      >
-        View All Workflows
-      </Button>
-    </div>
-    
- 
-    <div className="text-center mb-8">
-           <LoadingOverlay visible={isGenerating} />
-    <Title level={2} className="flex items-center justify-center">
-  <span style={{
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    fontWeight: 600,
-    fontSize: '18px',
-  }}>
-    <span style={{ color: '#5CC49D' }}>a</span>rb
-    <span style={{ color: '#5CC49D' }}>i</span>trageOS n8n Workflow Creator
-  </span>
-</Title>
-      <Text type="secondary" className="text-lg">
-        Design powerful automation workflows with AI assistance for your business processes
-      </Text>
-    </div>
+  // --- MAIN RENDER ---
 
-    {generationError && (
-      <Alert
-        message="Workflow Generation Error"
-        description={generationError}
-        type="error"
-        closable
-        onClose={clearErrors}
-        className="mb-6"
-      />
-    )}
-
-    {/* Updated Steps labels for clarity */}
-    <Steps current={activeStep} className="mb-8">
-      <Step title="Workflow Details" />
-      <Step title="Trigger Setup" />
-      <Step title="Integrations & Actions" /> {/* Updated label */}
-      <Step title="Review & Export" />
-    </Steps>
-
-    <Form form={form} layout="vertical" onFinish={onFinish}>
-      {activeStep === 0 && (
-        <Card className="mb-6">
-          <Title level={4} className="mb-4">Workflow Information</Title>
-
-          <Form.Item
-            name="workflowName"
-            label="Workflow Name"
-            rules={[{ required: true, message: 'Please name your workflow!' }]}
-            tooltip="A descriptive name helps identify this workflow later"
-          >
-            <Input placeholder="e.g., Daily Sales Report, New Lead Notification" />
-          </Form.Item>
-
-          <Form.Item
-            name="workflowDescription"
-            label="Workflow Description"
-          >
-            <TextArea
-              rows={3}
-              placeholder="Describe what the workflow should do in detail (e.g., goals, steps, logic)"
-            />
-          </Form.Item>
-
-          <Form.Item name="additionalContext" label="Additional Context (Optional)">
-            <TextArea
-              rows={2}
-              placeholder="Any specific requirements, constraints, or additional information"
-            />
-          </Form.Item>
-
-          <Form.Item name="workflowGoals" label="Workflow Goals (Optional)">
-            <Select
-              mode="tags"
-              placeholder="Add workflow goals (press Enter to add)"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <div className="flex justify-end mt-4">
-            <Button
-              type="primary"
-              onClick={() => {
-                // Validate the 'workflowName' field before proceeding
-                form
-                  .validateFields(['workflowName'])
-                  .then(() => {
-                    // If validation passes, go to the next step
-                    setActiveStep(1);
-                  })
-                  .catch((info) => {
-                    // If validation fails, Ant Design will automatically show the error.
-                    console.log('Validation failed:', info);
-                  });
-              }}
-                   style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
-            >
-              Next: Trigger Setup
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {activeStep === 1 && (
-        <Card className="mb-6">
-          <Title level={4} className="mb-4">Workflow Trigger</Title>
-          <Text type="secondary" className="block mb-4">
-            What event or schedule should kick off this workflow?
-          </Text>
-
-        <Form.Item
-  name="triggerType"
-  label="Trigger Type"
-  initialValue="schedule"
-  rules={[{ required: true, message: "Please select a trigger type!" }]}
->
-  <Input type="hidden" value={selectedTrigger} />
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    {triggerTypes.map((trigger) => (
-      <Card
-        key={trigger.value}
-        onClick={() => {
-          setSelectedTrigger(trigger.value);
-          form.setFieldValue('triggerType', trigger.value);
-        }}
-        className={`cursor-pointer transition-none ${
-          selectedTrigger === trigger.value
-            ? "border-blue-500 border-2"
-            : "border border-gray-200"
-        }`}
-      >
-                  <div className="flex items-start">
-                    <div className="p-2 bg-blue-50 rounded-full mr-3">
-                      {trigger.icon}
-                    </div>
-                    <div>
-                      <div className="font-medium">{trigger.label}</div>
-                      <div className="text-gray-500 text-sm mb-2">
-                        {trigger.description}
-                      </div>
-                      <div className="mt-2">
-                        {trigger.examples.map((example, i) => (
-                          <Tag key={i} color="blue" className="mb-1">
-                            {example}
-                          </Tag>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </Form.Item>
-
-          {/* Conditional fields based on selectedTrigger */}
-          {selectedTrigger === "schedule" && (
-            <Form.Item
-              name="scheduleDetails"
-              label="Schedule Details"
-              rules={[{ required: true, message: "Please specify the schedule!" }]}
-            >
-              <Input placeholder="e.g., Every morning at 8 AM, Every 30 minutes" />
-            </Form.Item>
-          )}
-
-          {selectedTrigger === "webhook" && (
-            <Form.Item
-              name="webhookDetails"
-              label="Webhook Details"
-              rules={[{ required: true, message: "Please describe the webhook trigger!" }]}
-            >
-              <Input placeholder="e.g., When I receive an email with 'invoice' in the subject" />
-            </Form.Item>
-          )}
-
-          {selectedTrigger === "event" && (
-            <Form.Item
-              name="eventDetails"
-              label="Event Details"
-              rules={[{ required: true, message: "Please describe the event trigger!" }]}
-            >
-              <Input placeholder="e.g., When someone fills out my contact form" />
-            </Form.Item>
-          )}
-
-          {/* Available Trigger Data (always shown) */}
-          <Form.Item
-            name="triggerData"
-            label="Available Trigger Data"
-            tooltip="What specific details or data does the workflow have access to when it begins?"
-          >
-            <TextArea
-              rows={3}
-              placeholder="e.g., The email subject and sender, The customer name and email from the form, The order details from Shopify"
-            />
-          </Form.Item>
-          
-          <Alert
-            message="Next Step"
-            description="You will select the tools (integrations) and define the actions for your workflow on the next screen."
-            type="info"
-            showIcon
-            className="mb-4"
-          />
-
-          <div className="flex justify-between mt-4">
-            <Button onClick={() => setActiveStep(0)}>Back</Button>
-            {/* Updated button to navigate to Step 2 */}
-            <Button 
-              type="primary"
-              onClick={() => setActiveStep(2)}
-                    style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
-            >
-              Next: Integrations & Actions
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* Added Step 2: Integrations & Actions */}
-      {activeStep === 2 && (
-        <Card className="mb-6">
-          <Title level={4} className="mb-4">Workflow Actions</Title>
-
-          <Form.Item
-            name="integrations"
-            label="Select Integrations"
-            rules={[{ required: true, message: 'Please select at least one integration!' }]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Select tools/services to integrate"
-              dropdownRender={(menu) => (
-                <>
-                  {menu}
-                  <Divider style={{ margin: '8px 0' }} />
-                  <div
-                    style={{ padding: '8px', cursor: 'pointer' }}
-                    onClick={() => setIsCustomIntegrationModalVisible(true)}
-                  >
-                    <PlusOutlined /> Add custom integration
-                  </div>
-                </>
-              )}
-              options={allIntegrationOptions.map((option) => ({ value: option, label: option }))}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="actionDescription"
-            label="Action Details"
-            rules={[{ required: true, message: 'Please describe what should happen!' }]}
-            tooltip="Describe exactly what should happen when the workflow runs"
-          >
-            <TextArea
-              rows={4}
-              placeholder="e.g., Send a Slack message to the #sales channel with the customer details, Create a new row in my Google Sheet with the order info, Generate a summary report and email it to me"
-            />
-          </Form.Item>
-
-          <Form.Item name="specificRequirements" label="Specific Requirements (Optional)">
-            <Select
-              mode="tags"
-              placeholder="Add any specific requirements (press Enter to add)"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <Alert
-            message="AI Generation"
-            description="Your workflow will be generated with proper n8n nodes, connections, and configurations. You'll be able to fine-tune settings after export."
-            type="info"
-            showIcon
-            className="mb-4"
-          />
-
-          <div className="flex justify-between mt-4">
-            <Button onClick={() => setActiveStep(1)}>Back</Button>
-            {/* Final Submit Button */}
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isGenerating}
-              icon={isGenerating ? undefined : <ThunderboltOutlined />}
-                     style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
-            >
-              {isGenerating ? 'Generating Workflow...' : 'Generate Workflow'}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {activeStep === 3 && currentWorkflow && (
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-        
-            <div>
-              <Title level={4}>🎉 Your n8n Workflow is Ready!</Title>
-              <Text type="secondary">
-                Generated {currentWorkflow.nodeCount} nodes with {currentWorkflow.integrations.length} integrations
-              </Text>
-            </div>
-            <Space>
-              <Button onClick={() => setMode('list')}>
-                View All Workflows
-              </Button>
-              <Button 
-                type="primary" 
-                onClick={() => {
-                  setActiveStep(0);
-                  setCurrentWorkflow(null);
-                  form.resetFields();
-                }}
-                    style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
-        
-              >
-                Create Another
-              </Button>
-            </Space>
-          </div>
-
-            <Tabs defaultActiveKey="1">
-              <TabPane tab="Workflow JSON" key="1">
-                <div className=" p-6 rounded-lg border border-gray-200">
-                  <div className="flex justify-between items-center mb-4">
-                    <Text strong>n8n Workflow Configuration</Text>
-                    <Space>
-                      <Button 
-                        size="small"
-                        onClick={() => copyToClipboard(JSON.stringify(currentWorkflow.workflowConfig, null, 2))}
-                      >
-                        Copy
-                      </Button>
-                      <Button 
-                        size="small"
-                        onClick={() => handleExportWorkflow(currentWorkflow.id, 'json')}
-                      >
-                        Download
-                      </Button>
-                    </Space>
-                  </div>
-                  <pre className="whitespace-pre-wrap font-mono text-sm  overflow-x-auto max-h-96">
-                    {JSON.stringify(currentWorkflow.workflowConfig, null, 2)}
-                  </pre>
-                </div>
-              </TabPane>
-              
-              <TabPane tab="Setup Instructions" key="2">
-                <div className="space-y-4">
-                  <Alert
-                    message="Importing Your Workflow"
-                    description={
-                      <ol className="mt-2">
-                        {currentWorkflow.setupInstructions.steps.map((step: string, i: number) => (
-                          <li key={i}>{step}</li>
-                        ))}
-                      </ol>
-                    }
-                    type="info"
-                    showIcon
-                  />
-
-<Alert
-  message="Required Credentials"
-  description={
-    <div className="mt-2">
-      {currentWorkflow.setupInstructions?.credentialSetup && 
-       currentWorkflow.setupInstructions.credentialSetup.length > 0 ? (
-        currentWorkflow.setupInstructions.credentialSetup.map((cred: any, i: number) => {
-          // Extract actual properties (adapt based on what you see in console)
-          const serviceName = cred.name || cred.service || cred.integration || `${currentWorkflow.integrations[i] || 'Service ' + (i + 1)}`;
-          const credType = cred.type || cred.credentialType || 'OAuth2/API Key';
-          const setupUrl = cred.setupLink || cred.setupUrl || cred.documentationUrl;
-          
-          return (
-            <div key={i} className="mb-2">
-              <Text strong>{serviceName}</Text> ({credType})
-              <br />
-              {setupUrl && setupUrl !== '#' ? (
-                <a 
-                  href={setupUrl.startsWith('http') ? setupUrl : `https://docs.n8n.io/integrations/credentials/${serviceName.toLowerCase()}/`}
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-blue-500"
-                >
-                  Setup Guide →
-                </a>
-              ) : (
-                <a 
-                  href={`https://docs.n8n.io/integrations/credentials/`}
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-blue-500"
-                >
-                  n8n Credentials Guide →
-                </a>
-              )}
-              {cred.description && (
-                <div className="text-sm text-gray-600 mt-1">
-                  {cred.description}
-                </div>
-              )}
-            </div>
-          );
-        })
-      ) : (
-        <div>
-          Configure credentials for: {currentWorkflow.integrations.join(', ')}
-          <br />
-          <a 
-            href="https://docs.n8n.io/integrations/credentials/"
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-blue-500"
-          >
-            View n8n Credentials Documentation →
-          </a>
-        </div>
-      )}
-    </div>
-  }
-  type="warning"
-  showIcon
-/>
-
-                  <Alert
-                    message="Need Help?"
-                    description={
-                      <div>
-                        <p>Visit the <a href="https://docs.n8n.io" target="_blank" rel="noopener noreferrer" className="text-blue-500">n8n documentation</a> for detailed guides</p>
-                        <p>Or join the <a href="https://community.n8n.io" target="_blank" rel="noopener noreferrer" className="text-blue-500">community forum</a> for support</p>
-                      </div>
-                    }
-                    type="info"
-                    showIcon
-                  />
-                </div>
-              </TabPane>
-
-              <TabPane tab="Analysis" key="3">
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={12}>
-                    <Card title="Performance Metrics" size="small">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Text type="secondary">Execution Time:</Text>
-                          <Text>{currentWorkflow.analysis.estimatedExecutionTime}s</Text>
-                        </div>
-                        <div className="flex justify-between">
-                          <Text type="secondary">Complexity:</Text>
-                          <Tag color={
-                            currentWorkflow.complexity === 'simple' ? 'green' :
-                            currentWorkflow.complexity === 'moderate' ? 'orange' : 'red'
-                          }>
-                            {currentWorkflow.complexity.toUpperCase()}
-                          </Tag>
-                        </div>
-                        <div className="flex justify-between">
-                          <Text type="secondary">Node Count:</Text>
-                          <Badge count={currentWorkflow.nodeCount} />
-                        </div>
-                      </div>
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Card title="Recommendations" size="small">
-                      <div className="space-y-2">
-                        {currentWorkflow.analysis.optimizationSuggestions.slice(0, 3).map((suggestion, i) => (
-                          <div key={i} className="text-sm text-green-600">
-                            • {suggestion}
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  </Col>
-                </Row>
-              </TabPane>
-            </Tabs>
-          </Card>
-        )}
-      </Form>
-
-      <Modal
-        title="Add Custom Integration"
-        open={isCustomIntegrationModalVisible}
-        onOk={addCustomIntegration}
-        onCancel={() => setIsCustomIntegrationModalVisible(false)}
-      >
-        <Input
-          placeholder="Enter custom integration name"
-          value={newCustomIntegration}
-          onChange={(e) => setNewCustomIntegration(e.target.value)}
-          onPressEnter={addCustomIntegration}
-        />
-      </Modal>
-    </div>
+  if (mode === 'list') return (
+    <ConfigProvider theme={{
+      token: { fontFamily: 'Manrope, sans-serif', colorPrimary: MINT_COLOR, colorBgBase: SPACE_BG, colorTextBase: '#fff', colorBorder: GLASS_BORDER },
+      components: { Table: { colorBgContainer: 'transparent', colorTextHeading: STEEL_COLOR } }
+    }}>
+      <div className="min-h-screen bg-[#0B0C10]">
+        <WorkflowList />
+      </div>
+    </ConfigProvider>
   );
 
-  // Main Render
-  if (mode === 'list') {
-    return <WorkflowList />;
-  }
+  if (mode === 'view') return (
+    <ConfigProvider theme={{
+      token: { fontFamily: 'Manrope, sans-serif', colorPrimary: MINT_COLOR, colorBgBase: SPACE_BG, colorTextBase: '#fff', colorBorder: GLASS_BORDER },
+      components: { Tabs: { itemColor: STEEL_COLOR, itemSelectedColor: MINT_COLOR, itemHoverColor: '#fff' } }
+    }}>
+      <div className="min-h-screen bg-[#0B0C10]">
+        <WorkflowViewer />
+      </div>
+    </ConfigProvider>
+  );
 
-  if (mode === 'view') {
-    return <WorkflowViewer />;
-  }
+  // Create Mode
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: "'Manrope', sans-serif",
+          colorPrimary: MINT_COLOR,
+          colorBgBase: SPACE_BG,
+          colorTextBase: '#ffffff',
+          colorBorder: 'rgba(255,255,255,0.15)',
+          borderRadius: 8,
+        },
+        components: {
+          Input: {
+            colorBgContainer: 'rgba(255,255,255,0.05)',
+            colorBorder: 'transparent',
+            activeBorderColor: MINT_COLOR,
+            hoverBorderColor: 'rgba(255,255,255,0.2)',
+          },
+          Select: {
+            colorBgContainer: 'rgba(255,255,255,0.05)',
+            colorBorder: 'transparent',
+            controlOutline: 'transparent',
+          },
+          Card: {
+            colorBgContainer: GLASS_BG,
+            colorBorderSecondary: GLASS_BORDER,
+          },
+          Steps: {
+            colorText: STEEL_COLOR,
+            colorTextDescription: '#666',
+            colorPrimary: MINT_COLOR,
+            colorSplit: 'rgba(255,255,255,0.1)'
+          },
+          Alert: {
+            colorInfoBg: 'rgba(92, 196, 157, 0.1)',
+            colorInfoBorder: 'rgba(92, 196, 157, 0.2)',
+            colorText: '#fff'
+          }
+        }
+      }}
+    >
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Manrope', sans-serif; }
+        .ant-steps-item-process .ant-steps-item-icon { background: ${MINT_COLOR} !important; border-color: ${MINT_COLOR} !important; }
+        .ant-steps-item-process .ant-steps-item-icon .ant-steps-icon { color: #000 !important; }
+        .ant-steps-item-wait .ant-steps-item-icon { border-color: #444 !important; background: transparent !important; }
+        .ant-steps-item-wait .ant-steps-item-icon > .ant-steps-icon { color: #666 !important; }
+        .ant-steps-item-finish .ant-steps-item-icon { border-color: ${MINT_COLOR} !important; }
+        .ant-steps-item-finish .ant-steps-item-icon > .ant-steps-icon { color: ${MINT_COLOR} !important; }
+        .ant-card-bordered { border: 1px solid ${GLASS_BORDER}; }
+        .ant-select-selector { border: 1px solid rgba(255,255,255,0.1) !important; }
+      `}</style>
 
-  return <CreateWorkflow />;
+      <div className="min-h-screen bg-[#0B0C10] pb-20">
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <Button 
+              icon={<ArrowLeftOutlined />} 
+              onClick={handleBack}
+              type="text"
+              className="text-gray-400 hover:text-white pl-0"
+            >
+              Back to Dashboard
+            </Button>
+            <Button 
+              type="dashed"
+              icon={<EyeOutlined />}
+              onClick={() => setMode('list')}
+              className="border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
+            >
+              View All Workflows
+            </Button>
+          </div>
+
+          <div className="text-center mb-10">
+            <LoadingOverlay visible={isGenerating} />
+           <Title level={2} className="mb-2" style={{ 
+  color: 'white', 
+  fontFamily: "'Manrope', sans-serif",
+  textAlign: 'center'
+}}>
+ arbitrageOS n8n Workflow Creator
+</Title>
+            <Text style={{ color: STEEL_COLOR, fontSize: '16px' }}>
+              Design powerful automation workflows with AI assistance for your business processes
+            </Text>
+          </div>
+
+          {generationError && (
+            <Alert 
+              message="Workflow Generation Error" 
+              description={generationError} 
+              type="error" 
+              showIcon 
+              closable 
+              onClose={clearErrors} 
+              className="mb-6" 
+            />
+          )}
+
+          <Steps current={activeStep} className="mb-12">
+            <Step title="Workflow Details" />
+            <Step title="Trigger Setup" />
+            <Step title="Integrations & Actions" />
+            <Step title="Review & Export" />
+          </Steps>
+
+          <Form form={form} layout="vertical" onFinish={onFinish}>
+            
+            {/* STEP 0: DETAILS */}
+            {activeStep === 0 && (
+              <Card bordered={false} className="shadow-2xl">
+                <Title level={4} style={{ color: 'white', marginBottom: 24 }}>Workflow Information</Title>
+                
+                <Form.Item 
+                  name="workflowName" 
+                  label="Workflow Name" 
+                  rules={[{ required: true, message: 'Please name your workflow!' }]}
+                  tooltip="A descriptive name helps identify this workflow later"
+                >
+                  <Input size="large" placeholder="e.g., Daily Sales Report, New Lead Notification" prefix={<RocketOutlined className="text-gray-600 mr-2"/>} />
+                </Form.Item>
+
+                <Form.Item name="workflowDescription" label="Workflow Description">
+                  <TextArea 
+                    rows={3} 
+                    placeholder="Describe what the workflow should do in detail (e.g., goals, steps, logic)" 
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none' }} 
+                  />
+                </Form.Item>
+
+                <Form.Item name="additionalContext" label="Additional Context (Optional)">
+                  <TextArea 
+                    rows={2} 
+                    placeholder="Any specific requirements, constraints, or additional information" 
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none' }} 
+                  />
+                </Form.Item>
+
+                <Form.Item name="workflowGoals" label="Workflow Goals (Optional)">
+                  <Select
+                    mode="tags"
+                    placeholder="Add workflow goals (press Enter to add)"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+
+                <div className="flex justify-end mt-8">
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    onClick={() => {
+                      form.validateFields(['workflowName'])
+                        .then(() => setActiveStep(1))
+                        .catch((info) => console.log('Validation failed:', info));
+                    }}
+                    style={{ backgroundColor: MINT_COLOR, borderColor: MINT_COLOR, color: '#000', fontWeight: 600, paddingLeft: 32, paddingRight: 32 }}
+                  >
+                    Next: Trigger Setup
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* STEP 1: TRIGGER */}
+            {activeStep === 1 && (
+              <Card bordered={false} className="shadow-2xl">
+                <Title level={4} style={{ color: 'white', marginBottom: 8 }}>Workflow Trigger</Title>
+                <Text style={{ color: STEEL_COLOR, display: 'block', marginBottom: 24 }}>
+                  What event or schedule should kick off this workflow?
+                </Text>
+
+                <Form.Item
+                  name="triggerType"
+                  label="Trigger Type"
+                  initialValue="schedule"
+                  rules={[{ required: true, message: "Please select a trigger type!" }]}
+                >
+                  <Input type="hidden" value={selectedTrigger} />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    {triggerTypes.map((trigger) => (
+                      <div
+                        key={trigger.value}
+                        onClick={() => {
+                          setSelectedTrigger(trigger.value);
+                          form.setFieldValue('triggerType', trigger.value);
+                        }}
+                        className={`cursor-pointer rounded-xl p-5 border transition-all duration-300 ${
+                          selectedTrigger === trigger.value
+                            ? 'bg-opacity-10'
+                            : 'border-white/10 hover:border-white/30 bg-white/5'
+                        }`}
+                        style={{ 
+                          borderColor: selectedTrigger === trigger.value ? MINT_COLOR : undefined,
+                          backgroundColor: selectedTrigger === trigger.value ? 'rgba(92, 196, 157, 0.1)' : undefined
+                        }}
+                      >
+                        <div className="mb-3" style={{ color: selectedTrigger === trigger.value ? MINT_COLOR : 'white' }}>{trigger.icon}</div>
+                        <div className="font-bold text-white mb-1">{trigger.label}</div>
+                        <div className="text-xs text-gray-400 mb-2">{trigger.description}</div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {trigger.examples.map((example, i) => (
+                            <Tag key={i} color="blue" className="mb-1 text-xs">
+                              {example}
+                            </Tag>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Form.Item>
+
+                <div className="bg-white/5 p-6 rounded-xl border border-white/10 mb-6">
+                  {selectedTrigger === "schedule" && (
+                    <Form.Item
+                      name="scheduleDetails"
+                      label="Schedule Details"
+                      rules={[{ required: true, message: "Please specify the schedule!" }]}
+                    >
+                      <Input placeholder="e.g., Every morning at 8 AM, Every 30 minutes" />
+                    </Form.Item>
+                  )}
+
+                  {selectedTrigger === "webhook" && (
+                    <Form.Item
+                      name="webhookDetails"
+                      label="Webhook Details"
+                      rules={[{ required: true, message: "Please describe the webhook trigger!" }]}
+                    >
+                      <Input placeholder="e.g., When I receive an email with 'invoice' in the subject" />
+                    </Form.Item>
+                  )}
+
+                  {selectedTrigger === "event" && (
+                    <Form.Item
+                      name="eventDetails"
+                      label="Event Details"
+                      rules={[{ required: true, message: "Please describe the event trigger!" }]}
+                    >
+                      <Input placeholder="e.g., When someone fills out my contact form" />
+                    </Form.Item>
+                  )}
+
+                  <Form.Item
+                    name="triggerData"
+                    label="Available Trigger Data"
+                    tooltip="What specific details or data does the workflow have access to when it begins?"
+                  >
+                    <TextArea
+                      rows={3}
+                      placeholder="e.g., The email subject and sender, The customer name and email from the form, The order details from Shopify"
+                    />
+                  </Form.Item>
+                </div>
+
+                <Alert
+                  message="Next Step"
+                  description="You will select the tools (integrations) and define the actions for your workflow on the next screen."
+                  type="info"
+                  showIcon
+                  className="mb-4"
+                />
+
+                <div className="flex justify-between mt-8">
+                  <Button size="large" onClick={() => setActiveStep(0)} type="text" className="text-gray-400 hover:text-white">Back</Button>
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    onClick={() => setActiveStep(2)}
+                    style={{ backgroundColor: MINT_COLOR, borderColor: MINT_COLOR, color: '#000', fontWeight: 600, paddingLeft: 32, paddingRight: 32 }}
+                  >
+                    Next: Integrations & Actions
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* STEP 2: INTEGRATIONS & ACTIONS */}
+            {activeStep === 2 && (
+              <Card bordered={false} className="shadow-2xl">
+                <Title level={4} style={{ color: 'white', marginBottom: 24 }}>Workflow Actions</Title>
+
+                <Form.Item
+                  name="integrations"
+                  label="Select Integrations"
+                  rules={[{ required: true, message: 'Please select at least one integration!' }]}
+                >
+                  <Select
+                    mode="multiple"
+                    size="large"
+                    placeholder="Select tools/services to integrate"
+                    dropdownRender={(menu) => (
+                      <div className="bg-[#1f1f1f] border border-gray-700">
+                        {menu}
+                        <Divider style={{ margin: '4px 0', borderColor: '#333' }} />
+                        <div 
+                          className="p-2 cursor-pointer text-gray-400 hover:text-white" 
+                          onClick={() => setIsCustomIntegrationModalVisible(true)}
+                        >
+                          <PlusOutlined /> Add custom integration
+                        </div>
+                      </div>
+                    )}
+                    options={allIntegrationOptions.map((option) => ({ value: option, label: option }))}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="actionDescription"
+                  label="Action Details"
+                  rules={[{ required: true, message: 'Please describe what should happen!' }]}
+                  tooltip="Describe exactly what should happen when the workflow runs"
+                >
+                  <TextArea
+                    rows={6}
+                    placeholder="e.g., Send a Slack message to the #sales channel with the customer details, Create a new row in my Google Sheet with the order info, Generate a summary report and email it to me"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none' }}
+                  />
+                </Form.Item>
+
+                <Form.Item name="specificRequirements" label="Specific Requirements (Optional)">
+                  <Select
+                    mode="tags"
+                    placeholder="Add any specific requirements (press Enter to add)"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+
+                <Alert
+                  message="AI Generation"
+                  description="Your workflow will be generated with proper n8n nodes, connections, and configurations. You'll be able to fine-tune settings after export."
+                  type="info"
+                  showIcon
+                  className="mb-4"
+                />
+
+                <div className="flex justify-between mt-8">
+                  <Button size="large" onClick={() => setActiveStep(1)} type="text" className="text-gray-400 hover:text-white">Back</Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={isGenerating}
+                    icon={!isGenerating && <ThunderboltOutlined />}
+                    style={{ backgroundColor: MINT_COLOR, borderColor: MINT_COLOR, color: '#000', fontWeight: 600, paddingLeft: 32, paddingRight: 32 }}
+                  >
+                    {isGenerating ? 'Generating Workflow...' : 'Generate Workflow'}
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* STEP 3: REVIEW & EXPORT */}
+            {activeStep === 3 && currentWorkflow && (
+              <Card bordered={false} className="shadow-2xl">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 text-green-500 mb-4">
+                    <CheckCircleOutlined style={{ fontSize: 32 }} />
+                  </div>
+                  <Title level={3} style={{ color: 'white' }}>🎉 Your n8n Workflow is Ready!</Title>
+                  <Text style={{ color: STEEL_COLOR }}>
+                    Generated {currentWorkflow.nodeCount} nodes with {currentWorkflow.integrations.length} integrations
+                  </Text>
+                </div>
+
+                <div className="flex justify-center gap-4 mb-8">
+                  <Button onClick={() => setMode('list')}>
+                    View All Workflows
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    onClick={() => {
+                      setActiveStep(0);
+                      setCurrentWorkflow(null);
+                      form.resetFields();
+                    }}
+                    style={{ backgroundColor: MINT_COLOR, borderColor: MINT_COLOR, color: '#000', fontWeight: 600 }}
+                  >
+                    Create Another
+                  </Button>
+                </div>
+
+                <Tabs 
+                  defaultActiveKey="1" 
+                  centered
+                  items={[
+                    {
+                      key: '1',
+                      label: 'Workflow JSON',
+                      children: (
+                        <div className="relative group">
+                          <div className="absolute top-2 right-2 z-10 flex gap-2">
+                            <Button 
+                              size="small" 
+                              onClick={() => copyToClipboard(JSON.stringify(currentWorkflow.workflowConfig, null, 2))}
+                            >
+                              Copy
+                            </Button>
+                            <Button 
+                              size="small"
+                              onClick={() => handleExportWorkflow(currentWorkflow.id, 'json')}
+                            >
+                              Download
+                            </Button>
+                          </div>
+                          <div className="bg-[#1e1e1e] p-6 rounded-lg border border-white/10">
+                            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-300 overflow-x-auto max-h-96">
+                              {JSON.stringify(currentWorkflow.workflowConfig, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                      )
+                    },
+                    {
+                      key: '2',
+                      label: 'Setup Instructions',
+                      children: (
+                        <div className="space-y-4">
+                          <Alert
+                            message="Importing Your Workflow"
+                            description={
+                              <ol className="mt-2 text-gray-300">
+                                {currentWorkflow.setupInstructions.steps.map((step: string, i: number) => (
+                                  <li key={i} className="mb-1">{step}</li>
+                                ))}
+                              </ol>
+                            }
+                            type="info"
+                            showIcon
+                            style={{ background: 'rgba(24, 144, 255, 0.1)', border: '1px solid rgba(24, 144, 255, 0.2)' }}
+                          />
+
+                          <Alert
+                            message="Required Credentials"
+                            description={
+                              <div className="mt-2">
+                                {currentWorkflow.setupInstructions?.credentialSetup && 
+                                 currentWorkflow.setupInstructions.credentialSetup.length > 0 ? (
+                                  currentWorkflow.setupInstructions.credentialSetup.map((cred: any, i: number) => {
+                                    const serviceName = cred.name || cred.service || cred.integration || `${currentWorkflow.integrations[i] || 'Service ' + (i + 1)}`;
+                                    const credType = cred.type || cred.credentialType || 'OAuth2/API Key';
+                                    const setupUrl = cred.setupLink || cred.setupUrl || cred.documentationUrl;
+                                    
+                                    return (
+                                      <div key={i} className="mb-2">
+                                        <Text strong className="text-white">{serviceName}</Text> <span className="text-xs text-gray-500">({credType})</span>
+                                        <br />
+                                        {setupUrl && setupUrl !== '#' ? (
+                                          <a 
+                                            href={setupUrl.startsWith('http') ? setupUrl : `https://docs.n8n.io/integrations/credentials/${serviceName.toLowerCase()}/`}
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="text-blue-400 hover:text-blue-300"
+                                          >
+                                            Setup Guide →
+                                          </a>
+                                        ) : (
+                                          <a 
+                                            href={`https://docs.n8n.io/integrations/credentials/`}
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="text-blue-400 hover:text-blue-300"
+                                          >
+                                            n8n Credentials Guide →
+                                          </a>
+                                        )}
+                                        {cred.description && (
+                                          <div className="text-sm text-gray-500 mt-1">
+                                            {cred.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="text-gray-300">
+                                    Configure credentials for: {currentWorkflow.integrations.join(', ')}
+                                    <br />
+                                    <a 
+                                      href="https://docs.n8n.io/integrations/credentials/"
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-blue-400 hover:text-blue-300"
+                                    >
+                                      View n8n Credentials Documentation →
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            }
+                            type="warning"
+                            showIcon
+                            style={{ background: 'rgba(250, 173, 20, 0.1)', border: '1px solid rgba(250, 173, 20, 0.2)' }}
+                          />
+
+                          <Alert
+                            message="Need Help?"
+                            description={
+                              <div className="text-gray-300">
+                                <p>Visit the <a href="https://docs.n8n.io" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">n8n documentation</a> for detailed guides</p>
+                                <p>Or join the <a href="https://community.n8n.io" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">community forum</a> for support</p>
+                              </div>
+                            }
+                            type="info"
+                            showIcon
+                            style={{ background: 'rgba(24, 144, 255, 0.1)', border: '1px solid rgba(24, 144, 255, 0.2)' }}
+                          />
+                        </div>
+                      )
+                    },
+                    {
+                      key: '3',
+                      label: 'Analysis',
+                      children: (
+                        <Row gutter={[16, 16]}>
+                          <Col xs={24} md={12}>
+                            <Card title={<span className="text-white">Performance Metrics</span>} size="small" bordered={false} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                              <div className="space-y-3">
+                                <div className="flex justify-between">
+                                  <Text className="text-gray-400">Execution Time:</Text>
+                                  <Text className="text-white">{currentWorkflow.analysis.estimatedExecutionTime}s</Text>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <Text className="text-gray-400">Complexity:</Text>
+                                  <Tag color={
+                                    currentWorkflow.complexity === 'simple' ? 'green' :
+                                    currentWorkflow.complexity === 'moderate' ? 'orange' : 'red'
+                                  }>
+                                    {currentWorkflow.complexity?.toUpperCase() || 'MODERATE'}
+                                  </Tag>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <Text className="text-gray-400">Node Count:</Text>
+                                  <Badge count={currentWorkflow.nodeCount} style={{ backgroundColor: MINT_COLOR }} />
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <Text className="text-gray-400">Connections:</Text>
+                                  <Text className="text-white">{currentWorkflow.analysis.connectionCount || 0}</Text>
+                                </div>
+                              </div>
+                            </Card>
+                          </Col>
+                          <Col xs={24} md={12}>
+                            <Card title={<span className="text-white">Recommendations</span>} size="small" bordered={false} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                              <div className="space-y-2">
+                                {currentWorkflow.analysis.optimizationSuggestions?.slice(0, 3).map((suggestion: string, i: number) => (
+                                  <div key={i} className="text-sm text-green-400">
+                                    • {suggestion}
+                                  </div>
+                                ))}
+                                {(!currentWorkflow.analysis.optimizationSuggestions || currentWorkflow.analysis.optimizationSuggestions.length === 0) && (
+                                  <Text className="text-gray-500 text-sm">Workflow is optimized</Text>
+                                )}
+                              </div>
+                            </Card>
+                          </Col>
+                        </Row>
+                      )
+                    }
+                  ]}
+                />
+              </Card>
+            )}
+          </Form>
+
+          <Modal
+            title="Add Custom Integration"
+            open={isCustomIntegrationModalVisible}
+            onOk={addCustomIntegration}
+            onCancel={() => setIsCustomIntegrationModalVisible(false)}
+            styles={{ body: { background: SPACE_BG }, header: { background: SPACE_BG } }}
+          >
+            <Input
+              placeholder="Enter custom integration name"
+              value={newCustomIntegration}
+              onChange={(e) => setNewCustomIntegration(e.target.value)}
+              onPressEnter={addCustomIntegration}
+              className="bg-white/5 border-gray-700 text-white"
+            />
+          </Modal>
+        </div>
+      </div>
+    </ConfigProvider>
+  );
 };
 
 export default N8nWorkflowCreator;
