@@ -90,13 +90,24 @@ export const authProviderClient: AuthProvider = {
 
         const passwordStatus = await passwordCheck.json();
 
+        // If user doesn't exist in our DB yet (new invited user), they need to click magic link first
+        if (!passwordStatus.userExists && passwordStatus.hasValidInvite) {
+          return {
+            success: false,
+            error: {
+              name: "NewInvitedUser",
+              message: "Welcome! You've been invited to ArbitrageOS. Please check your email and click the magic link to complete your account setup.",
+            },
+          };
+        }
+
         // If user exists but hasn't set a password yet, guide them to magic link
         if (passwordStatus.userExists && !passwordStatus.hasPassword) {
           return {
             success: false,
             error: {
               name: "PasswordNotSet",
-              message: "You haven't set up a password yet. Please use 'Sign in with magic link' instead.",
+              message: "You haven't set up a password yet. Please use 'Sign in with magic link' to set your password.",
             },
           };
         }
