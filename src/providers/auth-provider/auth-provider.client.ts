@@ -5,7 +5,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient as supabase } from "../../utils/supabase/client";
 
 export const authProviderClient: AuthProvider = {
-  login: async ({ email }) => {
+  login: async ({ email, password, useMagicLink }) => {
     try {
       // Basic email validation
       if (!email || !email.includes('@')) {
@@ -20,7 +20,7 @@ export const authProviderClient: AuthProvider = {
 
       const trimmedEmail = email.trim().toLowerCase();
 
-      // Check if user has a valid invite before sending magic link
+      // Check if user has a valid invite before attempting login
       const inviteCheck = await fetch('/api/auth/check-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,31 +39,103 @@ export const authProviderClient: AuthProvider = {
         };
       }
 
-      // Only send magic link if invite exists and is valid
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
-          shouldCreateUser: false,
-        },
-      });
+      // Magic link login
+      if (useMagicLink) {
+        const { data, error } = await supabase.auth.signInWithOtp({
+          email: trimmedEmail,
+          options: {
+            emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
+            shouldCreateUser: false,
+          },
+        });
 
-      if (error) {
-        console.error("Login error:", error);
+        if (error) {
+          console.error("Magic link error:", error);
+          return {
+            success: false,
+            error: {
+              name: error.name || "LoginError",
+              message: error.message || "Failed to send magic link",
+            },
+          };
+        }
+
         return {
-          success: false,
-          error: {
-            name: error.name || "LoginError",
-            message: error.message || "Failed to send magic link",
+          success: true,
+          successNotification: {
+            message: "Magic link sent!",
+            description: "Check your email for the magic link. It may take a moment to arrive.",
           },
         };
       }
 
+      // Password-based login
+      if (!password) {
+        return {
+          success: false,
+          error: {
+            name: "InvalidPassword",
+            message: "Please enter your password.",
+          },
+        };
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: password,
+      });
+
+      if (error) {
+        console.error("Password login error:", error);
+
+        // Handle specific error cases
+        if (error.message.includes('Invalid login credentials')) {
+          return {
+            success: false,
+            error: {
+              name: "LoginError",
+              message: "Invalid email or password. Please try again or use magic link.",
+            },
+          };
+        }
+
+        return {
+          success: false,
+          error: {
+            name: error.name || "LoginError",
+            message: error.message || "Login failed",
+          },
+        };
+      }
+
+      if (!data.session) {
+        return {
+          success: false,
+          error: {
+            name: "LoginError",
+            message: "Failed to create session",
+          },
+        };
+      }
+
+      // Update last login in database
+      try {
+        await fetch('/api/auth/update-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmedEmail }),
+        });
+      } catch (updateError) {
+        // Non-blocking - don't fail login if this fails
+        console.error("Failed to update last login:", updateError);
+      }
+
       return {
         success: true,
+        redirectTo: "/",
         successNotification: {
-          message: "Magic link sent!",
-          description: "Check your email for the magic link. It may take a moment to arrive.",
+          message: "Login successful!",
+          description: "Welcome back to ArbitrageOS.",
         },
       };
     } catch (error: any) {
@@ -72,7 +144,7 @@ export const authProviderClient: AuthProvider = {
         success: false,
         error: {
           name: "LoginError",
-          message: error?.message || "Failed to send magic link",
+          message: error?.message || "Login failed",
         },
       };
     }

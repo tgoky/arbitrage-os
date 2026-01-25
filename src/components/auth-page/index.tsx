@@ -2,7 +2,7 @@
 
 import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 // Animated Galaxy Background Component
@@ -299,12 +299,15 @@ const ConnectingCurves = () => {
 export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const { mutate: login } = useLogin();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [useMagicLink, setUseMagicLink] = useState(false); // Toggle between password and magic link
 
-    const [isNotInvited, setIsNotInvited] = useState(false);
+  const [isNotInvited, setIsNotInvited] = useState(false);
 
 
   useEffect(() => {
@@ -354,24 +357,32 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     e.preventDefault();
     setMessage("");
     setError("");
-        setIsNotInvited(false);
+    setIsNotInvited(false);
     setLoading(true);
 
-  login(
-      { email },
+    // Determine login method based on whether password is provided and useMagicLink toggle
+    const loginPayload = useMagicLink
+      ? { email, useMagicLink: true }
+      : { email, password };
+
+    login(
+      loginPayload,
       {
         onSuccess: (data) => {
           setLoading(false);
           if (data.success) {
-            setEmailSent(true);
-            setMessage("Check your email for the magic link. It may take a moment to arrive.");
+            if (useMagicLink) {
+              setEmailSent(true);
+              setMessage("Check your email for the magic link. It may take a moment to arrive.");
+            }
+            // For password login, RefineJS will handle redirect
           }
         },
         onError: (error: any) => {
           setLoading(false);
-          const errorMessage = error?.message || "Failed to send magic link. Please try again.";
+          const errorMessage = error?.message || "Login failed. Please try again.";
           setError(errorMessage);
-          
+
           // Check if this is an "not invited" error
           if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
             setIsNotInvited(true);
@@ -493,7 +504,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   </div>
                 </div>
 
-                <button onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); }} className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
+                <button onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); setPassword(""); setUseMagicLink(false); }} className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
                   <ArrowLeft className="w-4 h-4" />
                   Back to sign in
                 </button>
@@ -505,29 +516,56 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   <p className="text-gray-300">Enter your email to continue with ArbitrageOS</p>
                 </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email address</label>
                     <div className="relative group">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
-                      <input 
-                        id="email" 
-                        name="email" 
-                        type="email" 
-                        required 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        disabled={loading} 
-                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400" 
-                        placeholder="you@company.com" 
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                        placeholder="you@company.com"
                       />
                     </div>
                   </div>
 
+                  {!useMagicLink && (
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
+                        <input
+                          id="password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          required={!useMagicLink}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={loading}
+                          className="w-full pl-10 pr-12 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                          placeholder="Enter your password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {error && (
                     <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
-                      isNotInvited 
-                        ? 'bg-orange-500/10 border-orange-400/30' 
+                      isNotInvited
+                        ? 'bg-orange-500/10 border-orange-400/30'
                         : 'bg-red-500/10 border-red-400/30'
                     }`}>
                       <div className="flex items-start gap-3">
@@ -547,7 +585,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                           </p>
                           {isNotInvited && (
                             <div className="mt-3 pt-3 border-t border-orange-400/30">
-                              <a 
+                              <a
                                 href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request&body=Hello, I would like to request access to ArbitrageOS.%0D%0A%0D%0AMy email: "
                                 className="inline-flex items-center gap-2 text-sm font-medium text-orange-200 hover:text-orange-100 transition-colors"
                               >
@@ -562,20 +600,35 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                     </div>
                   )}
 
-                  <button 
-                    type="submit" 
-                    disabled={loading} 
+                  <button
+                    type="submit"
+                    disabled={loading || (!useMagicLink && !password)}
                     className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
                   >
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        Verifying access...
+                        {useMagicLink ? 'Sending magic link...' : 'Signing in...'}
                       </>
                     ) : (
-                      <>Continue with email</>
+                      <>{useMagicLink ? 'Send magic link' : 'Sign in'}</>
                     )}
                   </button>
+
+                  {/* Toggle between password and magic link */}
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseMagicLink(!useMagicLink);
+                        setError("");
+                        setPassword("");
+                      }}
+                      className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                    >
+                      {useMagicLink ? 'Sign in with password instead' : 'Sign in with magic link instead'}
+                    </button>
+                  </div>
                 </form>
 
 
@@ -583,7 +636,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-sm text-gray-300 hover:text-gray-200 transition-colors">
                       <Shield className="w-4 h-4 text-green-400" />
-                      <span>Secure passwordless authentication</span>
+                      <span>Secure authentication</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-300 hover:text-gray-200 transition-colors">
                       <Users className="w-4 h-4 text-blue-400" />
