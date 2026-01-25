@@ -56,9 +56,6 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ Session created successfully for user:', session.user.id);
 
-      // Variable to track if this is a new user who needs to set password
-      let needsPasswordSetup = false;
-
       // Handle invite acceptance if invite_id is present
       if (inviteId) {
         try {
@@ -98,10 +95,8 @@ export async function GET(request: NextRequest) {
                   last_login: new Date()
                 }
               });
-              // Check if they have a password set
-              needsPasswordSetup = !existingUser.has_password;
             } else {
-              // Create new user - they will need to set password
+              // Create new user - they can set password later when they log out and log back in
               await prisma.user.create({
                 data: {
                   id: session.user.id,
@@ -113,7 +108,6 @@ export async function GET(request: NextRequest) {
                   invite_sent_at: invite.sent_at
                 }
               });
-              needsPasswordSetup = true;
             }
 
             console.log('✅ Invite accepted and user created/updated');
@@ -123,14 +117,13 @@ export async function GET(request: NextRequest) {
           // Don't block login if invite processing fails
         }
       } else {
-        // No invite_id - check if existing user needs password setup
+        // No invite_id - update last login for existing users
         try {
           const existingUser = await prisma.user.findUnique({
             where: { email: session.user.email! }
           });
 
           if (existingUser) {
-            needsPasswordSetup = !existingUser.has_password;
             // Update last login
             await prisma.user.update({
               where: { email: session.user.email! },
@@ -142,14 +135,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Redirect to password setup if needed, otherwise to the intended destination
-      if (needsPasswordSetup) {
-        console.log('🔐 User needs to set password, redirecting to /set-password');
-        return NextResponse.redirect(
-          new URL(`/set-password?email=${encodeURIComponent(session.user.email || '')}`, origin)
-        );
-      }
-
+      // Redirect directly to the app - users can set password later if they want
       console.log('🚀 Redirecting to:', next);
       return NextResponse.redirect(new URL(next, origin))
 
