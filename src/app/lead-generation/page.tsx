@@ -1,4 +1,4 @@
-// app/lead-generation/page.tsx - UPDATED WITH CREDITS DISPLAY
+// app/lead-generation/page.tsx - UPDATED WITH DARK THEME CARDS
 "use client";
 import React, { useState, useEffect } from 'react';
 import {
@@ -18,11 +18,11 @@ import {
   Col,
   Progress,
   Empty,
-  Spin
+  Spin,
+  ConfigProvider
 } from 'antd';
 import {
   PlusOutlined,
-  ThunderboltOutlined,
   TeamOutlined,
   HistoryOutlined,
   SearchOutlined,
@@ -31,11 +31,11 @@ import {
   MailOutlined,
   TrophyOutlined,
   EnvironmentOutlined,
-
   BankOutlined,
   PhoneOutlined,
   LinkedinOutlined,
-  StarOutlined
+  StarFilled,
+  ArrowRightOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -47,7 +47,19 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
-// app/lead-generation/page.tsx - Update interface
+// --- STYLES & CONSTANTS ---
+const BRAND_COLOR = '#5CC49D';
+const BRAND_COLOR_HOVER = '#4AB08C';
+const FONT_FAMILY = "'Manrope', sans-serif";
+
+const customThemeToken = {
+  fontFamily: FONT_FAMILY,
+  colorPrimary: BRAND_COLOR,
+  borderRadius: 8,
+  colorBgContainer: '#ffffff',
+};
+
+// --- INTERFACES ---
 interface Lead {
   id: string;
   name: string;
@@ -74,7 +86,6 @@ interface Lead {
     timezone?: string;
     currency?: string;
   };
-  // Additional frontend fields
   generationId?: string;
   generationTitle?: string;
   notes?: string;
@@ -101,10 +112,70 @@ interface LeadGeneration {
   };
 }
 
+// --- GLOBAL COVERAGE STATS COMPONENT ---
+const GlobalCoverageStats = ({ globalCoverage, isDark }: { globalCoverage?: any; isDark: boolean }) => {
+  if (!globalCoverage) return null;
+  
+  return (
+    <Card 
+      title="Global Coverage" 
+      className="mb-6"
+      styles={{
+        body: { padding: '20px 24px' },
+        header: { 
+          borderBottom: `1px solid ${isDark ? '#333' : '#f0f0f0'}`,
+          padding: '16px 24px'
+        }
+      }}
+      style={{
+        backgroundColor: isDark ? '#111' : '#fff',
+        border: isDark ? '1px solid #333' : '1px solid #f0f0f0',
+        color: isDark ? '#fff' : '#000'
+      }}
+    >
+      <Row gutter={16}>
+        <Col span={6}>
+          <Statistic
+            title={<span style={{ color: isDark ? '#999' : '#666' }}>Countries</span>}
+            value={globalCoverage.countries?.length || 0}
+            prefix={<GlobalOutlined style={{ color: BRAND_COLOR }} />}
+            valueStyle={{ fontWeight: 700, color: isDark ? '#fff' : '#000' }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={<span style={{ color: isDark ? '#999' : '#666' }}>Regions</span>}
+            value={globalCoverage.regions?.length || 0}
+            prefix={<EnvironmentOutlined style={{ color: BRAND_COLOR }} />}
+            valueStyle={{ fontWeight: 700, color: isDark ? '#fff' : '#000' }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={<span style={{ color: isDark ? '#999' : '#666' }}>Economic Tiers</span>}
+            value={Object.keys(globalCoverage.economicTiers || {}).length}
+            prefix={<TrophyOutlined style={{ color: BRAND_COLOR }} />}
+            valueStyle={{ fontWeight: 700, color: isDark ? '#fff' : '#000' }}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={<span style={{ color: isDark ? '#999' : '#666' }}>Industries</span>}
+            value={globalCoverage.industries?.length || 0}
+            prefix={<BankOutlined style={{ color: BRAND_COLOR }} />}
+            valueStyle={{ fontWeight: 700, color: isDark ? '#fff' : '#000' }}
+          />
+        </Col>
+      </Row>
+    </Card>
+  );
+};
+
 const LeadGenerationPage = () => {
   const { theme } = useTheme();
   const router = useRouter();
   const { currentWorkspace, getWorkspaceScopedEndpoint } = useWorkspaceContext();
+  const isDark = theme === 'dark';
 
   // State
   const [activeTab, setActiveTab] = useState('leads');
@@ -115,14 +186,15 @@ const LeadGenerationPage = () => {
   const [selectedIndustry, setSelectedIndustry] = useState('All');
   const [selectedScore, setSelectedScore] = useState('All');
   const [currentCredits, setCurrentCredits] = useState(0);
+  const [globalCoverage, setGlobalCoverage] = useState<any>(null);
+
+  // --- ACTIONS ---
 
   const handleViewLead = (lead: Lead) => {
     router.push(`/lead-generation/leads/${lead.id}`);
   };
 
   const handleContactLead = (lead: Lead) => {
-    console.log('Contacting lead:', lead);
-    
     if (lead.email) {
       const subject = encodeURIComponent(`Introduction from ${currentWorkspace?.name || 'Our Company'}`);
       const body = encodeURIComponent(`Hi ${lead.name.split(' ')[0]},\n\nI hope this email finds you well. I came across your profile and was impressed by your work at ${lead.company}.\n\nI'd love to connect and discuss how we might be able to help ${lead.company} with [your value proposition].\n\nBest regards,\n[Your Name]`);
@@ -137,50 +209,15 @@ const LeadGenerationPage = () => {
     }
   };
 
-  const handleViewGenerationDetails = (generation: LeadGeneration) => {
-    router.push(`/lead-generation/campaigns/${generation.id}`);
-  };
-
   const handleExportGeneration = async (generation: LeadGeneration) => {
     try {
-      console.log('Exporting generation:', generation);
       message.loading('Preparing export...', 1);
-      
       const response = await fetch(`/api/lead-generation/${generation.id}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data.leads) {
-          const leads = data.data.leads;
-          
-          const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
-          const csvRows = leads.map((lead: Lead) => [
-            lead.name,
-            lead.email || '',
-            lead.phone || '',
-            lead.title,
-            lead.company,
-            lead.industry,
-            lead.location,
-            lead.score.toString(),
-            lead.linkedinUrl || ''
-          ]);
-          
-          const csvContent = [
-            csvHeaders.join(','),
-            ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
-          ].join('\n');
-          
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          const url = URL.createObjectURL(blob);
-          link.setAttribute('href', url);
-          link.setAttribute('download', `${generation.title.replace(/[^a-z0-9]/gi, '_')}_leads.csv`);
-          link.style.visibility = 'hidden';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          message.success(`Exported ${leads.length} leads to CSV`);
+          const leadsToExport = data.data.leads;
+          generateCSV(leadsToExport, `${generation.title.replace(/[^a-z0-9]/gi, '_')}_leads.csv`);
         }
       }
     } catch (error) {
@@ -191,136 +228,116 @@ const LeadGenerationPage = () => {
 
   const handleBulkExport = () => {
     try {
-      console.log('Bulk exporting filtered leads');
-      message.loading('Preparing bulk export...', 1);
-      
       if (filteredLeads.length === 0) {
         message.warning('No leads to export');
         return;
       }
-      
-      const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
-      const csvRows = filteredLeads.map((lead: Lead) => [
-        lead.name,
-        lead.email || '',
-        lead.phone || '',
-        lead.title,
-        lead.company,
-        lead.industry,
-        lead.location,
-        lead.score.toString(),
-        lead.linkedinUrl || ''
-      ]);
-      
-      const csvContent = [
-        csvHeaders.join(','),
-        ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
-      ].join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `all_leads_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      message.success(`Exported ${filteredLeads.length} leads to CSV`);
+      generateCSV(filteredLeads, `all_leads_${new Date().toISOString().split('T')[0]}.csv`);
     } catch (error) {
       console.error('Error with bulk export:', error);
       message.error('Failed to export leads');
     }
   };
 
+  const generateCSV = (leadsToExport: Lead[], filename: string) => {
+    const csvHeaders = ['Name', 'Email', 'Phone', 'Title', 'Company', 'Industry', 'Location', 'Score', 'LinkedIn'];
+    const csvRows = leadsToExport.map((lead: Lead) => [
+      lead.name,
+      lead.email || '',
+      lead.phone || '',
+      lead.title,
+      lead.company,
+      lead.industry,
+      lead.location,
+      lead.score.toString(),
+      lead.linkedinUrl || ''
+    ]);
+    
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map((row: string[]) => row.map((field: string) => `"${field}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    message.success(`Exported ${leadsToExport.length} leads to CSV`);
+  };
+
   const handleBulkEmail = () => {
     const leadsWithEmail = filteredLeads.filter(lead => lead.email);
-    
     if (leadsWithEmail.length === 0) {
       message.warning('No leads with email addresses found');
       return;
     }
-    
     const emails = leadsWithEmail.map(lead => lead.email).join(',');
     const subject = encodeURIComponent(`Introduction from ${currentWorkspace?.name || 'Our Company'}`);
-    const body = encodeURIComponent(`Hi there,\n\nI hope this email finds you well. I wanted to reach out to introduce our company and discuss potential collaboration opportunities.\n\nBest regards,\n[Your Name]`);
+    const body = encodeURIComponent(`Hi there,\n\nI hope this email finds you well...`);
     
     if (emails.length > 2000) {
-      message.warning('Too many recipients for bulk email. Consider using smaller batches or an email marketing tool.');
+      message.warning('Too many recipients. Try smaller batches.');
       return;
     }
-    
     window.open(`mailto:${emails}?subject=${subject}&body=${body}`);
     message.success(`Opening bulk email to ${leadsWithEmail.length} leads`);
   };
   
-  // Load data on component mount
+  // Load data
   useEffect(() => {
     if (currentWorkspace?.id) {
       loadData();
     }
   }, [currentWorkspace?.id]);
   
-
-const loadData = async () => {
-  try {
-    setLoading(true);
-    
-    console.log('Loading data for workspace:', currentWorkspace?.id);
-    
-    const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
-    console.log('Calling endpoint:', endpoint);
-    
-    const response = await fetch(endpoint);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Raw API response:', data);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const endpoint = getWorkspaceScopedEndpoint('/api/lead-generation');
+      const response = await fetch(endpoint);
       
-      if (data.success && data.data) {
-        const rawGenerations = data.data;
-        console.log(`Loaded ${rawGenerations.length} raw generations`);
-        
-        const processedGenerations: LeadGeneration[] = [];
-        const allLeads: Lead[] = [];
-        
-        for (const gen of rawGenerations) {
-          try {
-            console.log(`Processing generation ${gen.id}:`, {
-              title: gen.title,
-              hasMetadata: !!gen.metadata,
-              metadataLeadCount: gen.metadata?.leadCount
-            });
-            
-            // ✅ FIX: The API already returns properly formatted metadata with leadCount
-            // We don't need to parse content here anymore for the list view
-            const metadata = gen.metadata || {};
-            const leadCount = metadata.leadCount || 0;
-            const totalFound = metadata.totalFound || 0;
-            const averageScore = metadata.averageScore || 0;
-            
-            console.log(`Generation ${gen.id} has ${leadCount} leads`);
-            
-            const processedGen: LeadGeneration = {
-              id: gen.id,
-              title: gen.title,
-              leadCount, // ✅ Use metadata leadCount
-              totalFound,
-              averageScore,
-              criteria: metadata?.criteria || {},
-              generatedAt: metadata?.generatedAt || gen.createdAt,
-              createdAt: gen.createdAt,
-              updatedAt: gen.updatedAt || gen.createdAt,
-              content: gen.content,
-              workspace: gen.workspace
-            };
-            
-            processedGenerations.push(processedGen);
-            
-            // ✅ FIX: Only parse content when we actually need the leads array
-            if (leadCount > 0 && gen.content) {
-              try {
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const rawGenerations = data.data;
+          const processedGenerations: LeadGeneration[] = [];
+          const allLeads: Lead[] = [];
+          
+          // Calculate global coverage
+          const coverage = {
+            countries: new Set<string>(),
+            regions: new Set<string>(),
+            economicTiers: new Set<string>(),
+            industries: new Set<string>()
+          };
+          
+          for (const gen of rawGenerations) {
+            try {
+              const metadata = gen.metadata || {};
+              const leadCount = metadata.leadCount || 0;
+              
+              const processedGen: LeadGeneration = {
+                id: gen.id,
+                title: gen.title,
+                leadCount,
+                totalFound: metadata.totalFound || 0,
+                averageScore: metadata.averageScore || 0,
+                criteria: metadata?.criteria || {},
+                generatedAt: metadata?.generatedAt || gen.createdAt,
+                createdAt: gen.createdAt,
+                updatedAt: gen.updatedAt || gen.createdAt,
+                content: gen.content,
+                workspace: gen.workspace
+              };
+              
+              processedGenerations.push(processedGen);
+              
+              if (leadCount > 0 && gen.content) {
                 let generationContent;
                 if (typeof gen.content === 'string') {
                   generationContent = JSON.parse(gen.content);
@@ -328,9 +345,7 @@ const loadData = async () => {
                   generationContent = gen.content;
                 }
                 
-                const leads = Array.isArray(generationContent?.leads) 
-                  ? generationContent.leads 
-                  : [];
+                const leads = Array.isArray(generationContent?.leads) ? generationContent.leads : [];
                 
                 if (leads.length > 0) {
                   const leadsWithContext = leads.map((lead: any, index: number) => ({
@@ -338,61 +353,54 @@ const loadData = async () => {
                     id: lead.id || `${gen.id}_lead_${index}`,
                     generationId: gen.id,
                     generationTitle: gen.title,
+                    score: lead.score || 0,
+                    company: lead.company || 'Unknown Company',
+                    title: lead.title || 'Unknown Title',
+                    createdAt: gen.createdAt,
                     notes: lead.notes || '',
                     status: lead.status || 'new',
                     lastContacted: lead.lastContacted || null,
-                    createdAt: gen.createdAt,
                     updatedAt: gen.updatedAt || gen.createdAt
                   }));
                   
                   allLeads.push(...leadsWithContext);
-                  console.log(`✅ Added ${leadsWithContext.length} leads from generation ${gen.id}`);
+                  
+                  // Update global coverage stats
+                  leadsWithContext.forEach((lead: Lead) => {
+                    if (lead.location) {
+                      const country = lead.location.split(',').pop()?.trim();
+                      if (country) coverage.countries.add(country);
+                    }
+                    if (lead.industry) coverage.industries.add(lead.industry);
+                  });
                 }
-              } catch (contentParseError) {
-                console.error(`Failed to parse content for leads in ${gen.id}:`, contentParseError);
               }
+            } catch (error) {
+              console.error(`Error processing generation ${gen.id}`, error);
             }
-            
-          } catch (parseError) {
-            console.error(`Failed to process generation ${gen.id}:`, parseError);
-            continue;
           }
+          
+          setGenerations(processedGenerations);
+          setLeads(allLeads);
+          
+          // Set global coverage
+          setGlobalCoverage({
+            countries: Array.from(coverage.countries),
+            regions: Array.from(coverage.regions),
+            economicTiers: Array.from(coverage.economicTiers),
+            industries: Array.from(coverage.industries)
+          });
         }
-        
-        console.log(`📊 Final results:`);
-        console.log(`- ${processedGenerations.length} generations processed`);
-        console.log(`- ${allLeads.length} total leads extracted`);
-        
-        setGenerations(processedGenerations);
-        setLeads(allLeads);
-        
-        // ✅ Better user feedback
-        if (processedGenerations.length === 0) {
-          message.info('No lead generations found. Create your first campaign!');
-        } else if (allLeads.length === 0 && processedGenerations.length > 0) {
-          message.warning(`Found ${processedGenerations.length} campaigns but couldn't load the leads. The data may be corrupted.`);
-        } else {
-          message.success(`Loaded ${allLeads.length} leads from ${processedGenerations.length} campaigns`);
-        }
-        
-      } else {
-        console.error('API response indicates failure:', data);
-        message.error(data.error || 'Failed to load lead data');
       }
-    } else {
-      const errorText = await response.text();
-      console.error('HTTP error response:', response.status, errorText);
-      message.error(`Failed to load lead data: ${response.status}`);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      message.error('Failed to load lead data');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error loading data:', error);
-    message.error('Failed to load lead data');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-  // Filter leads based on search and filters
+  // Filters
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = !searchTerm || 
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -400,7 +408,6 @@ const loadData = async () => {
       lead.title.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesIndustry = selectedIndustry === 'All' || lead.industry === selectedIndustry;
-    
     const matchesScore = selectedScore === 'All' || 
       (selectedScore === 'High' && lead.score >= 80) ||
       (selectedScore === 'Medium' && lead.score >= 60 && lead.score < 80) ||
@@ -409,623 +416,807 @@ const loadData = async () => {
     return matchesSearch && matchesIndustry && matchesScore;
   });
 
-  // Get unique industries for filter
-  const industries = ['All', ...Array.from(new Set(leads.map(lead => lead.industry)))];
+  const industries = ['All', ...Array.from(new Set(leads.map(lead => lead.industry).filter(Boolean)))];
 
-  // Get score color
+  // Helpers
   const getScoreColor = (score: number) => {
-    if (score >= 80) return '#52c41a';
-    if (score >= 60) return '#faad14';
-    return '#ff4d4f';
+    if (score >= 80) return BRAND_COLOR; // High score gets brand color
+    if (score >= 60) return '#faad14'; // Warning yellow
+    return '#ff4d4f'; // Error red
   };
 
-  // Add to your lead generation page
-const GlobalCoverageStats = ({ globalCoverage }: { globalCoverage?: any }) => {
-  if (!globalCoverage) return null;
-  
-  return (
-    <Card title="Global Coverage" className="mb-4">
-      <Row gutter={16}>
-        <Col span={6}>
-          <Statistic
-            title="Countries"
-            value={globalCoverage.countries?.length || 0}
-            prefix={<GlobalOutlined />}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title="Regions"
-            value={globalCoverage.regions?.length || 0}
-            prefix={<EnvironmentOutlined />}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title="Economic Tiers"
-            value={Object.keys(globalCoverage.economicTiers || {}).length}
-            prefix={<TrophyOutlined />}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title="Industries"
-            value={globalCoverage.industries?.length || 0}
-            prefix={<BankOutlined />}
-          />
-        </Col>
-      </Row>
-    </Card>
-  );
-};
-
-  // Lead table columns
-const leadColumns: ColumnsType<Lead> = [
-  {
-    title: 'Contact',
-    key: 'contact',
-    width: 250, // Increased to accommodate badges
-    render: (_, record) => {
-      // Function to determine if title is senior level
-      const getSeniorityInfo = (title: string, metadata?: any) => {
-        const titleLower = title.toLowerCase();
-        const seniority = metadata?.seniority?.toLowerCase() || '';
-        
-        // C-Level executives
-        if (titleLower.includes('ceo') || titleLower.includes('chief executive')) {
-          return { level: 'c-level', badge: 'CEO', color: '#722ed1' };
-        }
-        if (titleLower.includes('cto') || titleLower.includes('chief technology')) {
-          return { level: 'c-level', badge: 'CTO', color: '#722ed1' };
-        }
-        if (titleLower.includes('cfo') || titleLower.includes('chief financial')) {
-          return { level: 'c-level', badge: 'CFO', color: '#722ed1' };
-        }
-        if (titleLower.includes('coo') || titleLower.includes('chief operating')) {
-          return { level: 'c-level', badge: 'COO', color: '#722ed1' };
-        }
-        if (titleLower.includes('chief') && titleLower.includes('officer')) {
-          return { level: 'c-level', badge: 'C-Level', color: '#722ed1' };
-        }
-        
-        // Founders
-        if (titleLower.includes('founder') || titleLower.includes('co-founder')) {
-          return { level: 'founder', badge: 'Founder', color: '#fa541c' };
-        }
-        
-        // VPs and Directors
-        if (titleLower.includes('vp ') || titleLower.includes('vice president')) {
-          return { level: 'vp', badge: 'VP', color: '#1890ff' };
-        }
-        if (titleLower.includes('director') && !titleLower.includes('associate')) {
-          return { level: 'director', badge: 'Director', color: '#52c41a' };
-        }
-        
-        // Presidents
-        if (titleLower.includes('president') && !titleLower.includes('vice')) {
-          return { level: 'president', badge: 'President', color: '#fa541c' };
-        }
-        
-        // Seniority from metadata
-        if (seniority.includes('senior') || seniority.includes('lead')) {
-          return { level: 'senior', badge: 'Senior', color: '#faad14' };
-        }
-        
-        return null;
-      };
-
-      const seniorityInfo = getSeniorityInfo(record.title, record.metadata);
-
-      return (
-        <div className="flex items-center space-x-3">
-          <Avatar 
-            src={`https://i.pravatar.cc/32?u=${record.id}`}
-            size={32}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center space-x-2 mb-1">
-              <span className="font-medium text-sm truncate">{record.name}</span>
-              {seniorityInfo && (
-                <span 
-                  className="px-2 py-0.5 text-xs font-medium text-white rounded-full"
-                  style={{ backgroundColor: seniorityInfo.color }}
-                >
-                  {seniorityInfo.badge}
+  // --- STATS CARD COMPONENT ---
+  const StatCard = ({ title, value, icon, subValue, color = BRAND_COLOR }: any) => {
+    const cardBg = isDark ? '#111' : '#fff';
+    const textColor = isDark ? '#fff' : '#000';
+    const titleColor = isDark ? '#999' : '#666';
+    const subTextColor = isDark ? '#888' : '#999';
+    
+    return (
+      <Card 
+        bordered={false} 
+        className="h-full transition-all duration-300 hover:translate-y-[-2px]"
+        styles={{
+          body: { padding: '20px 24px' }
+        }}
+        style={{
+          backgroundColor: cardBg,
+          border: isDark ? '1px solid #333' : '1px solid #f0f0f0',
+          boxShadow: isDark 
+            ? '0 4px 6px -1px rgba(0, 0, 0, 0.5)' 
+            : '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <p 
+              className="text-xs font-semibold uppercase tracking-wider mb-1"
+              style={{ color: titleColor }}
+            >
+              {title}
+            </p>
+            <div className="flex items-baseline gap-2">
+              <h3 
+                className="text-2xl font-bold m-0" 
+                style={{ 
+                  fontFamily: FONT_FAMILY,
+                  color: textColor 
+                }}
+              >
+                {value}
+              </h3>
+              {subValue && (
+                <span className="text-xs" style={{ color: subTextColor }}>
+                  {subValue}
                 </span>
               )}
             </div>
-            <div className="text-xs text-gray-500 truncate">{record.title}</div>
-            {record.metadata?.seniority && (
-              <div className="text-xs text-gray-400 truncate">
-                {record.metadata.seniority}
-              </div>
-            )}
+          </div>
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ 
+              backgroundColor: isDark 
+                ? `${color}40`  // 40 hex = 25% opacity in dark
+                : `${color}20`, // 20 hex = 12% opacity in light
+              color: color 
+            }}
+          >
+            {icon}
           </div>
         </div>
-      );
-    },
-  },
-  {
-    title: 'Company',
-    key: 'company',
-    width: 200,
-    render: (_, record) => (
-      <div>
-        <div className="font-medium text-sm truncate">{record.company}</div>
-        <div className="text-xs text-gray-500 truncate">{record.industry}</div>
-        {/* Only show company size if it exists and isn't "unknown" */}
-        {record.companySize && 
-         !record.companySize.toLowerCase().includes('unknown') && 
-         record.companySize !== 'Unknown' && (
-          <Tag  className="mt-1 text-xs">
-            {record.companySize}
-          </Tag>
-        )}
-      </div>
-    ),
-  },
-  {
-    title: 'Location',
-    dataIndex: 'location',
-    key: 'location',
-    width: 150, // Increased from 120
-    render: (location) => (
-      <div className="text-sm" title={location}>
-        <span className="truncate block">{location}</span>
-      </div>
-    ),
-  },
-  {
-    title: 'Contact Info',
-    key: 'contactInfo',
-    width: 200, // Increased from 140 to show full contact details
-    render: (_, record) => (
-      <div className="space-y-1">
-        {record.email && (
-          <div className="flex items-center text-xs">
-            <MailOutlined className="mr-1 text-green-500 flex-shrink-0" />
-            <span className="truncate" title={record.email}>{record.email}</span>
-          </div>
-        )}
-        {record.phone && (
-          <div className="flex items-center text-xs">
-            <PhoneOutlined className="mr-1 text-blue-500 flex-shrink-0" />
-            <span className="truncate" title={record.phone}>{record.phone}</span>
-          </div>
-        )}
-        {record.linkedinUrl && (
-          <div className="flex items-center text-xs">
-            <LinkedinOutlined className="mr-1 text-purple-500 flex-shrink-0" />
-            <span className="truncate" title={record.linkedinUrl}>
-              {record.linkedinUrl.replace('https://', '').replace('www.', '')}
-            </span>
-          </div>
-        )}
-        {!record.email && !record.phone && !record.linkedinUrl && (
-          <span className="text-xs text-gray-400">No contact info</span>
-        )}
-      </div>
-    ),
-  },
-  {
-    title: 'Score',
-    key: 'score',
-    width: 80, // Compact width for score
-    align: 'center',
-    render: (_, record) => (
-      <div className="flex items-center justify-center">
-        <div 
-          className="flex items-center justify-center w-12 h-6 rounded text-xs font-bold text-white"
-          style={{ backgroundColor: getScoreColor(record.score) }}
-        >
-          {record.score}
-        </div>
-      </div>
-    ),
-    sorter: (a, b) => a.score - b.score,
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    width: 140,
-    fixed: 'right' as const, // Keep actions always visible
-    render: (_, record) => (
-      <Space size="small">
-        <Button 
-          size="small"
-          type="text"
-          onClick={() => handleViewLead(record)}
-        >
-          View
-        </Button>
-        <Button 
+        <Progress 
+          percent={100} 
+          strokeColor={color} 
+          showInfo={false} 
           size="small" 
-          type="primary"
-          onClick={() => handleContactLead(record)}
+          className="mt-3" 
+          style={{ 
+            marginBottom: 0,
+            backgroundColor: isDark ? '#333' : '#f5f5f5'
+          }} 
+          strokeLinecap="butt"
+        />
+      </Card>
+    );
+  };
+
+  // --- COLUMNS ---
+  const leadColumns: ColumnsType<Lead> = [
+    {
+      title: 'Contact Profile',
+      key: 'contact',
+      width: 280,
+      render: (_, record) => {
+        const getSeniorityInfo = (title: string) => {
+          const t = title.toLowerCase();
+          if (t.includes('ceo') || t.includes('founder') || t.includes('chief')) 
+            return { badge: 'Executive', color: '#000000', bg: BRAND_COLOR };
+          if (t.includes('vp') || t.includes('director')) 
+            return { badge: 'Leadership', color: '#fff', bg: '#001529' };
+          return null;
+        };
+
+        const seniority = getSeniorityInfo(record.title);
+
+        return (
+          <div className="flex items-center space-x-3">
+            <Avatar 
+              src={`https://i.pravatar.cc/150?u=${record.id}`}
+              size={42}
+              style={{ border: `1px solid ${isDark ? '#333' : '#f0f0f0'}` }}
+            >
+              {record.name.charAt(0)}
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center space-x-2">
+                <span 
+                  className="font-bold text-sm truncate" 
+                  style={{ 
+                    fontFamily: FONT_FAMILY,
+                    color: isDark ? '#fff' : '#000'
+                  }}
+                >
+                  {record.name}
+                </span>
+                {seniority && (
+                  <span 
+                    className="px-2 py-0.5 text-[10px] uppercase tracking-wide font-bold rounded-full"
+                    style={{ color: seniority.color, backgroundColor: seniority.bg }}
+                  >
+                    {seniority.badge}
+                  </span>
+                )}
+              </div>
+              <div 
+                className="text-xs truncate mt-0.5"
+                style={{ color: isDark ? '#999' : '#666' }}
+              >
+                {record.title}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Organization',
+      key: 'company',
+      width: 220,
+      render: (_, record) => (
+        <div>
+          <div 
+            className="font-semibold text-sm truncate"
+            style={{ color: isDark ? '#fff' : '#000' }}
+          >
+            {record.company}
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1">
+             <Tag 
+               bordered={false} 
+               className="text-xs m-0"
+               style={{
+                 backgroundColor: isDark ? '#333' : '#f0f0f0',
+                 color: isDark ? '#999' : '#666'
+               }}
+             >
+               {record.industry}
+             </Tag>
+             {record.companySize && record.companySize !== 'Unknown' && (
+                <Tag 
+                  bordered={false} 
+                  className="text-xs m-0 bg-transparent"
+                  style={{ color: isDark ? '#888' : '#999' }}
+                >
+                  {record.companySize}
+                </Tag>
+             )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Location',
+      dataIndex: 'location',
+      key: 'location',
+      width: 150,
+      render: (location) => (
+        <div 
+          className="flex items-center"
+          style={{ color: isDark ? '#999' : '#666' }}
         >
-          Contact
+          <EnvironmentOutlined className="mr-1.5 text-xs" />
+          <span className="text-sm truncate">{location}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Channels',
+      key: 'contactInfo',
+      width: 180,
+      render: (_, record) => (
+        <div className="flex space-x-2">
+          {record.email ? (
+            <Tag 
+              className="m-0 flex items-center gap-1 border-0 px-2"
+              style={{ 
+                backgroundColor: isDark ? 'rgba(34, 197, 94, 0.1)' : '#f0f9ff',
+                color: isDark ? '#4ade80' : '#0ea5e9'
+              }}
+            >
+               <MailOutlined /> Email
+            </Tag>
+          ) : (
+             <Tag 
+               className="m-0 border-0"
+               style={{ 
+                 backgroundColor: isDark ? '#333' : '#f5f5f5',
+                 color: isDark ? '#666' : '#999'
+               }}
+             >
+               No Email
+             </Tag>
+          )}
+          
+          {record.linkedinUrl && (
+             <a 
+               href={record.linkedinUrl} 
+               target="_blank" 
+               rel="noreferrer" 
+               style={{ color: isDark ? '#999' : '#666' }}
+               className="hover:text-[#5CC49D] transition-colors"
+             >
+                <LinkedinOutlined style={{ fontSize: '16px' }} />
+             </a>
+          )}
+          
+          {record.phone && (
+             <div 
+               style={{ color: isDark ? '#999' : '#666' }}
+               title={record.phone}
+             >
+                <PhoneOutlined style={{ fontSize: '16px', color: BRAND_COLOR }} />
+             </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Fit Score',
+      key: 'score',
+      width: 120,
+      sorter: (a, b) => a.score - b.score,
+      render: (_, record) => (
+        <div className="w-full">
+           <div className="flex items-center justify-between mb-1">
+             <span 
+               className="font-bold text-xs"
+               style={{ color: isDark ? '#fff' : '#000' }}
+             >
+               {record.score}%
+             </span>
+           </div>
+           <Progress 
+             percent={record.score} 
+             steps={5} 
+             size="small" 
+             strokeColor={getScoreColor(record.score)}
+             trailColor={isDark ? '#333' : 'rgba(0,0,0,0.06)'}
+             showInfo={false}
+           />
+        </div>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 100,
+      fixed: 'right',
+      render: (_, record) => (
+        <Button 
+          type="text"
+          size="small"
+          className="rounded-full w-8 h-8 flex items-center justify-center"
+          style={{
+            backgroundColor: isDark ? 'transparent' : 'transparent',
+            color: isDark ? '#999' : '#666'
+          }}
+          onClick={(e) => { e.stopPropagation(); handleViewLead(record); }}
+        >
+          <ArrowRightOutlined />
         </Button>
-      </Space>
-    ),
-  },
-];
+      ),
+    },
+  ];
 
-
-  // Generation history columns
   const generationColumns: ColumnsType<LeadGeneration> = [
     {
-      title: 'Campaign',
+      title: 'Campaign Name',
       dataIndex: 'title',
       key: 'title',
+      render: (text) => (
+        <span 
+          className="font-semibold text-base"
+          style={{ color: isDark ? '#fff' : '#000' }}
+        >
+          {text}
+        </span>
+      )
     },
     {
-      title: 'Leads Found',
+      title: 'Results',
       dataIndex: 'leadCount',
       key: 'leadCount',
       render: (count, record) => (
-        <div>
-          <div className="font-medium">{count} leads</div>
-          <div className="text-sm text-gray-500">
-            {record.totalFound} total found
-          </div>
+        <div className="flex items-center gap-2">
+           <Tag 
+             color={BRAND_COLOR} 
+             style={{ 
+               color: '#000', 
+               border: 0, 
+               fontWeight: 600 
+             }}
+           >
+             {count} Leads
+           </Tag>
+           <span className="text-xs" style={{ color: isDark ? '#888' : '#999' }}>
+             {record.totalFound} found
+           </span>
         </div>
       ),
     },
     {
-      title: 'Avg Score',
+      title: 'Avg Quality',
       dataIndex: 'averageScore',
       key: 'averageScore',
       render: (score) => (
-        <div className="flex items-center">
-          <StarOutlined style={{ color: getScoreColor(score) }} className="mr-1" />
-          <span style={{ color: getScoreColor(score), fontWeight: 'bold' }}>
-            {Math.round(score)}
+        <Space size={4}>
+          <StarFilled style={{ color: getScoreColor(score), fontSize: '12px' }} />
+          <span 
+            className="font-semibold"
+            style={{ color: isDark ? '#fff' : '#000' }}
+          >
+            {Math.round(score)}/100
           </span>
-        </div>
+        </Space>
       ),
     },
     {
-      title: 'Created',
+      title: 'Date',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => (
+        <span style={{ color: isDark ? '#888' : '#999' }}>
+          {new Date(date).toLocaleDateString()}
+        </span>
+      ),
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button 
-            size="small"
-            onClick={() => router.push(`/lead-generation/campaigns/${record.id}`)}
-          >
-            View Details
-          </Button>
-          <Button 
-            size="small" 
-            icon={<DownloadOutlined />}
-            onClick={() => handleExportGeneration(record)}
-          >
-            Export
-          </Button>
+           <Button 
+             type="link" 
+             size="small" 
+             style={{ color: BRAND_COLOR }}
+             onClick={() => handleExportGeneration(record)}
+           >
+             Export
+           </Button>
+           <Button 
+             type="text" 
+             size="small"
+             style={{ color: isDark ? '#fff' : '#000' }}
+             onClick={() => router.push(`/lead-generation/campaigns/${record.id}`)}
+           >
+             View
+           </Button>
         </Space>
       ),
     }
   ];
 
-  // Tab items
-  const tabItems = [
-    {
-      key: 'leads',
-      label: (
-        <span>
-          <TeamOutlined />
-          All Leads ({filteredLeads.length})
-        </span>
-      ),
-      children: (
-        <div>
-          {/* Filters */}
-          <Card className="mb-6">
-            <Row gutter={16} align="middle">
-              <Col span={8}>
-                <Search
-                  placeholder="Search leads..."
-                  prefix={<SearchOutlined />}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  allowClear
-                />
-              </Col>
-              <Col span={4}>
-                <Select
-                  value={selectedIndustry}
-                  onChange={setSelectedIndustry}
-                  style={{ width: '100%' }}
-                >
-                  {industries.map(industry => (
-                    <Option key={industry} value={industry}>{industry}</Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col span={4}>
-                <Select
-                  value={selectedScore}
-                  onChange={setSelectedScore}
-                  style={{ width: '100%' }}
-                >
-                  <Option value="All">All Scores</Option>
-                  <Option value="High">High (80+)</Option>
-                  <Option value="Medium">Medium (60-79)</Option>
-                  <Option value="Low">Low (&lt;60)</Option>
-                </Select>
-              </Col>
-              <Col span={8} className="text-right">
-                <Space>
-                  <Button 
-                    icon={<DownloadOutlined />}
-                    onClick={handleBulkExport}
-                    disabled={filteredLeads.length === 0}
-                  >
-                    Export ({filteredLeads.length})
-                  </Button>
-                  <Button 
-                    icon={<MailOutlined />}
-                    onClick={handleBulkEmail}
-                    disabled={filteredLeads.filter(lead => lead.email).length === 0}
-                  >
-                    Bulk Email ({filteredLeads.filter(lead => lead.email).length})
-                  </Button>
-                </Space>
-              </Col>
-            </Row>
-          </Card>
-
-          {/* Leads Table */}
-       {loading ? (
-  <div className="text-center py-12">
-    <Spin size="large" />
-  </div>
-) : filteredLeads.length > 0 ? (
-<Table
-  columns={leadColumns}
-  dataSource={filteredLeads}
-  rowKey="id"
-  className="lead-generation-table no-vertical-borders"
-  scroll={{ 
-    x: 1030, // Increased to accommodate wider contact column with badges
-    y: 600   
-  }}
-  pagination={{
-    total: filteredLeads.length,
-    pageSize: 20,
-    showSizeChanger: true,
-    showQuickJumper: true,
-    showTotal: (total, range) => 
-      `${range[0]}-${range[1]} of ${total} leads`,
-  }}
-  size="small" // Changed from "middle" to "small" for more compact rows
-  tableLayout="fixed" // Enforces the width constraints
-  onRow={(record) => ({
-    onClick: (event) => {
-      // Don't navigate if user clicked on a button or link
-      const target = event.target as HTMLElement;
-      if (
-        target.tagName === 'BUTTON' || 
-        target.closest('button') || 
-        target.tagName === 'A' || 
-        target.closest('a')
-      ) {
-        return;
-      }
-      handleViewLead(record);
-    },
-    style: { cursor: 'pointer' },
-    className: 'clickable-row'
-  })}
-/>
-
-
-
-) : (
-  <Empty 
-    description="No leads found"
-    image={Empty.PRESENTED_IMAGE_SIMPLE}
-  />
-)}
-        </div>
-      ),
-    },
-    {
-      key: 'history',
-      label: (
-        <span>
-          <HistoryOutlined />
-          Generation History ({generations.length})
-        </span>
-      ),
-      children: (
-        <div>
-     {loading ? (
-  <div className="text-center py-12">
-    <Spin size="large" />
-  </div>
-) : generations.length > 0 ? (
-  <Table
-    columns={generationColumns}
-    dataSource={generations}
-    rowKey="id"
-    // Removed potential horizontal scroll settings
-    // scroll={{ x: 'max-content' }} // Remove this if it exists
-    pagination={{
-      total: generations.length,
-      pageSize: 10,
-      showSizeChanger: true,
-    }}
-    // Add responsive settings
-    tableLayout="auto" // Distribute columns based on content
-  />
-) : (
-  <Empty 
-    description="No lead generations yet"
-    image={Empty.PRESENTED_IMAGE_SIMPLE}
-  >
-    <Button 
-      type="primary" 
-      icon={<PlusOutlined />}
-      onClick={() => router.push('/lead-generation/create')}
-         style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
-    >
-      Generate Your First Leads
-    </Button>
-  </Empty>
-)}
-        </div>
-      ),
-    },
-  ];
-
-  // Calculate stats
-  const totalLeads = leads.length;
-  const highScoreLeads = leads.filter(lead => lead.score >= 80).length;
-  const leadsWithEmail = leads.filter(lead => lead.email).length;
-  const leadsWithPhone = leads.filter(lead => lead.phone).length;
-
+  // --- RENDER ---
   return (
-    <div style={{
-      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-      padding: 24,
-      minHeight: '100vh'
-    }}>
-      {/* Enhanced Credits Header */}
-      <CreditsDisplayHeader 
-        onCreditsUpdate={setCurrentCredits}
-      />
+    <>
+    <style jsx global>{`
+      @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
+      
+      body, .ant-typography, .ant-btn, .ant-table {
+        font-family: 'Manrope', sans-serif !important;
+      }
 
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <Space align="center">
+      .ant-btn-primary {
+        background-color: ${BRAND_COLOR} !important;
+        border-color: ${BRAND_COLOR} !important;
+        color: #000000 !important;
+        box-shadow: 0 4px 14px 0 rgba(92, 196, 157, 0.39) !important;
+      }
+      .ant-btn-primary:hover {
+        background-color: ${BRAND_COLOR_HOVER} !important;
+        border-color: ${BRAND_COLOR_HOVER} !important;
+      }
+      
+      /* Tabs Customization */
+      .ant-tabs-ink-bar {
+        background: ${BRAND_COLOR} !important;
+        height: 3px !important;
+        border-radius: 3px 3px 0 0;
+      }
+      .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+        color: ${isDark ? '#fff' : '#000'} !important;
+        font-weight: 700;
+      }
+      .ant-tabs-tab:hover {
+        color: ${BRAND_COLOR} !important;
+      }
+      
+      /* Table Customization */
+      .ant-table-thead > tr > th {
+        background: transparent !important;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        color: ${isDark ? '#888' : '#666'} !important;
+        border-bottom: 2px solid ${isDark ? '#333' : '#f0f0f0'} !important;
+      }
+      .ant-table-row {
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .ant-table-row:hover > td {
+        background-color: ${isDark ? '#1a1a1a' : '#f9f9f9'} !important;
+      }
+      
+      .clickable-row {
+        cursor: pointer;
+      }
+      
+      /* Compact table rows */
+      .compact-table .ant-table-tbody > tr > td {
+        padding: 8px 12px !important;
+      }
+      
+      .compact-table .ant-table-row {
+        height: 60px !important;
+      }
+      
+      /* Dark theme table adjustments */
+      .ant-table {
+        background: ${isDark ? '#000' : '#fff'} !important;
+        color: ${isDark ? '#fff' : '#000'} !important;
+      }
+      
+      .ant-table-tbody > tr > td {
+        border-bottom: 1px solid ${isDark ? '#333' : '#f0f0f0'} !important;
+        background: ${isDark ? '#000' : '#fff'} !important;
+        color: ${isDark ? '#fff' : '#000'} !important;
+      }
+      
+      /* Input styling for dark theme */
+      .ant-input, .ant-select-selector {
+        background-color: ${isDark ? '#111' : '#fff'} !important;
+        border-color: ${isDark ? '#333' : '#d9d9d9'} !important;
+        color: ${isDark ? '#fff' : '#000'} !important;
+      }
+      
+      .ant-input::placeholder, .ant-select-selection-placeholder {
+        color: ${isDark ? '#666' : '#bfbfbf'} !important;
+      }
+      
+      /* Card header styling */
+      .ant-card-head {
+        color: ${isDark ? '#fff' : '#000'} !important;
+        border-bottom: 1px solid ${isDark ? '#333' : '#f0f0f0'} !important;
+      }
+    `}</style>
 
-           <Title level={2} className="mb-0">
-  <span style={{
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    fontWeight: 600,
-    fontSize: '17px',
-  }}>
-    <span style={{ color: '#5CC49D' }}>a</span>rb
-    <span style={{ color: '#5CC49D' }}>i</span>trageOS Lead Generation
-  </span>
-</Title>
-          </Space>
+    <ConfigProvider theme={{ token: customThemeToken }}>
+      <div style={{
+        backgroundColor: isDark ? '#000000' : '#fafafa',
+        minHeight: '100vh',
+        padding: '24px 32px'
+      }}>
+        
+        {/* Header Section */}
+        <CreditsDisplayHeader onCreditsUpdate={setCurrentCredits} />
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 mt-4 gap-4">
+          <div>
+            <Title 
+              level={2} 
+              style={{ 
+                marginBottom: 0, 
+                fontWeight: 800, 
+                letterSpacing: '-0.5px',
+                color: isDark ? '#fff' : '#000'
+              }}
+            >
+              Lead Generation
+            </Title>
+            <Text 
+              type="secondary" 
+              className="text-base"
+              style={{ color: isDark ? '#999' : '#666' }}
+            >
+              Identify, analyze, and connect with high-value prospects.
+            </Text>
+          </div>
           <Button
             type="primary"
+            size="large"
             icon={<PlusOutlined />}
             onClick={() => router.push('/lead-generation/create')}
-            size="large"
-                   style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
+            style={{ 
+              height: '48px', 
+              paddingLeft: '24px', 
+              paddingRight: '24px', 
+              fontSize: '15px',
+              backgroundColor: BRAND_COLOR,
+              borderColor: BRAND_COLOR
+            }}
           >
-            Generate New Leads
+            Start New Campaign
           </Button>
         </div>
-        
-        <Text type="secondary">
-          Manage and view your generated leads
-        </Text>
+
+        {/* Global Coverage Stats */}
+        {globalCoverage && globalCoverage.countries?.length > 0 && (
+          <GlobalCoverageStats globalCoverage={globalCoverage} isDark={isDark} />
+        )}
+
+        {/* Stats Grid */}
+        <Row gutter={[20, 20]} className="mb-8">
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard 
+              title="Total Leads" 
+              value={leads.length} 
+              icon={<TeamOutlined />} 
+              color={BRAND_COLOR}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard 
+              title="High Quality Fit" 
+              value={leads.filter(l => l.score >= 80).length}
+              subValue={`/ ${leads.length}`}
+              icon={<StarFilled />}
+              color="#faad14"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard 
+              title="Verified Emails" 
+              value={leads.filter(l => l.email).length} 
+              subValue={`/ ${leads.length}`}
+              icon={<MailOutlined />} 
+              color="#0ea5e9"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard 
+              title="Phone Available" 
+              value={leads.filter(l => l.phone).length} 
+              subValue={`/ ${leads.length}`}
+              icon={<PhoneOutlined />} 
+              color={BRAND_COLOR} 
+            />
+          </Col>
+        </Row>
+
+        {/* Main Content Area */}
+        <Card 
+          bordered={false}
+          className="rounded-xl overflow-hidden"
+          styles={{
+            body: { padding: 0 }
+          }}
+          style={{
+            backgroundColor: isDark ? '#111' : '#fff',
+            border: isDark ? '1px solid #333' : '1px solid #f0f0f0',
+            boxShadow: isDark 
+              ? '0 4px 6px -1px rgba(0, 0, 0, 0.5)' 
+              : '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size="large"
+            tabBarStyle={{ 
+              padding: '0 24px', 
+              marginBottom: 0, 
+              marginTop: '12px',
+              backgroundColor: isDark ? '#111' : '#fff'
+            }}
+            items={[
+              {
+                key: 'leads',
+                label: (
+                  <span 
+                    className="px-2"
+                    style={{ color: isDark ? '#fff' : '#000' }}
+                  >
+                    <TeamOutlined /> All Leads ({filteredLeads.length})
+                  </span>
+                ),
+                children: (
+                  <div 
+                    className="p-6"
+                    style={{ 
+                      backgroundColor: isDark ? '#000' : '#fff',
+                      color: isDark ? '#fff' : '#000'
+                    }}
+                  >
+                    {/* Toolbar */}
+                    <div 
+                      className="flex flex-wrap gap-4 mb-6 p-4 rounded-lg border"
+                      style={{
+                        backgroundColor: isDark ? '#111' : '#f9fafb',
+                        borderColor: isDark ? '#333' : '#e5e7eb'
+                      }}
+                    >
+                      <Input
+                        placeholder="Search name, company, or title..."
+                        prefix={<SearchOutlined className="text-gray-400" />}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        allowClear
+                        className="w-full md:w-80 rounded-md"
+                        bordered={false}
+                        style={{ 
+                          backgroundColor: isDark ? '#1a1a1a' : '#fff',
+                          color: isDark ? '#fff' : '#000'
+                        }}
+                      />
+                      <Select
+                        value={selectedIndustry}
+                        onChange={setSelectedIndustry}
+                        style={{ width: 180 }}
+                        className="rounded-md"
+                        dropdownStyle={{ 
+                          fontFamily: FONT_FAMILY,
+                          backgroundColor: isDark ? '#111' : '#fff'
+                        }}
+                        bordered={false}
+                      >
+                         <Option value="All">All Industries</Option>
+                         {industries.filter(i => i !== 'All').map(i => (
+                           <Option key={i} value={i}>{i}</Option>
+                         ))}
+                      </Select>
+                      <Select
+                        value={selectedScore}
+                        onChange={setSelectedScore}
+                        style={{ width: 160 }}
+                        bordered={false}
+                      >
+                        <Option value="All">All Scores</Option>
+                        <Option value="High">High Fit (80+)</Option>
+                        <Option value="Medium">Medium (60-79)</Option>
+                        <Option value="Low">Low (&lt;60)</Option>
+                      </Select>
+                      
+                      <div className="flex-1 text-right">
+                         <Space>
+                            <Button 
+                              icon={<MailOutlined />} 
+                              onClick={handleBulkEmail}
+                              disabled={filteredLeads.filter(l => l.email).length === 0}
+                            >
+                              Email Batch
+                            </Button>
+                            <Button 
+                              icon={<DownloadOutlined />} 
+                              onClick={handleBulkExport}
+                              disabled={filteredLeads.length === 0}
+                            >
+                              Export
+                            </Button>
+                         </Space>
+                      </div>
+                    </div>
+
+                    {/* Table */}
+                    {loading ? (
+                      <div className="py-24 text-center">
+                        <Spin size="large" tip="Loading leads..." />
+                      </div>
+                    ) : filteredLeads.length > 0 ? (
+                      <Table
+                        columns={leadColumns}
+                        dataSource={filteredLeads}
+                        rowKey="id"
+                        className="compact-table clickable-rows"
+                        scroll={{ 
+                          x: 1030,
+                          y: 600
+                        }}
+                        size="small"
+                        tableLayout="fixed"
+                        pagination={{
+                          total: filteredLeads.length,
+                          pageSize: 20,
+                          showSizeChanger: true,
+                          showQuickJumper: true,
+                          showTotal: (total, range) => 
+                            `${range[0]}-${range[1]} of ${total} leads`,
+                        }}
+                        onRow={(record) => ({
+                          onClick: (event) => {
+                            const target = event.target as HTMLElement;
+                            if (
+                              target.tagName === 'BUTTON' || 
+                              target.closest('button') || 
+                              target.tagName === 'A' || 
+                              target.closest('a')
+                            ) {
+                              return;
+                            }
+                            handleViewLead(record);
+                          },
+                          style: { cursor: 'pointer' },
+                          className: 'clickable-row'
+                        })}
+                      />
+                    ) : (
+                      <Empty 
+                        description="No leads found matching your criteria" 
+                        image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                      />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'history',
+                label: (
+                  <span 
+                    className="px-2"
+                    style={{ color: isDark ? '#fff' : '#000' }}
+                  >
+                    <HistoryOutlined /> Campaign History
+                  </span>
+                ),
+                children: (
+                  <div 
+                    className="p-6"
+                    style={{ 
+                      backgroundColor: isDark ? '#000' : '#fff',
+                      color: isDark ? '#fff' : '#000'
+                    }}
+                  >
+                    {loading ? (
+                      <Spin className="w-full py-12" />
+                    ) : generations.length > 0 ? (
+                      <Table
+                        columns={generationColumns}
+                        dataSource={generations}
+                        rowKey="id"
+                        tableLayout="auto"
+                        pagination={{ 
+                          pageSize: 10,
+                          showSizeChanger: true,
+                          showQuickJumper: true
+                        }}
+                        onRow={(record) => ({
+                          onClick: () => router.push(`/lead-generation/campaigns/${record.id}`),
+                          style: { cursor: 'pointer' },
+                          className: 'clickable-row'
+                        })}
+                      />
+                    ) : (
+                      <div 
+                        className="text-center py-16 rounded-lg"
+                        style={{ backgroundColor: isDark ? '#111' : '#f9fafb' }}
+                      >
+                        <Empty 
+                          description="No campaigns yet" 
+                          image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                        />
+                        <Button 
+                          type="primary" 
+                          className="mt-4"
+                          onClick={() => router.push('/lead-generation/create')}
+                          style={{
+                            backgroundColor: BRAND_COLOR,
+                            borderColor: BRAND_COLOR
+                          }}
+                        >
+                          Create First Campaign
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </Card>
       </div>
-
-      {/* Stats Cards */}
-      <Row gutter={24} className="mb-6">
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Total Leads"
-              value={totalLeads}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-            <Progress
-              percent={100} 
-              size="small"
-              showInfo={false}
-              strokeColor="#52c41a"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="High Quality"
-              value={highScoreLeads}
-              suffix={`/ ${totalLeads}`}
-              prefix={<StarOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-            />
-            <Progress 
-              percent={totalLeads > 0 ? Math.round((highScoreLeads / totalLeads) * 100) : 0} 
-              size="small" 
-              showInfo={false}
-              strokeColor="#52c41a"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="With Email"
-              value={leadsWithEmail}
-              suffix={`/ ${totalLeads}`}
-              prefix={<MailOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-            <Progress 
-              percent={totalLeads > 0 ? Math.round((leadsWithEmail / totalLeads) * 100) : 0} 
-              size="small" 
-              showInfo={false}
-              strokeColor="#1890ff"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="With Phone"
-              value={leadsWithPhone}
-              suffix={`/ ${totalLeads}`}
-              prefix={<PhoneOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-            />
-            <Progress 
-              percent={totalLeads > 0 ? Math.round((leadsWithPhone / totalLeads) * 100) : 0} 
-              size="small" 
-              showInfo={false}
-              strokeColor="#722ed1"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Main Content */}
-      <Card>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={tabItems}
-          size="large"
-        />
-      </Card>
-    </div>
+    </ConfigProvider>
+    </>
   );
 };
 

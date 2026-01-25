@@ -25,7 +25,9 @@ import {
   Tabs,
   Avatar,
   Collapse,
-  Badge
+  Badge,
+  ConfigProvider,
+  theme
 } from 'antd';
 import { 
   UserOutlined, 
@@ -117,6 +119,16 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
+// Color constants
+const SPACE_COLOR = '#9DA2B3';
+const BRAND_GREEN = '#5CC49D';
+const DARK_BG = '#0f172a';
+const SURFACE_BG = '#1e293b';
+const SURFACE_LIGHTER = '#334155';
+const TEXT_PRIMARY = '#f1f5f9';
+const TEXT_SECONDARY = '#94a3b8';
+const BORDER_COLOR = '#334155';
+
 const NicheResearcher = () => {
   const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(0);
@@ -150,17 +162,27 @@ const NicheResearcher = () => {
 
   const isLoading = loading;
 
-  // Add this useEffect to handle errors
-useEffect(() => {
-  if (error) {
-    console.error('Niche researcher error:', error);
-    notification.error({
-      message: 'Generation Error',
-      description: error,
-    });
-  }
-}, [error]);
+  // Load Manrope font
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
 
+  // Add this useEffect to handle errors
+  useEffect(() => {
+    if (error) {
+      console.error('Niche researcher error:', error);
+      notification.error({
+        message: 'Generation Error',
+        description: error,
+      });
+    }
+  }, [error]);
 
   useEffect(() => {
     console.log('🔍 Current step:', currentStep);
@@ -273,24 +295,22 @@ useEffect(() => {
     }
   };
 
+  // Add this at the start of onFinish
+  if (!isWorkspaceReady) {
+    notification.error({
+      message: 'Workspace Not Ready',
+      description: 'Please wait for workspace to load',
+    });
+    return;
+  }
 
-// Add this at the start of onFinish
-if (!isWorkspaceReady) {
-  notification.error({
-    message: 'Workspace Not Ready',
-    description: 'Please wait for workspace to load',
-  });
-  return;
-}
-
-if (!currentWorkspace) {
-  notification.error({
-    message: 'No Workspace Selected', 
-    description: 'Please select a workspace before generating reports',
-  });
-  return;
-}
-
+  if (!currentWorkspace) {
+    notification.error({
+      message: 'No Workspace Selected', 
+      description: 'Please select a workspace before generating reports',
+    });
+    return;
+  }
 
   // Form submission
   const onFinish = async (values: FormValues) => {
@@ -452,8 +472,8 @@ if (!currentWorkspace) {
       key: 'title',
       render: (text: string, record: any) => (
         <div>
-          <div className="font-medium">{text}</div>
-          <div className="text-sm text-gray-500">
+          <div className="font-medium" style={{ color: TEXT_PRIMARY }}>{text}</div>
+          <div className="text-sm" style={{ color: SPACE_COLOR }}>
             {record.nicheName}
           </div>
         </div>
@@ -464,14 +484,18 @@ if (!currentWorkspace) {
       dataIndex: 'marketSize',
       key: 'marketSize',
       render: (size: string) => (
-        <Tag color="blue">{size}</Tag>
+        <Tag color="blue" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>
+          {size}
+        </Tag>
       )
     },
     {
       title: 'Created',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleDateString()
+      render: (date: string) => (
+        <span style={{ color: TEXT_SECONDARY }}>{new Date(date).toLocaleDateString()}</span>
+      )
     },
     {
       title: 'Actions',
@@ -483,6 +507,7 @@ if (!currentWorkspace) {
               icon={<EyeOutlined />}
               onClick={() => handleViewReport(record.id)}
               size="small"
+              style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
             />
           </Tooltip>
           <Tooltip title="Export Report">
@@ -490,6 +515,7 @@ if (!currentWorkspace) {
               icon={<DownloadOutlined />}
               onClick={() => handleExportReport(record.id, 'html')}
               size="small"
+              style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
             />
           </Tooltip>
           <Tooltip title="Delete Report">
@@ -505,25 +531,26 @@ if (!currentWorkspace) {
     }
   ];
 
-
   // Render detailed niche report using your existing structure
   const renderDetailedNicheReport = (reportData: GeneratedNicheReport) => {
     return (
       <>
         {currentReportId && (
-          <Card className="mb-4">
+          <Card className="mb-4" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
             <div className="text-center">
               <Space>
                 <Button 
                   icon={<DownloadOutlined />}
                   onClick={() => currentReportId && handleExportReport(currentReportId, 'html')}
                   type="primary"
+                  style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
                 >
                   Download HTML Report
                 </Button>
                 <Button 
                   icon={<DownloadOutlined />}
                   onClick={() => currentReportId && handleExportReport(currentReportId, 'json')}
+                  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
                 >
                   Download JSON Data
                 </Button>
@@ -533,22 +560,26 @@ if (!currentWorkspace) {
         )}
 
         {/* Niche Overview */}
-        <Card title="1. Niche Overview" className="mb-4 section-card" 
-              extra={<Tag color="blue">Overview</Tag>}>
+        <Card 
+          title="1. Niche Overview" 
+          className="mb-4 section-card" 
+          extra={<Tag color="blue" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Overview</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             <Col span={12}>
               <div className="niche-header">
-                <Title level={4} style={{ color: '#1890ff' }}>
+                <Title level={4} style={{ color: TEXT_PRIMARY }}>
                   {reportData.nicheOverview?.name}
                 </Title>
-                <Text>{reportData.nicheOverview?.summary}</Text>
+                <Text style={{ color: TEXT_SECONDARY }}>{reportData.nicheOverview?.summary}</Text>
               </div>
             </Col>
             <Col span={12}>
               <div className="fit-reason">
-                <Title level={5}>Why This Niche Fits Your Inputs</Title>
-                <div className="highlight-box">
-                  <Text>{reportData.nicheOverview?.whyItFits}</Text>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Why This Niche Fits Your Inputs</Title>
+                <div className="highlight-box" style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, padding: '12px', borderRadius: '8px' }}>
+                  <Text style={{ color: TEXT_SECONDARY }}>{reportData.nicheOverview?.whyItFits}</Text>
                 </div>
               </div>
             </Col>
@@ -556,24 +587,30 @@ if (!currentWorkspace) {
         </Card>
         
         {/* Market Demand Snapshot */}
-        <Card title="2. Market Demand Snapshot" className="mb-4 section-card"
-              extra={<Tag color="green">Demand</Tag>}>
+        <Card 
+          title="2. Market Demand Snapshot" 
+          className="mb-4 section-card"
+          extra={<Tag color="green" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Demand</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             <Col span={8}>
               <div className="metric-card">
                 <div className="metric-icon">
-                  <DollarOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+                  <DollarOutlined style={{ fontSize: '24px', color: BRAND_GREEN }} />
                 </div>
-                <Title level={5}>Market Size</Title>
-                <Text className="metric-value">{reportData.marketDemand?.marketSize}</Text>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Market Size</Title>
+                <Text className="metric-value" style={{ color: TEXT_PRIMARY, fontSize: '18px', fontWeight: 'bold' }}>
+                  {reportData.marketDemand?.marketSize}
+                </Text>
               </div>
             </Col>
             <Col span={8}>
               <div className="metric-card">
                 <div className="metric-icon">
-                  <RiseOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+                  <RiseOutlined style={{ fontSize: '24px', color: BRAND_GREEN }} />
                 </div>
-                <Title level={5}>Trend Signal</Title>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Trend Signal</Title>
                 <Text className="metric-value">
                   <Tooltip 
                     title={reportData.marketDemand?.trend} 
@@ -584,6 +621,7 @@ if (!currentWorkspace) {
                       color={reportData.marketDemand?.trend === 'growing' ? 'green' : 
                             reportData.marketDemand?.trend === 'plateauing' ? 'orange' : 'red'}
                       className="trend-tag"
+                      style={{ background: 'transparent' }}
                     >
                       {reportData.marketDemand?.trend?.toUpperCase()}
                     </Tag>
@@ -594,34 +632,47 @@ if (!currentWorkspace) {
             <Col span={8}>
               <div className="metric-card">
                 <div className="metric-icon">
-                  <WalletOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                  <WalletOutlined style={{ fontSize: '24px', color: SPACE_COLOR }} />
                 </div>
-                <Title level={5}>Willingness to Pay</Title>
-                <Text className="metric-value">{reportData.marketDemand?.willingnessToPay}</Text>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Willingness to Pay</Title>
+                <Text className="metric-value" style={{ color: TEXT_PRIMARY, fontSize: '18px', fontWeight: 'bold' }}>
+                  {reportData.marketDemand?.willingnessToPay}
+                </Text>
               </div>
             </Col>
           </Row>
         </Card>
         
         {/* Customer Pain Points */}
-        <Card title="3. Customer Pain Points" className="mb-4 section-card"
-              extra={<Tag color="volcano">Pain Points</Tag>}>
+        <Card 
+          title="3. Customer Pain Points" 
+          className="mb-4 section-card"
+          extra={<Tag color="volcano" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Pain Points</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             {reportData.painPoints?.map((point, index) => (
               <Col span={8} key={index}>
-                <div className="pain-point-card">
+                <div className="pain-point-card" style={{ background: SURFACE_LIGHTER, padding: '16px', borderRadius: '8px' }}>
                   <div className="intensity-indicator">
                     <div 
                       className={`intensity-level intensity-${point.intensity?.toLowerCase()}`}
                       title={`${point.intensity} intensity`}
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: point.intensity?.toLowerCase() === 'high' ? '#ff4d4f' : 
+                                       point.intensity?.toLowerCase() === 'medium' ? '#faad14' : '#1890ff'
+                      }}
                     ></div>
                   </div>
-                  <Text strong>{point.problem}</Text>
+                  <Text strong style={{ color: TEXT_PRIMARY, display: 'block', marginBottom: '8px' }}>{point.problem}</Text>
                   <div className="intensity-tag">
                     <Tag color={
                       point.intensity?.toLowerCase() === 'high' ? 'red' : 
                       point.intensity?.toLowerCase() === 'medium' ? 'orange' : 'blue'
-                    }>
+                    } style={{ background: 'transparent' }}>
                       {point.intensity} intensity
                     </Tag>
                   </div>
@@ -632,18 +683,23 @@ if (!currentWorkspace) {
         </Card>
         
         {/* Competitive Landscape */}
-        <Card title="4. Competitive Landscape" className="mb-4 section-card"
-              extra={<Tag color="purple">Competition</Tag>}>
-          <Title level={4}>Top Competitors</Title>
+        <Card 
+          title="4. Competitive Landscape" 
+          className="mb-4 section-card"
+          extra={<Tag color="purple" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Competition</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
+          <Title level={4} style={{ color: TEXT_PRIMARY }}>Top Competitors</Title>
           <Row gutter={16} className="competitor-cards">
             {reportData.competitiveLandscape?.competitors.map((competitor, index) => (
               <Col span={8} key={index}>
                 <Card 
                   className="competitor-card" 
                   size="small"
+                  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR }}
                   actions={[
-                    <span key="position">Market Position: {index + 1}</span>,
-                    <span key="strength">Strength: {competitor.strength || 'Unknown'}</span>
+                    <span key="position" style={{ color: TEXT_SECONDARY }}>Market Position: {index + 1}</span>,
+                    <span key="strength" style={{ color: TEXT_SECONDARY }}>Strength: {competitor.strength || 'Unknown'}</span>
                   ]}
                 >
                   <Card.Meta
@@ -655,9 +711,9 @@ if (!currentWorkspace) {
                         {competitor.name.charAt(0)}
                       </Avatar>
                     }
-                    title={competitor.name}
+                    title={<span style={{ color: TEXT_PRIMARY }}>{competitor.name}</span>}
                     description={
-                      <Text ellipsis={{ tooltip: competitor.description }}>
+                      <Text ellipsis={{ tooltip: competitor.description }} style={{ color: TEXT_SECONDARY }}>
                         {competitor.description}
                       </Text>
                     }
@@ -669,13 +725,13 @@ if (!currentWorkspace) {
           
           <Row gutter={16} className="mt-4">
             <Col span={12}>
-              <Title level={4}>Gap Analysis</Title>
-              <div className="highlight-box">
-                <Text>{reportData.competitiveLandscape?.gapAnalysis}</Text>
+              <Title level={4} style={{ color: TEXT_PRIMARY }}>Gap Analysis</Title>
+              <div className="highlight-box" style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, padding: '12px', borderRadius: '8px' }}>
+                <Text style={{ color: TEXT_SECONDARY }}>{reportData.competitiveLandscape?.gapAnalysis}</Text>
               </div>
             </Col>
             <Col span={12}>
-              <Title level={4}>Barrier to Entry</Title>
+              <Title level={4} style={{ color: TEXT_PRIMARY }}>Barrier to Entry</Title>
               <div className="barrier-indicator">
                 <Progress 
                   percent={
@@ -687,6 +743,7 @@ if (!currentWorkspace) {
                     reportData.competitiveLandscape?.barrierToEntry === 'High' ? 'exception' : 
                     reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 'active' : 'success'
                   }
+                  strokeColor={BRAND_GREEN}
                 />
                 <Tag 
                   color={
@@ -694,6 +751,7 @@ if (!currentWorkspace) {
                     reportData.competitiveLandscape?.barrierToEntry === 'Medium' ? 'orange' : 'green'
                   } 
                   className="barrier-tag"
+                  style={{ background: 'transparent' }}
                 >
                   {reportData.competitiveLandscape?.barrierToEntry}
                 </Tag>
@@ -703,48 +761,57 @@ if (!currentWorkspace) {
         </Card>
         
         {/* Arbitrage Opportunity */}
-        <Card title="5. Arbitrage Opportunity" className="mb-4 section-card"
-              extra={<Tag color="cyan">Opportunity</Tag>}>
-          <Text>{reportData.arbitrageOpportunity?.explanation}</Text>
-          <div className="mt-3 p-3 opportunity-highlight">
-            <Title level={5}>Concrete Angle:</Title> 
-            <Text>{reportData.arbitrageOpportunity?.concreteAngle}</Text>
+        <Card 
+          title="5. Arbitrage Opportunity" 
+          className="mb-4 section-card"
+          extra={<Tag color="cyan" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Opportunity</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
+          <Text style={{ color: TEXT_SECONDARY }}>{reportData.arbitrageOpportunity?.explanation}</Text>
+          <div className="mt-3 p-3 opportunity-highlight" style={{ background: SURFACE_LIGHTER, borderRadius: '8px' }}>
+            <Title level={5} style={{ color: TEXT_PRIMARY }}>Concrete Angle:</Title> 
+            <Text style={{ color: TEXT_SECONDARY }}>{reportData.arbitrageOpportunity?.concreteAngle}</Text>
           </div>
         </Card>
         
         {/* Suggested Entry Offers */}
-        <Card title="6. Suggested Entry Offers" className="mb-4 section-card"
-              extra={<Tag color="gold">Offers</Tag>}>
+        <Card 
+          title="6. Suggested Entry Offers" 
+          className="mb-4 section-card"
+          extra={<Tag color="gold" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Offers</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             {reportData.entryOffers?.map((offer, index) => (
               <Col span={12} key={index}>
                 <Card 
                   className="offer-card" 
                   type="inner" 
+                  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR }}
                   title={
-                    <span>
+                    <span style={{ color: TEXT_PRIMARY }}>
                       <StarOutlined /> {offer.positioning}
                     </span>
                   }
                 >
                   <Row gutter={16}>
                     <Col span={12}>
-                      <div className="offer-detail">
-                        <DollarCircleOutlined className="offer-icon" />
+                      <div className="offer-detail" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <DollarCircleOutlined className="offer-icon" style={{ color: BRAND_GREEN, fontSize: '20px' }} />
                         <div>
-                          <Text strong>Business Model:</Text>
+                          <Text strong style={{ color: TEXT_PRIMARY }}>Business Model:</Text>
                           <br />
-                          <Text>{offer.businessModel}</Text>
+                          <Text style={{ color: TEXT_SECONDARY }}>{offer.businessModel}</Text>
                         </div>
                       </div>
                     </Col>
                     <Col span={12}>
-                      <div className="offer-detail">
-                        <TagOutlined className="offer-icon" />
+                      <div className="offer-detail" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <TagOutlined className="offer-icon" style={{ color: SPACE_COLOR, fontSize: '20px' }} />
                         <div>
-                          <Text strong>Price Point:</Text>
+                          <Text strong style={{ color: TEXT_PRIMARY }}>Price Point:</Text>
                           <br />
-                          <Text>{offer.pricePoint}</Text>
+                          <Text style={{ color: TEXT_SECONDARY }}>{offer.pricePoint}</Text>
                         </div>
                       </div>
                     </Col>
@@ -756,32 +823,40 @@ if (!currentWorkspace) {
         </Card>
         
         {/* Go-To-Market Strategy */}
-        <Card title="7. Go-To-Market Strategy" className="mb-4 section-card"
-              extra={<Tag color="lime">GTM</Tag>}>
+        <Card 
+          title="7. Go-To-Market Strategy" 
+          className="mb-4 section-card"
+          extra={<Tag color="lime" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>GTM</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             <Col span={12}>
-              <div className="strategy-card primary">
-                <Title level={5}>Primary Channel</Title>
-                <Text className="channel-name">{reportData.gtmStrategy?.primaryChannel}</Text>
+              <div className="strategy-card primary" style={{ background: SURFACE_LIGHTER, padding: '16px', borderRadius: '8px' }}>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Primary Channel</Title>
+                <Text className="channel-name" style={{ color: TEXT_PRIMARY, fontSize: '18px', fontWeight: 'bold' }}>{reportData.gtmStrategy?.primaryChannel}</Text>
               </div>
             </Col>
             <Col span={12}>
-              <div className="strategy-card">
-                <Title level={5}>Justification</Title>
-                <Text>{reportData.gtmStrategy?.justification}</Text>
+              <div className="strategy-card" style={{ background: SURFACE_LIGHTER, padding: '16px', borderRadius: '8px' }}>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Justification</Title>
+                <Text style={{ color: TEXT_SECONDARY }}>{reportData.gtmStrategy?.justification}</Text>
               </div>
             </Col>
           </Row>
         </Card>
         
         {/* Scalability & Exit Potential */}
-        <Card title="8. Scalability & Exit Potential" className="mb-4 section-card"
-              extra={<Tag color="magenta">Growth</Tag>}>
+        <Card 
+          title="8. Scalability & Exit Potential" 
+          className="mb-4 section-card"
+          extra={<Tag color="magenta" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Growth</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             <Col span={12}>
               <div className="scalability-card">
-                <Title level={5}>Scalability Score</Title>
-                <div className="score-display">
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Scalability Score</Title>
+                <div className="score-display" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <Progress 
                     type="circle" 
                     percent={
@@ -793,10 +868,12 @@ if (!currentWorkspace) {
                       reportData.scalabilityExit?.scalabilityScore === 'High' ? 'success' : 
                       reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 'normal' : 'exception'
                     }
+                    strokeColor={BRAND_GREEN}
                   />
                   <Tag color={reportData.scalabilityExit?.scalabilityScore === 'High' ? 'green' : 
                             reportData.scalabilityExit?.scalabilityScore === 'Medium' ? 'orange' : 'blue'}
-                       className="score-tag">
+                       className="score-tag"
+                       style={{ background: 'transparent' }}>
                     {reportData.scalabilityExit?.scalabilityScore}
                   </Tag>
                 </div>
@@ -804,9 +881,9 @@ if (!currentWorkspace) {
             </Col>
             <Col span={12}>
               <div className="exit-card">
-                <Title level={5}>Exit Potential</Title>
-                <div className="highlight-box">
-                  <Text>{reportData.scalabilityExit?.exitPotential}</Text>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Exit Potential</Title>
+                <div className="highlight-box" style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, padding: '12px', borderRadius: '8px' }}>
+                  <Text style={{ color: TEXT_SECONDARY }}>{reportData.scalabilityExit?.exitPotential}</Text>
                 </div>
               </div>
             </Col>
@@ -814,19 +891,23 @@ if (!currentWorkspace) {
         </Card>
         
         {/* Risk Factors & Constraints */}
-        <Card title="9. Risk Factors & Constraints" className="mb-4 section-card"
-              extra={<Tag color="red">Risks</Tag>}>
+        <Card 
+          title="9. Risk Factors & Constraints" 
+          className="mb-4 section-card"
+          extra={<Tag color="red" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Risks</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             {reportData.riskFactors?.map((risk, index) => (
               <Col span={8} key={index}>
-                <div className="risk-card">
-                  <WarningOutlined className="risk-icon" />
-                  <Text strong>{risk.risk}</Text>
+                <div className="risk-card" style={{ background: SURFACE_LIGHTER, padding: '16px', borderRadius: '8px' }}>
+                  <WarningOutlined className="risk-icon" style={{ color: '#ff4d4f', fontSize: '20px', marginBottom: '8px' }} />
+                  <Text strong style={{ color: TEXT_PRIMARY, display: 'block', marginBottom: '8px' }}>{risk.risk}</Text>
                   <div className="risk-impact">
                     <Tag color={
                       risk.impact?.toLowerCase().includes('high') ? 'red' : 
                       risk.impact?.toLowerCase().includes('medium') ? 'orange' : 'blue'
-                    }>
+                    } style={{ background: 'transparent' }}>
                       Impact: {risk.impact}
                     </Tag>
                   </div>
@@ -837,12 +918,16 @@ if (!currentWorkspace) {
         </Card>
         
         {/* Difficulty vs Reward Scorecard */}
-        <Card title="10. Difficulty vs Reward Scorecard" className="mb-4 section-card"
-              extra={<Tag color="geekblue">Scorecard</Tag>}>
+        <Card 
+          title="10. Difficulty vs Reward Scorecard" 
+          className="mb-4 section-card"
+          extra={<Tag color="geekblue" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>Scorecard</Tag>}
+          style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+        >
           <Row gutter={16}>
             <Col span={6}>
               <div className="scorecard-metric">
-                <Title level={5}>Market Demand</Title>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Market Demand</Title>
                 <div className="score-indicator">
                   <Progress 
                     percent={
@@ -852,13 +937,14 @@ if (!currentWorkspace) {
                     showInfo={false}
                     status="active"
                     strokeColor={
-                      reportData.scorecard?.marketDemand === 'High' ? '#52c41a' : 
-                      reportData.scorecard?.marketDemand === 'Medium' ? '#faad14' : '#f5222d'
+                      reportData.scorecard?.marketDemand === 'High' ? BRAND_GREEN : 
+                      reportData.scorecard?.marketDemand === 'Medium' ? SPACE_COLOR : '#f5222d'
                     }
                   />
                   <Tag color={reportData.scorecard?.marketDemand === 'High' ? 'green' : 
                             reportData.scorecard?.marketDemand === 'Medium' ? 'orange' : 'red'}
-                       className="scorecard-tag">
+                       className="scorecard-tag"
+                       style={{ background: 'transparent' }}>
                     {reportData.scorecard?.marketDemand}
                   </Tag>
                 </div>
@@ -866,7 +952,7 @@ if (!currentWorkspace) {
             </Col>
             <Col span={6}>
               <div className="scorecard-metric">
-                <Title level={5}>Competition Intensity</Title>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Competition Intensity</Title>
                 <div className="score-indicator">
                   <Progress 
                     percent={
@@ -877,12 +963,13 @@ if (!currentWorkspace) {
                     status="active"
                     strokeColor={
                       reportData.scorecard?.competition === 'High' ? '#f5222d' : 
-                      reportData.scorecard?.competition === 'Medium' ? '#faad14' : '#52c41a'
+                      reportData.scorecard?.competition === 'Medium' ? SPACE_COLOR : BRAND_GREEN
                     }
                   />
                   <Tag color={reportData.scorecard?.competition === 'High' ? 'red' : 
                             reportData.scorecard?.competition === 'Medium' ? 'orange' : 'green'}
-                       className="scorecard-tag">
+                       className="scorecard-tag"
+                       style={{ background: 'transparent' }}>
                     {reportData.scorecard?.competition}
                   </Tag>
                 </div>
@@ -890,7 +977,7 @@ if (!currentWorkspace) {
             </Col>
             <Col span={6}>
               <div className="scorecard-metric">
-                <Title level={5}>Ease of Entry</Title>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Ease of Entry</Title>
                 <div className="score-indicator">
                   <Progress 
                     percent={
@@ -900,13 +987,14 @@ if (!currentWorkspace) {
                     showInfo={false}
                     status="active"
                     strokeColor={
-                      reportData.scorecard?.easeOfEntry === 'High' ? '#52c41a' : 
-                      reportData.scorecard?.easeOfEntry === 'Medium' ? '#faad14' : '#f5222d'
+                      reportData.scorecard?.easeOfEntry === 'High' ? BRAND_GREEN : 
+                      reportData.scorecard?.easeOfEntry === 'Medium' ? SPACE_COLOR : '#f5222d'
                     }
                   />
                   <Tag color={reportData.scorecard?.easeOfEntry === 'High' ? 'green' : 
                             reportData.scorecard?.easeOfEntry === 'Medium' ? 'orange' : 'red'}
-                       className="scorecard-tag">
+                       className="scorecard-tag"
+                       style={{ background: 'transparent' }}>
                     {reportData.scorecard?.easeOfEntry}
                   </Tag>
                 </div>
@@ -914,7 +1002,7 @@ if (!currentWorkspace) {
             </Col>
             <Col span={6}>
               <div className="scorecard-metric">
-                <Title level={5}>Profitability Potential</Title>
+                <Title level={5} style={{ color: TEXT_PRIMARY }}>Profitability Potential</Title>
                 <div className="score-indicator">
                   <Progress 
                     percent={
@@ -924,13 +1012,14 @@ if (!currentWorkspace) {
                     showInfo={false}
                     status="active"
                     strokeColor={
-                      reportData.scorecard?.profitability === 'High' ? '#52c41a' : 
-                      reportData.scorecard?.profitability === 'Medium' ? '#faad14' : '#f5222d'
+                      reportData.scorecard?.profitability === 'High' ? BRAND_GREEN : 
+                      reportData.scorecard?.profitability === 'Medium' ? SPACE_COLOR : '#f5222d'
                     }
                   />
                   <Tag color={reportData.scorecard?.profitability === 'High' ? 'green' : 
                             reportData.scorecard?.profitability === 'Medium' ? 'orange' : 'red'}
-                       className="scorecard-tag">
+                       className="scorecard-tag"
+                       style={{ background: 'transparent' }}>
                     {reportData.scorecard?.profitability}
                   </Tag>
                 </div>
@@ -959,18 +1048,21 @@ if (!currentWorkspace) {
               />
             )}
             
-            <Card className="mb-6">
-              <Title level={4} className="flex items-center">
+            <Card className="mb-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+              <Title level={4} className="flex items-center" style={{ color: TEXT_PRIMARY }}>
                 <RocketOutlined className="mr-2" />
                 Business & Strategic Goals
               </Title>
               
               <Form.Item
                 name="primaryObjective"
-                label="Primary Business Objective"
+                label={<span style={{ color: TEXT_SECONDARY }}>Primary Business Objective</span>}
                 rules={[{ required: true, message: 'Please select your primary objective' }]}
               >
-                <Select placeholder="Select your main goal">
+                <Select 
+                  placeholder="Select your main goal"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="cashflow">Cashflow (Immediate revenue)</Option>
                   <Option value="equity-exit">Equity/Exit (Build to sell)</Option>
                   <Option value="lifestyle">Lifestyle Business (Work-life balance)</Option>
@@ -983,10 +1075,13 @@ if (!currentWorkspace) {
               
               <Form.Item
                 name="riskAppetite"
-                label="Risk Appetite"
+                label={<span style={{ color: TEXT_SECONDARY }}>Risk Appetite</span>}
                 rules={[{ required: true, message: 'Please select your risk appetite' }]}
               >
-                <Select placeholder="Select your risk tolerance">
+                <Select 
+                  placeholder="Select your risk tolerance"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="low">Low - Steady, proven industries</Option>
                   <Option value="medium">Medium - Growing markets with some uncertainty</Option>
                   <Option value="high">High - Bleeding edge, emerging markets</Option>
@@ -998,18 +1093,21 @@ if (!currentWorkspace) {
       case 1:
         return (
           <>
-            <Card className="mb-6">
-              <Title level={4} className="flex items-center">
+            <Card className="mb-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+              <Title level={4} className="flex items-center" style={{ color: TEXT_PRIMARY }}>
                 <CustomerServiceOutlined className="mr-2" />
                 Target Customer Preferences
               </Title>
               
               <Form.Item
                 name="marketType"
-                label="Preferred Market Type"
+                label={<span style={{ color: TEXT_SECONDARY }}>Preferred Market Type</span>}
                 rules={[{ required: true, message: 'Please select your market type' }]}
               >
-                <Select placeholder="Select market type">
+                <Select 
+                  placeholder="Select market type"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="b2b-saas">B2B SaaS</Option>
                   <Option value="b2c-consumer">B2C Consumer Products</Option>
                   <Option value="professional-services">Professional Services</Option>
@@ -1020,10 +1118,13 @@ if (!currentWorkspace) {
               
               <Form.Item
                 name="customerSize"
-                label="Customer Size Preference"
+                label={<span style={{ color: TEXT_SECONDARY }}>Customer Size Preference</span>}
                 rules={[{ required: true, message: 'Please select your customer size preference' }]}
               >
-                <Select placeholder="Select customer size">
+                <Select 
+                  placeholder="Select customer size"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="startups">Startups</Option>
                   <Option value="smb">SMBs (Small & Medium Businesses)</Option>
                   <Option value="enterprise">Enterprise</Option>
@@ -1034,18 +1135,19 @@ if (!currentWorkspace) {
               
               <Form.Item
                 name="industries"
-                label="Industry Spaces of Interest (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Industry Spaces of Interest (Optional)</span>}
               >
                 <Select
                   mode="multiple"
                   placeholder="Select industries of interest"
                   options={industryOptions.map(industry => ({ value: industry, label: industry }))}
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                 />
               </Form.Item>
               
               <Form.Item
                 name="geographicFocus"
-                label="Geographic Focus (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Geographic Focus (Optional)</span>}
               >
                 <Select 
                   placeholder="Select geographic focus"
@@ -1055,6 +1157,7 @@ if (!currentWorkspace) {
                       form.setFieldValue('targetArea', undefined);
                     }
                   }}
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                 >
                   <Option value="local">Local</Option>
                   <Option value="regional">Regional</Option>
@@ -1077,7 +1180,9 @@ if (!currentWorkspace) {
                     return (
                       <Form.Item
                         name="targetArea"
-                        label={geographicFocus === 'local' ? "Target City/Area" : "Target Region"}
+                        label={<span style={{ color: TEXT_SECONDARY }}>
+                          {geographicFocus === 'local' ? "Target City/Area" : "Target Region"}
+                        </span>}
                         rules={[
                           { 
                             required: true, 
@@ -1091,6 +1196,7 @@ if (!currentWorkspace) {
                               ? "e.g., San Francisco Bay Area, Austin, TX" 
                               : "e.g., Southeast US, Pacific Northwest, Midwest"
                           }
+                          className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                         />
                       </Form.Item>
                     );
@@ -1104,18 +1210,21 @@ if (!currentWorkspace) {
       case 2:
         return (
           <>
-            <Card className="mb-6">
-              <Title level={4} className="flex items-center">
+            <Card className="mb-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+              <Title level={4} className="flex items-center" style={{ color: TEXT_PRIMARY }}>
                 <SolutionOutlined className="mr-2" />
                 Constraints & Resources
               </Title>
               
               <Form.Item
                 name="budget"
-                label="Budget Available"
+                label={<span style={{ color: TEXT_SECONDARY }}>Budget Available</span>}
                 rules={[{ required: true, message: 'Please select your budget range' }]}
               >
-                <Select placeholder="Select budget">
+                <Select 
+                  placeholder="Select budget"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="<10k">Less than $10k</Option>
                   <Option value="10k-50k">$10k - $50k</Option>
                   <Option value="50k-250k">$50k - $250k</Option>
@@ -1125,9 +1234,12 @@ if (!currentWorkspace) {
               
               <Form.Item
                 name="teamSize"
-                label="Team Size / Capabilities (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Team Size / Capabilities (Optional)</span>}
               >
-                <Select placeholder="Select team size">
+                <Select 
+                  placeholder="Select team size"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="solo">Solo Founder (1)</Option>
                   <Option value="small-team">Small Team (2-10)</Option>
                   <Option value="established-team">Established Team (10+ )</Option>
@@ -1136,7 +1248,7 @@ if (!currentWorkspace) {
               
               <Form.Item
                 name="skills"
-                label="What Your Team Can Do (Select all that apply)"
+                label={<span style={{ color: TEXT_SECONDARY }}>What Your Team Can Do (Select all that apply)</span>}
                 rules={[
                   { 
                     required: true, 
@@ -1150,14 +1262,18 @@ if (!currentWorkspace) {
                   mode="multiple"
                   placeholder="Select skills available"
                   options={skillOptions.map(skill => ({ value: skill, label: skill }))}
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                 />
               </Form.Item>
               
               <Form.Item
                 name="timeCommitment"
-                label="Hours per Week You'll Invest (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Hours per Week You'll Invest (Optional)</span>}
               >
-                <Select placeholder="Select time commitment">
+                <Select 
+                  placeholder="Select time commitment"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="5-10">5-10 hours/week</Option>
                   <Option value="10-20">10-20 hours/week</Option>
                   <Option value="20-30">20-30 hours/week</Option>
@@ -1170,39 +1286,44 @@ if (!currentWorkspace) {
       case 3:
         return (
           <>
-            <Card className="mb-6">
-              <Title level={4} className="flex items-center">
+            <Card className="mb-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+              <Title level={4} className="flex items-center" style={{ color: TEXT_PRIMARY }}>
                 <BulbOutlined className="mr-2" />
                 Market Directional Inputs
               </Title>
               
               <Form.Item
                 name="problems"
-                label="Problems You're Passionate About Solving (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Problems You're Passionate About Solving (Optional)</span>}
               >
                 <TextArea 
                   rows={3} 
                   placeholder="e.g. Small business inefficiencies, healthcare access issues, educational gaps..."
                   maxLength={500}
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                 />
               </Form.Item>
               
               <Form.Item
                 name="excludedIndustries"
-                label="Industries You Will NOT Touch (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Industries You Will NOT Touch (Optional)</span>}
               >
                 <Select
                   mode="multiple"
                   placeholder="Select industries to exclude"
                   options={industryOptions.map(industry => ({ value: industry, label: industry }))}
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                 />
               </Form.Item>
               
               <Form.Item
                 name="monetizationPreference"
-                label="Monetization Preference (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Monetization Preference (Optional)</span>}
               >
-                <Select placeholder="Select monetization preference">
+                <Select 
+                  placeholder="Select monetization preference"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="high-ticket">High-Ticket Services/Products</Option>
                   <Option value="subscription">Subscription/Recurring Revenue</Option>
                   <Option value="low-ticket">Low-Ticket/Volume Business</Option>
@@ -1212,12 +1333,13 @@ if (!currentWorkspace) {
               
               <Form.Item
                 name="acquisitionChannels"
-                label="Acquisition Channels You Prefer (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Acquisition Channels You Prefer (Optional)</span>}
               >
                 <Select
                   mode="multiple"
                   placeholder="Select preferred acquisition channels"
                   options={acquisitionChannelOptions.map(channel => ({ value: channel, label: channel }))}
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
                 />
               </Form.Item>
             </Card>
@@ -1226,34 +1348,37 @@ if (!currentWorkspace) {
       case 4:
         return (
           <>
-            <Card className="mb-6">
-              <Title level={4} className="flex items-center">
+            <Card className="mb-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+              <Title level={4} className="flex items-center" style={{ color: TEXT_PRIMARY }}>
                 <BarChartOutlined className="mr-2" />
                 Validation & Scalability Factors
               </Title>
               
               <Form.Item
                 name="validationData"
-                label="How important is validation data? (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>How important is validation data? (Optional)</span>}
               >
                 <Checkbox.Group options={validationDataOptions.map(option => ({ label: option, value: option }))} />
               </Form.Item>
               
               <Form.Item
                 name="competitionPreference"
-                label="Do you prefer low-competition or high-potential markets? (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Do you prefer low-competition or high-potential markets? (Optional)</span>}
               >
-                <Radio.Group>
-                  <Radio value="low-competition">Low-Competition / Easy Entry</Radio>
-                  <Radio value="high-potential">High-Potential / Competitive Markets</Radio>
+                <Radio.Group className="custom-radio-group">
+                  <Radio value="low-competition" className="custom-radio" style={{ color: TEXT_PRIMARY }}>Low-Competition / Easy Entry</Radio>
+                  <Radio value="high-potential" className="custom-radio" style={{ color: TEXT_PRIMARY }}>High-Potential / Competitive Markets</Radio>
                 </Radio.Group>
               </Form.Item>
               
               <Form.Item
                 name="scalabilityPreference"
-                label="Scalability Preference (Optional)"
+                label={<span style={{ color: TEXT_SECONDARY }}>Scalability Preference (Optional)</span>}
               >
-                <Select placeholder="Select scalability preference">
+                <Select 
+                  placeholder="Select scalability preference"
+                  className="hover:border-[#5CC49D] focus:border-[#5CC49D]"
+                >
                   <Option value="stay-small">Stay Small (Lifestyle business)</Option>
                   <Option value="grow-fast">Grow Fast (Scale quickly)</Option>
                   <Option value="build-exit">Build for Exit (Acquisition target)</Option>
@@ -1268,9 +1393,9 @@ if (!currentWorkspace) {
             {reportGenerated && multiNicheReport ? (
               <>
                 {/* Recommendation Banner */}
-                <Card className="mb-6 recommendation-banner">
+                <Card className="mb-6 recommendation-banner" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
                   <div className="text-center">
-                    <Title level={2}>Your Top 3 Niche Opportunities</Title>
+                    <Title level={2} style={{ color: TEXT_PRIMARY }}>Your Top 3 Niche Opportunities</Title>
                     <Alert
                       message={`Recommended: ${multiNicheReport.niches[multiNicheReport.recommendedNiche].nicheOverview.name}`}
                       description={multiNicheReport.recommendationReason}
@@ -1282,9 +1407,9 @@ if (!currentWorkspace) {
                 </Card>
 
                 {/* Niche Selection Tabs */}
-                <Card className="mb-4">
+                <Card className="mb-4" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
                   <div className="mb-4">
-                    <Title level={4}>Explore your Niche Reports</Title>
+                    <Title level={4} style={{ color: TEXT_PRIMARY }}>Explore your Niche Reports</Title>
                     <Space wrap>
                       {multiNicheReport.niches.map((niche, index) => (
                         <Button
@@ -1293,10 +1418,21 @@ if (!currentWorkspace) {
                           onClick={() => setSelectedNicheTab(index)}
                           icon={index === multiNicheReport.recommendedNiche ? <StarOutlined /> : undefined}
                           size="large"
+                          style={selectedNicheTab === index ? {
+                            background: BRAND_GREEN,
+                            borderColor: BRAND_GREEN,
+                            color: '#000'
+                          } : {
+                            background: SURFACE_LIGHTER,
+                            borderColor: BORDER_COLOR,
+                            color: TEXT_PRIMARY
+                          }}
                         >
                           {niche.nicheOverview.name}
                           {index === multiNicheReport.recommendedNiche && (
-                            <Tag color="gold" className="ml-2">Recommended</Tag>
+                            <Tag color="gold" className="ml-2" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>
+                              Recommended
+                            </Tag>
                           )}
                         </Button>
                       ))}
@@ -1308,16 +1444,20 @@ if (!currentWorkspace) {
                 {renderDetailedNicheReport(multiNicheReport.niches[selectedNicheTab])}
 
                 {/* Comparison Matrix */}
-                <Card title="Compare All 3 Niches" className="mb-4">
+                <Card title="Compare All 3 Niches" className="mb-4" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
                   <div className="comparison-table">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr >
-                          <th className="border p-3 text-left">Criteria</th>
+                        <tr style={{ background: SURFACE_LIGHTER }}>
+                          <th className="border p-3 text-left" style={{ borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}>Criteria</th>
                           {multiNicheReport.niches.map((niche, index) => (
-                            <th key={index} className="border p-3 text-center">
+                            <th key={index} className="border p-3 text-center" style={{ borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}>
                               {niche.nicheOverview.name}
-                              {index === multiNicheReport.recommendedNiche && <Tag color="gold" className="ml-1">★</Tag>}
+                              {index === multiNicheReport.recommendedNiche && (
+                                <Tag color="gold" className="ml-1" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>
+                                  ★
+                                </Tag>
+                              )}
                             </th>
                           ))}
                         </tr>
@@ -1325,13 +1465,14 @@ if (!currentWorkspace) {
                       <tbody>
                         {multiNicheReport.comparisonMatrix.criteria.map((criterion, criterionIndex) => (
                           <tr key={criterionIndex}>
-                            <td className="border p-3 font-medium">{criterion}</td>
+                            <td className="border p-3 font-medium" style={{ borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}>{criterion}</td>
                             {multiNicheReport.comparisonMatrix.scores.map((score, scoreIndex) => (
-                              <td key={scoreIndex} className="border p-3 text-center">
+                              <td key={scoreIndex} className="border p-3 text-center" style={{ borderColor: BORDER_COLOR }}>
                                 <Progress 
                                   type="circle" 
                                   percent={Object.values(score.scores)[criterionIndex] || 0}
                                   width={50}
+                                  strokeColor={BRAND_GREEN}
                                 />
                               </td>
                             ))}
@@ -1355,6 +1496,7 @@ if (!currentWorkspace) {
                         form.resetFields();
                       }}
                       icon={<FileAddOutlined />}
+                      style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
                     >
                       Generate New Report
                     </Button>
@@ -1362,6 +1504,7 @@ if (!currentWorkspace) {
                       size="large"
                       onClick={loadPreviousReports}
                       icon={<EyeOutlined />}
+                      style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
                     >
                       View Previous Reports
                     </Button>
@@ -1370,8 +1513,8 @@ if (!currentWorkspace) {
               </>
             ) : (
               <div className="text-center py-10">
-                <Title level={4}>Ready to Generate Your Multi-Niche Report</Title>
-                <Text type="secondary">Review your information and click below to analyze</Text>
+                <Title level={4} style={{ color: TEXT_PRIMARY }}>Ready to Generate Your Multi-Niche Report</Title>
+                <Text style={{ color: SPACE_COLOR }}>Review your information and click below to analyze</Text>
                 <div className="mt-6">
                   <Space>
                     <Button 
@@ -1379,6 +1522,7 @@ if (!currentWorkspace) {
                       size="large" 
                       loading={loading}
                       onClick={() => form.submit()}
+                      style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
                     >
                       {loading ? 'Generating Report...' : 'Generate 3 Niche Opportunities'}
                     </Button>
@@ -1386,6 +1530,7 @@ if (!currentWorkspace) {
                       size="large"
                       onClick={loadPreviousReports}
                       icon={<EyeOutlined />}
+                      style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
                     >
                       View Previous Reports
                     </Button>
@@ -1401,407 +1546,562 @@ if (!currentWorkspace) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <LoadingOverlay visible={isLoading} />
-      
-      {/* Header Section */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
-            <Button 
-              icon={<ArrowLeftOutlined />} 
-              onClick={handleBack}
-              size="small"
-            >
-              Back to Dashboard
-            </Button>
-            <Title level={2} className="mb-0 flex items-center">
-           
-              <span style={{
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  fontWeight: 600,
-  fontSize: '15px',
-}}>
-  <span style={{ color: '#5CC49D' }}>a</span>rb
-  <span style={{ color: '#5CC49D' }}>i</span>trageOS Niche Research Reports
-</span>
-
-            </Title>
-          </div>
-          
-          <Badge count={previousReports.length} overflowCount={99}>
-            <Button 
-              icon={<HistoryOutlined />}
-              type={activeView === 'history' ? 'primary' : 'default'}
-              onClick={() => setActiveView(activeView === 'history' ? 'research' : 'history')}
-            >
-              {activeView === 'history' ? 'Back to Research' : 'View History'}
-            </Button>
-          </Badge>
-        </div>
-        
-        <Text type="secondary" className="text-lg">
-          Discover your perfect business niche based on your goals, resources, and market opportunities
-        </Text>
-      </div>
-
-      {/* Main Content Area */}
-      {activeView === 'history' ? (
-        /* Compact History View */
-        <Card 
-          title={
-            <div className="flex items-center">
-              <HistoryOutlined className="mr-2" />
-              Your Generated Niche Reports
-              <Tag color="blue" className="ml-2">{previousReports.length} reports</Tag>
-            </div>
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        token: {
+          fontFamily: 'Manrope, sans-serif',
+          colorPrimary: BRAND_GREEN,
+          borderRadius: 8,
+          colorTextHeading: TEXT_PRIMARY,
+          colorText: TEXT_SECONDARY,
+          colorBgContainer: SURFACE_BG,
+          colorBgElevated: SURFACE_BG,
+          colorBorder: BORDER_COLOR,
+        },
+        components: {
+          Button: {
+            colorPrimary: BRAND_GREEN,
+            algorithm: true,
+            fontWeight: 600,
+            colorTextLightSolid: '#000000',
+            defaultBorderColor: SPACE_COLOR,
+            defaultColor: TEXT_SECONDARY,
+            defaultBg: SURFACE_BG,
+          },
+          Input: {
+            paddingBlock: 10,
+            borderColor: SURFACE_LIGHTER,
+            activeBorderColor: BRAND_GREEN,
+            hoverBorderColor: BRAND_GREEN,
+            colorBgContainer: SURFACE_BG,
+            colorText: TEXT_PRIMARY,
+          },
+          Select: {
+            controlHeight: 44,
+            colorPrimary: BRAND_GREEN,
+            optionSelectedBg: SURFACE_LIGHTER,
+            colorBgContainer: SURFACE_BG,
+            colorText: TEXT_PRIMARY,
+            hoverBorderColor: BRAND_GREEN,
+          },
+          Card: {
+            headerBg: SURFACE_BG,
+            colorBgContainer: SURFACE_BG,
+            colorTextHeading: TEXT_PRIMARY,
+            colorBorder: BORDER_COLOR,
+          },
+          Table: {
+            headerBg: SURFACE_LIGHTER,
+            headerColor: TEXT_PRIMARY,
+            rowHoverBg: '#2d3748',
+            colorBgContainer: SURFACE_BG,
+            borderColor: BORDER_COLOR,
+          },
+          Radio: {
+            buttonSolidCheckedColor: '#000',
+            buttonSolidCheckedBg: BRAND_GREEN,
+            colorBorder: BORDER_COLOR,
+            colorPrimary: BRAND_GREEN,
+            colorPrimaryHover: BRAND_GREEN,
+          },
+          Checkbox: {
+            colorPrimary: BRAND_GREEN,
+            colorPrimaryHover: BRAND_GREEN,
+          },
+          Progress: {
+            defaultColor: BRAND_GREEN,
+            colorSuccess: BRAND_GREEN,
+            remainingColor: SURFACE_LIGHTER,
           }
-          className="mb-6"
-        >
-          <SavedNicheHistory compactMode={true} />
-          <div className="text-center mt-4">
-            <Button 
-              type="primary" 
-              onClick={() => setActiveView('research')}
-              icon={<SearchOutlined />}
-            >
-              Start New Research
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        /* Research Interface */
-        <>
-          {/* Progress Stepper */}
-          <Card className="mb-6">
-            <div className="mb-4">
-              <Progress 
-                percent={(currentStep / (steps.length - 1)) * 100} 
-                showInfo={false} 
-                strokeColor={{
-                  '0%': '#108ee9',
-                  '100%': '#87d068',
-                }}
-                strokeWidth={8}
-              />
-            </div>
-            <div className="flex justify-between">
-              {steps.map((step, index) => (
-                <div 
-                  key={index} 
-                  className={`text-center flex-1 px-2 ${
-                    currentStep === index ? 'current-step' : ''
-                  }`}
-                >
-                  <div className={`step-icon mx-auto mb-2 ${
-                    currentStep >= index ? 'active' : 'inactive'
-                  }`}>
-                    {step.icon}
-                  </div>
-                  <div className={`text-xs font-medium ${
-                    currentStep >= index ? 'text-blue-600' : 'text-gray-400'
-                  }`}>
-                    {step.title}
-                  </div>
-                  {currentStep === index && (
-                    <div className="h-1 w-6 bg-blue-600 mx-auto mt-1 rounded-full"></div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Research Form */}
-        <div className={`grid grid-cols-1 gap-6 ${isSidebarCollapsed ? 'lg:grid-cols-[80px_1fr]' : 'lg:grid-cols-4'}`}>
-            {/* Sidebar with Quick Actions */}
-         <div className={`${isSidebarCollapsed ? 'lg:col-span-1 w-auto' : 'lg:col-span-1'}`}>
-             <Card 
-    title={
-      <div className="flex items-center justify-between">
-        {!isSidebarCollapsed && <span>Quick Actions</span>}
-        <Button 
-          icon={isSidebarCollapsed ? <EyeOutlined /> : <EyeOutlined />}
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          type="text"
-          size="small"
-        >
-          {!isSidebarCollapsed ? 'Collapse' : 'Expand'}
-        </Button>
-      </div>
-    } 
-    size="small"
-    className={`sticky top-4 ${isSidebarCollapsed ? 'w-[80px]' : ''}`}
-    bodyStyle={isSidebarCollapsed ? { padding: '12px' } : {}}
-  >
-    {isSidebarCollapsed ? (
-      // Collapsed - Icon only version
-      <Space direction="vertical" className="w-full">
-        <Tooltip title="View History" placement="right">
-          <Button 
-            icon={<HistoryOutlined />}
-            onClick={() => setActiveView('history')}
-            block
-            type="text"
-            size="large"
-            style={{ height: '40px' }}
-          />
-        </Tooltip>
-        <Tooltip title="Previous Reports" placement="right">
-          <Button 
-            icon={<EyeOutlined />}
-            onClick={loadPreviousReports}
-            block
-            type="text"
-            size="large"
-            style={{ height: '40px' }}
-          />
-        </Tooltip>
-        {currentStep > 0 && currentStep < 5 && (
-          <Tooltip title="Start Over" placement="right">
-            <Button 
-              icon={<FileAddOutlined />}
-              onClick={() => {
-                setCurrentStep(0);
-                form.resetFields();
-                setReportGenerated(false);
-                setMultiNicheReport(null);
-              }}
-              block
-              type="text"
-              size="large"
-              danger
-              style={{ height: '40px' }}
-            />
-          </Tooltip>
-        )}
-      </Space>
-    ) : (
-      // Expanded - Full version
-      <>
-        <Space direction="vertical" className="w-full">
-          <Button 
-            icon={<HistoryOutlined />}
-            onClick={() => setActiveView('history')}
-            block
-          >
-            View History
-          </Button>
-          <Button 
-            icon={<EyeOutlined />}
-            onClick={loadPreviousReports}
-            block
-          >
-            Previous Reports
-          </Button>
-          {currentStep > 0 && currentStep < 5 && (
-            <Button 
-              icon={<FileAddOutlined />}
-              onClick={() => {
-                setCurrentStep(0);
-                form.resetFields();
-                setReportGenerated(false);
-                setMultiNicheReport(null);
-              }}
-              block
-              danger
-            >
-              Start Over
-            </Button>
-          )}
-        </Space>
-
-        <Divider className="my-4" />
-        <div className="space-y-3">
-          <Text strong>Your Progress</Text>
-          <div className="space-y-2">
-            {steps.slice(0, 5).map((step, index) => (
-              <div 
-                key={index}
-                className={`flex items-center justify-between p-2 rounded ${
-                  currentStep > index ? '' : 
-                  currentStep === index ? '' : ''
-                }`}
-              >
-                <Text 
-                  type={currentStep >= index ? undefined : 'secondary'}
-                  className="text-sm"
-                >
-                  {step.title}
-                </Text>
-                {currentStep > index && (
-                  <Tag color="green" >✓</Tag>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </>
-    )}
-  </Card>
-
-            </div>
-
-            {/* Main Form Content */}
-  <div className={isSidebarCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'}>
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                onValuesChange={(changedValues, allValues) => {
-                  setFormData(prev => ({ ...prev, ...allValues }));
-                }}
-              >
-                {renderStepContent()}
-                
-                {/* Navigation Buttons */}
-                {currentStep < 5 && (
-                  <Card className="mt-6">
-                    <div className="flex justify-between">
-                      {currentStep > 0 && (
-                        <Button 
-                          onClick={prevStep}
-                          icon={<ArrowLeftOutlined />}
-                          size="large"
-                        >
-                          Back
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        type="primary" 
-                        onClick={currentStep === 4 ? () => form.submit() : nextStep}
-                        loading={loading && currentStep === 4}
-                        icon={currentStep === 4 ? <FileAddOutlined /> : undefined}
-                        size="large"
-                        className="ml-auto"
-                         style={{
-    backgroundColor: '#5CC49D',
-    borderColor: '#5CC49D',
-    color: '#000000',
-    fontWeight: '500'
-  }}
-                      >
-                        {currentStep === 4 
-                          ? (loading ? 'Generating Report...' : 'Generate Report') 
-                          : 'Continue'
-                        }
-                      </Button>
-                    </div>
-                  </Card>
-                )}
-              </Form>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Previous Reports Modal */}
-      <Modal
-        title={
-          <div className="flex items-center">
-            <HistoryOutlined className="mr-2" />
-            Your Niche Research History
-            <Tag color="blue" className="ml-2">{previousReports.length} reports</Tag>
-          </div>
         }
-        open={showReportsModal}
-        onCancel={() => setShowReportsModal(false)}
-        footer={[
-          <Button key="close" onClick={() => setShowReportsModal(false)}>
-            Close
-          </Button>,
-          <Button 
-            key="new" 
-            type="primary" 
-            onClick={() => {
-              setShowReportsModal(false);
-              setActiveView('research');
-            }}
-          >
-            Start New Research
-          </Button>
-        ]}
-        width={1200}
-      >
-        <div className="mb-4 flex justify-between items-center">
-          <Button 
-            icon={<ReloadOutlined />}
-            onClick={loadPreviousReports}
-            size="small"
-          >
-            Refresh
-          </Button>
-          <Text type="secondary">
-            Showing {previousReports.length} reports
-          </Text>
-        </div>
-        
-        <Table
-          dataSource={previousReports}
-          columns={reportColumns}
-          rowKey="id"
-          pagination={{ pageSize: 8 }}
-          scroll={{ x: 800 }}
-          locale={{
-            emptyText: (
-              <div className="py-12 text-center">
-                <FileTextOutlined className="text-4xl mb-3 text-gray-300" />
-                <Title level={4} type="secondary">No reports yet</Title>
-                <Text type="secondary" className="block mb-4">
-                  Start your first niche research to see reports here
-                </Text>
+      }}
+    >
+      <div className="min-h-screen bg-gray-900 font-manrope">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <LoadingOverlay visible={isLoading} />
+          
+          {/* Header Section */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <Button 
+                  icon={<ArrowLeftOutlined />} 
+                  onClick={handleBack}
+                  size="small"
+                  style={{ background: 'transparent', color: SPACE_COLOR, border: 'none' }}
+                >
+                  Back to Dashboard
+                </Button>
+                <Title level={2} className="mb-0 flex items-center">
+                  <span style={{
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontWeight: 600,
+                    fontSize: '15px',
+                    color: TEXT_PRIMARY
+                  }}>
+                    <span style={{ color: BRAND_GREEN }}>a</span>rb
+                    <span style={{ color: BRAND_GREEN }}>i</span>trageOS Niche Research Reports
+                  </span>
+                </Title>
+              </div>
+              
+              <Badge count={previousReports.length} overflowCount={99}>
+                <Button 
+                  icon={<HistoryOutlined />}
+                  type={activeView === 'history' ? 'primary' : 'default'}
+                  onClick={() => setActiveView(activeView === 'history' ? 'research' : 'history')}
+                  style={activeView === 'history' ? {
+                    background: BRAND_GREEN,
+                    borderColor: BRAND_GREEN,
+                    color: '#000'
+                  } : {
+                    background: SURFACE_BG,
+                    borderColor: BORDER_COLOR,
+                    color: TEXT_PRIMARY
+                  }}
+                >
+                  {activeView === 'history' ? 'Back to Research' : 'View History'}
+                </Button>
+              </Badge>
+            </div>
+            
+            <Text style={{ color: SPACE_COLOR }} className="text-lg">
+              Discover your perfect business niche based on your goals, resources, and market opportunities
+            </Text>
+          </div>
+
+          {/* Main Content Area */}
+          {activeView === 'history' ? (
+            /* Compact History View */
+            <Card 
+              title={
+                <div className="flex items-center" style={{ color: TEXT_PRIMARY }}>
+                  <HistoryOutlined className="mr-2" />
+                  Your Generated Niche Reports
+                  <Tag color="blue" className="ml-2" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>
+                    {previousReports.length} reports
+                  </Tag>
+                </div>
+              }
+              className="mb-6"
+              style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+            >
+              <SavedNicheHistory compactMode={true} />
+              <div className="text-center mt-4">
                 <Button 
                   type="primary" 
-                  onClick={() => setShowReportsModal(false)}
+                  onClick={() => setActiveView('research')}
                   icon={<SearchOutlined />}
+                  style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
                 >
-                  Start Research
+                  Start New Research
                 </Button>
               </div>
-            )
-          }}
-        />
-      </Modal>
+            </Card>
+          ) : (
+            /* Research Interface */
+            <>
+              {/* Progress Stepper */}
+              <Card className="mb-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+                <div className="mb-4">
+                  <Progress 
+                    percent={(currentStep / (steps.length - 1)) * 100} 
+                    showInfo={false} 
+                    strokeColor={BRAND_GREEN}
+                    strokeWidth={8}
+                  />
+                </div>
+                <div className="flex justify-between">
+                  {steps.map((step, index) => (
+                    <div 
+                      key={index} 
+                      className={`text-center flex-1 px-2 ${
+                        currentStep === index ? 'current-step' : ''
+                      }`}
+                    >
+                      <div className={`step-icon mx-auto mb-2 ${
+                        currentStep >= index ? 'active' : 'inactive'
+                      }`} style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        transition: 'all 0.3s ease',
+                        backgroundColor: currentStep >= index ? BRAND_GREEN : SURFACE_LIGHTER,
+                        color: currentStep >= index ? '#000' : TEXT_SECONDARY
+                      }}>
+                        {step.icon}
+                      </div>
+                      <div className={`text-xs font-medium ${
+                        currentStep >= index ? 'text-[#5CC49D]' : 'text-gray-400'
+                      }`} style={{ color: currentStep >= index ? BRAND_GREEN : TEXT_SECONDARY }}>
+                        {step.title}
+                      </div>
+                      {currentStep === index && (
+                        <div className="h-1 w-6 mx-auto mt-1 rounded-full" style={{ background: BRAND_GREEN }}></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Card>
 
-      <style jsx>{`
-        .step-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          transition: all 0.3s ease;
-        }
-        
-        .step-icon.active {
-          background-color: #1890ff;
-          color: white;
-        }
-        
-        .step-icon.inactive {
-          background-color: #f5f5f5;
-          color: #d9d9d9;
-        }
-        
-        .current-step {
-          transform: scale(1.1);
-        }
-        
-        .sticky {
-          position: sticky;
-          top: 20px;
-        }
-        
-        @media (max-width: 1024px) {
-          .grid-cols-1.lg\\:grid-cols-4 {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-    </div>
+              {/* Research Form */}
+              <div className={`grid grid-cols-1 gap-6 ${isSidebarCollapsed ? 'lg:grid-cols-[80px_1fr]' : 'lg:grid-cols-4'}`}>
+                {/* Sidebar with Quick Actions */}
+                <div className={`${isSidebarCollapsed ? 'lg:col-span-1 w-auto' : 'lg:col-span-1'}`}>
+                  <Card 
+                    title={
+                      <div className="flex items-center justify-between">
+                        {!isSidebarCollapsed && <span style={{ color: TEXT_PRIMARY }}>Quick Actions</span>}
+                        <Button 
+                          icon={isSidebarCollapsed ? <EyeOutlined /> : <EyeOutlined />}
+                          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                          type="text"
+                          size="small"
+                          style={{ color: SPACE_COLOR }}
+                        >
+                          {!isSidebarCollapsed ? 'Collapse' : 'Expand'}
+                        </Button>
+                      </div>
+                    } 
+                    size="small"
+                    className={`sticky top-4 ${isSidebarCollapsed ? 'w-[80px]' : ''}`}
+                    style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}
+                    bodyStyle={isSidebarCollapsed ? { padding: '12px' } : {}}
+                  >
+                    {isSidebarCollapsed ? (
+                      // Collapsed - Icon only version
+                      <Space direction="vertical" className="w-full">
+                        <Tooltip title="View History" placement="right">
+                          <Button 
+                            icon={<HistoryOutlined />}
+                            onClick={() => setActiveView('history')}
+                            block
+                            type="text"
+                            size="large"
+                            style={{ height: '40px', color: SPACE_COLOR }}
+                          />
+                        </Tooltip>
+                        <Tooltip title="Previous Reports" placement="right">
+                          <Button 
+                            icon={<EyeOutlined />}
+                            onClick={loadPreviousReports}
+                            block
+                            type="text"
+                            size="large"
+                            style={{ height: '40px', color: SPACE_COLOR }}
+                          />
+                        </Tooltip>
+                        {currentStep > 0 && currentStep < 5 && (
+                          <Tooltip title="Start Over" placement="right">
+                            <Button 
+                              icon={<FileAddOutlined />}
+                              onClick={() => {
+                                setCurrentStep(0);
+                                form.resetFields();
+                                setReportGenerated(false);
+                                setMultiNicheReport(null);
+                              }}
+                              block
+                              type="text"
+                              size="large"
+                              danger
+                              style={{ height: '40px' }}
+                            />
+                          </Tooltip>
+                        )}
+                      </Space>
+                    ) : (
+                      // Expanded - Full version
+                      <>
+                        <Space direction="vertical" className="w-full">
+                          <Button 
+                            icon={<HistoryOutlined />}
+                            onClick={() => setActiveView('history')}
+                            block
+                            style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                          >
+                            View History
+                          </Button>
+                          <Button 
+                            icon={<EyeOutlined />}
+                            onClick={loadPreviousReports}
+                            block
+                            style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                          >
+                            Previous Reports
+                          </Button>
+                          {currentStep > 0 && currentStep < 5 && (
+                            <Button 
+                              icon={<FileAddOutlined />}
+                              onClick={() => {
+                                setCurrentStep(0);
+                                form.resetFields();
+                                setReportGenerated(false);
+                                setMultiNicheReport(null);
+                              }}
+                              block
+                              danger
+                              style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR }}
+                            >
+                              Start Over
+                            </Button>
+                          )}
+                        </Space>
+
+                        <Divider className="my-4" style={{ borderColor: BORDER_COLOR }} />
+                        <div className="space-y-3">
+                          <Text strong style={{ color: TEXT_PRIMARY }}>Your Progress</Text>
+                          <div className="space-y-2">
+                            {steps.slice(0, 5).map((step, index) => (
+                              <div 
+                                key={index}
+                                className={`flex items-center justify-between p-2 rounded ${
+                                  currentStep >= index ? '' : ''
+                                }`}
+                                style={{ 
+                                  background: currentStep >= index ? 'rgba(92, 196, 157, 0.1)' : SURFACE_LIGHTER,
+                                  border: `1px solid ${currentStep >= index ? BRAND_GREEN : BORDER_COLOR}`
+                                }}
+                              >
+                                <Text 
+                                  type={currentStep >= index ? undefined : 'secondary'}
+                                  className="text-sm"
+                                  style={{ color: currentStep >= index ? TEXT_PRIMARY : TEXT_SECONDARY }}
+                                >
+                                  {step.title}
+                                </Text>
+                                {currentStep > index && (
+                                  <Tag color="green" style={{ background: 'transparent', borderColor: BRAND_GREEN, color: BRAND_GREEN }}>
+                                    ✓
+                                  </Tag>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                </div>
+
+                {/* Main Form Content */}
+                <div className={isSidebarCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'}>
+                  <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={onFinish}
+                    onValuesChange={(changedValues, allValues) => {
+                      setFormData(prev => ({ ...prev, ...allValues }));
+                    }}
+                  >
+                    {renderStepContent()}
+                    
+                    {/* Navigation Buttons */}
+                    {currentStep < 5 && (
+                      <Card className="mt-6" style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+                        <div className="flex justify-between">
+                          {currentStep > 0 && (
+                            <Button 
+                              onClick={prevStep}
+                              icon={<ArrowLeftOutlined />}
+                              size="large"
+                              style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                            >
+                              Back
+                            </Button>
+                          )}
+                          
+                          <Button 
+                            type="primary" 
+                            onClick={currentStep === 4 ? () => form.submit() : nextStep}
+                            loading={loading && currentStep === 4}
+                            icon={currentStep === 4 ? <FileAddOutlined /> : undefined}
+                            size="large"
+                            className="ml-auto"
+                            style={{
+                              backgroundColor: BRAND_GREEN,
+                              borderColor: BRAND_GREEN,
+                              color: '#000000',
+                              fontWeight: '500'
+                            }}
+                          >
+                            {currentStep === 4 
+                              ? (loading ? 'Generating Report...' : 'Generate Report') 
+                              : 'Continue'
+                            }
+                          </Button>
+                        </div>
+                      </Card>
+                    )}
+                  </Form>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Previous Reports Modal */}
+          <Modal
+            title={
+              <div className="flex items-center" style={{ color: TEXT_PRIMARY }}>
+                <HistoryOutlined className="mr-2" />
+                Your Niche Research History
+                <Tag color="blue" className="ml-2" style={{ background: 'transparent', borderColor: SPACE_COLOR, color: SPACE_COLOR }}>
+                  {previousReports.length} reports
+                </Tag>
+              </div>
+            }
+            open={showReportsModal}
+            onCancel={() => setShowReportsModal(false)}
+            footer={[
+              <Button 
+                key="close" 
+                onClick={() => setShowReportsModal(false)}
+                style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+              >
+                Close
+              </Button>,
+              <Button 
+                key="new" 
+                type="primary" 
+                onClick={() => {
+                  setShowReportsModal(false);
+                  setActiveView('research');
+                }}
+                style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
+              >
+                Start New Research
+              </Button>
+            ]}
+            width={1200}
+            styles={{
+              content: { backgroundColor: SURFACE_BG },
+              header: { backgroundColor: SURFACE_BG, borderColor: BORDER_COLOR }
+            }}
+          >
+            <div className="mb-4 flex justify-between items-center">
+              <Button 
+                icon={<ReloadOutlined />}
+                onClick={loadPreviousReports}
+                size="small"
+                style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+              >
+                Refresh
+              </Button>
+              <Text style={{ color: SPACE_COLOR }}>
+                Showing {previousReports.length} reports
+              </Text>
+            </div>
+            
+            <Table
+              dataSource={previousReports}
+              columns={reportColumns}
+              rowKey="id"
+              pagination={{ pageSize: 8 }}
+              scroll={{ x: 800 }}
+              locale={{
+                emptyText: (
+                  <div className="py-12 text-center">
+                    <FileTextOutlined className="text-4xl mb-3" style={{ color: SPACE_COLOR }} />
+                    <Title level={4} style={{ color: TEXT_PRIMARY }}>No reports yet</Title>
+                    <Text style={{ color: SPACE_COLOR }} className="block mb-4">
+                      Start your first niche research to see reports here
+                    </Text>
+                    <Button 
+                      type="primary" 
+                      onClick={() => setShowReportsModal(false)}
+                      icon={<SearchOutlined />}
+                      style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
+                    >
+                      Start Research
+                    </Button>
+                  </div>
+                )
+              }}
+            />
+          </Modal>
+
+          <style jsx>{`
+            .sticky {
+              position: sticky;
+              top: 20px;
+            }
+            
+            @media (max-width: 1024px) {
+              .grid-cols-1.lg\\:grid-cols-4 {
+                grid-template-columns: 1fr;
+              }
+            }
+          `}</style>
+
+          {/* Custom CSS for hover effects */}
+          <style jsx global>{`
+            .ant-input:hover, .ant-input:focus {
+              border-color: #5CC49D !important;
+              box-shadow: 0 0 0 2px rgba(92, 196, 157, 0.1) !important;
+            }
+            
+            .ant-select-selector:hover, .ant-select-focused .ant-select-selector {
+              border-color: #5CC49D !important;
+              box-shadow: 0 0 0 2px rgba(92, 196, 157, 0.1) !important;
+            }
+            
+            .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+              background-color: rgba(92, 196, 157, 0.1) !important;
+            }
+            
+            .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+              background-color: rgba(92, 196, 157, 0.2) !important;
+              color: #5CC49D !important;
+            }
+            
+            .ant-radio-button-wrapper:hover {
+              color: #5CC49D !important;
+              border-color: #5CC49D !important;
+            }
+            
+            .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+              color: #000 !important;
+              background: #5CC49D !important;
+              border-color: #5CC49D !important;
+            }
+            
+            .ant-radio-wrapper:hover .ant-radio-inner {
+              border-color: #5CC49D !important;
+            }
+            
+            .ant-radio-checked .ant-radio-inner {
+              border-color: #5CC49D !important;
+              background-color: #5CC49D !important;
+            }
+            
+            .ant-btn:hover, .ant-btn:focus {
+              border-color: #5CC49D !important;
+              color: #5CC49D !important;
+            }
+            
+            .ant-btn-primary:hover, .ant-btn-primary:focus {
+              background: #4cb08d !important;
+              border-color: #4cb08d !important;
+              color: #000 !important;
+            }
+            
+            .ant-card-hoverable:hover {
+              border-color: #5CC49D !important;
+            }
+            
+            .ant-form-item-label > label {
+              color: ${TEXT_SECONDARY} !important;
+            }
+          `}</style>
+        </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

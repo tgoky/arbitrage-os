@@ -8,7 +8,6 @@ import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
 const { Title, Text } = Typography;
 
-
 interface Niche {
   key: number;
   rank: number;
@@ -35,8 +34,8 @@ const TAG_COLORS = [
 
 const NichesPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
-      const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
-        const router = useRouter();
+  const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
+  const router = useRouter();
   
   const niches: Niche[] = [
     {
@@ -610,28 +609,28 @@ const NichesPage: React.FC = () => {
     );
   };
 
-     const handleBack = () => {
+  const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
   };
 
+  const renderCompanies = (companies: string[]) => {
+    return (
+      <div className="flex flex-col gap-1 min-w-[120px]">
+        {companies.map((company, index) => {
+          const colorIndex = index % TAG_COLORS.length;
+          return (
+            <span 
+              key={company}
+              className={`px-3 py-1 rounded-full text-xs ${TAG_COLORS[colorIndex]} whitespace-nowrap text-center block min-w-[100px]`}
+            >
+              {company}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
 
- const renderCompanies = (companies: string[]) => {
-  return (
-    <div className="flex flex-col gap-1 min-w-[120px]">
-      {companies.map((company, index) => {
-        const colorIndex = index % TAG_COLORS.length;
-        return (
-          <span 
-            key={company}
-            className={`px-3 py-1 rounded-full text-xs ${TAG_COLORS[colorIndex]} whitespace-nowrap text-center block min-w-[100px]`}
-          >
-            {company}
-          </span>
-        );
-      })}
-    </div>
-  );
-};
   const columns = [
     {
       title: 'Rank',
@@ -647,8 +646,8 @@ const NichesPage: React.FC = () => {
       key: 'niche',
       render: (text: string, record: Niche) => (
         <div>
-          <div className="font-medium">{text}</div>
-          <div className="text-gray-500 text-sm">{record.description}</div>
+          <div className="font-medium font-manrope">{text}</div>
+          <div className="text-gray-500 text-sm font-manrope">{record.description}</div>
         </div>
       ),
     },
@@ -664,6 +663,9 @@ const NichesPage: React.FC = () => {
       key: 'revenuePotential',
       width: 100,
       align: 'center' as const,
+      render: (text: string) => (
+        <span className="font-manrope">{text}</span>
+      ),
     },
     {
       title: 'Easy to Target',
@@ -687,80 +689,94 @@ const NichesPage: React.FC = () => {
       key: 'cagr',
       width: 100,
       align: 'center' as const,
+      render: (text: string) => (
+        <span className="font-manrope">{text}</span>
+      ),
     },
   ];
 
-return (
-  <div className="max-w-7xl mx-auto px-4 py-8">
-    {/* Centered Header Section */}
-             <Button 
-  icon={<ArrowLeftOutlined />} 
-  onClick={handleBack}
-// negative margin top
->
-  Back
-</Button>
-    <div className="mb-8 text-center">
-   
-      <Title
-  level={2}
-  className="mb-2"
-  style={{
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    fontWeight: 600,
-    fontSize: '22px',
-  }}
->
-  Top 50 Profitable Niches
-</Title>
-
-      <Text type="secondary" className="text-lg block mb-4">
-        Discover high-potential industries with detailed metrics on revenue potential, market size, and growth rates.
-      </Text>
-      
-      {/* Centered Search Bar */}
-      <div className="flex justify-center">
-        <Input
-          placeholder="Search niches..."
-          prefix={<SearchOutlined />}
-          size="large"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="max-w-md w-full"
-        />
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Modernized Header Navigation (Breadcrumb style) */}
+      <div className="flex items-center gap-4 mb-10">
+        <button 
+          onClick={handleBack}
+          className="group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white"
+        >
+          <ArrowLeftOutlined className="text-xs transition-transform group-hover:-translate-x-1" />
+          <span className="text-sm font-medium font-manrope">Back to Dashboard</span>
+        </button>
       </div>
-    </div>
 
-    <Table
-      columns={columns}
-      dataSource={filteredNiches}
-      pagination={false}
-      className="minimalist-table"
-      bordered={false}
-      scroll={{ x: true }}
-      // Remove vertical lines and customize table styling
-      components={{
-        body: {
-          cell: (props: any) => (
-            <td 
-              {...props} 
-              style={{ 
-                ...props.style, 
-                borderRight: 'none',
-                borderLeft: 'none'
-              }} 
-            />
-          ),
-        },
-      }}
-      // Custom table styling to remove vertical lines
-      style={{
-        border: 'none',
-      }}
-    />
-  </div>
-);
+      {/* Centered Header Section */}
+      <div className="mb-8 text-center">
+        <Title
+          level={2}
+          className="mb-2 font-manrope"
+          style={{
+            fontWeight: 600,
+            fontSize: '28px',
+            color: '#fff',
+          }}
+        >
+          Top 50 Profitable Niches
+        </Title>
+
+        <Text className="text-gray-400 text-lg block mb-4 font-manrope">
+          Discover high-potential industries with detailed metrics on revenue potential, market size, and growth rates.
+        </Text>
+        
+        {/* Centered Search Bar */}
+        <div className="flex justify-center">
+          <Input
+            placeholder="Search niches..."
+            prefix={<SearchOutlined />}
+            size="large"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="max-w-md w-full font-manrope"
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#fff',
+            }}
+          />
+        </div>
+      </div>
+
+      <Table
+        columns={columns}
+        dataSource={filteredNiches}
+        pagination={false}
+        className="minimalist-table"
+        bordered={false}
+        scroll={{ x: true }}
+        components={{
+          body: {
+            cell: (props: any) => (
+              <td 
+                {...props} 
+                style={{ 
+                  ...props.style, 
+                  borderRight: 'none',
+                  borderLeft: 'none',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  fontFamily: "'Manrope', sans-serif",
+                }} 
+              />
+            ),
+          },
+        }}
+        style={{
+          border: 'none',
+          background: 'rgba(255, 255, 255, 0.02)',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}
+        rowClassName={() => 'font-manrope'}
+      />
+    </div>
+  );
 };
 
 export default NichesPage;
