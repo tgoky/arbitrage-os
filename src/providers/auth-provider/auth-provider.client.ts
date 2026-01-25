@@ -5,7 +5,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient as supabase } from "../../utils/supabase/client";
 
 export const authProviderClient: AuthProvider = {
-  login: async ({ email, password, useMagicLink }) => {
+  login: async ({ email }) => {
     try {
       // Basic email validation
       if (!email || !email.includes('@')) {
@@ -20,7 +20,7 @@ export const authProviderClient: AuthProvider = {
 
       const trimmedEmail = email.trim().toLowerCase();
 
-      // Check if user has a valid invite before attempting login
+      // Check if user has a valid invite before sending magic link
       const inviteCheck = await fetch('/api/auth/check-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,128 +39,31 @@ export const authProviderClient: AuthProvider = {
         };
       }
 
-      // Magic link login
-      if (useMagicLink) {
-        const { data, error } = await supabase.auth.signInWithOtp({
-          email: trimmedEmail,
-          options: {
-            emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
-            shouldCreateUser: false,
-          },
-        });
-
-        if (error) {
-          console.error("Magic link error:", error);
-          return {
-            success: false,
-            error: {
-              name: error.name || "LoginError",
-              message: error.message || "Failed to send magic link",
-            },
-          };
-        }
-
-        return {
-          success: true,
-          successNotification: {
-            message: "Magic link sent!",
-            description: "Check your email for the magic link. It may take a moment to arrive.",
-          },
-        };
-      }
-
-      // Password-based login
-      if (!password) {
-        return {
-          success: false,
-          error: {
-            name: "InvalidPassword",
-            message: "Please enter your password.",
-          },
-        };
-      }
-
-      // Check if user has a password set before attempting password login
-      try {
-        const passwordCheck = await fetch('/api/auth/check-password-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: trimmedEmail }),
-        });
-
-        const passwordStatus = await passwordCheck.json();
-
-        // If user exists but hasn't set a password yet, guide them to magic link
-        if (passwordStatus.userExists && !passwordStatus.hasPassword) {
-          return {
-            success: false,
-            error: {
-              name: "PasswordNotSet",
-              message: "You haven't set up a password yet. Please use 'Sign in with magic link' to set your password.",
-            },
-          };
-        }
-      } catch (checkError) {
-        // Non-blocking - continue with password login attempt if check fails
-        console.error("Password status check failed:", checkError);
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Only send magic link if invite exists and is valid
+      const { data, error } = await supabase.auth.signInWithOtp({
         email: trimmedEmail,
-        password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
+          shouldCreateUser: false,
+        },
       });
 
       if (error) {
-        console.error("Password login error:", error);
-
-        // Handle specific error cases
-        if (error.message.includes('Invalid login credentials')) {
-          return {
-            success: false,
-            error: {
-              name: "LoginError",
-              message: "Invalid email or password. If you haven't set a password yet, use 'Sign in with magic link' first.",
-            },
-          };
-        }
-
+        console.error("Login error:", error);
         return {
           success: false,
           error: {
             name: error.name || "LoginError",
-            message: error.message || "Login failed",
+            message: error.message || "Failed to send magic link",
           },
         };
-      }
-
-      if (!data.session) {
-        return {
-          success: false,
-          error: {
-            name: "LoginError",
-            message: "Failed to create session",
-          },
-        };
-      }
-
-      // Update last login in database
-      try {
-        await fetch('/api/auth/update-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: trimmedEmail }),
-        });
-      } catch (updateError) {
-        // Non-blocking - don't fail login if this fails
-        console.error("Failed to update last login:", updateError);
       }
 
       return {
         success: true,
-        redirectTo: "/",
         successNotification: {
-          message: "Login successful!",
-          description: "Welcome back to ArbitrageOS.",
+          message: "Magic link sent!",
+          description: "Check your email for the magic link. It may take a moment to arrive.",
         },
       };
     } catch (error: any) {
@@ -169,7 +72,7 @@ export const authProviderClient: AuthProvider = {
         success: false,
         error: {
           name: "LoginError",
-          message: error?.message || "Login failed",
+          message: error?.message || "Failed to send magic link",
         },
       };
     }

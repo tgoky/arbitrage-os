@@ -18,7 +18,6 @@ model User {
   name           String?
   avatar         String?
   status         String?   @default("invited") @db.VarChar(50) // 'invited', 'active', 'suspended'
-  has_password   Boolean   @default(false) @map("has_password") // Track if user has set their password
   last_login     DateTime? @map("last_login") @db.Timestamptz(6)
   invite_sent_at DateTime? @map("invite_sent_at") @db.Timestamptz(6)
   created_at     DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @map("created_at") @db.Timestamptz(6)
