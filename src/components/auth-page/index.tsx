@@ -308,6 +308,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [useMagicLink, setUseMagicLink] = useState(false); // Toggle between password and magic link
 
   const [isNotInvited, setIsNotInvited] = useState(false);
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
 
   useEffect(() => {
@@ -358,6 +359,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     setMessage("");
     setError("");
     setIsNotInvited(false);
+    setNeedsPasswordSetup(false);
     setLoading(true);
 
     // Determine login method based on whether password is provided and useMagicLink toggle
@@ -386,6 +388,11 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
           // Check if this is an "not invited" error
           if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
             setIsNotInvited(true);
+          }
+
+          // Check if user needs to set up password
+          if (errorMessage.includes("haven't set up a password") || errorMessage.includes("PasswordNotSet")) {
+            setNeedsPasswordSetup(true);
           }
         },
       }
@@ -564,25 +571,55 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
                   {error && (
                     <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
-                      isNotInvited
-                        ? 'bg-orange-500/10 border-orange-400/30'
-                        : 'bg-red-500/10 border-red-400/30'
+                      needsPasswordSetup
+                        ? 'bg-blue-500/10 border-blue-400/30'
+                        : isNotInvited
+                          ? 'bg-orange-500/10 border-orange-400/30'
+                          : 'bg-red-500/10 border-red-400/30'
                     }`}>
                       <div className="flex items-start gap-3">
-                        <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                          isNotInvited ? 'text-orange-300' : 'text-red-300'
-                        }`} />
+                        {needsPasswordSetup ? (
+                          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-300" />
+                        ) : (
+                          <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                            isNotInvited ? 'text-orange-300' : 'text-red-300'
+                          }`} />
+                        )}
                         <div className="flex-1">
                           <p className={`font-medium mb-2 ${
-                            isNotInvited ? 'text-orange-200' : 'text-red-200'
+                            needsPasswordSetup
+                              ? 'text-blue-200'
+                              : isNotInvited ? 'text-orange-200' : 'text-red-200'
                           }`}>
-                            {isNotInvited ? 'Access Required' : 'Authentication Error'}
+                            {needsPasswordSetup ? 'Password Setup Required' : isNotInvited ? 'Access Required' : 'Authentication Error'}
                           </p>
                           <p className={`text-sm ${
-                            isNotInvited ? 'text-orange-300' : 'text-red-300'
+                            needsPasswordSetup
+                              ? 'text-blue-300'
+                              : isNotInvited ? 'text-orange-300' : 'text-red-300'
                           }`}>
-                            {error}
+                            {needsPasswordSetup
+                              ? "You're an existing user but haven't set up a password yet."
+                              : error}
                           </p>
+                          {needsPasswordSetup && (
+                            <div className="mt-3 pt-3 border-t border-blue-400/30">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUseMagicLink(true);
+                                  setError("");
+                                  setNeedsPasswordSetup(false);
+                                  setPassword("");
+                                }}
+                                className="inline-flex items-center gap-2 text-sm font-medium text-blue-200 hover:text-blue-100 transition-colors"
+                              >
+                                <Mail className="w-4 h-4" />
+                                Use Magic Link to Set Password
+                                <ArrowLeft className="w-3 h-3 rotate-180" />
+                              </button>
+                            </div>
+                          )}
                           {isNotInvited && (
                             <div className="mt-3 pt-3 border-t border-orange-400/30">
                               <a

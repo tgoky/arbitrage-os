@@ -80,6 +80,31 @@ export const authProviderClient: AuthProvider = {
         };
       }
 
+      // Check if user has a password set before attempting password login
+      try {
+        const passwordCheck = await fetch('/api/auth/check-password-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmedEmail }),
+        });
+
+        const passwordStatus = await passwordCheck.json();
+
+        // If user exists but hasn't set a password yet, guide them to magic link
+        if (passwordStatus.userExists && !passwordStatus.hasPassword) {
+          return {
+            success: false,
+            error: {
+              name: "PasswordNotSet",
+              message: "You haven't set up a password yet. Please use 'Sign in with magic link' to set your password.",
+            },
+          };
+        }
+      } catch (checkError) {
+        // Non-blocking - continue with password login attempt if check fails
+        console.error("Password status check failed:", checkError);
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password: password,
@@ -94,7 +119,7 @@ export const authProviderClient: AuthProvider = {
             success: false,
             error: {
               name: "LoginError",
-              message: "Invalid email or password. Please try again or use magic link.",
+              message: "Invalid email or password. If you haven't set a password yet, use 'Sign in with magic link' first.",
             },
           };
         }
