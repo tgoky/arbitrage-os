@@ -309,7 +309,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
   const [isNotInvited, setIsNotInvited] = useState(false);
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
-  const [isNewInvitedUser, setIsNewInvitedUser] = useState(false);
 
 
   useEffect(() => {
@@ -361,7 +360,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     setError("");
     setIsNotInvited(false);
     setNeedsPasswordSetup(false);
-    setIsNewInvitedUser(false);
     setLoading(true);
 
     // Determine login method based on whether password is provided and useMagicLink toggle
@@ -395,11 +393,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
           // Check if user needs to set up password
           if (errorMessage.includes("haven't set up a password") || errorMessage.includes("PasswordNotSet")) {
             setNeedsPasswordSetup(true);
-          }
-
-          // Check if this is a new invited user who hasn't clicked the magic link yet
-          if (errorMessage.includes("NewInvitedUser") || errorMessage.includes("click the magic link")) {
-            setIsNewInvitedUser(true);
           }
         },
       }
@@ -578,18 +571,14 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
                   {error && (
                     <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
-                      isNewInvitedUser
-                        ? 'bg-green-500/10 border-green-400/30'
-                        : needsPasswordSetup
-                          ? 'bg-blue-500/10 border-blue-400/30'
-                          : isNotInvited
-                            ? 'bg-orange-500/10 border-orange-400/30'
-                            : 'bg-red-500/10 border-red-400/30'
+                      needsPasswordSetup
+                        ? 'bg-blue-500/10 border-blue-400/30'
+                        : isNotInvited
+                          ? 'bg-orange-500/10 border-orange-400/30'
+                          : 'bg-red-500/10 border-red-400/30'
                     }`}>
                       <div className="flex items-start gap-3">
-                        {isNewInvitedUser ? (
-                          <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-green-300" />
-                        ) : needsPasswordSetup ? (
+                        {needsPasswordSetup ? (
                           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-300" />
                         ) : (
                           <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
@@ -598,46 +587,21 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                         )}
                         <div className="flex-1">
                           <p className={`font-medium mb-2 ${
-                            isNewInvitedUser
-                              ? 'text-green-200'
-                              : needsPasswordSetup
-                                ? 'text-blue-200'
-                                : isNotInvited ? 'text-orange-200' : 'text-red-200'
+                            needsPasswordSetup
+                              ? 'text-blue-200'
+                              : isNotInvited ? 'text-orange-200' : 'text-red-200'
                           }`}>
-                            {isNewInvitedUser
-                              ? 'Welcome to ArbitrageOS!'
-                              : needsPasswordSetup
-                                ? 'Password Setup Required'
-                                : isNotInvited ? 'Access Required' : 'Authentication Error'}
+                            {needsPasswordSetup ? 'Password Setup Required' : isNotInvited ? 'Access Required' : 'Authentication Error'}
                           </p>
                           <p className={`text-sm ${
-                            isNewInvitedUser
-                              ? 'text-green-300'
-                              : needsPasswordSetup
-                                ? 'text-blue-300'
-                                : isNotInvited ? 'text-orange-300' : 'text-red-300'
+                            needsPasswordSetup
+                              ? 'text-blue-300'
+                              : isNotInvited ? 'text-orange-300' : 'text-red-300'
                           }`}>
-                            {isNewInvitedUser
-                              ? "You've been invited! Please check your email and click the magic link to complete your account setup and create your password."
-                              : needsPasswordSetup
-                                ? "You're an existing user but haven't set up a password yet."
-                                : error}
+                            {needsPasswordSetup
+                              ? "You're an existing user but haven't set up a password yet."
+                              : error}
                           </p>
-                          {isNewInvitedUser && (
-                            <div className="mt-3 pt-3 border-t border-green-400/30">
-                              <div className="space-y-2 text-sm text-green-300">
-                                <p className="font-medium text-green-200">Next steps:</p>
-                                <ol className="list-decimal list-inside space-y-1 ml-1">
-                                  <li>Check your email inbox (and spam folder)</li>
-                                  <li>Click the magic link in the invitation email</li>
-                                  <li>Create your password to complete setup</li>
-                                </ol>
-                              </div>
-                              <p className="mt-3 text-xs text-green-400">
-                                Can't find the email? Contact team@growaiagency.io for help.
-                              </p>
-                            </div>
-                          )}
                           {needsPasswordSetup && (
                             <div className="mt-3 pt-3 border-t border-blue-400/30">
                               <button
@@ -696,7 +660,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                         setUseMagicLink(!useMagicLink);
                         setError("");
                         setPassword("");
-                        setIsNewInvitedUser(false);
                       }}
                       className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
                     >
@@ -705,16 +668,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   </div>
                 </form>
 
-                {/* First-time user info */}
-                <div className="bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-gray-400">
-                      <p className="font-medium text-gray-300 mb-1">First time here?</p>
-                      <p>If you received an invitation email, click the magic link in that email first to set up your password. After that, you can sign in with your email and password.</p>
-                    </div>
-                  </div>
-                </div>
 
                 <div className="border-t border-white/20 pt-6">
                   <div className="space-y-4">
