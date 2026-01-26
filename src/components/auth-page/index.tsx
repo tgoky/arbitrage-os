@@ -2,7 +2,7 @@
 
 import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -11,7 +11,7 @@ const GalaxyBackground = () => {
   useEffect(() => {
     const canvas = document.getElementById('galaxy-canvas') as HTMLCanvasElement;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -20,7 +20,7 @@ const GalaxyBackground = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-    
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
@@ -39,7 +39,7 @@ const GalaxyBackground = () => {
     const createStars = () => {
       const numStars = Math.floor((canvas.width * canvas.height) / 8000);
       stars.length = 0;
-      
+
       for (let i = 0; i < numStars; i++) {
         stars.push({
           x: Math.random() * canvas.width,
@@ -67,7 +67,7 @@ const GalaxyBackground = () => {
       gradient.addColorStop(0.3, '#000000');
       gradient.addColorStop(0.6, '#000000');
       gradient.addColorStop(1, '#000000');
-      
+
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -76,11 +76,11 @@ const GalaxyBackground = () => {
         // Update twinkle
         star.twinklePhase += star.twinkleSpeed;
         const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
-        
+
         // Slow drift
         star.x += star.speed * (Math.sin(index * 0.1) * 0.5);
         star.y += star.speed * (Math.cos(index * 0.1) * 0.5);
-        
+
         // Wrap around edges
         if (star.x < 0) star.x = canvas.width;
         if (star.x > canvas.width) star.x = 0;
@@ -89,7 +89,7 @@ const GalaxyBackground = () => {
 
         // Draw star with glow
         const finalOpacity = star.opacity * twinkle;
-        
+
         // Outer glow
         ctx.beginPath();
         const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
@@ -136,12 +136,12 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
   color: string;
 }) => {
   return (
-    <div 
-      className={`group p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 
-        transform transition-all duration-700 hover:scale-105 hover:rotate-y-12 
+    <div
+      className={`group p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/20
+        transform transition-all duration-700 hover:scale-105 hover:rotate-y-12
         hover:shadow-2xl hover:shadow-${color}-500/30 hover:border-${color}-400/50
         animate-slide-in-left cursor-pointer perspective-1000`}
-      style={{ 
+      style={{
         animationDelay: `${delay}ms`,
         transformStyle: 'preserve-3d',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
@@ -149,9 +149,9 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
     >
       <div className="flex items-start gap-4">
         <div
-          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl 
-                     flex items-center justify-center flex-shrink-0 mt-1 
-                     border border-white/20 group-hover:scale-110 
+          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl
+                     flex items-center justify-center flex-shrink-0 mt-1
+                     border border-white/20 group-hover:scale-110
                      transition-all duration-500 group-hover:shadow-lg"
         >
           <Icon className={`w-5 h-5 text-${color}-400 group-hover:text-${color}-300 transition-colors duration-300`} />
@@ -161,7 +161,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
           <p className="text-gray-300 text-sm group-hover:text-gray-200">{description}</p>
         </div>
       </div>
-      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl 
+      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl
         opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     </div>
   );
@@ -241,7 +241,7 @@ const ConnectingCurves = () => {
             <span className="text-[#5CC49D] ml-1 font-bold">Grow</span>
           </div>
         </div>
-        
+
         <svg className="absolute top-0 left-0 w-full h-32 opacity-30" viewBox="0 0 1200 150" fill="none">
           <defs>
             <linearGradient id="topGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -307,20 +307,15 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // Password login state
-  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
-  const [checkingPassword, setCheckingPassword] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<"magic" | "password">("magic");
-  const [checkedEmail, setCheckedEmail] = useState<string>("");  // Track which email we checked
-
   const [isNotInvited, setIsNotInvited] = useState(false);
 
+  // Simple toggle - user manually chooses password login
+  const [usePasswordLogin, setUsePasswordLogin] = useState(false);
 
   useEffect(() => {
     const originalBackground = document.body.style.background;
     document.body.style.background = 'transparent';
-    
+
     const style = document.createElement('style');
     style.textContent = `
       @keyframes bounce-in {
@@ -353,72 +348,12 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
       .rotate-y-12:hover { transform: rotateY(12deg) scale(1.05); }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       document.body.style.background = originalBackground;
       document.head.removeChild(style);
     };
   }, []);
-
-  // Check if user has password when email changes
-  const checkUserPassword = async (emailToCheck: string) => {
-    if (!emailToCheck || !emailToCheck.includes('@')) return;
-
-    const normalizedEmail = emailToCheck.trim().toLowerCase();
-
-    // Don't re-check if we already checked this email
-    if (normalizedEmail === checkedEmail) return;
-
-    setCheckingPassword(true);
-
-    // IMPORTANT: Mark as checked BEFORE the API call to prevent loops
-    setCheckedEmail(normalizedEmail);
-
-    try {
-      const response = await fetch(`/api/auth/login-password?email=${encodeURIComponent(normalizedEmail)}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setHasPassword(data.hasPassword);
-        // Default to password if user has one
-        if (data.hasPassword) {
-          setLoginMethod("password");
-        } else {
-          setLoginMethod("magic");
-        }
-      } else {
-        // API returned success: false, default to magic link
-        setHasPassword(false);
-        setLoginMethod("magic");
-      }
-    } catch (err) {
-      console.error('Error checking password status:', err);
-      // On error, default to magic link
-      setHasPassword(false);
-      setLoginMethod("magic");
-    } finally {
-      setCheckingPassword(false);
-    }
-  };
-
-  // Debounce email check - only check when email is valid and different from last checked
-  useEffect(() => {
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Reset state only if email actually changed
-    if (checkedEmail && normalizedEmail !== checkedEmail) {
-      setHasPassword(null);
-      setCheckedEmail(""); // Reset checked email so we re-check
-    }
-
-    const timer = setTimeout(() => {
-      if (email && email.includes('@') && normalizedEmail !== checkedEmail) {
-        checkUserPassword(email);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [email]); // Only depend on email, not checkedEmail
 
   // Handle password login
   const handlePasswordLogin = async () => {
@@ -441,7 +376,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
       if (data.success) {
         setMessage("Login successful! Redirecting...");
-        // Redirect to home
         router.push(data.redirectTo || '/home');
       } else {
         setError(data.error || "Login failed. Please try again.");
@@ -463,13 +397,13 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     setError("");
     setIsNotInvited(false);
 
-    // If password login method selected
-    if (loginMethod === "password" && hasPassword) {
+    // If password login mode
+    if (usePasswordLogin) {
       handlePasswordLogin();
       return;
     }
 
-    // Magic link login
+    // Magic link login (original flow)
     setLoading(true);
 
     login(
@@ -481,10 +415,8 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
             setEmailSent(true);
             setMessage("Check your email for the magic link. It may take a moment to arrive.");
           } else {
-            // Handle unsuccessful response (success: false returned from auth provider)
             const errorMessage = data?.error?.message || "Failed to send magic link. Please try again.";
             setError(errorMessage);
-
             if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
               setIsNotInvited(true);
             }
@@ -494,8 +426,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
           setLoading(false);
           const errorMessage = error?.message || "Failed to send magic link. Please try again.";
           setError(errorMessage);
-
-          // Check if this is an "not invited" error
           if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
             setIsNotInvited(true);
           }
@@ -510,7 +440,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
       <div className="min-h-screen relative flex">
         <GalaxyBackground />
         <ConnectingCurves />
-        
+
         <div className="relative z-10 w-full flex min-h-screen">
           <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
             <div className="max-w-md space-y-6">
@@ -578,7 +508,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     <div className="min-h-screen relative flex">
       <GalaxyBackground />
       <ConnectingCurves />
-      
+
       <div className="relative z-10 w-full flex min-h-screen">
         <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
           <div className="max-w-md space-y-6">
@@ -625,10 +555,14 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
               <div className="space-y-6 animate-fade-in-up">
                 <div className="text-center">
                   <h1 className="text-2xl font-semibold text-white mb-2">Sign in to your account</h1>
-                  <p className="text-gray-300">Enter your email to continue with ArbitrageOS</p>
+                  <p className="text-gray-300">
+                    {usePasswordLogin
+                      ? "Enter your email and password"
+                      : "Enter your email to continue with ArbitrageOS"}
+                  </p>
                 </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email address</label>
                     <div className="relative group">
@@ -644,48 +578,11 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                         className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
                         placeholder="you@company.com"
                       />
-                      {checkingPassword && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* Login Method Toggle - Show when user has password */}
-                  {hasPassword === true && checkedEmail && (
-                    <div className="animate-fade-in-up">
-                      <div className="flex gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
-                        <button
-                          type="button"
-                          onClick={() => setLoginMethod("password")}
-                          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            loginMethod === "password"
-                              ? "bg-[#5CC49D] text-black"
-                              : "text-gray-300 hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          <Lock className="w-4 h-4" />
-                          Password
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setLoginMethod("magic")}
-                          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            loginMethod === "magic"
-                              ? "bg-[#5CC49D] text-black"
-                              : "text-gray-300 hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          <Mail className="w-4 h-4" />
-                          Magic Link
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Password Field - Show when password login selected */}
-                  {loginMethod === "password" && hasPassword === true && (
+                  {/* Password Field - Only shown when user clicks "Sign in with password" */}
+                  {usePasswordLogin && (
                     <div className="animate-fade-in-up">
                       <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
                       <div className="relative group">
@@ -761,29 +658,57 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
                   <button
                     type="submit"
-                    disabled={loading || (loginMethod === "password" && !password)}
+                    disabled={loading || (usePasswordLogin && !password)}
                     className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
                   >
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        {loginMethod === "password" ? "Signing in..." : "Verifying access..."}
+                        {usePasswordLogin ? "Signing in..." : "Sending magic link..."}
                       </>
                     ) : (
                       <>
-                        {loginMethod === "password" ? (
+                        {usePasswordLogin ? (
                           <>
                             <Lock className="w-4 h-4" />
                             Sign in with Password
                           </>
                         ) : (
-                          <>Continue with email</>
+                          <>
+                            <Mail className="w-4 h-4" />
+                            Continue with Magic Link
+                          </>
                         )}
                       </>
                     )}
                   </button>
                 </form>
 
+                {/* Toggle between magic link and password */}
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUsePasswordLogin(!usePasswordLogin);
+                      setError("");
+                      setMessage("");
+                      setPassword("");
+                    }}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {usePasswordLogin ? (
+                      <>
+                        <Mail className="w-4 h-4 inline mr-1" />
+                        Use magic link instead
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 inline mr-1" />
+                        Sign in with password
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 <div className="border-t border-white/20 pt-6">
                   <div className="space-y-4">

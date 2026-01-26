@@ -5,7 +5,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient as supabase } from "../../utils/supabase/client";
 
 export const authProviderClient: AuthProvider = {
-  login: async ({ email, password, loginMethod = "magic" }: { email: string; password?: string; loginMethod?: "magic" | "password" }) => {
+  login: async ({ email }) => {
     try {
       // Basic email validation
       if (!email || !email.includes('@')) {
@@ -20,37 +20,6 @@ export const authProviderClient: AuthProvider = {
 
       const trimmedEmail = email.trim().toLowerCase();
 
-      // Password login flow
-      if (loginMethod === "password" && password) {
-        const response = await fetch('/api/auth/login-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: trimmedEmail, password }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          return {
-            success: true,
-            redirectTo: data.redirectTo || '/home',
-            successNotification: {
-              message: "Login successful!",
-              description: "Welcome back to ArbitrageOS.",
-            },
-          };
-        } else {
-          return {
-            success: false,
-            error: {
-              name: "LoginError",
-              message: data.error || "Invalid email or password",
-            },
-          };
-        }
-      }
-
-      // Magic link login flow
       // Check if user has a valid invite before sending magic link
       const inviteCheck = await fetch('/api/auth/check-invite', {
         method: 'POST',
@@ -70,13 +39,12 @@ export const authProviderClient: AuthProvider = {
         };
       }
 
-      // Send magic link - allow Supabase to create user if needed
-      // This is necessary because the user might exist in our DB (via invite) but not yet in Supabase Auth
+      // Only send magic link if invite exists and is valid
       const { data, error } = await supabase.auth.signInWithOtp({
         email: trimmedEmail,
         options: {
           emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
-          shouldCreateUser: true, // Allow creating user in Supabase Auth if they have a valid invite
+          shouldCreateUser: false,
         },
       });
 
@@ -87,19 +55,6 @@ export const authProviderClient: AuthProvider = {
           error: {
             name: error.name || "LoginError",
             message: error.message || "Failed to send magic link",
-          },
-        };
-      }
-
-      // Supabase OTP with shouldCreateUser may return without error but not send email in edge cases
-      // The data object should be present when successful
-      if (!data) {
-        console.error("Unexpected empty response from signInWithOtp");
-        return {
-          success: false,
-          error: {
-            name: "LoginError",
-            message: "Failed to send magic link. Please try again.",
           },
         };
       }
@@ -137,26 +92,26 @@ export const authProviderClient: AuthProvider = {
   logout: async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         console.error('Logout error:', error);
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: {
             name: "LogoutError",
             message: error.message || "Logout failed",
           },
         };
       }
-      
-      return { 
-        success: true, 
-        redirectTo: "/login" 
+
+      return {
+        success: true,
+        redirectTo: "/login"
       };
     } catch (error: any) {
       console.error('Logout catch error:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: {
           name: "LogoutError",
           message: error.message || "Logout failed",
@@ -168,33 +123,33 @@ export const authProviderClient: AuthProvider = {
   check: async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      
+
       if (error) {
         console.error('Session check error:', error);
-        return { 
-          authenticated: false, 
-          logout: true, 
-          redirectTo: "/login" 
+        return {
+          authenticated: false,
+          logout: true,
+          redirectTo: "/login"
         };
       }
-      
+
       if (session?.user) {
-        return { 
-          authenticated: true 
+        return {
+          authenticated: true
         };
       }
-      
-      return { 
-        authenticated: false, 
-        logout: true, 
-        redirectTo: "/login" 
+
+      return {
+        authenticated: false,
+        logout: true,
+        redirectTo: "/login"
       };
     } catch (error) {
       console.error('Check catch error:', error);
-      return { 
-        authenticated: false, 
-        logout: true, 
-        redirectTo: "/login" 
+      return {
+        authenticated: false,
+        logout: true,
+        redirectTo: "/login"
       };
     }
   },
@@ -212,7 +167,7 @@ export const authProviderClient: AuthProvider = {
   getIdentity: async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (user) {
         return {
           id: user.id,
@@ -221,7 +176,7 @@ export const authProviderClient: AuthProvider = {
           avatar: user.user_metadata?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`,
         };
       }
-      
+
       return null;
     } catch (error) {
       console.error('Get identity error:', error);
@@ -231,14 +186,14 @@ export const authProviderClient: AuthProvider = {
 
   onError: async (error) => {
     console.error('Auth error:', error);
-    
+
     if (error.status === 401 || error.message?.includes('Invalid JWT')) {
-      return { 
-        logout: true, 
-        redirectTo: "/login" 
+      return {
+        logout: true,
+        redirectTo: "/login"
       };
     }
-    
+
     return { error };
   },
 
