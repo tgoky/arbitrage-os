@@ -312,7 +312,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [checkingPassword, setCheckingPassword] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"magic" | "password">("magic");
-  const [emailChecked, setEmailChecked] = useState(false);
+  const [checkedEmail, setCheckedEmail] = useState<string>("");  // Track which email we checked
 
   const [isNotInvited, setIsNotInvited] = useState(false);
 
@@ -364,17 +364,24 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const checkUserPassword = async (emailToCheck: string) => {
     if (!emailToCheck || !emailToCheck.includes('@')) return;
 
+    const normalizedEmail = emailToCheck.trim().toLowerCase();
+
+    // Don't re-check if we already checked this email
+    if (normalizedEmail === checkedEmail) return;
+
     setCheckingPassword(true);
     try {
-      const response = await fetch(`/api/auth/login-password?email=${encodeURIComponent(emailToCheck.trim().toLowerCase())}`);
+      const response = await fetch(`/api/auth/login-password?email=${encodeURIComponent(normalizedEmail)}`);
       const data = await response.json();
 
       if (data.success) {
         setHasPassword(data.hasPassword);
-        setEmailChecked(true);
+        setCheckedEmail(normalizedEmail);
         // Default to password if user has one
         if (data.hasPassword) {
           setLoginMethod("password");
+        } else {
+          setLoginMethod("magic");
         }
       }
     } catch (err) {
@@ -384,25 +391,23 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     }
   };
 
-  // Debounce email check
+  // Debounce email check - only check when email is valid and different from last checked
   useEffect(() => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Reset state if email changed significantly
+    if (normalizedEmail !== checkedEmail) {
+      setHasPassword(null);
+    }
+
     const timer = setTimeout(() => {
-      if (email && email.includes('@') && !emailChecked) {
+      if (email && email.includes('@') && normalizedEmail !== checkedEmail) {
         checkUserPassword(email);
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [email]);
-
-  // Reset password check when email changes significantly
-  useEffect(() => {
-    if (emailChecked && email) {
-      setEmailChecked(false);
-      setHasPassword(null);
-      setLoginMethod("magic");
-    }
-  }, [email]);
+  }, [email, checkedEmail]);
 
   // Handle password login
   const handlePasswordLogin = async () => {
@@ -629,7 +634,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   </div>
 
                   {/* Login Method Toggle - Show when user has password */}
-                  {hasPassword && emailChecked && (
+                  {hasPassword === true && checkedEmail && (
                     <div className="animate-fade-in-up">
                       <div className="flex gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
                         <button
@@ -661,7 +666,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   )}
 
                   {/* Password Field - Show when password login selected */}
-                  {loginMethod === "password" && hasPassword && (
+                  {loginMethod === "password" && hasPassword === true && (
                     <div className="animate-fade-in-up">
                       <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
                       <div className="relative group">
