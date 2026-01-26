@@ -5,7 +5,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient as supabase } from "../../utils/supabase/client";
 
 export const authProviderClient: AuthProvider = {
-  login: async ({ email }) => {
+  login: async ({ email, password, loginMethod = "magic" }: { email: string; password?: string; loginMethod?: "magic" | "password" }) => {
     try {
       // Basic email validation
       if (!email || !email.includes('@')) {
@@ -20,6 +20,37 @@ export const authProviderClient: AuthProvider = {
 
       const trimmedEmail = email.trim().toLowerCase();
 
+      // Password login flow
+      if (loginMethod === "password" && password) {
+        const response = await fetch('/api/auth/login-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmedEmail, password }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          return {
+            success: true,
+            redirectTo: data.redirectTo || '/home',
+            successNotification: {
+              message: "Login successful!",
+              description: "Welcome back to ArbitrageOS.",
+            },
+          };
+        } else {
+          return {
+            success: false,
+            error: {
+              name: "LoginError",
+              message: data.error || "Invalid email or password",
+            },
+          };
+        }
+      }
+
+      // Magic link login flow
       // Check if user has a valid invite before sending magic link
       const inviteCheck = await fetch('/api/auth/check-invite', {
         method: 'POST',

@@ -2,8 +2,9 @@
 
 import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Animated Galaxy Background Component
 const GalaxyBackground = () => {
@@ -298,13 +299,22 @@ const ConnectingCurves = () => {
 
 export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const { mutate: login } = useLogin();
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-    const [isNotInvited, setIsNotInvited] = useState(false);
+  // Password login state
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  const [checkingPassword, setCheckingPassword] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"magic" | "password">("magic");
+  const [emailChecked, setEmailChecked] = useState(false);
+
+  const [isNotInvited, setIsNotInvited] = useState(false);
 
 
   useEffect(() => {
@@ -350,14 +360,103 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     };
   }, []);
 
+  // Check if user has password when email changes
+  const checkUserPassword = async (emailToCheck: string) => {
+    if (!emailToCheck || !emailToCheck.includes('@')) return;
+
+    setCheckingPassword(true);
+    try {
+      const response = await fetch(`/api/auth/login-password?email=${encodeURIComponent(emailToCheck.trim().toLowerCase())}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setHasPassword(data.hasPassword);
+        setEmailChecked(true);
+        // Default to password if user has one
+        if (data.hasPassword) {
+          setLoginMethod("password");
+        }
+      }
+    } catch (err) {
+      console.error('Error checking password status:', err);
+    } finally {
+      setCheckingPassword(false);
+    }
+  };
+
+  // Debounce email check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (email && email.includes('@') && !emailChecked) {
+        checkUserPassword(email);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [email]);
+
+  // Reset password check when email changes significantly
+  useEffect(() => {
+    if (emailChecked && email) {
+      setEmailChecked(false);
+      setHasPassword(null);
+      setLoginMethod("magic");
+    }
+  }, [email]);
+
+  // Handle password login
+  const handlePasswordLogin = async () => {
+    setMessage("");
+    setError("");
+    setIsNotInvited(false);
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage("Login successful! Redirecting...");
+        // Redirect to home
+        router.push(data.redirectTo || '/home');
+      } else {
+        setError(data.error || "Login failed. Please try again.");
+        if (data.error?.includes("don't have access") || data.error?.includes("Contact")) {
+          setIsNotInvited(true);
+        }
+      }
+    } catch (err: any) {
+      console.error('Password login error:', err);
+      setError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
     setError("");
-        setIsNotInvited(false);
+    setIsNotInvited(false);
+
+    // If password login method selected
+    if (loginMethod === "password" && hasPassword) {
+      handlePasswordLogin();
+      return;
+    }
+
+    // Magic link login
     setLoading(true);
 
-  login(
+    login(
       { email },
       {
         onSuccess: (data) => {
@@ -371,7 +470,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
           setLoading(false);
           const errorMessage = error?.message || "Failed to send magic link. Please try again.";
           setError(errorMessage);
-          
+
           // Check if this is an "not invited" error
           if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
             setIsNotInvited(true);
@@ -510,24 +609,89 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email address</label>
                     <div className="relative group">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
-                      <input 
-                        id="email" 
-                        name="email" 
-                        type="email" 
-                        required 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        disabled={loading} 
-                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400" 
-                        placeholder="you@company.com" 
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                        placeholder="you@company.com"
                       />
+                      {checkingPassword && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
+                  {/* Login Method Toggle - Show when user has password */}
+                  {hasPassword && emailChecked && (
+                    <div className="animate-fade-in-up">
+                      <div className="flex gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => setLoginMethod("password")}
+                          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                            loginMethod === "password"
+                              ? "bg-[#5CC49D] text-black"
+                              : "text-gray-300 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <Lock className="w-4 h-4" />
+                          Password
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLoginMethod("magic")}
+                          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                            loginMethod === "magic"
+                              ? "bg-[#5CC49D] text-black"
+                              : "text-gray-300 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <Mail className="w-4 h-4" />
+                          Magic Link
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Password Field - Show when password login selected */}
+                  {loginMethod === "password" && hasPassword && (
+                    <div className="animate-fade-in-up">
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
+                        <input
+                          id="password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={loading}
+                          className="w-full pl-10 pr-12 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                          placeholder="Enter your password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {error && (
                     <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
-                      isNotInvited 
-                        ? 'bg-orange-500/10 border-orange-400/30' 
+                      isNotInvited
+                        ? 'bg-orange-500/10 border-orange-400/30'
                         : 'bg-red-500/10 border-red-400/30'
                     }`}>
                       <div className="flex items-start gap-3">
@@ -547,7 +711,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                           </p>
                           {isNotInvited && (
                             <div className="mt-3 pt-3 border-t border-orange-400/30">
-                              <a 
+                              <a
                                 href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request&body=Hello, I would like to request access to ArbitrageOS.%0D%0A%0D%0AMy email: "
                                 className="inline-flex items-center gap-2 text-sm font-medium text-orange-200 hover:text-orange-100 transition-colors"
                               >
@@ -562,18 +726,36 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                     </div>
                   )}
 
-                  <button 
-                    type="submit" 
-                    disabled={loading} 
+                  {message && (
+                    <div className="p-4 backdrop-blur-md rounded-lg border animate-fade-in-up bg-green-500/10 border-green-400/30">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-300" />
+                        <p className="text-sm text-green-300">{message}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading || (loginMethod === "password" && !password)}
                     className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
                   >
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        Verifying access...
+                        {loginMethod === "password" ? "Signing in..." : "Verifying access..."}
                       </>
                     ) : (
-                      <>Continue with email</>
+                      <>
+                        {loginMethod === "password" ? (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            Sign in with Password
+                          </>
+                        ) : (
+                          <>Continue with email</>
+                        )}
+                      </>
                     )}
                   </button>
                 </form>
