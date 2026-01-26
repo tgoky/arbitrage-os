@@ -464,11 +464,19 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     login(
       { email },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           setLoading(false);
           if (data.success) {
             setEmailSent(true);
             setMessage("Check your email for the magic link. It may take a moment to arrive.");
+          } else {
+            // Handle unsuccessful response (success: false returned from auth provider)
+            const errorMessage = data?.error?.message || "Failed to send magic link. Please try again.";
+            setError(errorMessage);
+
+            if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
+              setIsNotInvited(true);
+            }
           }
         },
         onError: (error: any) => {

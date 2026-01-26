@@ -70,12 +70,13 @@ export const authProviderClient: AuthProvider = {
         };
       }
 
-      // Only send magic link if invite exists and is valid
+      // Send magic link - allow Supabase to create user if needed
+      // This is necessary because the user might exist in our DB (via invite) but not yet in Supabase Auth
       const { data, error } = await supabase.auth.signInWithOtp({
         email: trimmedEmail,
         options: {
           emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
-          shouldCreateUser: false,
+          shouldCreateUser: true, // Allow creating user in Supabase Auth if they have a valid invite
         },
       });
 
@@ -86,6 +87,19 @@ export const authProviderClient: AuthProvider = {
           error: {
             name: error.name || "LoginError",
             message: error.message || "Failed to send magic link",
+          },
+        };
+      }
+
+      // Supabase OTP with shouldCreateUser may return without error but not send email in edge cases
+      // The data object should be present when successful
+      if (!data) {
+        console.error("Unexpected empty response from signInWithOtp");
+        return {
+          success: false,
+          error: {
+            name: "LoginError",
+            message: "Failed to send magic link. Please try again.",
           },
         };
       }
