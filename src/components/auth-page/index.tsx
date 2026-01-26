@@ -591,9 +591,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                               ? 'text-blue-200'
                               : isNotInvited ? 'text-orange-200' : 'text-red-200'
                           }`}>
-                            {needsPasswordSetup
-                              ? 'Password Not Set'
-                              : isNotInvited ? 'Access Required' : 'Authentication Error'}
+                            {needsPasswordSetup ? 'Password Setup Required' : isNotInvited ? 'Access Required' : 'Authentication Error'}
                           </p>
                           <p className={`text-sm ${
                             needsPasswordSetup
@@ -601,7 +599,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                               : isNotInvited ? 'text-orange-300' : 'text-red-300'
                           }`}>
                             {needsPasswordSetup
-                              ? "You haven't set up a password yet. Use the magic link option to sign in, then you can set a password from your account settings."
+                              ? "You're an existing user but haven't set up a password yet."
                               : error}
                           </p>
                           {needsPasswordSetup && (
@@ -617,7 +615,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                                 className="inline-flex items-center gap-2 text-sm font-medium text-blue-200 hover:text-blue-100 transition-colors"
                               >
                                 <Mail className="w-4 h-4" />
-                                Use Magic Link Instead
+                                Use Magic Link to Set Password
                                 <ArrowLeft className="w-3 h-3 rotate-180" />
                               </button>
                             </div>
@@ -670,16 +668,6 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   </div>
                 </form>
 
-                {/* First-time user info */}
-                <div className="bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-gray-400">
-                      <p className="font-medium text-gray-300 mb-1">First time here?</p>
-                      <p>Click the magic link in your invitation email to get started. You can set up a password later for convenient sign-in.</p>
-                    </div>
-                  </div>
-                </div>
 
                 <div className="border-t border-white/20 pt-6">
                   <div className="space-y-4">

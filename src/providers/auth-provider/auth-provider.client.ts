@@ -96,7 +96,7 @@ export const authProviderClient: AuthProvider = {
             success: false,
             error: {
               name: "PasswordNotSet",
-              message: "You haven't set up a password yet. Please use 'Sign in with magic link' instead.",
+              message: "You haven't set up a password yet. Please use 'Sign in with magic link' to set your password.",
             },
           };
         }
