@@ -53,6 +53,9 @@ export async function middleware(req: NextRequest) {
     '/signup',
     '/api/auth/callback',
     '/api/auth/check-invite',
+    '/api/auth/login-password',
+    '/api/auth/resend-verification',
+    '/api/auth/google/callback',
     '/invite-expired',
   ];
 
