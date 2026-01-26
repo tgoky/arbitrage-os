@@ -25,21 +25,25 @@ import {
   Popover,
   List
 } from 'antd';
-import { 
-  PlusOutlined, 
-  FolderOutlined, 
-  ArrowRightOutlined, 
-  BellOutlined, 
-  DownOutlined, 
+import {
+  PlusOutlined,
+  FolderOutlined,
+  ArrowRightOutlined,
+  BellOutlined,
+  DownOutlined,
   LoadingOutlined,
   ClockCircleOutlined,
   HistoryOutlined,
   RiseOutlined,
   CheckCircleFilled,
-  CheckCircleOutlined, 
-  ExclamationCircleOutlined, 
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
   InfoCircleOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  LockOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  SafetyOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -92,6 +96,17 @@ const WorkspaceHomePage = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Password setup state
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [passwordSetSuccess, setPasswordSetSuccess] = useState(false);
 
   // Calculate metrics from work items
 // Replace the entire metrics useMemo with this:
@@ -569,6 +584,80 @@ const handleCreateWorkspace = async () => {
       }
     };
   }, []);
+
+  // Check if user has password set
+  useEffect(() => {
+    const checkPasswordStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/set-password');
+        const data = await response.json();
+        if (data.success) {
+          setHasPassword(data.hasPassword);
+        }
+      } catch (error) {
+        console.error('Error checking password status:', error);
+      }
+    };
+
+    if (!userLoading && userProfile) {
+      checkPasswordStatus();
+    }
+  }, [userLoading, userProfile]);
+
+  // Password validation
+  const validatePassword = (pwd: string): string => {
+    if (pwd.length < 8) return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(pwd)) return 'Password must contain at least one lowercase letter';
+    if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number';
+    return '';
+  };
+
+  // Handle password setup
+  const handleSetPassword = async () => {
+    setPasswordError('');
+
+    const validationError = validatePassword(password);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    setIsSettingPassword(true);
+
+    try {
+      const response = await fetch('/api/auth/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setPasswordSetSuccess(true);
+        setHasPassword(true);
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPassword('');
+          setConfirmPassword('');
+          setPasswordSetSuccess(false);
+        }, 2000);
+      } else {
+        setPasswordError(data.error || 'Failed to set password');
+      }
+    } catch (error: any) {
+      console.error('Error setting password:', error);
+      setPasswordError(error.message || 'Failed to set password');
+    } finally {
+      setIsSettingPassword(false);
+    }
+  };
 
   // Filter workspaces
   const filteredWorkspaces = workspaces.filter(workspace =>
@@ -1119,6 +1208,56 @@ if (isLoading || workspaceLoading || userLoading) {
 
         </Row>
 
+        {/* Password Setup Prompt - Show only if user hasn't set password */}
+        {hasPassword === false && (
+          <Card
+            className="mb-6"
+            style={{
+              background: theme === 'dark'
+                ? 'linear-gradient(135deg, #1a2e2a 0%, #0f1f1c 100%)'
+                : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              border: theme === 'dark' ? '1px solid #2d4a44' : '1px solid #a7f3d0'
+            }}
+            bodyStyle={{ padding: '20px 24px' }}
+          >
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #5CC49D 0%, #3da87c 100%)',
+                    boxShadow: '0 4px 12px rgba(92, 196, 157, 0.3)'
+                  }}
+                >
+                  <LockOutlined className="text-white text-xl" />
+                </div>
+                <div>
+                  <Title level={5} className="mb-1" style={{ color: theme === 'dark' ? '#fff' : '#1a1a1a' }}>
+                    Set Up Password Login
+                  </Title>
+                  <Text style={{ color: theme === 'dark' ? '#9ca3af' : '#4b5563' }}>
+                    Create a password for faster login. You can still use magic links anytime.
+                  </Text>
+                </div>
+              </div>
+              <Button
+                type="primary"
+                icon={<SafetyOutlined />}
+                onClick={() => setShowPasswordModal(true)}
+                style={{
+                  background: '#5CC49D',
+                  borderColor: '#5CC49D',
+                  height: '40px',
+                  paddingLeft: '20px',
+                  paddingRight: '20px'
+                }}
+              >
+                Create Password
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Workspaces Grid */}
         <Row gutter={[16, 16]}>
           {/* Create New Workspace Card */}
@@ -1331,6 +1470,122 @@ if (isLoading || workspaceLoading || userLoading) {
             />
           </div>
         </div>
+      </Modal>
+
+      {/* Password Setup Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#5CC49D] rounded-lg flex items-center justify-center">
+              <LockOutlined className="text-white text-lg" />
+            </div>
+            <div>
+              <Title level={4} className="mb-0" style={{ marginBottom: 0 }}>Create Your Password</Title>
+              <Text type="secondary" className="text-sm">Set up password login for faster access</Text>
+            </div>
+          </div>
+        }
+        open={showPasswordModal}
+        onCancel={() => {
+          setShowPasswordModal(false);
+          setPassword('');
+          setConfirmPassword('');
+          setPasswordError('');
+          setPasswordSetSuccess(false);
+        }}
+        footer={passwordSetSuccess ? null : [
+          <Button
+            key="cancel"
+            onClick={() => {
+              setShowPasswordModal(false);
+              setPassword('');
+              setConfirmPassword('');
+              setPasswordError('');
+            }}
+            disabled={isSettingPassword}
+          >
+            Maybe Later
+          </Button>,
+          <Button
+            key="create"
+            type="primary"
+            loading={isSettingPassword}
+            disabled={!password || !confirmPassword}
+            onClick={handleSetPassword}
+            style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
+          >
+            Create Password
+          </Button>
+        ]}
+        width={440}
+      >
+        {passwordSetSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircleFilled className="text-green-500 text-3xl" />
+            </div>
+            <Title level={4} className="mb-2">Password Created!</Title>
+            <Text type="secondary">
+              You can now sign in using your email and password.
+            </Text>
+          </div>
+        ) : (
+          <div className="space-y-4 pt-4">
+            <div className="p-3 rounded-lg" style={{
+              background: theme === 'dark' ? '#1f2937' : '#f3f4f6',
+              border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb'
+            }}>
+              <Text className="text-xs" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                <InfoCircleOutlined className="mr-2" />
+                Your password must be at least 8 characters and include uppercase, lowercase, and numbers.
+              </Text>
+            </div>
+
+            <div>
+              <Text strong className="block mb-2">New Password</Text>
+              <Input.Password
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                placeholder="Enter your password"
+                iconRender={(visible) => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+                size="large"
+              />
+            </div>
+
+            <div>
+              <Text strong className="block mb-2">Confirm Password</Text>
+              <Input.Password
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                placeholder="Confirm your password"
+                iconRender={(visible) => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+                size="large"
+              />
+            </div>
+
+            {passwordError && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                <Text className="text-red-600 text-sm">
+                  <ExclamationCircleOutlined className="mr-2" />
+                  {passwordError}
+                </Text>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Text type="secondary" className="text-xs">
+                <SafetyOutlined className="mr-1" />
+                You can still use magic links to sign in. Password login is an additional option for convenience.
+              </Text>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

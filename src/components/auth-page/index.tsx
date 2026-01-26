@@ -4,13 +4,14 @@ import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
 import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Animated Galaxy Background Component
 const GalaxyBackground = () => {
   useEffect(() => {
     const canvas = document.getElementById('galaxy-canvas') as HTMLCanvasElement;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -19,7 +20,7 @@ const GalaxyBackground = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-    
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
@@ -38,7 +39,7 @@ const GalaxyBackground = () => {
     const createStars = () => {
       const numStars = Math.floor((canvas.width * canvas.height) / 8000);
       stars.length = 0;
-      
+
       for (let i = 0; i < numStars; i++) {
         stars.push({
           x: Math.random() * canvas.width,
@@ -66,7 +67,7 @@ const GalaxyBackground = () => {
       gradient.addColorStop(0.3, '#000000');
       gradient.addColorStop(0.6, '#000000');
       gradient.addColorStop(1, '#000000');
-      
+
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -75,11 +76,11 @@ const GalaxyBackground = () => {
         // Update twinkle
         star.twinklePhase += star.twinkleSpeed;
         const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
-        
+
         // Slow drift
         star.x += star.speed * (Math.sin(index * 0.1) * 0.5);
         star.y += star.speed * (Math.cos(index * 0.1) * 0.5);
-        
+
         // Wrap around edges
         if (star.x < 0) star.x = canvas.width;
         if (star.x > canvas.width) star.x = 0;
@@ -88,7 +89,7 @@ const GalaxyBackground = () => {
 
         // Draw star with glow
         const finalOpacity = star.opacity * twinkle;
-        
+
         // Outer glow
         ctx.beginPath();
         const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
@@ -135,12 +136,12 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
   color: string;
 }) => {
   return (
-    <div 
-      className={`group p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 
-        transform transition-all duration-700 hover:scale-105 hover:rotate-y-12 
+    <div
+      className={`group p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/20
+        transform transition-all duration-700 hover:scale-105 hover:rotate-y-12
         hover:shadow-2xl hover:shadow-${color}-500/30 hover:border-${color}-400/50
         animate-slide-in-left cursor-pointer perspective-1000`}
-      style={{ 
+      style={{
         animationDelay: `${delay}ms`,
         transformStyle: 'preserve-3d',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
@@ -148,9 +149,9 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
     >
       <div className="flex items-start gap-4">
         <div
-          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl 
-                     flex items-center justify-center flex-shrink-0 mt-1 
-                     border border-white/20 group-hover:scale-110 
+          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl
+                     flex items-center justify-center flex-shrink-0 mt-1
+                     border border-white/20 group-hover:scale-110
                      transition-all duration-500 group-hover:shadow-lg"
         >
           <Icon className={`w-5 h-5 text-${color}-400 group-hover:text-${color}-300 transition-colors duration-300`} />
@@ -160,7 +161,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
           <p className="text-gray-300 text-sm group-hover:text-gray-200">{description}</p>
         </div>
       </div>
-      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl 
+      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl
         opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     </div>
   );
@@ -240,7 +241,7 @@ const ConnectingCurves = () => {
             <span className="text-[#5CC49D] ml-1 font-bold">Grow</span>
           </div>
         </div>
-        
+
         <svg className="absolute top-0 left-0 w-full h-32 opacity-30" viewBox="0 0 1200 150" fill="none">
           <defs>
             <linearGradient id="topGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -298,23 +299,23 @@ const ConnectingCurves = () => {
 
 export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const { mutate: login } = useLogin();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [useMagicLink, setUseMagicLink] = useState(false); // Toggle between password and magic link
-
+  const [showPassword, setShowPassword] = useState(false);
   const [isNotInvited, setIsNotInvited] = useState(false);
-  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
+  // Simple toggle - user manually chooses password login
+  const [usePasswordLogin, setUsePasswordLogin] = useState(false);
 
   useEffect(() => {
     const originalBackground = document.body.style.background;
     document.body.style.background = 'transparent';
-    
+
     const style = document.createElement('style');
     style.textContent = `
       @keyframes bounce-in {
@@ -347,52 +348,86 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
       .rotate-y-12:hover { transform: rotateY(12deg) scale(1.05); }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       document.body.style.background = originalBackground;
       document.head.removeChild(style);
     };
   }, []);
 
+  // Handle password login
+  const handlePasswordLogin = async () => {
+    setMessage("");
+    setError("");
+    setIsNotInvited(false);
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage("Login successful! Redirecting...");
+        router.push(data.redirectTo || '/home');
+      } else {
+        setError(data.error || "Login failed. Please try again.");
+        if (data.error?.includes("don't have access") || data.error?.includes("Contact")) {
+          setIsNotInvited(true);
+        }
+      }
+    } catch (err: any) {
+      console.error('Password login error:', err);
+      setError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
     setError("");
     setIsNotInvited(false);
-    setNeedsPasswordSetup(false);
+
+    // If password login mode
+    if (usePasswordLogin) {
+      handlePasswordLogin();
+      return;
+    }
+
+    // Magic link login (original flow)
     setLoading(true);
 
-    // Determine login method based on whether password is provided and useMagicLink toggle
-    const loginPayload = useMagicLink
-      ? { email, useMagicLink: true }
-      : { email, password };
-
     login(
-      loginPayload,
+      { email },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           setLoading(false);
           if (data.success) {
-            if (useMagicLink) {
-              setEmailSent(true);
-              setMessage("Check your email for the magic link. It may take a moment to arrive.");
+            setEmailSent(true);
+            setMessage("Check your email for the magic link. It may take a moment to arrive.");
+          } else {
+            const errorMessage = data?.error?.message || "Failed to send magic link. Please try again.";
+            setError(errorMessage);
+            if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
+              setIsNotInvited(true);
             }
-            // For password login, RefineJS will handle redirect
           }
         },
         onError: (error: any) => {
           setLoading(false);
-          const errorMessage = error?.message || "Login failed. Please try again.";
+          const errorMessage = error?.message || "Failed to send magic link. Please try again.";
           setError(errorMessage);
-
-          // Check if this is an "not invited" error
           if (errorMessage.includes("don't have access") || errorMessage.includes("Contact team@")) {
             setIsNotInvited(true);
-          }
-
-          // Check if user needs to set up password
-          if (errorMessage.includes("haven't set up a password") || errorMessage.includes("PasswordNotSet")) {
-            setNeedsPasswordSetup(true);
           }
         },
       }
@@ -405,7 +440,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
       <div className="min-h-screen relative flex">
         <GalaxyBackground />
         <ConnectingCurves />
-        
+
         <div className="relative z-10 w-full flex min-h-screen">
           <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
             <div className="max-w-md space-y-6">
@@ -473,7 +508,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     <div className="min-h-screen relative flex">
       <GalaxyBackground />
       <ConnectingCurves />
-      
+
       <div className="relative z-10 w-full flex min-h-screen">
         <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
           <div className="max-w-md space-y-6">
@@ -511,7 +546,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                   </div>
                 </div>
 
-                <button onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); setPassword(""); setUseMagicLink(false); }} className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
+                <button onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); }} className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
                   <ArrowLeft className="w-4 h-4" />
                   Back to sign in
                 </button>
@@ -520,7 +555,11 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
               <div className="space-y-6 animate-fade-in-up">
                 <div className="text-center">
                   <h1 className="text-2xl font-semibold text-white mb-2">Sign in to your account</h1>
-                  <p className="text-gray-300">Enter your email to continue with ArbitrageOS</p>
+                  <p className="text-gray-300">
+                    {usePasswordLogin
+                      ? "Enter your email and password"
+                      : "Enter your email to continue with ArbitrageOS"}
+                  </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -536,14 +575,15 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
-                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
                         placeholder="you@company.com"
                       />
                     </div>
                   </div>
 
-                  {!useMagicLink && (
-                    <div>
+                  {/* Password Field - Only shown when user clicks "Sign in with password" */}
+                  {usePasswordLogin && (
+                    <div className="animate-fade-in-up">
                       <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
                       <div className="relative group">
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
@@ -551,11 +591,11 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                           id="password"
                           name="password"
                           type={showPassword ? "text" : "password"}
-                          required={!useMagicLink}
+                          required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           disabled={loading}
-                          className="w-full pl-10 pr-12 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
+                          className="w-full pl-10 pr-12 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
                           placeholder="Enter your password"
                         />
                         <button
@@ -571,55 +611,25 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
 
                   {error && (
                     <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
-                      needsPasswordSetup
-                        ? 'bg-blue-500/10 border-blue-400/30'
-                        : isNotInvited
-                          ? 'bg-orange-500/10 border-orange-400/30'
-                          : 'bg-red-500/10 border-red-400/30'
+                      isNotInvited
+                        ? 'bg-orange-500/10 border-orange-400/30'
+                        : 'bg-red-500/10 border-red-400/30'
                     }`}>
                       <div className="flex items-start gap-3">
-                        {needsPasswordSetup ? (
-                          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-300" />
-                        ) : (
-                          <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                            isNotInvited ? 'text-orange-300' : 'text-red-300'
-                          }`} />
-                        )}
+                        <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                          isNotInvited ? 'text-orange-300' : 'text-red-300'
+                        }`} />
                         <div className="flex-1">
                           <p className={`font-medium mb-2 ${
-                            needsPasswordSetup
-                              ? 'text-blue-200'
-                              : isNotInvited ? 'text-orange-200' : 'text-red-200'
+                            isNotInvited ? 'text-orange-200' : 'text-red-200'
                           }`}>
-                            {needsPasswordSetup ? 'Password Setup Required' : isNotInvited ? 'Access Required' : 'Authentication Error'}
+                            {isNotInvited ? 'Access Required' : 'Authentication Error'}
                           </p>
                           <p className={`text-sm ${
-                            needsPasswordSetup
-                              ? 'text-blue-300'
-                              : isNotInvited ? 'text-orange-300' : 'text-red-300'
+                            isNotInvited ? 'text-orange-300' : 'text-red-300'
                           }`}>
-                            {needsPasswordSetup
-                              ? "You're an existing user but haven't set up a password yet."
-                              : error}
+                            {error}
                           </p>
-                          {needsPasswordSetup && (
-                            <div className="mt-3 pt-3 border-t border-blue-400/30">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setUseMagicLink(true);
-                                  setError("");
-                                  setNeedsPasswordSetup(false);
-                                  setPassword("");
-                                }}
-                                className="inline-flex items-center gap-2 text-sm font-medium text-blue-200 hover:text-blue-100 transition-colors"
-                              >
-                                <Mail className="w-4 h-4" />
-                                Use Magic Link to Set Password
-                                <ArrowLeft className="w-3 h-3 rotate-180" />
-                              </button>
-                            </div>
-                          )}
                           {isNotInvited && (
                             <div className="mt-3 pt-3 border-t border-orange-400/30">
                               <a
@@ -637,43 +647,74 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
                     </div>
                   )}
 
+                  {message && (
+                    <div className="p-4 backdrop-blur-md rounded-lg border animate-fade-in-up bg-green-500/10 border-green-400/30">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-300" />
+                        <p className="text-sm text-green-300">{message}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={loading || (!useMagicLink && !password)}
+                    disabled={loading || (usePasswordLogin && !password)}
                     className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
                   >
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        {useMagicLink ? 'Sending magic link...' : 'Signing in...'}
+                        {usePasswordLogin ? "Signing in..." : "Sending magic link..."}
                       </>
                     ) : (
-                      <>{useMagicLink ? 'Send magic link' : 'Sign in'}</>
+                      <>
+                        {usePasswordLogin ? (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            Sign in with Password
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4" />
+                            Continue with Magic Link
+                          </>
+                        )}
+                      </>
                     )}
                   </button>
-
-                  {/* Toggle between password and magic link */}
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUseMagicLink(!useMagicLink);
-                        setError("");
-                        setPassword("");
-                      }}
-                      className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
-                    >
-                      {useMagicLink ? 'Sign in with password instead' : 'Sign in with magic link instead'}
-                    </button>
-                  </div>
                 </form>
 
+                {/* Toggle between magic link and password */}
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUsePasswordLogin(!usePasswordLogin);
+                      setError("");
+                      setMessage("");
+                      setPassword("");
+                    }}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {usePasswordLogin ? (
+                      <>
+                        <Mail className="w-4 h-4 inline mr-1" />
+                        Use magic link instead
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 inline mr-1" />
+                        Sign in with password
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 <div className="border-t border-white/20 pt-6">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-sm text-gray-300 hover:text-gray-200 transition-colors">
                       <Shield className="w-4 h-4 text-green-400" />
-                      <span>Secure authentication</span>
+                      <span>Secure passwordless authentication</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-300 hover:text-gray-200 transition-colors">
                       <Users className="w-4 h-4 text-blue-400" />
