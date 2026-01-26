@@ -370,22 +370,32 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     if (normalizedEmail === checkedEmail) return;
 
     setCheckingPassword(true);
+
+    // IMPORTANT: Mark as checked BEFORE the API call to prevent loops
+    setCheckedEmail(normalizedEmail);
+
     try {
       const response = await fetch(`/api/auth/login-password?email=${encodeURIComponent(normalizedEmail)}`);
       const data = await response.json();
 
       if (data.success) {
         setHasPassword(data.hasPassword);
-        setCheckedEmail(normalizedEmail);
         // Default to password if user has one
         if (data.hasPassword) {
           setLoginMethod("password");
         } else {
           setLoginMethod("magic");
         }
+      } else {
+        // API returned success: false, default to magic link
+        setHasPassword(false);
+        setLoginMethod("magic");
       }
     } catch (err) {
       console.error('Error checking password status:', err);
+      // On error, default to magic link
+      setHasPassword(false);
+      setLoginMethod("magic");
     } finally {
       setCheckingPassword(false);
     }
@@ -395,9 +405,10 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   useEffect(() => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Reset state if email changed significantly
-    if (normalizedEmail !== checkedEmail) {
+    // Reset state only if email actually changed
+    if (checkedEmail && normalizedEmail !== checkedEmail) {
       setHasPassword(null);
+      setCheckedEmail(""); // Reset checked email so we re-check
     }
 
     const timer = setTimeout(() => {
@@ -407,7 +418,7 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [email, checkedEmail]);
+  }, [email]); // Only depend on email, not checkedEmail
 
   // Handle password login
   const handlePasswordLogin = async () => {

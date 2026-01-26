@@ -41,9 +41,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update has_password flag in database
+    // Normalize email to lowercase to match how we store it
+    const normalizedEmail = user.email!.trim().toLowerCase();
     try {
       await prisma.user.update({
-        where: { email: user.email! },
+        where: { email: normalizedEmail },
         data: { has_password: true }
       })
     } catch (dbError) {
@@ -80,9 +82,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check has_password in database
+    // Check has_password in database - normalize email
+    const normalizedEmail = user.email!.trim().toLowerCase();
     const dbUser = await prisma.user.findUnique({
-      where: { email: user.email! },
+      where: { email: normalizedEmail },
       select: { has_password: true }
     })
 
