@@ -1,9 +1,7 @@
-// components/menu/Menu.tsx
 "use client";
 
-import React from "react"; // Add explicit React import
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useLogout, useMenu } from "@refinedev/core";
-import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useSidebar } from "../../providers/sidebar-provider/sidebar-provider";
@@ -16,65 +14,69 @@ import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
 import { UserSection } from "./UserSection";
 import { Power } from "lucide-react";
 
-// Simple flat mapping of menu items to their groups based on your NavigationMenu
+// --- PREMIUM BLACK THEME CONSTANTS ---
+const BRAND_GREEN = '#5CC49D';
+const DARK_BG = '#000000'; // Pure Black
+const BORDER_COLOR = '#27272a'; // Zinc-800
+
 const getGroupForMenuItem = (itemKey: string): string | null => {
   const itemName = itemKey.startsWith('/') ? itemKey.substring(1) : itemKey;
-  const contentItems = ["Client_Profiles", "Submissions", "AI_Tools", "Playbooks", "Lead_Generation", "Agents_Flow", "Work_Flow"];
-  const overviewItems = ["Top_50_Niches", "Niche_Researcher",  "Offer_Creator", "Pricing_Calculator", "Ad_Writer", "Cold_Email_Writer", "Sales_Call_Analyzer",  "Growth_Plan_Creator",  "categories"];
-  const automationItems = ["Automations", "N8n_Builder", "N8n_Library"];
   
-  if (contentItems.includes(itemName)) return "content";
-  if (overviewItems.includes(itemName)) return "overview";
-  if (automationItems.includes(itemName)) return "automations";
+  // 1. Deliverables
+  if (["Dashboard", "Submissions"].includes(itemName)) return "deliverables";
+
+  // 2. Strategy
+  if (["Top_50_Niches", "AI_Tools", "N8n_Library", "Prompt_Directory"].includes(itemName)) return "strategy";
+
+  // 3. Growth Engine
+  if ([
+    "Ad_Writer", "Growth_Plan_Creator", "Proposal_Generator", "Lead_Generation", 
+    "Sales_Call_Analyzer", "Offer_Creator", "Niche_Research_Report", 
+    "Cold_Email_Writer", "N8n_Builder", "Pricing_Calculator"
+  ].includes(itemName)) return "growth";
+
+  // 4. Agents
+  if (["Email_Agent"].includes(itemName)) return "agents";
+
+  // 5. Arbitrage AI
+  if (["Client_Profiles"].includes(itemName)) return "arbitrage_ai";
   
   return null;
 };
 
-// Windows 98-style Logout Dialog Component
+// Logout Dialog
 interface LogoutDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
-const LogoutDialog: React.FC<LogoutDialogProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-}) => {
+const LogoutDialog: React.FC<LogoutDialogProps> = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="border-2 border-gray-400 bg-gray-300 w-80">
-        <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-          <div className="flex items-center">
-            <Power className="w-4 h-4 mr-2" />
-            <span className="font-bold">Log Off Arbitrage-OS</span>
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 backdrop-blur-sm font-manrope">
+      <div className="border border-zinc-800 bg-zinc-950 w-80 rounded-lg shadow-2xl overflow-hidden">
+        <div className="bg-black text-white px-3 py-2 flex justify-between items-center border-b border-zinc-800">
+          <div className="flex items-center gap-2">
+            <Power className="w-4 h-4 text-[#5CC49D]" />
+            <span className="font-bold text-xs tracking-widest text-zinc-400">SYSTEM LOGOFF</span>
           </div>
-          <div className="flex space-x-1">
-            <div
-              className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-              onClick={onClose}
-            >
-              <span className="text-xs">×</span>
-            </div>
-          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">×</button>
         </div>
-        <div className="p-4 bg-gray-200">
-          <p className="mb-4">Are you sure you want to log off?</p>
-          <div className="flex justify-end space-x-2">
+        <div className="p-6 bg-zinc-950 text-gray-300">
+          <p className="mb-6 text-sm text-zinc-400">Terminate session and return to login?</p>
+          <div className="flex justify-end space-x-3">
             <button
-              className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 active:border-gray-500 active:bg-gray-500"
+              className="px-4 py-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors"
               onClick={onClose}
             >
-              No
+              CANCEL
             </button>
             <button
-              className="px-4 py-1 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900"
+              className="px-4 py-1.5 bg-[#5CC49D] text-black text-xs font-bold rounded hover:bg-[#4ab08b] transition-colors"
               onClick={onConfirm}
             >
-              Yes
+              CONFIRM
             </button>
           </div>
         </div>
@@ -93,52 +95,54 @@ export const Menu: React.FC = () => {
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState<string>("");
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]);
+  
+  // ✅ UPDATED DEFAULT STATE
+  // "deliverables" and "arbitrage_ai" are OPEN by default.
+  // "strategy", "growth", "agents" are CLOSED by default.
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["deliverables", "arbitrage_ai"]);
+  
   const userHasInteractedRef = useRef<boolean>(false);
   const { theme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
   
-  const { 
-    currentWorkspace, 
-    workspaces, 
-    createWorkspace, 
-    switchWorkspace, 
-    isLoading: workspaceLoading 
-  } = useWorkspace();
+  const { currentWorkspace, workspaces, createWorkspace, switchWorkspace, isLoading: workspaceLoading } = useWorkspace();
 
-  
+  // Font Injection
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   const selectedItemGroup = useMemo(() => {
-    console.log(`Current selectedKey: "${selectedKey}"`);
     if (!selectedKey) return null;
-    const group = getGroupForMenuItem(selectedKey);
-    console.log(`Selected key: ${selectedKey}, belongs to group: ${group}`);
-    return group;
+    return getGroupForMenuItem(selectedKey);
   }, [selectedKey]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Auto-expand logic (only runs if user hasn't manually collapsed things)
   useEffect(() => {
-    console.log(`useEffect triggered - selectedItemGroup: ${selectedItemGroup}, userHasInteracted: ${userHasInteractedRef.current}, expandedGroups: ${expandedGroups.join(', ')}`);
     if (!userHasInteractedRef.current && selectedItemGroup) {
-      if (expandedGroups.length === 0 || (expandedGroups.includes("overview") && selectedItemGroup !== "overview")) {
-        console.log(`Auto-expanding group: ${selectedItemGroup}`);
-        setExpandedGroups([selectedItemGroup]);
+      if (!expandedGroups.includes(selectedItemGroup)) {
+        setExpandedGroups((prev) => [...prev, selectedItemGroup]);
       }
     }
-  }, [selectedItemGroup, expandedGroups]);
+  }, [selectedItemGroup]);
 
-  const handleLogout = (): void => {
-    setShowLogoutDialog(true);
-  };
+  const handleLogout = () => setShowLogoutDialog(true);
 
-  const handleCreateWorkspace = async (): Promise<void> => {
+  const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
       alert("Workspace name cannot be empty");
       return;
     }
-
     try {
       const newWorkspace = await createWorkspace(newWorkspaceName, newWorkspaceDescription);
       setNewWorkspaceName("");
@@ -150,20 +154,17 @@ export const Menu: React.FC = () => {
     }
   };
 
-  const handleSwitchWorkspace = (workspaceSlug: string): void => {
+  const handleSwitchWorkspace = (workspaceSlug: string) => {
     switchWorkspace(workspaceSlug);
     setWorkspaceDropdownOpen(false);
   };
 
-  const toggleGroup = (groupId: string): void => {
-    console.log(`User manually toggled group: ${groupId}`);
+  const toggleGroup = (groupId: string) => {
     userHasInteractedRef.current = true;
     setExpandedGroups((prev) => {
       if (prev.includes(groupId)) {
-        console.log(`Collapsing group: ${groupId}`);
         return prev.filter(id => id !== groupId);
       } else {
-        console.log(`Expanding group: ${groupId}`);
         return [...prev, groupId];
       }
     });
@@ -171,14 +172,9 @@ export const Menu: React.FC = () => {
 
   if (workspaceLoading) {
     return (
-      <div
-        className={`
-          h-screen sticky top-0 z-10 w-72
-          ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
-          border-r flex items-center justify-center
-        `}
-      >
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      <div className={`h-screen sticky top-0 z-10 w-72 border-r flex items-center justify-center`}
+           style={{ backgroundColor: DARK_BG, borderColor: BORDER_COLOR }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: BRAND_GREEN }}></div>
       </div>
     );
   }
@@ -187,11 +183,15 @@ export const Menu: React.FC = () => {
     <div
       className={`
         h-screen sticky top-0 z-10
-        ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
         border-r flex flex-col transition-all duration-300
         ${collapsed ? "w-20" : "w-72"}
         relative flex-shrink-0
       `}
+      style={{ 
+        fontFamily: "'Manrope', sans-serif",
+        backgroundColor: DARK_BG,
+        borderColor: BORDER_COLOR
+      }}
     >
       <div className="relative">
         <WorkspaceHeader
@@ -199,7 +199,6 @@ export const Menu: React.FC = () => {
           workspaceDropdownOpen={workspaceDropdownOpen}
           setWorkspaceDropdownOpen={setWorkspaceDropdownOpen}
         />
-
         {workspaceDropdownOpen && (
           <WorkspaceDropdown
             workspaceDropdownOpen={workspaceDropdownOpen}

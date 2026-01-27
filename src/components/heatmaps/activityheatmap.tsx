@@ -1,11 +1,21 @@
-import React, { useMemo } from 'react';
-import { Card, Typography, Tooltip, Spin } from 'antd';
-import { CalendarOutlined } from '@ant-design/icons';
+import React, { useMemo, useEffect } from 'react';
+import { Card, Typography, Tooltip, Grid } from 'antd';
+import { 
+  CalendarOutlined, 
+  FireOutlined, 
+  CrownOutlined,
+  StarOutlined,
+  ThunderboltOutlined,
+  RiseOutlined,
+  CheckCircleOutlined
+} from '@ant-design/icons';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkItems } from '../../app/hooks/useDashboardData';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
+// --- Interfaces ---
 interface ActivityHeatmapProps {
   currentWorkspace?: any;
 }
@@ -16,94 +26,183 @@ interface DayActivity {
   items: any[];
 }
 
+interface ActivityStats {
+  totalItems: number;
+  activeDays: number;
+  thisWeek: number;
+  topClient: string;
+  favTool: string;
+  streak: number;
+  bestDay: string;
+}
+
 const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
   currentWorkspace
 }) => {
   const { theme } = useTheme();
+  const screens = useBreakpoint();
   
-  // Use TanStack Query to get real-time work items data
   const {
     data: workItems = [],
     isLoading,
     isError
-  } = useWorkItems(365); // Get up to 1 year of data for comprehensive heatmap
+  } = useWorkItems(365);
 
-  // Generate heatmap data for the last 10 weeks (70 days) - optimized for smaller space
-  const heatmapData = useMemo(() => {
+  // --- 1. FORCE LOAD MANROPE FONT ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      // Optional cleanup: document.head.removeChild(link);
+    };
+  }, []);
+
+  // --- Theme Constants ---
+  const isDark = theme === 'dark';
+  const fontFamily = "'Manrope', sans-serif";
+  const backgroundColor = isDark ? '#000000' : '#ffffff';
+  const borderColor = isDark ? '#262626' : '#f0f0f0';
+  const subCardBg = isDark ? '#0A0A0A' : '#f9fafb';
+  
+  // Heatmap Colors
+  const intensityColorsDark = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
+  const intensityColorsLight = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+
+  // --- Helpers ---
+  const getTypeDisplayName = (type: string) => {
+    const names: Record<string, string> = {
+      'sales-call': 'Sales Call', 'growth-plan': 'Growth Plan', 'pricing-calc': 'Pricing',
+      'niche-research': 'Research', 'cold-email': 'Cold Email', 'offer-creator': 'Offer',
+      'ad-writer': 'Ad Copy', 'n8n-workflow': 'Workflow'
+    };
+    return names[type] || type;
+  };
+
+  // --- Logic ---
+  const { heatmapData, stats } = useMemo(() => {
+    // Default "Zero" State to satisfy TypeScript
+    const defaultStats: ActivityStats = {
+      totalItems: 0,
+      activeDays: 0,
+      thisWeek: 0,
+      topClient: '--',
+      favTool: '--',
+      streak: 0,
+      bestDay: '--'
+    };
+
+    if (!Array.isArray(workItems) || workItems.length === 0) {
+      return { heatmapData: [], stats: defaultStats };
+    }
+
+    // 1. Heatmap Data Generation
     const days: DayActivity[] = [];
     const today = new Date();
-    const startDate = new Date(today.getTime() - 69 * 24 * 60 * 60 * 1000); // 70 days ago
+    const daysToShow = 19 * 7; // Approx 4.5 months
+    const startDate = new Date(today.getTime() - (daysToShow - 1) * 24 * 60 * 60 * 1000);
     
-    // Create array of all days for the last 10 weeks
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < daysToShow; i++) {
       const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
       const dateString = date.toISOString().split('T')[0];
       
-      // Find work items for this date from real data
       const dayItems = workItems.filter(item => {
         try {
           if (!item.createdAt) return false;
           const itemDate = new Date(item.createdAt).toISOString().split('T')[0];
           return itemDate === dateString;
-        } catch {
-          return false;
-        }
+        } catch { return false; }
       });
       
-      days.push({
-        date: dateString,
-        count: dayItems.length,
-        items: dayItems
-      });
+      days.push({ date: dateString, count: dayItems.length, items: dayItems });
     }
+
+    // 2. Statistical Calculations
+    const totalItems = workItems.length;
+    const activeDaysCount = days.filter(d => d.count > 0).length;
     
-    return days;
+    // Weekly Stats
+    const thisWeekStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyItems = workItems.filter(item => new Date(item.createdAt) >= thisWeekStart);
+
+    // Top Client Logic
+    const clientCounts = workItems.reduce((acc, item) => {
+      try {
+        const client = item.subtitle?.split('•')[0]?.trim() || 'Unknown';
+        if (client !== 'Unknown' && client !== 'Generated content') {
+          acc[client] = (acc[client] || 0) + 1;
+        }
+      } catch {}
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topClient = Object.entries(clientCounts).reduce((max, [client, count]) => 
+      count > max.count ? { client, count } : max, { client: '--', count: 0 }
+    );
+
+    // Fav Tool Logic
+    const typeCounts = workItems.reduce((acc, item) => {
+      if (item.type) acc[item.type] = (acc[item.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topTool = Object.entries(typeCounts).reduce((max, [type, count]) => 
+      count > max.count ? { type, count } : max, { type: '--', count: 0 }
+    );
+
+    // Streak Logic
+    const activityDays = [...new Set(workItems.map(item => new Date(item.createdAt).toDateString()))].sort();
+    let currentStreak = 0;
+    const todayStr = new Date().toDateString();
+    const yesterdayStr = new Date(today.getTime() - 86400000).toDateString();
+    
+    if (activityDays.includes(todayStr) || activityDays.includes(yesterdayStr)) {
+      for (let i = activityDays.length - 1; i >= 0; i--) {
+        const d1 = new Date(todayStr).getTime();
+        const d2 = new Date(activityDays[i]).getTime();
+        const daysDiff = Math.floor((d1 - d2) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff === currentStreak || (daysDiff === currentStreak + 1 && currentStreak === 0)) {
+            currentStreak++;
+        } else {
+            break;
+        }
+      }
+    }
+
+    // Best Day Logic
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekdayCounts = days.reduce((acc, day) => {
+        const d = new Date(day.date).getDay();
+        acc[d] = (acc[d] || 0) + day.count;
+        return acc;
+    }, {} as Record<number, number>);
+    
+    let bestDayIndex = 0;
+    let maxDayCount = -1;
+    Object.entries(weekdayCounts).forEach(([idx, count]) => {
+        if(count > maxDayCount) {
+            maxDayCount = count;
+            bestDayIndex = Number(idx);
+        }
+    });
+
+    const calculatedStats: ActivityStats = {
+        totalItems,
+        activeDays: activeDaysCount,
+        thisWeek: weeklyItems.length,
+        topClient: topClient.client,
+        favTool: topTool.count > 0 ? getTypeDisplayName(topTool.type) : '--',
+        streak: currentStreak,
+        bestDay: maxDayCount > 0 ? weekdays[bestDayIndex] : '--'
+    };
+
+    return { heatmapData: days, stats: calculatedStats };
   }, [workItems]);
 
-  // Calculate real activity levels and stats
-  const { maxCount, totalActiveDays, totalItems, weekdays, averageDaily } = useMemo(() => {
-    const maxCount = Math.max(...heatmapData.map(day => day.count), 1);
-    const totalActiveDays = heatmapData.filter(day => day.count > 0).length;
-    const totalItems = heatmapData.reduce((sum, day) => sum + day.count, 0);
-    const averageDaily = totalActiveDays > 0 ? Math.round((totalItems / totalActiveDays) * 10) / 10 : 0;
-    
-    // Group by weekday for patterns
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
-    return { maxCount, totalActiveDays, totalItems, weekdays, averageDaily };
-  }, [heatmapData]);
 
-  // Get intensity level for a day (0-4) based on real data distribution
-  const getIntensityLevel = (count: number) => {
-    if (count === 0) return 0;
-    if (count === 1) return 1;
-    if (count <= Math.max(2, maxCount * 0.3)) return 2;
-    if (count <= Math.max(3, maxCount * 0.6)) return 3;
-    return 4;
-  };
-
-  // Get color for intensity level
-  const getIntensityColor = (level: number) => {
-    if (theme === 'dark') {
-      const colors = ['#1f2937', '#065f46', '#047857', '#059669', '#10b981'];
-      return colors[level];
-    } else {
-      const colors = ['#f3f4f6', '#dcfce7', '#bbf7d0', '#86efac', '#22c55e'];
-      return colors[level];
-    }
-  };
-
-  // Format date for tooltip
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  // Group days into weeks for display
+  // Group heatmap into columns (weeks)
   const weeks = useMemo(() => {
     const weeksArray = [];
     for (let i = 0; i < heatmapData.length; i += 7) {
@@ -112,428 +211,248 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
     return weeksArray;
   }, [heatmapData]);
 
-  // Get type display name for items
-  const getTypeDisplayName = (type: string) => {
-    const names: Record<string, string> = {
-      'sales-call': 'Call Analysis',
-      'growth-plan': 'Growth Plan',
-      'pricing-calc': 'Pricing',
-      'niche-research': 'Research',
-      'cold-email': 'Email',
-      'offer-creator': 'Offer',
-      'ad-writer': 'Ad Copy',
-      'n8n-workflow': 'Workflow'
-    };
-    return names[type] || type;
+  const getIntensityLevel = (count: number) => {
+    if (count === 0) return 0;
+    if (count <= 2) return 1;
+    if (count <= 4) return 2;
+    if (count <= 6) return 3;
+    return 4;
   };
 
-  const getCardStyle = () => ({
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-    borderRadius: '12px',
+  // --- Styles ---
+  const getMainCardStyles = () => ({
+    header: {
+      backgroundColor: backgroundColor,
+      borderBottom: `1px solid ${borderColor}`,
+      padding: '20px 24px',
+    },
+    body: {
+      backgroundColor: backgroundColor,
+      padding: '24px',
+      height: '100%',
+      fontFamily // Ensure body inherits font
+    },
   });
 
-  // Handle loading state
-  if (isLoading) {
-    return (
-      <Card 
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CalendarOutlined style={{ color: '#52c41a' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-              Activity Heatmap
-            </span>
-          </div>
-        }
-        style={getCardStyle()}
-        bodyStyle={{ padding: '16px' }}
-      >
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" />
-          <Text style={{ 
-            color: theme === 'dark' ? '#9ca3af' : '#666666',
-            display: 'block',
-            marginTop: 16
-          }}>
-            Loading activity data...
-          </Text>
-        </div>
-      </Card>
-    );
-  }
+  const getStatItemStyle = (color: string) => ({
+    backgroundColor: subCardBg,
+    borderRadius: '12px',
+    padding: '16px',
+    border: `1px solid ${borderColor}`,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '8px',
+    transition: 'all 0.2s ease',
+  });
 
-  // Handle error state
-  if (isError) {
-    return (
-      <Card 
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CalendarOutlined style={{ color: '#ef4444' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',   letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            fontSize: '10px',
- }}>
-              Activity Heatmap
-              
-            </span>
-          </div>
-        }
-        style={getCardStyle()}
-        bodyStyle={{ padding: '16px' }}
-      >
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Text style={{ 
-            color: theme === 'dark' ? '#ef4444' : '#dc2626',
-            display: 'block'
-          }}>
-            Failed to load activity data
-          </Text>
-        </div>
-      </Card>
-    );
-  }
+  if (isLoading) return <Card loading styles={getMainCardStyles()} style={{ borderRadius: '16px' }} />;
+  if (isError) return null;
 
   return (
-    <Card 
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CalendarOutlined style={{ color: '#52c41a' }} />
-          <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a', letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            fontSize: '10px', }}>
-            Activity Heatmap
-          </span>
-        </div>
-      }
-      style={getCardStyle()}
-      bodyStyle={{ padding: '16px' }}
-    >
-      {/* Compact Stats Summary - 2x2 grid */}
-      <div style={{ 
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 12,
-        marginBottom: 16
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <Text style={{ 
-            fontSize: 16, 
-            fontWeight: 600,
-            color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-            display: 'block'
-          }}>
-            {totalItems}
-          </Text>
-          <Text style={{ 
-            fontSize: 10, 
-            color: theme === 'dark' ? '#9ca3af' : '#666666'
-          }}>
-            Items created
-          </Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text style={{ 
-            fontSize: 16, 
-            fontWeight: 600,
-            color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-            display: 'block'
-          }}>
-            {totalActiveDays}
-          </Text>
-          <Text style={{ 
-            fontSize: 10, 
-            color: theme === 'dark' ? '#9ca3af' : '#666666'
-          }}>
-            Active days
-          </Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text style={{ 
-            fontSize: 16, 
-            fontWeight: 600,
-            color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-            display: 'block'
-          }}>
-            {Math.round((totalActiveDays / 70) * 100)}%
-          </Text>
-          <Text style={{ 
-            fontSize: 10, 
-            color: theme === 'dark' ? '#9ca3af' : '#666666'
-          }}>
-            Consistency
-          </Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text style={{ 
-            fontSize: 16, 
-            fontWeight: 600,
-            color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-            display: 'block'
-          }}>
-            {averageDaily}
-          </Text>
-          <Text style={{ 
-            fontSize: 10, 
-            color: theme === 'dark' ? '#9ca3af' : '#666666'
-          }}>
-            Avg per day
-          </Text>
-        </div>
-      </div>
-
-      {/* Compact Heatmap Grid */}
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 2
-      }}>
-        {/* Weekday Labels */}
-        <div style={{ display: 'flex', gap: 2, marginLeft: 20 }}>
-          {weeks[0]?.map((_, dayIndex) => (
-            <div 
-              key={dayIndex}
-              style={{ 
-                width: 11, 
-                height: 11,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 8,
-                color: theme === 'dark' ? '#9ca3af' : '#666666'
-              }}
-            >
-              {dayIndex % 2 === 1 ? weekdays[dayIndex][0] : ''}
-            </div>
-          ))}
-        </div>
-
-        {/* Month Labels and Grid */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
-          {/* Vertical month labels - more compact */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'space-around',
-            height: weeks.length * 13,
-            width: 16,
-            fontSize: 8,
-            color: theme === 'dark' ? '#9ca3af' : '#666666'
-          }}>
-            {weeks.map((week, weekIndex) => {
-              if (weekIndex % 2 === 0) {
-                const monthName = new Date(week[0].date).toLocaleDateString('en-US', { month: 'short' });
-                return <span key={weekIndex}>{monthName}</span>;
-              }
-              return <span key={weekIndex}></span>;
-            })}
-          </div>
-
-          {/* Activity Grid - More compact */}
-          <div style={{ display: 'flex', gap: 1.5 }}>
-            {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {week.map((day) => {
-                  const intensity = getIntensityLevel(day.count);
-                  return (
-                    <Tooltip
-                      key={day.date}
-                      title={
-                        <div>
-                          <div style={{ fontWeight: 600 }}>
-                            {formatDate(day.date)}
-                          </div>
-                          <div>
-                            {day.count === 0 
-                              ? 'No activity' 
-                              : `${day.count} item${day.count === 1 ? '' : 's'}`}
-                          </div>
-                          {day.items.length > 0 && (
-                            <div style={{ marginTop: 4, fontSize: 11 }}>
-                              {day.items.slice(0, 2).map((item, i) => (
-                                <div key={i}>
-                                  • {getTypeDisplayName(item.type)}: {item.title.substring(0, 20)}...
-                                </div>
-                              ))}
-                              {day.items.length > 2 && (
-                                <div>... and {day.items.length - 2} more</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      }
-                      placement="top"
-                    >
-                      <div
-                        style={{
-                          width: 11,
-                          height: 11,
-                          backgroundColor: getIntensityColor(intensity),
-                          borderRadius: 2,
-                          border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      />
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Compact Legend */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        gap: 6,
-        marginTop: 12,
-        padding: '6px 0',
-        borderTop: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
-      }}>
-        <Text style={{ 
-          fontSize: 10, 
-          color: theme === 'dark' ? '#9ca3af' : '#666666',
-          marginRight: 6
-        }}>
-          Less
-        </Text>
-        {[0, 1, 2, 3, 4].map(level => (
-          <div
-            key={level}
-            style={{
-              width: 9,
-              height: 9,
-              backgroundColor: getIntensityColor(level),
-              borderRadius: 2,
-              border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
-            }}
-          />
-        ))}
-        <Text style={{ 
-          fontSize: 10, 
-          color: theme === 'dark' ? '#9ca3af' : '#666666',
-          marginLeft: 6
-        }}>
-          More
-        </Text>
-      </div>
-
-      {/* Activity Pattern Insights */}
-      <div style={{ 
-        marginTop: 12,
-        padding: '12px',
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-        borderRadius: '8px',
-        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
-      }}>
-        <Text style={{ 
-          fontSize: 11, 
-          fontWeight: 600,
-          color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-          display: 'block',
-          marginBottom: 6
-        }}>
-          Activity Insights
-        </Text>
-        
-        {/* Most productive day of week */}
-        {(() => {
-          const weekdayActivity = weekdays.map((day, index) => {
-            const dayCount = heatmapData
-              .filter(d => new Date(d.date).getDay() === index)
-              .reduce((sum, d) => sum + d.count, 0);
-            return { day, count: dayCount };
-          });
-          const bestDay = weekdayActivity.reduce((max, current) => 
-            current.count > max.count ? current : max
-          );
-          
-          return (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ fontSize: 10, color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-                Most productive day:
-              </Text>
-              <Text style={{ fontSize: 10, fontWeight: 500, color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-                {bestDay.count > 0 ? `${bestDay.day} (${bestDay.count} items)` : 'No data yet'}
-              </Text>
-            </div>
-          );
-        })()}
-
-        {/* Current streak */}
-        {(() => {
-          const today = new Date().toDateString();
-          let streak = 0;
-          
-          // Calculate current streak
-          for (let i = heatmapData.length - 1; i >= 0; i--) {
-            const daysDiff = Math.floor(
-              (new Date(today).getTime() - new Date(heatmapData[i].date).getTime()) / (1000 * 60 * 60 * 24)
-            );
-            
-            if (heatmapData[i].count > 0 && (daysDiff === streak || (daysDiff === streak + 1 && streak === 0))) {
-              streak++;
-            } else if (streak > 0) {
-              break;
-            }
-          }
-          
-          return (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ fontSize: 10, color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-                Current streak:
-              </Text>
-              <Text style={{ 
-                fontSize: 10, 
-                fontWeight: 500, 
-                color: streak >= 3 ? '#22c55e' : (theme === 'dark' ? '#f9fafb' : '#1a1a1a')
+    // Wrap in div to enforce font family on all children
+    <div style={{ fontFamily }}>
+        <Card 
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                 backgroundColor: isDark ? 'rgba(82, 196, 26, 0.2)' : '#f6ffed',
+                 padding: '8px',
+                 borderRadius: '10px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center'
               }}>
-                {streak > 0 ? `${streak} day${streak === 1 ? '' : 's'}` : 'Start today!'}
+                <CalendarOutlined style={{ color: '#52c41a', fontSize: '18px' }} />
+              </div>
+              <Text strong style={{ 
+                  fontSize: '15px', 
+                  color: isDark ? '#f3f4f6' : '#111827', 
+                  fontFamily,
+                  letterSpacing: '-0.01em' 
+              }}>
+                ACTIVITY & INSIGHTS
               </Text>
             </div>
-          );
-        })()}
+          }
+          styles={getMainCardStyles()}
+          style={{ 
+            borderRadius: '16px', 
+            border: `1px solid ${borderColor}`, 
+            backgroundColor: backgroundColor,
+            boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.8)' : '0 4px 20px rgba(0,0,0,0.03)',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            
+            {/* --- 1. STATISTICS GRID --- */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: screens.lg ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)', 
+              gap: '12px',
+            }}>
+                {/* Total Items */}
+                <div style={getStatItemStyle('#1890ff')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1890ff' }}>
+                        <CheckCircleOutlined />
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Total Items</Text>
+                    </div>
+                    <Text style={{ fontSize: 20, fontWeight: 800, color: isDark ? '#fff' : '#000', fontFamily }}>
+                        {stats.totalItems}
+                    </Text>
+                </div>
 
-        {/* Best week */}
-        {(() => {
-          const weeklyTotals = weeks.map((week, index) => ({
-            week: index,
-            total: week.reduce((sum, day) => sum + day.count, 0),
-            startDate: week[0].date
-          }));
-          
-          const bestWeek = weeklyTotals.reduce((max, current) => 
-            current.total > max.total ? current : max
-          );
-          
-          return (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 10, color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-                Best week:
-              </Text>
-              <Text style={{ fontSize: 10, fontWeight: 500, color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' }}>
-                {bestWeek.total > 0 
-                  ? `${bestWeek.total} items (${new Date(bestWeek.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`
-                  : 'No data yet'
-                }
-              </Text>
+                {/* Current Streak */}
+                <div style={getStatItemStyle('#faad14')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#faad14' }}>
+                        <FireOutlined />
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Current Streak</Text>
+                    </div>
+                    <Text style={{ fontSize: 20, fontWeight: 800, color: isDark ? '#fff' : '#000', fontFamily }}>
+                       {stats.streak} Days
+                    </Text>
+                </div>
+
+                 {/* This Week */}
+                 <div style={getStatItemStyle('#52c41a')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#52c41a' }}>
+                        <RiseOutlined />
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>This Week</Text>
+                    </div>
+                    <Text style={{ fontSize: 20, fontWeight: 800, color: isDark ? '#fff' : '#000', fontFamily }}>
+                        {stats.thisWeek}
+                    </Text>
+                </div>
+
+                {/* Best Day */}
+                <div style={getStatItemStyle('#722ed1')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#722ed1' }}>
+                        <ThunderboltOutlined />
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Best Day</Text>
+                    </div>
+                    <Text style={{ fontSize: 20, fontWeight: 800, color: isDark ? '#fff' : '#000', fontFamily }}>
+                        {stats.bestDay}
+                    </Text>
+                </div>
+
+                {/* Top Client */}
+                <div style={{ 
+                    ...getStatItemStyle('#eb2f96'),
+                    gridColumn: screens.lg ? 'span 2' : 'span 1'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#eb2f96' }}>
+                        <CrownOutlined />
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Top Client</Text>
+                    </div>
+                    <Text style={{ 
+                        fontSize: 16, 
+                        fontWeight: 700, 
+                        color: isDark ? '#fff' : '#000',
+                        whiteSpace: 'normal', 
+                        lineHeight: 1.3,
+                        fontFamily
+                    }}>
+                        {stats.topClient}
+                    </Text>
+                </div>
+
+                {/* Top Tool */}
+                <div style={{ 
+                    ...getStatItemStyle('#13c2c2'),
+                    gridColumn: screens.lg ? 'span 2' : 'span 1'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#13c2c2' }}>
+                        <StarOutlined />
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Favorite Tool</Text>
+                    </div>
+                    <Text style={{ 
+                        fontSize: 16, 
+                        fontWeight: 700, 
+                        color: isDark ? '#fff' : '#000',
+                        whiteSpace: 'normal',
+                        lineHeight: 1.3,
+                        fontFamily
+                    }}>
+                        {stats.favTool}
+                    </Text>
+                </div>
             </div>
-          );
-        })()}
-      </div>
-    </Card>
+
+            {/* --- 2. HEATMAP VISUALIZATION --- */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              width: '100%',
+              overflowX: 'auto',
+              paddingBottom: 10
+            }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                
+                {/* Weekday Labels */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'space-between',
+                  paddingTop: 16,
+                  height: 7 * 15,
+                  marginRight: 8
+                }}>
+                   {['Mon', 'Wed', 'Fri'].map((day) => (
+                     <Text key={day} style={{ fontSize: 10, color: isDark ? '#6b7280' : '#9ca3af', fontFamily, fontWeight: 600 }}>
+                       {day}
+                     </Text>
+                   ))}
+                </div>
+
+                {/* The Grid */}
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {week.map((day) => {
+                        const intensity = getIntensityLevel(day.count);
+                        return (
+                          <Tooltip
+                            key={day.date}
+                            color={isDark ? '#1f1f1f' : '#fff'}
+                            overlayInnerStyle={{ color: isDark ? '#fff' : '#000', padding: '8px 12px', fontFamily }}
+                            title={`${day.count} items on ${new Date(day.date).toLocaleDateString()}`}
+                          >
+                            <div
+                              style={{
+                                width: 11,
+                                height: 11,
+                                backgroundColor: isDark ? intensityColorsDark[intensity] : intensityColorsLight[intensity],
+                                borderRadius: 2,
+                                border: day.count === 0 && isDark ? '1px solid #262626' : 'none',
+                              }}
+                            />
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Legend */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 16, alignSelf: 'flex-end' }}>
+                 <Text style={{ fontSize: 10, color: isDark ? '#6b7280' : '#9ca3af', fontFamily }}>Less</Text>
+                 {[0, 1, 2, 3, 4].map(level => (
+                   <div key={level} style={{ 
+                     width: 10, 
+                     height: 10, 
+                     borderRadius: 2, 
+                     backgroundColor: isDark ? intensityColorsDark[level] : intensityColorsLight[level],
+                     border: level === 0 && isDark ? '1px solid #262626' : 'none'
+                   }} />
+                 ))}
+                 <Text style={{ fontSize: 10, color: isDark ? '#6b7280' : '#9ca3af', fontFamily }}>More</Text>
+              </div>
+            </div>
+
+          </div>
+        </Card>
+    </div>
   );
 };
 

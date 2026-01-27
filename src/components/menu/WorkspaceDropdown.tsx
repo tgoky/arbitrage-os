@@ -51,14 +51,15 @@ export const WorkspaceDropdown = ({
     <div
       ref={dropdownRef}
       className={`absolute left-1/2 -translate-x-1/2 top-full mt-1 rounded-lg shadow-lg z-50 w-64 ${
-        theme === "dark" ? "bg-zinc-900 border border-zinc-800" : "bg-white border border-gray-200"
+        theme === "dark" ? "bg-black border border-zinc-800" : "bg-white border border-gray-200"
       }`}
+      style={{ fontFamily: "'Manrope', sans-serif" }}
     >
       {/* Search Bar */}
       <div className="p-2">
         <div
           className={`flex items-center gap-2 px-3 py-2 rounded-md ${
-            theme === "dark" ? "bg-zinc-800" : "bg-gray-50"
+            theme === "dark" ? "bg-zinc-900" : "bg-gray-50"
           }`}
         >
           <Search className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
@@ -68,6 +69,7 @@ export const WorkspaceDropdown = ({
             className={`w-full bg-transparent text-sm outline-none border-none ${
               theme === "dark" ? "text-gray-200 placeholder-gray-500" : "text-gray-900 placeholder-gray-400"
             }`}
+            style={{ fontFamily: "'Manrope', sans-serif" }}
           />
         </div>
       </div>
@@ -78,12 +80,13 @@ export const WorkspaceDropdown = ({
           onClick={() => setWorkspaceDropdownOpen(false)}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors ${
             theme === "dark" 
-              ? "bg-zinc-800 hover:bg-zinc-700 text-white" 
+              ? "bg-zinc-900 hover:bg-zinc-800 text-white" 
               : "bg-gray-50 hover:bg-gray-100 text-gray-900"
           }`}
+          style={{ fontFamily: "'Manrope', sans-serif" }}
         >
           <div className={`w-7 h-7 rounded-full flex items-center justify-center shadow-sm ${
-            theme === "dark" ? "bg-zinc-700 text-gray-300" : "bg-gray-700 text-white"
+            theme === "dark" ? "bg-zinc-800 text-gray-300" : "bg-gray-700 text-white"
           }`}>
             <svg
               className="w-4 h-4"
@@ -96,15 +99,8 @@ export const WorkspaceDropdown = ({
               <circle cx="12" cy="7" r="4" />
             </svg>
           </div>
-          <div className="flex-1 text-left">
-            <div 
-              style={{
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                fontSize: '9px',
-              }}
-            >
+          <div className="flex-1 text-left" style={{ fontFamily: "'Manrope', sans-serif" }}>
+            <div className="text-xs font-semibold">
               Personal Account
             </div>
           </div>
@@ -118,9 +114,10 @@ export const WorkspaceDropdown = ({
         }`}
       >
         <div
-          className={`text-[9px] font-semibold uppercase tracking-wider ${
+          className={`text-xs font-semibold ${
             theme === "dark" ? "text-gray-500" : "text-gray-400"
           }`}
+          style={{ fontFamily: "'Manrope', sans-serif" }}
         >
           Workspaces ({workspaces.length})
         </div>
@@ -138,21 +135,22 @@ export const WorkspaceDropdown = ({
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors mb-1 ${
               currentWorkspace?.id === workspace.id
                 ? theme === "dark"
-                  ? "bg-zinc-800 text-white"
+                  ? "bg-zinc-900 text-white"
                   : "bg-gray-100 text-gray-900"
                 : theme === "dark"
-                ? "bg-transparent hover:bg-zinc-800/50 text-gray-300"
+                ? "bg-transparent hover:bg-zinc-900/50 text-gray-300"
                 : "bg-white hover:bg-gray-50 text-gray-700"
             }`}
+            style={{ fontFamily: "'Manrope', sans-serif" }}
           >
             <div
               className={`w-7 h-7 rounded-md ${workspace.color} flex items-center justify-center text-white font-semibold text-sm shadow-sm`}
             >
               {workspace.name.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 text-left min-w-0">
+            <div className="flex-1 text-left min-w-0" style={{ fontFamily: "'Manrope', sans-serif" }}>
               <div
-                className={`truncate ${
+                className={`truncate text-sm font-medium ${
                   currentWorkspace?.id === workspace.id
                     ? theme === "dark"
                       ? "text-white"
@@ -162,12 +160,6 @@ export const WorkspaceDropdown = ({
                     : "text-gray-700"
                 }`}
                 title={workspace.name}
-                style={{
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                  fontSize: '9px',
-                }}
               >
                 {workspace.name}
               </div>
@@ -200,13 +192,14 @@ export const WorkspaceDropdown = ({
           }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors ${
             theme === "dark" 
-              ? "bg-zinc-800 text-gray-300 hover:bg-zinc-700" 
+              ? "bg-zinc-900 text-gray-300 hover:bg-zinc-800" 
               : "bg-gray-50 text-gray-600 hover:bg-gray-100"
           }`}
+          style={{ fontFamily: "'Manrope', sans-serif" }}
         >
           <div
             className={`w-7 h-7 rounded-md border-2 border-dashed flex items-center justify-center ${
-              theme === "dark" ? "border-zinc-600" : "border-gray-300"
+              theme === "dark" ? "border-zinc-700" : "border-gray-300"
             }`}
           >
             <Plus
@@ -215,14 +208,7 @@ export const WorkspaceDropdown = ({
               }`}
             />
           </div>
-          <span 
-            style={{
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-              fontSize: '9px',
-            }}
-          >
+          <span className="text-sm font-medium">
             Create workspace
           </span>
         </button>

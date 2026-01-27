@@ -1,17 +1,17 @@
-import React, { useMemo } from 'react';
-import { Card, Badge, Typography, Row, Col, Progress, Avatar } from 'antd';
+import React, { useMemo, useEffect } from 'react';
+import { Card, Typography, Grid, Spin } from 'antd';
 import { 
   TrophyOutlined, 
   FireOutlined, 
   RocketOutlined, 
   CrownOutlined,
-  StarOutlined,
-  ThunderboltOutlined
+  CheckCircleFilled,
+  LockOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkItems } from '../../app/hooks/useDashboardData';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface CelebrationMilestonesPanelProps {
   currentWorkspace?: any;
@@ -28,235 +28,69 @@ interface Milestone {
   badge?: string;
 }
 
-interface Achievement {
-  title: string;
-  value: string | number;
-  icon: React.ReactElement;
-  color: string;
-  type: 'milestone' | 'streak' | 'top';
-}
-
 const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
   currentWorkspace
 }) => {
   const { theme } = useTheme();
   
-  // Use TanStack Query to get real-time work items data
   const {
     data: workItems = [],
     isLoading,
     isError
-  } = useWorkItems(200); // Get more items for better analytics
+  } = useWorkItems(200);
 
-  // Calculate real achievements and milestones from live data
-  const { achievements, milestones } = useMemo(() => {
-    if (!Array.isArray(workItems) || workItems.length === 0) {
-      // Return empty state data when no work items exist
-      const emptyAchievements: Achievement[] = [
-        {
-          title: 'This Week',
-          value: '0 items',
-          icon: <FireOutlined />,
-          color: '#f5222d',
-          type: 'streak'
-        },
-        {
-          title: 'Top Client',
-          value: 'No clients yet',
-          icon: <CrownOutlined />,
-          color: '#faad14',
-          type: 'top'
-        },
-        {
-          title: 'Favorite Tool',
-          value: 'None yet',
-          icon: <StarOutlined />,
-          color: '#1890ff',
-          type: 'top'
-        },
-        {
-          title: 'Activity Streak',
-          value: 'Start today!',
-          icon: <ThunderboltOutlined />,
-          color: '#52c41a',
-          type: 'streak'
-        }
-      ];
+  // --- 1. FORCE LOAD MANROPE FONT (Like in ColdEmailWriter) ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      // Optional: don't remove if other components need it, 
+      // but for strict cleanup: document.head.removeChild(link);
+    };
+  }, []);
 
-      const emptyMilestones: Milestone[] = [
-        {
-          id: 'first_item',
-          title: 'Getting Started',
-          description: 'Create your first AI item',
-          achieved: false,
-          progress: 0,
-          icon: <RocketOutlined />,
-          color: '#52c41a'
-        },
-        {
-          id: 'productive_week',
-          title: 'Productive Week',
-          description: 'Generate 10 items in one week',
-          achieved: false,
-          progress: 0,
-          icon: <FireOutlined />,
-          color: '#fa8c16'
-        },
-        {
-          id: 'power_user',
-          title: 'Power User',
-          description: 'Create 50 total items',
-          achieved: false,
-          progress: 0,
-          icon: <TrophyOutlined />,
-          color: '#1890ff'
-        },
-        {
-          id: 'ai_expert',
-          title: 'AI Expert',
-          description: 'Use 5 different AI tools',
-          achieved: false,
-          progress: 0,
-          icon: <CrownOutlined />,
-          color: '#722ed1'
-        }
-      ];
-
-      return { achievements: emptyAchievements, milestones: emptyMilestones };
-    }
+  // --- Styling Constants ---
+  const isDark = theme === 'dark';
+  // We apply this variable to the container to ensure inheritance
+  const fontFamily = "'Manrope', sans-serif";
+  const backgroundColor = isDark ? '#000000' : '#ffffff';
+  const borderColor = isDark ? '#262626' : '#f0f0f0';
+  
+  // --- Logic ---
+  const milestones = useMemo(() => {
+    if (!Array.isArray(workItems)) return [];
 
     const now = new Date();
     const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
-    // Calculate real weekly and monthly stats
     const weeklyItems = workItems.filter(item => {
-      try {
-        return new Date(item.createdAt) >= thisWeek;
-      } catch {
-        return false;
-      }
+      try { return new Date(item.createdAt) >= thisWeek; } catch { return false; }
     });
-    
-    const monthlyItems = workItems.filter(item => {
-      try {
-        return new Date(item.createdAt) >= thisMonth;
-      } catch {
-        return false;
-      }
-    });
-    
-    // Real client analysis from subtitle data
-    const clientCounts = workItems.reduce((acc, item) => {
-      try {
-        const client = item.subtitle?.split('•')[0]?.trim() || 'Unknown Client';
-        if (client !== 'Unknown Client' && client !== 'Generated content') {
-          acc[client] = (acc[client] || 0) + 1;
-        }
-      } catch {
-        // Skip invalid items
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const topClient = Object.entries(clientCounts).reduce((max, [client, count]) => 
-      count > max.count ? { client, count } : max, { client: 'No clients yet', count: 0 }
-    );
 
-    // Real tool type analysis
-    const typeCounts = workItems.reduce((acc, item) => {
-      if (item.type) {
-        acc[item.type] = (acc[item.type] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const topType = Object.entries(typeCounts).reduce((max, [type, count]) => 
-      count > max.count ? { type, count } : max, { type: 'none', count: 0 }
-    );
+    const uniqueTools = new Set(workItems.map(item => item.type)).size;
 
-    // Real activity streak calculation
-    const activityDays = [...new Set(workItems
-      .map(item => {
-        try {
-          return new Date(item.createdAt).toDateString();
-        } catch {
-          return null;
-        }
-      })
-      .filter((date): date is string => date !== null)
-    )].sort();
-    
-    let currentStreak = 0;
-    const today = new Date().toDateString();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toDateString();
-    
-    // Check if user was active today or yesterday to start streak
-    const hasRecentActivity = activityDays.includes(today) || activityDays.includes(yesterday);
-    
-    if (hasRecentActivity) {
-      // Calculate consecutive days from most recent activity
-      for (let i = activityDays.length - 1; i >= 0; i--) {
-        const daysDiff = Math.floor((new Date(today).getTime() - new Date(activityDays[i]).getTime()) / (1000 * 60 * 60 * 24));
-        if (daysDiff === currentStreak || (daysDiff === currentStreak + 1 && currentStreak === 0)) {
-          currentStreak++;
-        } else {
-          break;
-        }
-      }
-    }
-
-    const achievements: Achievement[] = [
-      {
-        title: 'This Week',
-        value: `${weeklyItems.length} item${weeklyItems.length === 1 ? '' : 's'}`,
-        icon: <FireOutlined />,
-        color: weeklyItems.length >= 5 ? '#52c41a' : weeklyItems.length >= 2 ? '#faad14' : '#f5222d',
-        type: 'streak'
-      },
-      {
-        title: 'Top Client',
-        value: topClient.count > 0 ? `${topClient.client} (${topClient.count})` : 'No clients yet',
-        icon: <CrownOutlined />,
-        color: '#faad14',
-        type: 'top'
-      },
-      {
-        title: 'Favorite Tool',
-        value: topType.count > 0 ? getTypeDisplayName(topType.type) : 'None yet',
-        icon: <StarOutlined />,
-        color: '#1890ff',
-        type: 'top'
-      },
-      {
-        title: 'Activity Streak',
-        value: currentStreak > 0 ? `${currentStreak} day${currentStreak === 1 ? '' : 's'}` : 'Start today!',
-        icon: <ThunderboltOutlined />,
-        color: currentStreak >= 7 ? '#52c41a' : currentStreak >= 3 ? '#1890ff' : '#52c41a',
-        type: 'streak'
-      }
-    ];
-
-    const milestones: Milestone[] = [
+    const milestoneList: Milestone[] = [
       {
         id: 'first_item',
-        title: 'Getting Started',
+        title: 'First Steps',
         description: 'Create your first AI item',
         achieved: workItems.length >= 1,
         progress: Math.min(100, (workItems.length / 1) * 100),
         icon: <RocketOutlined />,
         color: '#52c41a',
-        badge: workItems.length >= 1 ? 'Completed!' : undefined
+        badge: 'UNLOCKED'
       },
       {
         id: 'productive_week',
-        title: 'Productive Week',
-        description: 'Generate 10 items in one week',
+        title: 'Momentum',
+        description: 'Generate 10 items in a week',
         achieved: weeklyItems.length >= 10,
         progress: Math.min(100, (weeklyItems.length / 10) * 100),
         icon: <FireOutlined />,
         color: '#fa8c16',
-        badge: weeklyItems.length >= 10 ? 'This Week!' : undefined
+        badge: 'UNLOCKED'
       },
       {
         id: 'power_user',
@@ -266,257 +100,178 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
         progress: Math.min(100, (workItems.length / 50) * 100),
         icon: <TrophyOutlined />,
         color: '#1890ff',
-        badge: workItems.length >= 50 ? 'Achieved!' : undefined
+        badge: 'UNLOCKED'
       },
       {
         id: 'ai_expert',
         title: 'AI Expert',
         description: 'Use 5 different AI tools',
-        achieved: Object.keys(typeCounts).length >= 5,
-        progress: Math.min(100, (Object.keys(typeCounts).length / 5) * 100),
+        achieved: uniqueTools >= 5,
+        progress: Math.min(100, (uniqueTools / 5) * 100),
         icon: <CrownOutlined />,
         color: '#722ed1',
-        badge: Object.keys(typeCounts).length >= 5 ? 'Expert!' : undefined
+        badge: 'UNLOCKED'
       }
     ];
 
-    return { achievements, milestones };
+    return milestoneList;
   }, [workItems]);
 
-  function getTypeDisplayName(type: string) {
-    const names: Record<string, string> = {
-      'sales-call': 'Sales Calls',
-      'growth-plan': 'Growth Plans',
-      'pricing-calc': 'Pricing',
-      'niche-research': 'Research',
-      'cold-email': 'Cold Emails',
-      'offer-creator': 'Offers',
-      'ad-writer': 'Ad Copy',
-      'n8n-workflow': 'Workflows'
-    };
-    return names[type] || type;
-  }
-
-  const getCardStyle = () => ({
-    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-    borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-    borderRadius: '12px',
+  // --- Styles ---
+  const getMainCardStyles = () => ({
+    header: {
+      backgroundColor: backgroundColor,
+      borderBottom: `1px solid ${borderColor}`,
+      padding: '16px 24px',
+    },
+    body: {
+      backgroundColor: backgroundColor,
+      padding: '24px',
+    },
   });
 
-  // Handle loading state
-  if (isLoading) {
-    return (
-      <Card 
-        style={getCardStyle()}
-        bodyStyle={{ padding: '20px' }}
-      >
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <Title level={4} style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-            Loading Your Achievements...
-          </Title>
-        </div>
-      </Card>
-    );
-  }
-
-  // Handle error state
-  if (isError) {
-    return (
-      <Card 
-        style={getCardStyle()}
-        bodyStyle={{ padding: '20px' }}
-      >
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          {/* <RocketOutlined 
-            style={{ 
-              fontSize: 48, 
-              color: theme === 'dark' ? '#ef4444' : '#dc2626',
-              marginBottom: 16 
-            }} 
-          /> */}
-          <Title level={4} style={{ color: theme === 'dark' ? '#ef4444' : '#dc2626' }}>
-            Failed to Load Achievements
-          </Title>
-        </div>
-      </Card>
-    );
-  }
-
-  // Empty state for new users
-  if (workItems.length === 0) {
-    return (
-      <Card 
-        style={getCardStyle()}
-        bodyStyle={{ padding: '20px' }}
-      >
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          {/* <RocketOutlined 
-            style={{ 
-              fontSize: 48, 
-              color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-              marginBottom: 16 
-            }} 
-          /> */}
-          <Title level={4} style={{ color: theme === 'dark' ? '#9ca3af' : '#666666' }}>
-            Start Your  Journey
-          </Title>
-          <Text style={{ color: theme === 'dark' ? '#6b7280' : '#999999' }}>
-            Use any AI tool to unlock achievements and milestones
-          </Text>
-        </div>
-      </Card>
-    );
-  }
+  if (isLoading) return <Card loading styles={getMainCardStyles()} style={{ borderRadius: '16px' }} />;
+  if (isError) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Achievements Row - Made wider for 2-column dashboard layout */}
+    // Applied font family to the wrapper div to ensure it trickles down
+    <div style={{ fontFamily }}>
       <Card 
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <TrophyOutlined style={{ color: '#faad14' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' ,   letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            fontSize: '10px',
-}}>
-              Recent Achievements
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+               backgroundColor: isDark ? 'rgba(24, 144, 255, 0.2)' : '#e6f7ff',
+               padding: '6px',
+               borderRadius: '8px',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center'
+            }}>
+              <TrophyOutlined style={{ color: '#1890ff', fontSize: '16px' }} />
+            </div>
+            <Text strong style={{ 
+              fontSize: '15px', 
+              color: isDark ? '#f3f4f6' : '#111827', 
+              fontFamily, // Explicitly set here
+              fontWeight: 700,
+              letterSpacing: '-0.01em' // Manrope looks better with slight negative tracking on headers
+            }}>
+              MILESTONES
+            </Text>
           </div>
         }
-        style={getCardStyle()}
-        bodyStyle={{ padding: '16px' }}
+        styles={getMainCardStyles()}
+        style={{ 
+          borderRadius: '16px', 
+          border: `1px solid ${borderColor}`, 
+          backgroundColor: backgroundColor,
+          boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.8)' : '0 4px 20px rgba(0,0,0,0.03)',
+        }}
       >
-        <Row gutter={[12, 12]}>
-          {achievements.map((achievement, index) => (
-            <Col xs={24} sm={12} key={index}>
-              <div style={{
-                padding: '16px',
-                borderRadius: '8px',
-                backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-                border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                minHeight: '64px'
-              }}>
-                <Avatar
-                  icon={achievement.icon}
-                  style={{
-                    backgroundColor: achievement.color + '15',
-                    color: achievement.color,
-                    border: `2px solid ${achievement.color}20`,
-                    flexShrink: 0
-                  }}
-                  size={36}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text 
-                    style={{ 
-                      fontSize: 12, 
-                      color: theme === 'dark' ? '#9ca3af' : '#666666',
-                      display: 'block',
-                      marginBottom: 2
-                    }}
-                  >
-                    {achievement.title}
-                  </Text>
-                  <Text 
-                    style={{ 
-                      fontSize: 14, 
-                      fontWeight: 600,
-                      color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                      wordBreak: 'break-word'
-                    }}
-                  >
-                    {achievement.value}
-                  </Text>
-                </div>
-              </div>
-            </Col>
-          ))}
-        </Row>
-      </Card>
-
-      {/* Milestones Progress - Compact for 2-column layout */}
-      <Card 
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <StarOutlined style={{ color: '#1890ff' }} />
-            <span style={{ color: theme === 'dark' ? '#f9fafb' : '#1a1a1a' , letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            fontSize: '10px',}}>
-              Milestone Progress
-            </span>
-          </div>
-        }
-        style={getCardStyle()}
-        bodyStyle={{ padding: '16px' }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
           {milestones.map((milestone) => (
             <div 
               key={milestone.id}
               style={{
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-                border: `1px solid ${milestone.achieved ? milestone.color + '40' : (theme === 'dark' ? '#374151' : '#e5e7eb')}`,
-                position: 'relative'
+                position: 'relative',
+                padding: '16px',
+                borderRadius: '14px',
+                backgroundColor: isDark 
+                  ? (milestone.achieved ? 'rgba(20, 20, 20, 0.8)' : '#0A0A0A') 
+                  : '#f9fafb',
+                border: milestone.achieved 
+                  ? `1px solid ${milestone.color}50` 
+                  : `1px solid ${isDark ? '#262626' : '#e5e7eb'}`,
+                boxShadow: milestone.achieved && isDark
+                  ? `0 0 15px ${milestone.color}10`
+                  : 'none',
+                overflow: 'hidden',
+                transition: 'all 0.3s ease'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                  <Avatar
-                    icon={milestone.icon}
-                    style={{
-                      backgroundColor: milestone.achieved ? milestone.color : (theme === 'dark' ? '#374151' : '#e5e7eb'),
-                      color: milestone.achieved ? '#ffffff' : (theme === 'dark' ? '#9ca3af' : '#666666'),
-                      flexShrink: 0
-                    }}
-                    size={24}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text 
-                      style={{ 
-                        fontSize: 13, 
-                        fontWeight: 600,
-                        color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                        display: 'block'
-                      }}
-                    >
+              {milestone.achieved && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0, right: 0, bottom: 0, width: '30%',
+                  background: `linear-gradient(90deg, transparent, ${milestone.color}08)`,
+                  pointerEvents: 'none'
+                }} />
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                
+                {/* Icon Box */}
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '12px',
+                  backgroundColor: milestone.achieved ? milestone.color : (isDark ? '#1f1f1f' : '#f0f0f0'),
+                  color: milestone.achieved ? '#fff' : (isDark ? '#4b5563' : '#9ca3af'),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 20,
+                  boxShadow: milestone.achieved ? `0 4px 12px ${milestone.color}40` : 'none',
+                  flexShrink: 0
+                }}>
+                   {milestone.achieved ? <CheckCircleFilled /> : <LockOutlined style={{ fontSize: 18 }} />}
+                </div>
+
+                {/* Text Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={{ 
+                      fontSize: 14, 
+                      fontWeight: 700, // Manrope bold is 700 or 800
+                      color: isDark ? '#f9fafb' : '#111827',
+                      fontFamily,
+                      letterSpacing: '-0.01em',
+                      opacity: milestone.achieved ? 1 : 0.8
+                    }}>
                       {milestone.title}
                     </Text>
-                    <Text 
-                      style={{ 
-                        fontSize: 11, 
-                        color: theme === 'dark' ? '#9ca3af' : '#666666',
-                        display: 'block'
-                      }}
-                    >
-                      {milestone.description}
-                    </Text>
+                    
+                    {milestone.achieved && (
+                       <span style={{
+                         fontSize: '10px',
+                         fontWeight: 800, // Extra bold for badges
+                         color: milestone.color,
+                         backgroundColor: isDark ? `${milestone.color}15` : `${milestone.color}10`,
+                         padding: '2px 8px',
+                         borderRadius: '6px',
+                         letterSpacing: '0.05em', // Wide tracking for caps
+                         fontFamily
+                       }}>
+                         {milestone.badge}
+                       </span>
+                    )}
+                  </div>
+                  
+                  <Text style={{ 
+                    fontSize: 12, 
+                    color: isDark ? '#9ca3af' : '#666666', 
+                    fontFamily,
+                    fontWeight: 500, // Medium weight for descriptions
+                    display: 'block',
+                    marginBottom: 10
+                  }}>
+                    {milestone.description}
+                  </Text>
+
+                  {/* Custom Progress Bar */}
+                  <div style={{ position: 'relative', height: '6px', backgroundColor: isDark ? '#262626' : '#e5e7eb', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{
+                       position: 'absolute',
+                       left: 0, top: 0, bottom: 0,
+                       width: `${milestone.progress}%`,
+                       backgroundColor: milestone.achieved ? milestone.color : (isDark ? '#4b5563' : '#9ca3af'),
+                       borderRadius: '3px',
+                       transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                       boxShadow: milestone.achieved ? `0 0 10px ${milestone.color}` : 'none'
+                    }} />
                   </div>
                 </div>
-                {milestone.badge && (
-                  <Badge 
-                    count={milestone.badge} 
-                    style={{ 
-                      backgroundColor: milestone.color,
-                      fontSize: 9,
-                      flexShrink: 0
-                    }} 
-                  />
-                )}
               </div>
-              <Progress 
-                percent={milestone.progress} 
-                strokeColor={milestone.color}
-                trailColor={theme === 'dark' ? '#374151' : '#e5e7eb'}
-                size="small"
-                showInfo={false}
-              />
             </div>
           ))}
         </div>

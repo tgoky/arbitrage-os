@@ -1,6 +1,15 @@
+"use client";
+
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
-import { useWorkspace } from "../../app/hooks/useWorkspace"; // Import the workspace hook
+import { useWorkspace } from "../../app/hooks/useWorkspace";
+
+// --- PREMIUM BLACK THEME ---
+const DARK_BG = '#000000';
+const BORDER_COLOR = '#27272a';
+const TEXT_PRIMARY = '#f4f4f5'; // Zinc-100
+const TEXT_SECONDARY = '#a1a1aa'; // Zinc-400
+const HOVER_BG = '#18181b'; // Zinc-900
 
 interface WorkspaceHeaderProps {
   collapsed: boolean;
@@ -16,52 +25,46 @@ export const WorkspaceHeader = ({
   const { theme } = useTheme();
   const { currentWorkspace, workspaces, isLoading } = useWorkspace();
 
-  // Show loading state
   if (isLoading) {
     return (
-      <div className={`p-1 border-b ${
-        theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200"
-      } relative`}>
+      <div className="p-1 border-b relative" style={{
+        backgroundColor: DARK_BG,
+        borderColor: BORDER_COLOR,
+        fontFamily: "'Manrope', sans-serif"
+      }}>
         {!collapsed ? (
           <div className="animate-pulse">
-            <div className={`w-full flex items-center gap-3 p-3 rounded-xl ${
-              theme === "dark" ? "bg-black" : "bg-white"
-            }`}>
-              <div className="w-8 h-8 rounded-lg bg-gray-300 flex-shrink-0"></div>
+            <div className="w-full flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: HOVER_BG }}>
+              <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: '#27272a' }}></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-300 rounded mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-16"></div>
+                <div className="h-4 rounded mb-1 w-24" style={{ backgroundColor: '#27272a' }}></div>
+                <div className="h-3 rounded w-16" style={{ backgroundColor: '#27272a' }}></div>
               </div>
             </div>
           </div>
         ) : (
           <div className="flex justify-center p-2">
-            <div className="w-10 h-10 rounded-xl bg-gray-300 animate-pulse"></div>
+            <div className="w-10 h-10 rounded-xl animate-pulse" style={{ backgroundColor: '#27272a' }}></div>
           </div>
         )}
       </div>
     );
   }
 
-  // Handle case when no workspace is selected
   if (!currentWorkspace) {
     return (
-      <div className={`p-1 border-b ${
-        theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200"
-      } relative`}>
+      <div className="p-1 border-b relative" style={{
+        backgroundColor: DARK_BG,
+        borderColor: BORDER_COLOR,
+        fontFamily: "'Manrope', sans-serif"
+      }}>
         {!collapsed ? (
           <div className="p-3">
-            <div className={`text-sm ${
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            }`}>
-              No workspace selected
-            </div>
+            <div className="text-sm font-medium" style={{ color: TEXT_SECONDARY }}>Select Workspace</div>
           </div>
         ) : (
           <div className="flex justify-center p-2">
-            <div className="w-10 h-10 rounded-xl bg-gray-300 flex items-center justify-center text-gray-500">
-              ?
-            </div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#27272a', color: TEXT_SECONDARY }}>?</div>
           </div>
         )}
       </div>
@@ -69,76 +72,77 @@ export const WorkspaceHeader = ({
   }
 
   const getCurrentWorkspaceColor = () => {
-    return currentWorkspace.color || "bg-indigo-500";
+    return currentWorkspace.color || "bg-zinc-800";
   };
 
   return (
     <div
       data-tour="workspace-header"
-      className={`p-1 border-b ${
-        theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200"
-      } relative`}
+      className="p-1 border-b relative"
+      style={{
+        backgroundColor: DARK_BG,
+        borderColor: BORDER_COLOR,
+        fontFamily: "'Manrope', sans-serif"
+      }}
     >
       {!collapsed ? (
         <div className="relative">
           <button
             onClick={() => setWorkspaceDropdownOpen(!workspaceDropdownOpen)}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors border-none ${
-              theme === "dark" ? "bg-black hover:bg-gray-900" : "bg-white hover:bg-gray-100"
-            }`}
+            className="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 border-none group"
+            style={{ 
+              fontFamily: "'Manrope', sans-serif",
+              backgroundColor: DARK_BG
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = HOVER_BG}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = DARK_BG}
           >
             <div
-              className={`w-8 h-8 rounded-lg ${getCurrentWorkspaceColor()} flex items-center justify-center text-white font-medium text-sm flex-shrink-0 shadow-sm`}
+              className={`w-8 h-8 rounded-lg ${getCurrentWorkspaceColor()} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm ring-1 ring-white/5`}
             >
               {currentWorkspace.name.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 text-left min-w-0">
-             <div
-  className={`font-semibold truncate text-sm ${
-    theme === "dark" ? "text-gray-100" : "text-gray-900"
-  }`}
-  title={currentWorkspace.name}
-  style={{
-    letterSpacing: '0.12em',  // ✅ adds the premium spacing
-    textTransform: 'uppercase', // ✅ optional, looks sleek and uniform
-    fontWeight: 600,           // ✅ slightly bolder for presence
-    fontSize: '10px',          // ✅ tighter modern dashboard scale
-  }}
->
-  {currentWorkspace.name}
-</div>
-
+            
+            <div className="flex-1 text-left min-w-0" style={{ fontFamily: "'Manrope', sans-serif" }}>
               <div
-                className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
+                className="truncate"
+                title={currentWorkspace.name}
+                style={{
+                  color: TEXT_PRIMARY,
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
               >
-                Workspace ({workspaces.length})
+                {currentWorkspace.name}
+              </div>
+
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#5CC49D' }}></div>
+                <div 
+                  className="text-[10px] font-semibold"
+                  style={{ 
+                    color: TEXT_SECONDARY,
+                    fontFamily: "'Manrope', sans-serif"
+                  }}
+                >
+                  Active
+                </div>
               </div>
             </div>
 
-            {/* Always show dropdown arrows to allow access to create workspace */}
-            <div className="flex flex-col items-center -space-y-2">
-              <ChevronUp
-                className={`w-5 h-5 transition-transform ${
-                  workspaceDropdownOpen ? "rotate-180" : ""
-                } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
-              />
-              <ChevronDown
-                className={`w-5 h-5 transition-transform ${
-                  workspaceDropdownOpen ? "rotate-180" : ""
-                } ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
-              />
+            <div className="flex flex-col items-center -space-y-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ChevronUp className="w-3.5 h-3.5" style={{ color: '#52525b' }} />
+              <ChevronDown className="w-3.5 h-3.5" style={{ color: '#52525b' }} />
             </div>
           </button>
         </div>
       ) : (
-        <div
-          className={`flex justify-center ${
-            theme === "dark" ? "bg-black" : "bg-white"
-          }`}
-        >
+        <div className="flex justify-center p-2">
           <div
-            className={`w-10 h-10 rounded-xl ${getCurrentWorkspaceColor()} flex items-center justify-center text-white font-bold shadow-sm`}
-            title={currentWorkspace.name} // Show full name on hover
+            className={`w-10 h-10 rounded-xl ${getCurrentWorkspaceColor()} flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:opacity-90 transition-opacity ring-1 ring-white/10`}
+            title={currentWorkspace.name}
+            onClick={() => setWorkspaceDropdownOpen(!workspaceDropdownOpen)}
+            style={{ fontFamily: "'Manrope', sans-serif" }}
           >
             {currentWorkspace.name.charAt(0).toUpperCase()}
           </div>

@@ -1,6 +1,6 @@
 // app/dashboard/components/RecentDeliverables.tsx
 import React from 'react';
-import { Card, List, Button, Typography, Grid, Tag, Spin , } from 'antd';
+import { Card, List, Button, Typography, Grid, Tag, Spin, Space } from 'antd';
 import { 
   FileTextOutlined,
   PhoneOutlined,
@@ -12,7 +12,10 @@ import {
   TagOutlined,
   CalendarOutlined,
   EyeOutlined,
-  TeamOutlined
+  TeamOutlined,
+  ArrowRightOutlined,
+  FolderOpenOutlined,
+  FileDoneOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
@@ -36,7 +39,6 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
   const { theme } = useTheme();
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
-  // Use React Query for work items instead of separate API call
   const {
     data: workItems = [],
     isLoading,
@@ -45,43 +47,31 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     refetch
   } = useWorkItems(maxItems);
 
-  // Get icon for work type
-  const getTypeIcon = (type: WorkItem['type']) => {
-    const icons: Record<WorkItem['type'], React.JSX.Element> = {
-      'sales-call': <PhoneOutlined />,
-      'growth-plan': <RocketOutlined />,
-      'pricing-calc': <DollarCircleOutlined />,
-      'niche-research': <BulbOutlined />,
-      'cold-email': <MailOutlined />,
-      'offer-creator': <EditOutlined />,
-      'ad-writer': <TagOutlined />,
-      'n8n-workflow': <FileTextOutlined />,
-         'proposal': <FileTextOutlined />,           // ✅ ADD THIS
-    'lead-generation': <TeamOutlined />  
+  // --- Styling Constants ---
+  const isDark = theme === 'dark';
+  const fontFamily = "'Manrope', sans-serif";
+  const backgroundColor = isDark ? '#000000' : '#ffffff';
+  const borderColor = isDark ? '#262626' : '#f0f0f0';
+
+  // --- Helpers ---
+  const getToolConfig = (type: WorkItem['type']) => {
+    const config: Record<string, { icon: React.ReactElement; color: string; bg: string }> = {
+      'sales-call': { icon: <PhoneOutlined />, color: '#722ed1', bg: '#f9f0ff' },
+      'growth-plan': { icon: <RocketOutlined />, color: '#1890ff', bg: '#e6f7ff' },
+      'pricing-calc': { icon: <DollarCircleOutlined />, color: '#52c41a', bg: '#f6ffed' },
+      'niche-research': { icon: <BulbOutlined />, color: '#fa8c16', bg: '#fff7e6' },
+      'cold-email': { icon: <MailOutlined />, color: '#eb2f96', bg: '#fff0f6' },
+      'offer-creator': { icon: <EditOutlined />, color: '#13c2c2', bg: '#e6fffb' },
+      'ad-writer': { icon: <TagOutlined />, color: '#faad14', bg: '#fffbe6' },
+      'n8n-workflow': { icon: <FileTextOutlined />, color: '#fa541c', bg: '#fff2e8' },
+      'proposal': { icon: <FileDoneOutlined />, color: '#9254de', bg: '#f9f0ff' },
+      'lead-generation': { icon: <TeamOutlined />, color: '#52c41a', bg: '#f6ffed' },
     };
-    return icons[type] || <FileTextOutlined />;
+    return config[type] || { icon: <FileTextOutlined />, color: '#666', bg: '#f5f5f5' };
   };
 
-  // Get type color
-  const getTypeColor = (type: WorkItem['type']) => {
-    const colors: Record<WorkItem['type'], string> = {
-      'sales-call': '#722ed1',
-      'growth-plan': '#1890ff',
-      'pricing-calc': '#52c41a',
-      'niche-research': '#fa8c16',
-      'cold-email': '#eb2f96',
-      'offer-creator': '#13c2c2',
-      'ad-writer': '#faad14',
-      'n8n-workflow': '#fa541c',
-         'proposal': '#9254de',            
-    'lead-generation': '#52c41a'  
-    };
-    return colors[type] || '#666';
-  };
-
-  // Get type display name
   const getTypeName = (type: WorkItem['type']) => {
-    const names: Record<WorkItem['type'], string> = {
+    const names: Record<string, string> = {
       'sales-call': 'Call Analysis',
       'growth-plan': 'Growth Plan',
       'pricing-calc': 'Pricing Calc',
@@ -90,66 +80,73 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'offer-creator': 'Offers',
       'ad-writer': 'Ads',
       'n8n-workflow': 'Workflow',
-        'proposal': 'Proposal',                
-    'lead-generation': 'Lead Generation'  
+      'proposal': 'Proposal',
+      'lead-generation': 'Leads'
     };
     return names[type] || type;
   };
 
-  // Handle view action with workspace context
   const handleView = (item: WorkItem) => {
     if (!currentWorkspace) return;
-    
-    // Navigate to submissions page with filter
     window.location.href = `/submissions?type=${item.type}&id=${item.rawData.id}`;
   };
 
-  const getCardStyles = () => ({
-    body: {
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: screens.xs ? '8px' : '12px',
-    },
+  const getMainCardStyles = () => ({
     header: {
-      borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-      padding: '8px 12px',
+      backgroundColor: backgroundColor,
+      borderBottom: `1px solid ${borderColor}`,
+      padding: '16px 24px',
+    },
+    body: {
+      backgroundColor: backgroundColor,
+      padding: 0,
+      height: '380px', // Fixed height to match Activity Feed
+      overflow: 'hidden',
     },
   });
 
-  // Premium title component
-  const PremiumTitle = () => (
-    <span style={{
-      letterSpacing: '0.12em',
-      textTransform: 'uppercase',
-      fontWeight: 600,
-      fontSize: '10px',
-    }}>
-      Recent Deliverables
-    </span>
-  );
+  // --- Render Metadata Pills ---
+  const renderMetadataPill = (label: string | number, colorType: 'default' | 'success' | 'blue' = 'default') => {
+    let color = isDark ? '#9ca3af' : '#6b7280';
+    let bg = isDark ? '#141414' : '#f3f4f6';
 
-  // Don't render until workspace is ready
+    if (colorType === 'success') {
+      color = '#52c41a';
+      bg = isDark ? 'rgba(82, 196, 26, 0.1)' : '#f6ffed';
+    } else if (colorType === 'blue') {
+      color = '#1890ff';
+      bg = isDark ? 'rgba(24, 144, 255, 0.1)' : '#e6f7ff';
+    }
+
+    return (
+      <span style={{
+        backgroundColor: bg,
+        color: color,
+        fontSize: '10px',
+        padding: '2px 8px',
+        borderRadius: '6px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        fontFamily: fontFamily,
+        fontWeight: 500,
+        lineHeight: '1.4'
+      }}>
+        {label}
+      </span>
+    );
+  };
+
+  // --- Loading State ---
   if (!isWorkspaceReady) {
     return (
       <Card
-        data-tour="recent-deliverables"
-        title={<PremiumTitle />}
-        styles={getCardStyles()}
-        style={{
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-        }}
+        title="Recent Deliverables"
+        styles={getMainCardStyles()}
+        style={{ borderRadius: '16px', border: `1px solid ${borderColor}`, backgroundColor }}
       >
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <Spin size="small" />
-          <Text
-            style={{
-              color: theme === 'dark' ? '#9ca3af' : '#666666',
-              display: 'block',
-              marginTop: 8,
-              fontSize: 12,
-            }}
-          >
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Spin size="large" />
+          <Text style={{ display: 'block', marginTop: 16, color: isDark ? '#6b7280' : '#999', fontFamily }}>
             Loading workspace...
           </Text>
         </div>
@@ -157,303 +154,254 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     );
   }
 
-  // Error state
+  // --- Error State ---
   if (isError) {
     return (
       <Card
-        data-tour="recent-deliverables"
-        title={<PremiumTitle />}
-        styles={getCardStyles()}
-        style={{
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-          borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-        }}
+        styles={getMainCardStyles()}
+        style={{ borderRadius: '16px', border: `1px solid ${borderColor}`, backgroundColor }}
       >
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <Text
-            style={{
-              color: theme === 'dark' ? '#ef4444' : '#dc2626',
-              display: 'block',
-              marginBottom: 8,
-              fontSize: 12,
-            }}
-          >
-      Failed to load deliverables: {(error as Error)?.message || 'Unknown error'}
-          </Text>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => refetch()}
-            style={{
-              color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-              padding: 0,
-              height: 'auto',
-              fontSize: 12,
-            }}
-          >
-            Retry
-          </Button>
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Text type="danger" style={{ fontFamily }}>Failed to load deliverables</Text>
+          <br />
+          <Button type="link" onClick={() => refetch()} style={{ fontFamily }}>Retry</Button>
         </div>
       </Card>
     );
   }
 
+  // --- Main Render ---
   return (
     <Card
       data-tour="recent-deliverables"
-      title={<PremiumTitle />}
-      styles={getCardStyles()}
-      style={{
-        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-        borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-        
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      bodyStyle={{
-        flex: 1,
-        overflow: 'hidden',
-        padding: 0,
-      }}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: fontFamily }}>
+           <div style={{
+             backgroundColor: isDark ? 'rgba(114, 46, 209, 0.2)' : '#f9f0ff',
+             padding: '6px',
+             borderRadius: '8px',
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center'
+          }}>
+            <FolderOpenOutlined style={{ color: '#722ed1', fontSize: '16px' }} />
+          </div>
+          <Text strong style={{ 
+            fontSize: '14px', 
+            color: isDark ? '#f3f4f6' : '#111827', 
+            letterSpacing: '-0.01em',
+            fontFamily: fontFamily 
+          }}>
+            RECENT DELIVERABLES
+          </Text>
+        </div>
+      }
       extra={
         <Button
           type="text"
           size="small"
           onClick={() => window.location.href = `/submissions`}
           style={{
-            color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-            padding: 0,
-            height: 'auto',
+            color: '#722ed1', // Purple accent for this card
+            fontWeight: 600,
+            fontFamily: fontFamily,
+            fontSize: '13px',
+            backgroundColor: isDark ? 'rgba(114, 46, 209, 0.1)' : 'rgba(114, 46, 209, 0.05)',
+            borderRadius: '8px',
+            transition: 'all 0.3s ease'
           }}
         >
-          View All
+          View All <ArrowRightOutlined style={{ fontSize: 10 }} />
         </Button>
       }
+      styles={getMainCardStyles()}
+      style={{
+        borderRadius: '16px',
+        border: `1px solid ${borderColor}`,
+        boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.8)' : '0 4px 20px rgba(0,0,0,0.03)',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: fontFamily,
+        backgroundColor: backgroundColor
+      }}
     >
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <Spin size="small" />
-          <Text
-            style={{
-              color: theme === 'dark' ? '#9ca3af' : '#666666',
-              display: 'block',
-              marginTop: 8,
-              fontSize: 12,
-            }}
-          >
-            Loading your recent work...
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Spin size="large" />
+          <Text style={{ display: 'block', marginTop: 16, color: isDark ? '#6b7280' : '#999', fontFamily }}>
+            Fetching recent work...
           </Text>
         </div>
       ) : workItems.length > 0 ? (
         <div
+          className="custom-scrollbar"
           style={{
-            height: 'calc(100% - 0px)',
+            height: '100%',
             overflowY: 'auto',
-            overflowX: 'hidden',
-            padding: '0 12px',
-            // Custom scrollbar styles
-            scrollbarWidth: 'thin',
-            scrollbarColor: theme === 'dark' ? '#374151 transparent' : '#d1d5db transparent',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.overflowY = 'scroll';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.overflowY = 'auto';
+            padding: '0 16px',
           }}
         >
-          <style>
-            {`
-              /* Webkit scrollbar styles */
-              .deliverables-scroll::-webkit-scrollbar {
-                width: 6px;
-              }
-              
-              .deliverables-scroll::-webkit-scrollbar-track {
-                background: transparent;
-              }
-              
-              .deliverables-scroll::-webkit-scrollbar-thumb {
-                background-color: ${theme === 'dark' ? '#374151' : '#d1d5db'};
-                border-radius: 3px;
-                transition: background-color 0.2s;
-              }
-              
-              .deliverables-scroll::-webkit-scrollbar-thumb:hover {
-                background-color: ${theme === 'dark' ? '#4b5563' : '#9ca3af'};
-              }
-              
-              .deliverables-scroll {
-                scrollbar-width: thin;
-                scrollbar-color: ${theme === 'dark' ? '#374151 transparent' : '#d1d5db transparent'};
-              }
-            `}
-          </style>
+          {/* Scrollbar Styles */}
+          <style jsx global>{`
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: ${isDark ? '#333' : '#e5e7eb'};
+              border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: ${isDark ? '#555' : '#d1d5db'};
+            }
+          `}</style>
+
           <List
-            className="deliverables-scroll"
             itemLayout="horizontal"
             dataSource={workItems.slice(0, maxItems)}
-            style={{
-              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-              borderColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-            }}
-            renderItem={(item) => (
-              <List.Item
-                style={{
-                  borderBottomColor: theme === 'dark' ? '#374151' : '#f0f0f0',
-                  padding: '8px 0',
-                  backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                }}
-                actions={[
-                  <Button
-                    type="text"
-                    size="small"
-                    key="view"
-                    icon={<EyeOutlined />}
-                    onClick={() => handleView(item)}
-                    style={{
-                      color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-                      padding: '0 4px',
-                      height: 'auto',
-                      fontSize: 12,
-                    }}
-                  >
-                    View
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <div
+            split={false}
+            renderItem={(item) => {
+              const toolConfig = getToolConfig(item.type);
+              
+              return (
+                <List.Item
+                  style={{
+                    padding: '16px 8px',
+                    borderBottom: `1px dashed ${borderColor}`,
+                    transition: 'all 0.2s',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleView(item)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = isDark ? '#141414' : '#fafafa';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                  actions={[
+                    <Button
+                      type="text"
+                      size="small"
+                      key="view"
+                      icon={<EyeOutlined />}
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 6,
-                        backgroundColor: getTypeColor(item.type) + '15',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: getTypeColor(item.type),
+                        color: isDark ? '#6b7280' : '#999',
                         fontSize: 14,
                       }}
-                    >
-                      {getTypeIcon(item.type)}
-                    </div>
-                  }
-                  title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Text
-                        strong
-                        style={{
-                          color: theme === 'dark' ? '#f9fafb' : '#1a1a1a',
-                          fontSize: 13,
-                        }}
-                      >
-                        {item.title}
-                      </Text>
-                      <Tag 
-                        color={getTypeColor(item.type)} 
-                        style={{ fontSize: 10, lineHeight: 1.2, padding: '0 4px' }}
-                      >
-                        {getTypeName(item.type)}
-                      </Tag>
-                    </div>
-                  }
-                  description={
-                    <div>
-                      <Text
-                        style={{
-                          color: theme === 'dark' ? '#9ca3af' : '#666666',
-                          fontSize: 12,
-                          display: 'block',
-                          marginBottom: 2,
-                        }}
-                      >
-                        {item.subtitle}
-                      </Text>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ color: theme === 'dark' ? '#6b7280' : '#999', fontSize: 10 }}>
-                          <CalendarOutlined /> {new Date(item.createdAt).toLocaleDateString()}
-                        </Text>
-                        
-                        {/* Type-specific metadata */}
-                        {item.type === 'pricing-calc' && item.metadata.hourlyRate && (
-                          <Tag color="green" style={{ fontSize: 9 }}>${item.metadata.hourlyRate}/hr</Tag>
-                        )}
-                        {item.type === 'cold-email' && item.metadata.emailCount && (
-                          <Tag style={{ fontSize: 9 }}>{item.metadata.emailCount} emails</Tag>
-                        )}
-                        {item.type === 'growth-plan' && item.metadata.strategies && (
-                          <Tag style={{ fontSize: 9 }}>{item.metadata.strategies} strategies</Tag>
-                        )}
-                        {item.type === 'offer-creator' && item.metadata.packages && (
-                          <Tag style={{ fontSize: 9 }}>{item.metadata.packages} packages</Tag>
-                        )}
-
-                        {item.type === 'proposal' && item.metadata.winProbability && (
-  <Tag color="green" style={{ fontSize: 9 }}>
-    {item.metadata.winProbability}% win
-  </Tag>
-)}
-{item.type === 'lead-generation' && item.metadata.leadCount && (
-  <Tag color="blue" style={{ fontSize: 9 }}>
-    {item.metadata.leadCount} leads
-  </Tag>
-)}
-                        
-                        {/* Workspace indicator */}
-                        {currentWorkspace && (
-                          <Tag color="blue" style={{ fontSize: 9 }}>
-                            {currentWorkspace.name}
-                          </Tag>
-                        )}
+                    />
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <div style={{ position: 'relative' }}>
+                        <div style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: '12px',
+                          backgroundColor: isDark ? `${toolConfig.color}20` : toolConfig.bg,
+                          border: `1px solid ${toolConfig.color}30`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: toolConfig.color,
+                          fontSize: 18,
+                        }}>
+                          {toolConfig.icon}
+                        </div>
                       </div>
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
+                    }
+                    title={
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <Text strong style={{ 
+                          color: isDark ? '#f3f4f6' : '#111827', 
+                          fontSize: '14px', 
+                          fontFamily: fontFamily 
+                        }}>
+                          {item.title}
+                        </Text>
+                      </div>
+                    }
+                    description={
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ 
+                             color: toolConfig.color, 
+                             fontSize: 11, 
+                             fontWeight: 600, 
+                             fontFamily: fontFamily,
+                             textTransform: 'uppercase',
+                             letterSpacing: '0.05em'
+                          }}>
+                            {getTypeName(item.type)}
+                          </span>
+                          <span style={{ color: isDark ? '#4b5563' : '#d1d5db' }}>•</span>
+                          <Text style={{ color: isDark ? '#9ca3af' : '#666', fontSize: 11, fontFamily }}>
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </Text>
+                        </div>
+                        
+                        {/* Dynamic Metadata Section */}
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          {item.type === 'pricing-calc' && item.metadata.hourlyRate && 
+                            renderMetadataPill(`$${item.metadata.hourlyRate}/hr`, 'success')}
+                          
+                          {item.type === 'cold-email' && item.metadata.emailCount && 
+                            renderMetadataPill(`${item.metadata.emailCount} emails`)}
+                          
+                          {item.type === 'growth-plan' && item.metadata.strategies && 
+                            renderMetadataPill(`${item.metadata.strategies} strategies`)}
+                          
+                          {item.type === 'offer-creator' && item.metadata.packages && 
+                            renderMetadataPill(`${item.metadata.packages} packages`)}
+
+                          {item.type === 'proposal' && item.metadata.winProbability && 
+                            renderMetadataPill(`${item.metadata.winProbability}% win prob`, 'success')}
+                          
+                          {item.type === 'lead-generation' && item.metadata.leadCount && 
+                            renderMetadataPill(`${item.metadata.leadCount} leads`, 'blue')}
+                        </div>
+                      </div>
+                    }
+                  />
+                </List.Item>
+              );
+            }}
           />
         </div>
       ) : (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '16px 0',
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-          }}
-        >
-          <RocketOutlined
-            style={{
-              fontSize: 32,
-              color: theme === 'dark' ? '#4b5563' : '#d1d5db',
-              marginBottom: 8,
-            }}
-          />
-          <Text
-            style={{
-              color: theme === 'dark' ? '#9ca3af' : '#666666',
-              display: 'block',
-              marginBottom: 4,
-              fontSize: 12,
-            }}
-          >
-            No AI work generated yet in {currentWorkspace?.name}
-          </Text>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/tools`}
-            style={{
-              color: theme === 'dark' ? '#a78bfa' : '#6d28d9',
-              padding: 0,
-              height: 'auto',
-              fontSize: 12,
-            }}
-          >
-            Start using AI tools
-          </Button>
+        <div style={{ 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: 12,
+          color: isDark ? '#4b5563' : '#d1d5db'
+        }}>
+          <RocketOutlined style={{ fontSize: 48, opacity: 0.5 }} />
+          <div style={{ textAlign: 'center' }}>
+            <Text style={{ display: 'block', color: isDark ? '#9ca3af' : '#6b7280', fontFamily: fontFamily, fontWeight: 500 }}>
+              No deliverables yet
+            </Text>
+            <Button
+              type="text"
+              size="small"
+              onClick={() => window.location.href = `/dashboard/${currentWorkspace?.slug}/tools`}
+              style={{
+                color: '#722ed1',
+                fontFamily: fontFamily,
+                marginTop: 8
+              }}
+            >
+              Start using AI tools
+            </Button>
+          </div>
         </div>
       )}
     </Card>

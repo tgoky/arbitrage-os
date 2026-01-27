@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Grid } from 'antd';
+import { Grid, ConfigProvider } from 'antd';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspace } from '../../hooks/useWorkspace';
 import { useDashboardData } from '../../hooks/useDashboardData';
@@ -35,97 +35,54 @@ const WorkspaceDashboard = () => {
 
   const {
     workItems,
-    clients,
-    agents,
-    workflows,
-    deliverables,
     isLoading: dataLoading,
     isError,
     error,
-    refetchAll,
-    queries
+    refetchAll
   } = useDashboardData();
 
-  const isLoading = workspaceLoading || dataLoading;
+  const isDark = theme === 'dark';
+  const fontFamily = "'Manrope', sans-serif";
+  const bgStyle = isDark ? '#000000' : '#f8fafc';
 
+  // Handle workspace switching from URL
   useEffect(() => {
     if (!workspaceLoading && workspaceSlug && workspaces.length > 0) {
       const workspace = workspaces.find(w => w.slug === workspaceSlug);
       if (workspace && (!currentWorkspace || currentWorkspace.slug !== workspaceSlug)) {
         console.log('URL workspace found, switching to:', workspace);
         switchWorkspace(workspaceSlug);
-      } else if (!workspace) {
-        console.log('Workspace not found in user workspaces');
       }
     }
   }, [workspaceSlug, workspaces, currentWorkspace, workspaceLoading, switchWorkspace]);
 
-  if (validationError) {
-    return <WorkspaceValidationError />;
-  }
+  // --- CRITICAL: Check if URL matches current workspace ---
+  const isWorkspaceMismatch = currentWorkspace && workspaceSlug && currentWorkspace.slug !== workspaceSlug;
+  const isLoading = workspaceLoading || dataLoading || isWorkspaceMismatch;
+
+  // --- Render States ---
+
+  if (validationError) return <WorkspaceValidationError />;
 
   if (isLoading) {
     return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-black' : 'bg-slate-50'}`}>
+      <div className="min-h-screen w-full" style={{ backgroundColor: bgStyle }}>
         <EnhancedLoadingState theme={theme} />
       </div>
     );
   }
 
-  if (!currentWorkspace && !workspaceLoading) {
+  if (!currentWorkspace) {
     return (
-      <div 
-        className={`min-h-screen flex flex-col items-center justify-center ${
-          theme === 'dark' ? 'bg-black text-white' : 'bg-slate-50 text-gray-900'
-        }`}
-        style={{
-          background: theme === 'dark' 
-            ? 'radial-gradient(ellipse at center, rgba(30, 41, 59, 0.3) 0%, rgba(0, 0, 0, 1) 70%)'
-            : 'radial-gradient(ellipse at center, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 1) 70%)',
-        }}
-      >
-        <div 
-          className="text-center p-8 rounded-2xl backdrop-blur-xl"
-          style={{
-            background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-            boxShadow: theme === 'dark'
-              ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-              : '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-          }}
-        >
-          <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-            Workspace Not Found
-          </h1>
-          <p className={`mb-8 text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            The workspace {workspaceSlug} could not be found or you do not have access to it.
-          </p>
-          <div className="space-y-4">
-            {workspaces.length > 0 && (
-              <button
-                onClick={() => router.push(`/dashboard/${workspaces[0].slug}`)}
-                className={`px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                  theme === 'dark'
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white shadow-lg hover:shadow-xl'
-                }`}
-              >
-                Go to Available Workspace
-              </button>
-            )}
-            <button
-              onClick={() => router.push('/')}
-              className={`px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                theme === 'dark'
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 shadow-lg hover:shadow-xl'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700 shadow-lg hover:shadow-xl'
-              }`}
-            >
-              Go to Workspaces
-            </button>
-          </div>
+      <div className="min-h-screen w-full flex flex-col items-center justify-center" style={{ backgroundColor: bgStyle, fontFamily }}>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <h1 style={{ color: isDark ? '#fff' : '#000', fontSize: '24px', fontWeight: 700 }}>Workspace Not Found</h1>
+          <button 
+            onClick={() => router.push('/')}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+          >
+            Go to Workspaces
+          </button>
         </div>
       </div>
     );
@@ -133,49 +90,25 @@ const WorkspaceDashboard = () => {
 
   if (isError) {
     return (
-      <div 
-        className={`min-h-screen ${theme === 'dark' ? 'bg-black' : 'bg-slate-50'}`}
-        style={{
-          background: theme === 'dark' 
-            ? 'radial-gradient(ellipse at center, rgba(30, 41, 59, 0.3) 0%, rgba(0, 0, 0, 1) 70%)'
-            : 'radial-gradient(ellipse at center, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 1) 70%)',
-        }}
-      >
-        <div className={`max-w-4xl mx-auto p-8 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-          <div 
-            className="text-center p-8 rounded-2xl backdrop-blur-xl"
-            style={{
-              background: theme === 'dark' 
-                ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-              boxShadow: theme === 'dark'
-                ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                : '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-              border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-            }}
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ backgroundColor: bgStyle, fontFamily }}>
+        <div style={{ textAlign: 'center', color: '#ef4444' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600 }}>Unable to Load Dashboard</h2>
+          <p className="mt-2 text-sm opacity-80">{(error as Error)?.message}</p>
+          <button 
+            onClick={refetchAll}
+            className="mt-4 px-6 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"
           >
-            <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-red-500 to-orange-600 bg-clip-text text-transparent">
-              Unable to Load Dashboard
-            </h1>
-            <p className={`mb-8 text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              {(error as Error)?.message || 'An error occurred while loading your dashboard data.'}
-            </p>
-            <button
-              onClick={refetchAll}
-              className={`px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                theme === 'dark'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg hover:shadow-xl'
-                  : 'bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white shadow-lg hover:shadow-xl'
-              }`}
-            >
-              Try Again
-            </button>
-          </div>
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
+  // At this point, workspace is guaranteed to exist and match URL
+  const workspace = currentWorkspace;
+
+  // --- Data Transformation ---
   const recentDeliverables: Deliverable[] = (workItems || []).slice(0, 6).map((item) => ({
     id: item.id,
     title: item.title,
@@ -187,7 +120,7 @@ const WorkspaceDashboard = () => {
     updated_at: item.rawData.updatedAt,
   }));
 
-  const recentActivity: ActivityItem[] = (workItems || []).slice(0, 8).map((item, index) => ({
+  const recentActivity: ActivityItem[] = (workItems || []).slice(0, 10).map((item, index) => ({
     id: index + 1,
     type: item.type,
     action: item.title,
@@ -197,174 +130,91 @@ const WorkspaceDashboard = () => {
   }));
 
   return (
-    <div
-      className="w-full h-full"
-      style={{
-        background: theme === 'dark' 
-          ? 'radial-gradient(ellipse at top, rgba(15, 23, 42, 0.5) 0%, rgba(0, 0, 0, 1) 50%)'
-          : 'radial-gradient(ellipse at top, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 1) 50%)',
-        padding: screens.xs ? '16px' : '24px',
-        paddingTop: screens.xs ? '8px' : '12px',
-        minHeight: '100vh',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: fontFamily,
+          colorBgBase: isDark ? '#000000' : '#ffffff',
+          colorTextBase: isDark ? '#ffffff' : '#000000',
+        }
       }}
     >
-      {/* Slim WelcomePanel at the very top */}
-      {currentWorkspace && (
-        <div
-          style={{
-            marginBottom: 16,
-            borderRadius: '12px',
-            background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-            boxShadow: theme === 'dark'
-              ? '0 2px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-              : '0 2px 16px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.04)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
-          <WelcomePanel
-            workspaceName={currentWorkspace.name}
-            workspaceId={currentWorkspace.id}
-          />
-        </div>
-      )}
-
-      {/* QuickStartActions Container */}
       <div
         style={{
-          marginBottom: 24,
-          borderRadius: '16px',
-          background: theme === 'dark' 
-            ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-          boxShadow: theme === 'dark'
-            ? '0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-            : '0 4px 24px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.04)',
-          backdropFilter: 'blur(16px)',
+          backgroundColor: bgStyle,
+          minHeight: '100vh',
+          padding: screens.xs ? '16px' : '32px',
+          fontFamily: fontFamily,
+          transition: 'background-color 0.3s ease'
         }}
       >
-        <QuickStartActions workspaceId={currentWorkspace?.id} />
-      </div>
+        <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
+          
+          {/* 1. Welcome Panel */}
+          <div style={{ marginBottom: 32 }}>
+            <WelcomePanel
+              workspaceName={workspace.name}
+              workspaceId={workspace.id}
+            />
+          </div>
 
-      {/* Cards Grid Container */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: screens.lg ? 'repeat(2, 1fr)' : '1fr',
-          gap: 24,
-          marginBottom: 24,
-          height: '450px',
-          background: theme === 'dark' 
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)'
-            : 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)',
-          borderRadius: '20px',
-          padding: '12px',
-          backdropFilter: 'blur(20px)',
-          border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)',
-          boxShadow: theme === 'dark'
-            ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-            : '0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-        }}
-      >
-        <div
-          style={{
-            background: theme === 'dark' 
-              ? 'rgba(17, 24, 39, 0.95)' 
-              : 'rgba(255, 255, 255, 0.95)',
-            borderRadius: '16px',
-            boxShadow: theme === 'dark' 
-              ? '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)'
-              : '0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)',
-            backdropFilter: 'blur(16px)',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
-            overflow: 'hidden',
-            height: '100%',
-          }}
-        >
-          <ActivityFeed 
-            recentActivity={recentActivity}
-            workspaceId={currentWorkspace?.id}
-            maxItems={8}
-          />
-        </div>
+          {/* 2. Quick Actions */}
+          <div style={{ marginBottom: 32 }}>
+            <QuickStartActions workspaceId={workspace.id} />
+          </div>
 
-        <div
-          style={{
-            background: theme === 'dark' 
-              ? 'rgba(17, 24, 39, 0.95)' 
-              : 'rgba(255, 255, 255, 0.95)',
-            borderRadius: '16px',
-            boxShadow: theme === 'dark' 
-              ? '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)'
-              : '0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)',
-            backdropFilter: 'blur(16px)',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
-            overflow: 'hidden',
-            height: '100%',
-          }}
-        >
-          <RecentDeliverables 
-            deliverables={recentDeliverables}
-            workspaceId={currentWorkspace?.id}
-            maxItems={6}
-          />
-        </div>
-      </div>
+          {/* 3. Activity & Deliverables Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: screens.xl ? '1fr 1fr' : '1fr',
+              gap: 24,
+              marginBottom: 32,
+              alignItems: 'stretch'
+            }}
+          >
+            <div style={{ minHeight: '450px' }}>
+              <ActivityFeed 
+                recentActivity={recentActivity}
+                workspaceId={workspace.id}
+                maxItems={8}
+              />
+            </div>
 
-      {/* New Celebration & Analytics Section */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: screens.lg ? 'repeat(2, 1fr)' : '1fr',
-          gap: 24,
-          marginBottom: 24,
-        }}
-      >
-        {/* Celebration & Milestones Panel */}
-        <div
-          style={{
-            background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-            borderRadius: '16px',
-            boxShadow: theme === 'dark'
-              ? '0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-              : '0 4px 24px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.04)',
-            backdropFilter: 'blur(16px)',
-            padding: '16px',
-          }}
-        >
-          <CelebrationMilestonesPanel 
-            currentWorkspace={currentWorkspace}
-          />
-        </div>
+            <div style={{ minHeight: '450px' }}>
+              <RecentDeliverables 
+                deliverables={recentDeliverables}
+                workspaceId={workspace.id}
+                maxItems={6}
+              />
+            </div>
+          </div>
 
-        {/* Activity Heatmap */}
-        <div
-          style={{
-            background: theme === 'dark' 
-              ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)'
-              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)',
-            borderRadius: '16px',
-            boxShadow: theme === 'dark'
-              ? '0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-              : '0 4px 24px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.04)',
-            backdropFilter: 'blur(16px)',
-            padding: '16px',
-          }}
-        >
-          <ActivityHeatmap 
-            currentWorkspace={currentWorkspace}
-          />
+          {/* 4. Analytics & Heatmaps Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: screens.xl ? '1fr 1fr' : '1fr',
+              gap: 24,
+              marginBottom: 32,
+            }}
+          >
+            <div>
+              <CelebrationMilestonesPanel 
+                currentWorkspace={workspace}
+              />
+            </div>
+
+            <div>
+              <ActivityHeatmap 
+                currentWorkspace={workspace}
+              />
+            </div>
+          </div>
+          
         </div>
       </div>
-    </div>
+    </ConfigProvider>
   );
 };
 
