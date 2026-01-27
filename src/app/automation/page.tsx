@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Tabs, Layout, Button, Space, message, Drawer, Badge } from 'antd';
+import { Tabs, Layout, Button, Space, message, Drawer, Badge, ConfigProvider, theme as antTheme, Typography } from 'antd';
 import {
   AppstoreOutlined,
   BuildOutlined,
@@ -11,7 +11,8 @@ import {
   PlusOutlined,
   ThunderboltOutlined,
   RocketOutlined,
-  SettingOutlined
+  ClockCircleOutlined,
+  RightOutlined
 } from '@ant-design/icons';
 import { CrewTemplateGallery } from '../../components/crew/CrewTemplateGallery';
 import { UnifiedCrewBuilder } from '../../components/crew/UnifiedCrewBuilder';
@@ -20,34 +21,15 @@ import { CrewChatInterface } from '../../components/crew/CrewChatInterface';
 import { useWorkspaceContext } from '@/app/hooks/useWorkspaceContext';
 
 const { Content } = Layout;
+const { Text, Title } = Typography;
 
-/**
- * ARCHITECTURE EXPLANATION:
- * 
- * This page follows CrewAI's core architecture:
- * 
- * 1. TEMPLATE GALLERY - Pre-built crew templates (like CrewAI's marketplace)
- *    - Users can browse, preview, and select templates
- *    - Templates contain: agents[], tasks[], process type, tools
- * 
- * 2. UNIFIED CREW BUILDER - Visual + AI-powered builder
- *    - LEFT PANEL: AI chat interface for building crews via natural language
- *    - CENTER: Visual canvas showing agents and tasks as nodes (ReactFlow)
- *    - RIGHT: Tools panel for assigning tools to agents
- *    - Supports streaming crew generation
- * 
- * 3. CREW CHAT INTERFACE - Execute and interact with built crews
- *    - Real-time execution with SSE streaming
- *    - Human-in-the-loop support (pause/resume)
- *    - Shows agent thoughts and tool calls
- * 
- * 4. EXECUTION MONITOR - Track running/completed executions
- *    - Timeline of steps
- *    - Task progress tracking
- *    - Final results and logs
- * 
- * The flow: Gallery → Builder → Chat/Execute → Monitor
- */
+// --- STYLING CONSTANTS ---
+const BRAND_GREEN = '#5CC49D';
+const DARK_BG = '#000000';
+const SURFACE_CARD = '#09090b';
+const BORDER_COLOR = '#27272a';
+const TEXT_SECONDARY = '#a1a1aa';
+const TEXT_PRIMARY = '#ffffff';
 
 export default function CrewsPage() {
   const { currentWorkspace } = useWorkspaceContext();
@@ -65,6 +47,17 @@ export default function CrewsPage() {
   
   // UI state
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+
+  // --- FONT INJECTION ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
 
   // Load saved crews on mount
   useEffect(() => {
@@ -100,12 +93,7 @@ export default function CrewsPage() {
 
   if (!currentWorkspace) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh' 
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: DARK_BG, color: TEXT_SECONDARY }}>
         Loading...
       </div>
     );
@@ -113,22 +101,13 @@ export default function CrewsPage() {
 
   // ==================== HANDLERS ====================
 
-  /**
-   * When user selects "Use Template" from gallery
-   * Converts template to full crew config and opens builder
-   */
   const handleUseTemplate = (template: any) => {
-    // Convert template to full crew config following CrewAI structure
     const crewConfig = {
       id: `crew_${Date.now()}`,
       name: template.name,
       description: template.description,
       version: 1,
-      
-      // CrewAI Process type: 'sequential' | 'hierarchical'
       process: template.process || 'sequential',
-      
-      // Agents with CrewAI structure
       agents: template.agents.map((a: any) => ({
         id: a.id || `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: a.name,
@@ -138,82 +117,40 @@ export default function CrewsPage() {
         avatar: a.avatar || '🤖',
         color: a.color || '#5CC49D',
         tools: a.tools || [],
-        // LLM configuration
-        llm: a.llm || { 
-          model: 'openai/gpt-4o-mini', 
-          temperature: 0.7 
-        },
-        // Agent behavior config
-        config: a.config || { 
-          allowDelegation: false, 
-          maxIter: 25, 
-          verbose: true 
-        }
+        llm: a.llm || { model: 'openai/gpt-4o-mini', temperature: 0.7 },
+        config: a.config || { allowDelegation: false, maxIter: 25, verbose: true }
       })),
-      
-      // Tasks with CrewAI structure (context = dependencies)
       tasks: template.tasks.map((t: any, idx: number) => ({
         id: t.id || `task_${Date.now()}_${idx}`,
         description: t.description,
         expectedOutput: t.expectedOutput || t.expected_output,
         assignedAgentId: t.assignedAgentId || t.agent_id,
-        // Context is array of task IDs this task depends on
         context: t.dependencies || t.context || [],
         tools: t.tools || [],
-        config: t.config || { 
-          async: false, 
-          humanInput: false 
-        }
+        config: t.config || { async: false, humanInput: false }
       })),
-      
-      // Triggers (manual, schedule, webhook, etc.)
-      triggers: [{ 
-        id: 'trigger_manual', 
-        type: 'manual', 
-        config: {}, 
-        enabled: true 
-      }],
-      
-      // Variables that can be passed at runtime
+      triggers: [{ id: 'trigger_manual', type: 'manual', config: {}, enabled: true }],
       variables: template.variables || {},
-      
-      // Global crew config
-      config: { 
-        verbose: true, 
-        memory: false,
-        // For hierarchical process, manager LLM config
-        managerLlm: template.managerLlm || null
-      }
+      config: { verbose: true, memory: false, managerLlm: template.managerLlm || null }
     };
 
     setSelectedCrew(crewConfig);
     setActiveTab('builder');
   };
 
-  /**
-   * Start fresh with no template
-   */
   const handleNewCrew = () => {
     setSelectedCrew(null);
     setActiveTab('builder');
   };
 
-  /**
-   * Save crew to database
-   */
   const handleSaveCrew = async (crew: any) => {
     try {
       const res = await fetch('/api/agent-crews/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId: currentWorkspace.id,
-          crew
-        })
+        body: JSON.stringify({ workspaceId: currentWorkspace.id, crew })
       });
-
       const data = await res.json();
-
       if (data.success) {
         await loadSavedCrews();
         message.success('Crew saved!');
@@ -225,31 +162,19 @@ export default function CrewsPage() {
     }
   };
 
-  /**
-   * Execute crew - starts the agents working
-   */
   const handleRunCrew = async (crew: any) => {
     try {
-      // Save first if not saved
-      if (!crew.savedId) {
-        await handleSaveCrew(crew);
-      }
-
+      if (!crew.savedId) await handleSaveCrew(crew);
       const res = await fetch('/api/agent-crews/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId: currentWorkspace.id,
-          crew
-        })
+        body: JSON.stringify({ workspaceId: currentWorkspace.id, crew })
       });
-
       const data = await res.json();
-
       if (data.success) {
         setExecutionId(data.executionId);
         setActiveExecutions(prev => [...prev, data.executionId]);
-        setShowChatDrawer(true); // Open chat interface
+        setShowChatDrawer(true);
         message.success('Execution started!');
       }
     } catch (error) {
@@ -258,22 +183,13 @@ export default function CrewsPage() {
     }
   };
 
-  /**
-   * Export crew as Python CrewAI project
-   */
   const handleExportCrew = async (crew: any) => {
     try {
       const res = await fetch('/api/agent-crews/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          crew, 
-          format: 'zip',
-          // Export as proper CrewAI Python project
-          includeCrewaiProject: true
-        })
+        body: JSON.stringify({ crew, format: 'zip', includeCrewaiProject: true })
       });
-
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -290,9 +206,6 @@ export default function CrewsPage() {
     }
   };
 
-  /**
-   * When execution completes
-   */
   const handleExecutionComplete = (result: any) => {
     setActiveExecutions(prev => prev.filter(id => id !== executionId));
     message.success('Crew execution completed!');
@@ -304,9 +217,9 @@ export default function CrewsPage() {
     {
       key: 'gallery',
       label: (
-        <span>
+        <span style={{ fontSize: '13px', fontWeight: 600 }}>
           <AppstoreOutlined />
-          Template Gallery
+          Templates
         </span>
       ),
       children: (
@@ -320,19 +233,13 @@ export default function CrewsPage() {
     {
       key: 'builder',
       label: (
-        <span>
+        <span style={{ fontSize: '13px', fontWeight: 600 }}>
           <BuildOutlined />
-          Crew Builder
+          Builder
         </span>
       ),
       children: (
         <div style={{ height: 'calc(100vh - 64px)' }}>
-          {/* 
-            UnifiedCrewBuilder contains:
-            - LEFT: AI chat for building via prompts
-            - CENTER: Visual canvas (ReactFlow) for agents/tasks
-            - RIGHT: Tools panel
-          */}
           <UnifiedCrewBuilder
             workspaceId={currentWorkspace.id}
             initialCrew={selectedCrew}
@@ -346,10 +253,10 @@ export default function CrewsPage() {
     {
       key: 'monitor',
       label: (
-        <Badge count={activeExecutions.length} size="small" offset={[8, 0]}>
-          <span>
+        <Badge count={activeExecutions.length} size="small" offset={[8, 0]} color={BRAND_GREEN}>
+          <span style={{ fontSize: '13px', fontWeight: 600 }}>
             <HistoryOutlined />
-            Executions
+            Monitor
           </span>
         </Badge>
       ),
@@ -363,27 +270,39 @@ export default function CrewsPage() {
       ) : (
         <div style={{ 
           textAlign: 'center', 
-          padding: '100px 20px',
-          color: '#999'
+          padding: '120px 20px',
+          color: TEXT_SECONDARY,
+          height: '100%'
         }}>
-          <ThunderboltOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
-          <div>No active execution selected</div>
-          <div style={{ fontSize: '12px', marginTop: '8px' }}>
-            Run a crew from the Builder to see execution details
+          <div style={{ 
+              width: '80px', height: '80px', borderRadius: '50%', 
+              backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${BORDER_COLOR}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px'
+          }}>
+              <ThunderboltOutlined style={{ fontSize: '32px', color: TEXT_SECONDARY }} />
+          </div>
+          <Title level={3} style={{ color: '#fff', marginBottom: '8px' }}>No Active Execution</Title>
+          <div style={{ fontSize: '14px', marginTop: '8px', marginBottom: '32px' }}>
+            Run a crew from the Builder to see live execution details here.
           </div>
           
-          {/* Show recent executions if any */}
           {activeExecutions.length > 0 && (
-            <div style={{ marginTop: '24px' }}>
-              <div style={{ marginBottom: '8px' }}>Active executions:</div>
-              <Space direction="vertical">
+            <div style={{ marginTop: '24px', maxWidth: '400px', margin: '0 auto' }}>
+              <div style={{ marginBottom: '12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Recent Executions</div>
+              <Space direction="vertical" style={{ width: '100%' }}>
                 {activeExecutions.map(execId => (
                   <Button 
                     key={execId}
-                    type="link"
+                    type="default"
+                    block
+                    icon={<ClockCircleOutlined />}
                     onClick={() => setExecutionId(execId)}
+                    style={{ textAlign: 'left', borderColor: BORDER_COLOR, height: 'auto', padding: '12px' }}
                   >
-                    {execId}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                        <span>{execId}</span>
+                        <RightOutlined style={{ fontSize: '10px', color: TEXT_SECONDARY }} />
+                    </div>
                   </Button>
                 ))}
               </Space>
@@ -397,78 +316,106 @@ export default function CrewsPage() {
   // ==================== RENDER ====================
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#fff' }}>
-      <Content style={{ padding: 0 }}>
-        {/* Header */}
-        <div style={{ 
-          padding: '12px 24px', 
-          borderBottom: '1px solid #f0f0f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={tabItems.map(item => ({ 
-              key: item.key, 
-              label: item.label 
-            }))}
-            style={{ marginBottom: 0 }}
-          />
-          
-          <Space>
-            {/* Quick action to open chat with running execution */}
-            {executionId && (
-              <Button
-                icon={<MessageOutlined />}
-                onClick={() => setShowChatDrawer(true)}
-              >
-                Chat with Crew
-              </Button>
-            )}
-            
-            <Button 
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleNewCrew}
-              style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
-            >
-              New Crew
-            </Button>
-          </Space>
-        </div>
-
-        {/* Tab Content */}
-        <div>
-          {tabItems.find(t => t.key === activeTab)?.children}
-        </div>
-      </Content>
-
-      {/* Chat Drawer - For interacting with running crew */}
-      <Drawer
-        title={
-          <Space>
-            <RocketOutlined style={{ color: '#5CC49D' }} />
-            Crew Execution Chat
-          </Space>
+    <ConfigProvider
+      theme={{
+        algorithm: antTheme.darkAlgorithm,
+        token: {
+          colorPrimary: BRAND_GREEN,
+          fontFamily: 'Manrope, sans-serif',
+          colorBgContainer: SURFACE_CARD,
+          colorBorder: BORDER_COLOR,
+          colorText: TEXT_PRIMARY,
+          colorTextSecondary: TEXT_SECONDARY,
+          borderRadius: 8,
+        },
+        components: {
+          Tabs: {
+            itemColor: TEXT_SECONDARY,
+            itemSelectedColor: '#fff',
+            itemHoverColor: '#fff',
+            inkBarColor: BRAND_GREEN,
+            titleFontSize: 13,
+          },
+          Button: { fontWeight: 600, defaultBg: 'transparent', defaultBorderColor: BORDER_COLOR },
+          Drawer: { colorBgElevated: SURFACE_CARD }
         }
-        placement="right"
-        width={500}
-        open={showChatDrawer}
-        onClose={() => setShowChatDrawer(false)}
-        bodyStyle={{ padding: 0 }}
-      >
-        {executionId && selectedCrew && (
-          <CrewChatInterface
-            executionId={executionId}
-            workspaceId={currentWorkspace.id}
-            crewId={selectedCrew.id}
-            agents={selectedCrew.agents || []}
-            onExecutionComplete={handleExecutionComplete}
-          />
-        )}
-      </Drawer>
-    </Layout>
+      }}
+    >
+      <Layout style={{ minHeight: '100vh', background: DARK_BG, fontFamily: 'Manrope, sans-serif' }}>
+        <Content style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          {/* Header */}
+          <div style={{ 
+            padding: '0 24px', 
+            borderBottom: `1px solid ${BORDER_COLOR}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: '64px',
+            backgroundColor: DARK_BG
+          }}>
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={tabItems.map(item => ({ key: item.key, label: item.label }))}
+              style={{ marginBottom: -16 }}
+              tabBarStyle={{ borderBottom: 'none' }}
+            />
+            
+            <Space>
+              {executionId && (
+                <Button
+                  icon={<MessageOutlined />}
+                  onClick={() => setShowChatDrawer(true)}
+                  style={{ color: TEXT_SECONDARY }}
+                >
+                  Chat
+                </Button>
+              )}
+              
+              <Button 
+                type="primary"
+                icon={<PlusOutlined style={{ color: '#000' }} />}
+                onClick={handleNewCrew}
+                style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
+              >
+                New Crew
+              </Button>
+            </Space>
+          </div>
+
+          {/* Tab Content */}
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            {tabItems.find(t => t.key === activeTab)?.children}
+          </div>
+        </Content>
+
+        {/* Chat Drawer */}
+        <Drawer
+          title={
+            <Space>
+              <RocketOutlined style={{ color: BRAND_GREEN }} />
+              <span style={{ fontFamily: 'Manrope' }}>Live Crew Chat</span>
+            </Space>
+          }
+          placement="right"
+          width={500}
+          open={showChatDrawer}
+          onClose={() => setShowChatDrawer(false)}
+          bodyStyle={{ padding: 0 }}
+          headerStyle={{ borderBottom: `1px solid ${BORDER_COLOR}`, backgroundColor: SURFACE_CARD }}
+          closeIcon={<RightOutlined style={{ color: TEXT_SECONDARY }} />}
+        >
+          {executionId && selectedCrew && (
+            <CrewChatInterface
+              executionId={executionId}
+              workspaceId={currentWorkspace.id}
+              crewId={selectedCrew.id}
+              agents={selectedCrew.agents || []}
+              onExecutionComplete={handleExecutionComplete}
+            />
+          )}
+        </Drawer>
+      </Layout>
+    </ConfigProvider>
   );
 }

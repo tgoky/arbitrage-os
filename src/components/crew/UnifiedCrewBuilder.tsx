@@ -3,12 +3,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { 
-  Card, 
   Input, 
   Button, 
   Space, 
   message, 
-  Spin, 
   Typography, 
   Tag, 
   Divider,
@@ -17,7 +15,11 @@ import {
   Modal,
   Form,
   Select,
-  Switch
+  Switch,
+  ConfigProvider,
+  theme as antTheme,
+  Avatar,
+  Card
 } from 'antd';
 import { 
   SendOutlined, 
@@ -32,7 +34,11 @@ import {
   DeleteOutlined,
   CopyOutlined,
   EditOutlined,
-  PlusOutlined
+  PlusOutlined,
+  RobotOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  LinkOutlined
 } from '@ant-design/icons';
 import ReactFlow, {
   Node,
@@ -53,6 +59,14 @@ import { ToolsPanel } from './ToolsPanel';
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
+
+// --- STYLING CONSTANTS ---
+const BRAND_GREEN = '#5CC49D';
+const DARK_BG = '#000000';
+const SURFACE_CARD = '#09090b';
+const BORDER_COLOR = '#27272a';
+const TEXT_SECONDARY = '#a1a1aa';
+const TEXT_PRIMARY = '#ffffff';
 
 // ==================== TYPES ====================
 
@@ -88,7 +102,7 @@ interface Task {
   description: string;
   expectedOutput: string;
   assignedAgentId: string;
-  context: string[]; // Task IDs this depends on
+  context: string[];
   tools?: string[];
   config?: {
     async: boolean;
@@ -129,36 +143,40 @@ const AgentNode = ({ data, selected }: any) => {
       style={{
         padding: '16px',
         borderRadius: '12px',
-        border: selected ? '2px solid #5CC49D' : '2px solid #e0e0e0',
-        backgroundColor: '#fff',
+        border: selected ? `2px solid ${BRAND_GREEN}` : `1px solid ${BORDER_COLOR}`,
+        backgroundColor: SURFACE_CARD,
         minWidth: '280px',
         maxWidth: '320px',
-        boxShadow: selected ? '0 4px 12px rgba(92, 196, 157, 0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s'
+        boxShadow: selected ? `0 0 20px rgba(92, 196, 157, 0.2)` : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        transition: 'all 0.2s ease',
+        color: '#fff',
+        fontFamily: 'Manrope, sans-serif'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
         <div
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: data.color || '#5CC49D',
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(92, 196, 157, 0.1)',
+            border: `1px solid ${BRAND_GREEN}40`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '20px',
-            marginRight: '12px'
+            marginRight: '12px',
+            color: BRAND_GREEN
           }}
         >
-          {data.avatar || '🤖'}
+          {data.avatar || <RobotOutlined />}
         </div>
         
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: '14px', color: '#000' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: '15px', color: '#fff', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {data.name}
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
+          <div style={{ fontSize: '12px', color: TEXT_SECONDARY, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {data.role}
           </div>
         </div>
@@ -175,35 +193,40 @@ const AgentNode = ({ data, selected }: any) => {
           }}
           trigger={['click']}
         >
-          <Button type="text" size="small" icon={<MoreOutlined />} />
+          <Button type="text" size="small" icon={<MoreOutlined style={{ color: TEXT_SECONDARY }} />} />
         </Dropdown>
       </div>
 
       {data.goal && (
-        <div style={{ marginBottom: '12px' }}>
-          <Text style={{ fontSize: '12px', color: '#666' }}>
-            <strong>Goal:</strong> {data.goal.substring(0, 80)}
-            {data.goal.length > 80 && '...'}
+        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+          <Text style={{ fontSize: '12px', color: TEXT_SECONDARY, display: 'block', lineHeight: '1.5' }}>
+            <strong style={{ color: '#fff' }}>Goal:</strong> {data.goal.length > 80 ? data.goal.substring(0, 80) + '...' : data.goal}
           </Text>
         </div>
       )}
 
       <div>
-        <Text style={{ fontSize: '11px', color: '#999' }}>TOOLS:</Text>
-        <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+           <Text style={{ fontSize: '10px', color: TEXT_SECONDARY, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>TOOLS</Text>
+           <Text style={{ fontSize: '10px', color: TEXT_SECONDARY }}>{data.tools?.length || 0}</Text>
+        </div>
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {data.tools && data.tools.length > 0 ? (
-            data.tools.slice(0, 3).map((tool: string, idx: number) => (
-              <Tag key={idx} style={{ fontSize: '10px', margin: 0 }}>
-                {tool}
-              </Tag>
-            ))
+            <>
+                {data.tools.slice(0, 3).map((tool: string, idx: number) => (
+                <Tag key={idx} style={{ fontSize: '11px', margin: 0, backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER_COLOR}`, color: TEXT_SECONDARY }}>
+                    {tool}
+                </Tag>
+                ))}
+                {data.tools.length > 3 && (
+                <Tag style={{ fontSize: '11px', margin: 0, backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER_COLOR}`, color: TEXT_SECONDARY }}>
+                    +{data.tools.length - 3}
+                </Tag>
+                )}
+            </>
           ) : (
-            <Text style={{ fontSize: '11px', color: '#999' }}>No tools</Text>
-          )}
-          {data.tools && data.tools.length > 3 && (
-            <Tag style={{ fontSize: '10px', margin: 0 }}>
-              +{data.tools.length - 3} more
-            </Tag>
+            <Text style={{ fontSize: '11px', color: '#444', fontStyle: 'italic' }}>No tools assigned</Text>
           )}
         </div>
       </div>
@@ -212,15 +235,21 @@ const AgentNode = ({ data, selected }: any) => {
       <div
         className="react-flow__handle react-flow__handle-bottom"
         style={{
-          position: 'absolute',
           bottom: '-6px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          backgroundColor: '#5CC49D',
-          border: '2px solid #fff'
+          width: '10px',
+          height: '10px',
+          backgroundColor: BRAND_GREEN,
+          border: '2px solid #000'
+        }}
+      />
+      <div
+        className="react-flow__handle react-flow__handle-top"
+        style={{
+          top: '-6px',
+          width: '10px',
+          height: '10px',
+          backgroundColor: '#333',
+          border: '2px solid #000'
         }}
       />
     </div>
@@ -233,38 +262,59 @@ const TaskNode = ({ data, selected }: any) => {
       style={{
         padding: '16px',
         borderRadius: '12px',
-        border: selected ? '2px solid #1890ff' : '2px solid #e0e0e0',
-        backgroundColor: '#f8f9fa',
+        border: selected ? '2px solid #3b82f6' : `1px solid ${BORDER_COLOR}`,
+        backgroundColor: '#0f172a', // Slate-950
         minWidth: '280px',
         maxWidth: '320px',
-        boxShadow: selected ? '0 4px 12px rgba(24, 144, 255, 0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s'
+        boxShadow: selected ? '0 0 20px rgba(59, 130, 246, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        transition: 'all 0.2s ease',
+        color: '#fff',
+        fontFamily: 'Manrope, sans-serif'
       }}
     >
-      {/* Connection handle top */}
+      {/* Connection handles */}
       <div
         className="react-flow__handle react-flow__handle-top"
         style={{
-          position: 'absolute',
           top: '-6px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          backgroundColor: '#1890ff',
-          border: '2px solid #fff'
+          width: '10px',
+          height: '10px',
+          backgroundColor: '#3b82f6',
+          border: '2px solid #000'
+        }}
+      />
+       <div
+        className="react-flow__handle react-flow__handle-bottom"
+        style={{
+          bottom: '-6px',
+          width: '10px',
+          height: '10px',
+          backgroundColor: '#333',
+          border: '2px solid #000'
         }}
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-        <div style={{ flex: 1 }}>
-          <Text strong style={{ fontSize: '14px' }}>
-            Task {data.index || ''}
-          </Text>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ 
+              width: '24px', 
+              height: '24px', 
+              borderRadius: '6px', 
+              backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+              color: '#3b82f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 700
+          }}>
+             {data.index || '#'}
+          </div>
+          <Text strong style={{ fontSize: '14px', color: '#fff' }}>Task</Text>
+          
           {data.config?.async && (
-            <Tag color="blue" style={{ marginLeft: '8px', fontSize: '10px' }}>
-              Async
+            <Tag color="blue" bordered={false} style={{ fontSize: '10px', margin: 0, padding: '0 4px' }}>
+              ASYNC
             </Tag>
           )}
         </div>
@@ -281,31 +331,36 @@ const TaskNode = ({ data, selected }: any) => {
           }}
           trigger={['click']}
         >
-          <Button type="text" size="small" icon={<MoreOutlined />} />
+          <Button type="text" size="small" icon={<MoreOutlined style={{ color: TEXT_SECONDARY }} />} />
         </Dropdown>
       </div>
 
-      <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
-        {data.description?.substring(0, 100)}
-        {data.description?.length > 100 && '...'}
+      <div style={{ fontSize: '13px', color: TEXT_SECONDARY, marginBottom: '16px', lineHeight: '1.5' }}>
+        {data.description?.length > 100 ? data.description.substring(0, 100) + '...' : data.description}
       </div>
 
-      {data.assignedAgentName && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Text style={{ fontSize: '11px', color: '#999' }}>
-            Assigned to:
-          </Text>
-          <Tag style={{ fontSize: '10px', margin: 0 }}>
-            {data.assignedAgentName}
-          </Tag>
-        </div>
-      )}
+      <div style={{ paddingTop: '12px', borderTop: `1px solid ${BORDER_COLOR}` }}>
+        {data.assignedAgentName ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: '11px', color: TEXT_SECONDARY }}>Assigned to</Text>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <UserOutlined style={{ fontSize: '10px', color: BRAND_GREEN }} />
+                    <Text style={{ fontSize: '11px', color: '#fff', fontWeight: 600 }}>{data.assignedAgentName}</Text>
+                </div>
+            </div>
+        ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}>
+                 <Text style={{ fontSize: '11px', color: '#ef4444' }}>Unassigned</Text>
+            </div>
+        )}
+      </div>
 
       {data.context && data.context.length > 0 && (
-        <div style={{ marginTop: '8px' }}>
-          <Text style={{ fontSize: '11px', color: '#999' }}>
-            Depends on: {data.context.length} task(s)
-          </Text>
+        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <LinkOutlined style={{ fontSize: '10px', color: TEXT_SECONDARY }} />
+            <Text style={{ fontSize: '11px', color: TEXT_SECONDARY }}>
+                Dependencies: <span style={{ color: '#fff' }}>{data.context.length}</span>
+            </Text>
         </div>
       )}
     </div>
@@ -349,6 +404,17 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
   const thoughtsEndRef = useRef<HTMLDivElement>(null);
   const [agentForm] = Form.useForm();
   const [taskForm] = Form.useForm();
+
+  // --- FONT INJECTION ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
 
   // ==================== LOAD INITIAL CREW ====================
 
@@ -403,7 +469,7 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
           target: task.id,
           animated: true,
           markerEnd: { type: MarkerType.ArrowClosed },
-          style: { stroke: '#5CC49D', strokeWidth: 2 }
+          style: { stroke: BRAND_GREEN, strokeWidth: 2 }
         });
       }
 
@@ -415,7 +481,7 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
           target: task.id,
           animated: false,
           markerEnd: { type: MarkerType.ArrowClosed },
-          style: { stroke: '#1890ff', strokeWidth: 2, strokeDasharray: '5,5' }
+          style: { stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' }
         });
       });
     });
@@ -423,7 +489,6 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
     setNodes(newNodes);
     setEdges(newEdges);
 
-    // Collect all tools from agents
     const toolIds: string[] = crew.agents?.flatMap(a => a.tools || []) || [];
     setSelectedTools([...new Set(toolIds)]);
 
@@ -452,15 +517,8 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
         const newNode = {
           ...node,
           id: newId,
-          position: {
-            x: node.position.x + 50,
-            y: node.position.y + 50
-          },
-          data: {
-            ...node.data,
-            id: newId,
-            name: node.data.name + ' (copy)'
-          }
+          position: { x: node.position.x + 50, y: node.position.y + 50 },
+          data: { ...node.data, id: newId, name: node.data.name + ' (copy)' }
         };
         setNodes(prev => [...prev, newNode]);
         break;
@@ -479,7 +537,7 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
       ...params,
       animated: true,
       markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: '#5CC49D', strokeWidth: 2 }
+      style: { stroke: BRAND_GREEN, strokeWidth: 2 }
     }, prev));
   }, [setEdges]);
 
@@ -497,7 +555,6 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
     setIsBuilding(true);
     setThoughtProcess([]);
 
-    // Don't clear existing nodes if we're refining
     if (!currentCrew) {
       setNodes([]);
       setEdges([]);
@@ -511,13 +568,11 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
         body: JSON.stringify({
           prompt,
           workspaceId,
-          existingCrew: currentCrew // Pass existing crew for refinement
+          existingCrew: currentCrew
         })
       });
 
-      if (!response.body) {
-        throw new Error('No response body');
-      }
+      if (!response.body) throw new Error('No response body');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -553,42 +608,34 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
       case 'thought':
         addThought(data.message, 'running');
         break;
-
       case 'thought_complete':
         updateLastThought('completed');
         break;
-
       case 'crew_name':
         setCrewName(data.name);
         break;
-
       case 'process_type':
         setProcessType(data.process);
         break;
-
       case 'tools_selected':
         setSelectedTools(data.tools);
         addThought(`Selected ${data.tools.length} tools`, 'completed');
         break;
-
       case 'agent_created':
         addAgentToCanvas(data.agent);
-        addThought(`Creating ${data.agent.name} (${data.agent.role})`, 'completed');
+        addThought(`Creating ${data.agent.name}`, 'completed');
         break;
-
       case 'task_created':
         addTaskToCanvas(data.task);
-        addThought(`Creating task: ${data.task.description?.substring(0, 50)}...`, 'completed');
+        addThought(`Creating task: ${data.task.description?.substring(0, 30)}...`, 'completed');
         break;
-
       case 'crew_complete':
         setCurrentCrew(data.crew);
         addThought('✅ Crew creation complete!', 'completed');
         setIsBuilding(false);
-        setPrompt(''); // Clear prompt
+        setPrompt('');
         message.success('Crew built successfully!');
         break;
-
       case 'error':
         addThought(`❌ Error: ${data.message}`, 'error');
         setIsBuilding(false);
@@ -597,17 +644,10 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
     }
   };
 
-  // ==================== THOUGHT MANAGEMENT ====================
-
   const addThought = (messageText: string, status: ThoughtStep['status']) => {
     setThoughtProcess(prev => [
       ...prev,
-      {
-        id: `thought_${Date.now()}`,
-        message: messageText,
-        status,
-        timestamp: new Date()
-      }
+      { id: `thought_${Date.now()}`, message: messageText, status, timestamp: new Date() }
     ]);
   };
 
@@ -620,21 +660,14 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
     });
   };
 
-  // ==================== CANVAS MANAGEMENT ====================
-
   const addAgentToCanvas = (agent: Agent) => {
     const agentCount = nodes.filter(n => n.type === 'agent').length;
-    
     const newNode: Node = {
       id: agent.id,
       type: 'agent',
       position: { x: 100 + (agentCount * 350), y: 100 },
-      data: {
-        ...agent,
-        onAction: handleNodeAction
-      }
+      data: { ...agent, onAction: handleNodeAction }
     };
-
     setNodes(prev => [...prev, newNode]);
   };
 
@@ -656,7 +689,6 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
 
     setNodes(prev => [...prev, newNode]);
 
-    // Add edge to assigned agent
     if (task.assignedAgentId) {
       const newEdge: Edge = {
         id: `${task.assignedAgentId}-to-${task.id}`,
@@ -664,34 +696,27 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
         target: task.id,
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed },
-        style: { stroke: '#5CC49D', strokeWidth: 2 }
+        style: { stroke: BRAND_GREEN, strokeWidth: 2 }
       };
       setEdges(prev => [...prev, newEdge]);
     }
   };
 
-  // ==================== BUILD CREW CONFIG ====================
-
   const buildCrewConfig = (): CrewConfig => {
-    const agents: Agent[] = nodes
-      .filter(n => n.type === 'agent')
-      .map(n => ({
+    const agents: Agent[] = nodes.filter(n => n.type === 'agent').map(n => ({
         id: n.id,
         name: n.data.name,
         role: n.data.role,
         goal: n.data.goal,
         backstory: n.data.backstory || '',
-        avatar: n.data.avatar || '🤖',
-        color: n.data.color || '#5CC49D',
+        avatar: n.data.avatar,
+        color: n.data.color,
         tools: n.data.tools || [],
         llm: n.data.llm || { model: 'openai/gpt-4o-mini', temperature: 0.7 },
         config: n.data.config || { allowDelegation: false, maxIter: 25, verbose: true }
-      }));
+    }));
 
-    const tasks: Task[] = nodes
-      .filter(n => n.type === 'task')
-      .map((n, idx) => {
-        // Find dependencies from edges
+    const tasks: Task[] = nodes.filter(n => n.type === 'task').map((n, idx) => {
         const incomingEdges = edges.filter(e => e.target === n.id && e.source !== n.data.assignedAgentId);
         const context = incomingEdges.map(e => e.source);
         
@@ -704,7 +729,7 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
           tools: n.data.tools || [],
           config: n.data.config || { async: false, humanInput: false }
         };
-      });
+    });
 
     return {
       id: currentCrew?.id || `crew_${Date.now()}`,
@@ -716,122 +741,104 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
       tasks,
       triggers: currentCrew?.triggers || [{ id: 'trigger_manual', type: 'manual', config: {}, enabled: true }],
       variables: currentCrew?.variables || {},
-      config: {
-        verbose: true,
-        memory: false
-      }
+      config: { verbose: true, memory: false }
     };
   };
 
-  // ==================== ACTION HANDLERS ====================
-
   const handleSave = async () => {
-    if (nodes.length === 0) {
-      message.warning('Add some agents and tasks first');
-      return;
-    }
-
+    if (nodes.length === 0) { message.warning('Add some agents and tasks first'); return; }
     const crew = buildCrewConfig();
-    
-    if (onSave) {
-      await onSave(crew);
-    } else {
-      // Default save behavior
+    if (onSave) { await onSave(crew); } 
+    else {
       try {
         const res = await fetch('/api/agent-crews/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ workspaceId, crew })
         });
-        
-        if (res.ok) {
-          message.success('Crew saved!');
-        }
-      } catch (error) {
-        message.error('Failed to save crew');
-      }
+        if (res.ok) message.success('Crew saved!');
+      } catch (error) { message.error('Failed to save crew'); }
     }
   };
 
   const handleExport = async () => {
-    if (nodes.length === 0) {
-      message.warning('Add some agents and tasks first');
-      return;
-    }
-
+    if (nodes.length === 0) { message.warning('Add some agents and tasks first'); return; }
     const crew = buildCrewConfig();
-    
-    if (onExport) {
-      await onExport(crew);
-    }
+    if (onExport) await onExport(crew);
   };
 
   const handleRun = async () => {
-    if (nodes.length === 0) {
-      message.warning('Add some agents and tasks first');
-      return;
-    }
-
+    if (nodes.length === 0) { message.warning('Add some agents and tasks first'); return; }
     const agents = nodes.filter(n => n.type === 'agent');
     const tasks = nodes.filter(n => n.type === 'task');
-    
-    if (agents.length === 0) {
-      message.warning('Add at least one agent');
-      return;
-    }
-    
-    if (tasks.length === 0) {
-      message.warning('Add at least one task');
-      return;
-    }
-
+    if (agents.length === 0) { message.warning('Add at least one agent'); return; }
+    if (tasks.length === 0) { message.warning('Add at least one task'); return; }
     const crew = buildCrewConfig();
-    
-    if (onRun) {
-      await onRun(crew);
-    }
+    if (onRun) await onRun(crew);
   };
 
   // ==================== RENDER ====================
 
   return (
-    <div style={{ height: '100%', display: 'flex' }}>
-      {/* Left Panel: AI Chat / Thought Process */}
-      <div
-        style={{
-          width: '400px',
-          borderRight: '1px solid #e8e8e8',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#fafafa'
-        }}
-      >
-        {/* Header */}
-        <div style={{ padding: '16px', borderBottom: '1px solid #e8e8e8', backgroundColor: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Space>
-              <ThunderboltOutlined style={{ fontSize: '20px', color: '#5CC49D' }} />
-              <Text strong>AI Crew Builder</Text>
-            </Space>
-            
-            <Space>
+    <ConfigProvider
+      theme={{
+        algorithm: antTheme.darkAlgorithm,
+        token: {
+          colorPrimary: BRAND_GREEN,
+          fontFamily: 'Manrope, sans-serif',
+          colorBgContainer: SURFACE_CARD,
+          colorBorder: BORDER_COLOR,
+          colorText: TEXT_PRIMARY,
+          colorTextSecondary: TEXT_SECONDARY,
+          borderRadius: 8,
+        },
+        components: {
+          Button: { fontWeight: 600 },
+          Input: { colorBgContainer: '#000000', activeBorderColor: BRAND_GREEN },
+          Select: { colorBgContainer: '#000000' },
+          Modal: { contentBg: SURFACE_CARD, headerBg: SURFACE_CARD },
+          Card: { headerBg: 'transparent' }
+        }
+      }}
+    >
+      <div style={{ height: '100%', display: 'flex', backgroundColor: DARK_BG, fontFamily: 'Manrope, sans-serif' }}>
+        
+        {/* Left Panel: AI Chat / Thought Process */}
+        <div
+          style={{
+            width: '380px',
+            borderRight: `1px solid ${BORDER_COLOR}`,
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: DARK_BG,
+            zIndex: 10
+          }}
+        >
+          {/* Header */}
+          <div style={{ padding: '20px', borderBottom: `1px solid ${BORDER_COLOR}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <Space>
+                <div style={{ padding: '6px', borderRadius: '6px', backgroundColor: 'rgba(92, 196, 157, 0.1)' }}>
+                   <ThunderboltOutlined style={{ fontSize: '18px', color: BRAND_GREEN }} />
+                </div>
+                <Text strong style={{ fontSize: '16px', color: '#fff' }}>Builder</Text>
+              </Space>
+              
               <Tooltip title="Crew Settings">
                 <Button 
                   type="text" 
-                  icon={<SettingOutlined />}
+                  icon={<SettingOutlined style={{ color: TEXT_SECONDARY }} />}
                   onClick={() => setShowSettingsModal(true)}
                 />
               </Tooltip>
-            </Space>
-          </div>
-          
-          {/* Crew name and process type */}
-          <div style={{ marginTop: '12px' }}>
+            </div>
+            
             <Input
               value={crewName}
               onChange={e => setCrewName(e.target.value)}
-              placeholder="Crew name..."
-              style={{ marginBottom: '8px' }}
+              placeholder="Crew Name"
+              style={{ marginBottom: '12px', fontWeight: 600, fontSize: '14px' }}
+              prefix={<EditOutlined style={{ color: TEXT_SECONDARY }} />}
             />
             <Select
               value={processType}
@@ -843,346 +850,324 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
               ]}
             />
           </div>
-        </div>
 
-        {/* Thought Process Stream */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-          {thoughtProcess.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🤖</div>
-              <Text type="secondary">
-                {initialCrew 
-                  ? `"${initialCrew.name}" loaded. Describe changes or continue building.`
-                  : 'Describe what you want your crew to do, and I\'ll build it for you.'
-                }
-              </Text>
-              <div style={{ marginTop: '16px', textAlign: 'left' }}>
-                <Text strong style={{ fontSize: '12px' }}>Examples:</Text>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                  • Research companies and write cold emails<br/>
-                  • Create SEO blog posts from trending topics<br/>
-                  • Analyze support tickets and categorize by priority<br/>
-                  • Monitor competitors and send weekly reports
+          {/* Thought Process Stream */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', scrollbarWidth: 'thin' }}>
+            {thoughtProcess.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.6 }}>
+                <div style={{ 
+                    width: '64px', height: '64px', borderRadius: '50%', 
+                    backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+                    border: `1px solid ${BORDER_COLOR}`
+                }}>
+                     <RobotOutlined style={{ fontSize: '24px', color: TEXT_SECONDARY }} />
                 </div>
+                <Text style={{ color: TEXT_SECONDARY, fontSize: '14px' }}>
+                  {initialCrew 
+                    ? `"${initialCrew.name}" loaded.`
+                    : 'Describe your workflow to auto-build agents & tasks.'
+                  }
+                </Text>
               </div>
-            </div>
-          ) : (
-            <Space direction="vertical" style={{ width: '100%' }} size="small">
-              {thoughtProcess.map(thought => (
-                <Card
-                  key={thought.id}
-                  size="small"
-                  style={{
-                    backgroundColor: thought.status === 'error' ? '#fff1f0' : '#fff',
-                    borderLeft: `4px solid ${
-                      thought.status === 'completed' ? '#52c41a' :
-                      thought.status === 'error' ? '#ff4d4f' :
-                      '#1890ff'
-                    }`
-                  }}
-                >
-                  <Space>
-                    {thought.status === 'running' && <LoadingOutlined spin style={{ color: '#1890ff' }} />}
-                    {thought.status === 'completed' && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                    <Text style={{ fontSize: '13px' }}>{thought.message}</Text>
-                  </Space>
-                </Card>
-              ))}
-              <div ref={thoughtsEndRef} />
-            </Space>
-          )}
-        </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {thoughtProcess.map(thought => (
+                  <div
+                    key={thought.id}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      backgroundColor: thought.status === 'error' ? 'rgba(239, 68, 68, 0.1)' : SURFACE_CARD,
+                      border: `1px solid ${thought.status === 'error' ? 'rgba(239, 68, 68, 0.2)' : BORDER_COLOR}`,
+                      borderLeft: `3px solid ${
+                        thought.status === 'completed' ? BRAND_GREEN :
+                        thought.status === 'error' ? '#ef4444' :
+                        '#3b82f6'
+                      }`,
+                      animation: 'fadeIn 0.3s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'start' }}>
+                      <div style={{ marginTop: '2px' }}>
+                         {thought.status === 'running' && <LoadingOutlined spin style={{ color: '#3b82f6' }} />}
+                         {thought.status === 'completed' && <CheckCircleOutlined style={{ color: BRAND_GREEN }} />}
+                         {thought.status === 'error' && <div style={{ color: '#ef4444' }}>!</div>}
+                      </div>
+                      <Text style={{ fontSize: '13px', color: '#d4d4d8', lineHeight: '1.5' }}>{thought.message}</Text>
+                    </div>
+                  </div>
+                ))}
+                <div ref={thoughtsEndRef} />
+              </div>
+            )}
+          </div>
 
-        <Divider style={{ margin: 0 }} />
+          <div style={{ borderTop: `1px solid ${BORDER_COLOR}` }} />
 
-        {/* Input Area */}
-        <div style={{ padding: '16px', backgroundColor: '#fff' }}>
-          <TextArea
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            placeholder="Describe your automation workflow... e.g., 'Create a crew that researches prospects on LinkedIn and writes personalized outreach emails'"
-            disabled={isBuilding}
-            autoSize={{ minRows: 3, maxRows: 6 }}
-            onPressEnter={(e) => {
-              if (e.shiftKey) return;
-              e.preventDefault();
-              buildCrewFromPrompt();
-            }}
-            style={{ marginBottom: '12px' }}
-          />
-
-          <Button
-            type="primary"
-            block
-            icon={<SendOutlined />}
-            onClick={buildCrewFromPrompt}
-            loading={isBuilding}
-            disabled={!prompt.trim()}
-            style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
-            size="large"
-          >
-            {isBuilding ? 'Building...' : (currentCrew ? 'Refine Crew' : 'Build Crew')}
-          </Button>
-
-          <Text type="secondary" style={{ fontSize: '11px', marginTop: '8px', display: 'block' }}>
-            Press Enter to send • Shift+Enter for new line
-          </Text>
-        </div>
-      </div>
-
-      {/* Center: Visual Canvas */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          snapToGrid
-          snapGrid={[15, 15]}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
-          <Controls />
-          
-          {/* Top action bar */}
-          <Panel position="top-right">
-            <Space>
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  // Add new agent
-                  const newAgent: Agent = {
-                    id: `agent_${Date.now()}`,
-                    name: 'New Agent',
-                    role: 'Specialist',
-                    goal: 'Complete assigned tasks',
-                    tools: []
-                  };
-                  addAgentToCanvas(newAgent);
-                }}
-              >
-                Add Agent
-              </Button>
-              
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  // Add new task
-                  const agents = nodes.filter(n => n.type === 'agent');
-                  const newTask: Task = {
-                    id: `task_${Date.now()}`,
-                    description: 'New task description',
-                    expectedOutput: 'Expected output',
-                    assignedAgentId: agents[0]?.id || '',
-                    context: []
-                  };
-                  addTaskToCanvas(newTask);
-                }}
-              >
-                Add Task
-              </Button>
-              
-              <Divider type="vertical" />
-              
-              <Button
-                icon={<SaveOutlined />}
-                onClick={handleSave}
-                disabled={nodes.length === 0}
-              >
-                Save
-              </Button>
-              
-              <Button
-                icon={<ExportOutlined />}
-                onClick={handleExport}
-                disabled={nodes.length === 0}
-              >
-                Export
-              </Button>
-              
-              <Button
-                type="primary"
-                icon={<PlayCircleOutlined />}
-                onClick={handleRun}
-                disabled={nodes.length === 0}
-                style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D' }}
-              >
-                Run Crew
-              </Button>
-            </Space>
-          </Panel>
-
-          {/* Empty state */}
-          {nodes.length === 0 && !isBuilding && (
-            <div 
-              style={{ 
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                textAlign: 'center', 
-                padding: '40px',
-                zIndex: 10,
-                pointerEvents: 'none'
+          {/* Input Area */}
+          <div style={{ padding: '20px', backgroundColor: DARK_BG }}>
+            <TextArea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              placeholder="Describe your agent workflow..."
+              disabled={isBuilding}
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              onPressEnter={(e) => {
+                if (e.shiftKey) return;
+                e.preventDefault();
+                buildCrewFromPrompt();
               }}
-            >
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>🚀</div>
-              <Title level={4} style={{ marginBottom: '8px' }}>
-                {initialCrew ? 'Template Ready' : 'Build Your AI Crew'}
-              </Title>
-              <Text type="secondary">
-                {initialCrew 
-                  ? 'Your template is loaded. Modify it using the chat or add nodes manually.'
-                  : 'Describe your workflow in the chat panel, or add agents and tasks manually.'
-                }
-              </Text>
-            </div>
-          )}
-        </ReactFlow>
-      </div>
+              style={{ marginBottom: '12px', backgroundColor: '#000', border: `1px solid ${BORDER_COLOR}`, borderRadius: '8px' }}
+            />
 
-      {/* Right Panel: Tools */}
-      <div style={{ width: '350px', borderLeft: '1px solid #e8e8e8' }}>
-        <ToolsPanel
-          workspaceId={workspaceId}
-          onSelectTool={(tool) => {
-            // Add tool to selected tools
-            setSelectedTools(prev => {
-              if (prev.includes(tool.id)) return prev;
-              return [...prev, tool.id];
+            <Button
+              type="primary"
+              block
+              icon={<SendOutlined />}
+              onClick={buildCrewFromPrompt}
+              loading={isBuilding}
+              disabled={!prompt.trim()}
+              style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', height: '40px', fontWeight: 700 }}
+            >
+              {isBuilding ? 'Building...' : (currentCrew ? 'Refine Crew' : 'Build Crew')}
+            </Button>
+          </div>
+        </div>
+
+        {/* Center: Visual Canvas */}
+        <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid
+            snapGrid={[20, 20]}
+            style={{ backgroundColor: '#000' }}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#333" />
+            <Controls style={{ backgroundColor: SURFACE_CARD, border: `1px solid ${BORDER_COLOR}`, borderRadius: '8px' }} />
+            
+            {/* Top Toolbar */}
+            <Panel position="top-center" style={{ marginTop: '20px' }}>
+              <div style={{ 
+                  backgroundColor: SURFACE_CARD, 
+                  border: `1px solid ${BORDER_COLOR}`, 
+                  borderRadius: '12px', 
+                  padding: '8px 16px',
+                  display: 'flex',
+                  gap: '12px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
+              }}>
+                <Tooltip title="Add Agent">
+                    <Button icon={<UserOutlined />} onClick={() => {
+                        const newAgent: Agent = {
+                            id: `agent_${Date.now()}`,
+                            name: 'New Agent',
+                            role: 'Role',
+                            goal: 'Goal',
+                            tools: []
+                        };
+                        addAgentToCanvas(newAgent);
+                    }}>Agent</Button>
+                </Tooltip>
+                
+                <Tooltip title="Add Task">
+                    <Button icon={<FileTextOutlined />} onClick={() => {
+                        const agents = nodes.filter(n => n.type === 'agent');
+                        const newTask: Task = {
+                            id: `task_${Date.now()}`,
+                            description: 'Task description',
+                            expectedOutput: 'Output',
+                            assignedAgentId: agents[0]?.id || '',
+                            context: []
+                        };
+                        addTaskToCanvas(newTask);
+                    }}>Task</Button>
+                </Tooltip>
+                
+                <Divider type="vertical" style={{ borderColor: BORDER_COLOR, height: '24px', marginTop: '4px' }} />
+                
+                <Button icon={<SaveOutlined />} onClick={handleSave} disabled={nodes.length === 0} type="text">Save</Button>
+                <Button icon={<ExportOutlined />} onClick={handleExport} disabled={nodes.length === 0} type="text">Export</Button>
+                
+                <Button
+                  type="primary"
+                  icon={<PlayCircleOutlined />}
+                  onClick={handleRun}
+                  disabled={nodes.length === 0}
+                  style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
+                >
+                  Run
+                </Button>
+              </div>
+            </Panel>
+
+            {/* Empty state overlay */}
+            {nodes.length === 0 && !isBuilding && (
+              <div 
+                style={{ 
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  textAlign: 'center', 
+                  padding: '40px',
+                  zIndex: 10,
+                  pointerEvents: 'none'
+                }}
+              >
+                <div style={{ 
+                    fontSize: '48px', marginBottom: '24px', 
+                    width: '100px', height: '100px', borderRadius: '24px',
+                    backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${BORDER_COLOR}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px'
+                }}>
+                    
+                </div>
+                <Title level={3} style={{ marginBottom: '12px', color: '#fff' }}>
+                  {initialCrew ? 'Ready to Edit' : 'Start Building'}
+                </Title>
+                <Text style={{ color: TEXT_SECONDARY, fontSize: '16px', maxWidth: '400px', display: 'block' }}>
+                  {initialCrew 
+                    ? 'Modify the template using the chat or controls.'
+                    : 'Use the AI chat to generate a crew, or add agents manually.'
+                  }
+                </Text>
+              </div>
+            )}
+          </ReactFlow>
+        </div>
+
+        {/* Right Panel: Tools */}
+        <div style={{ width: '350px', borderLeft: `1px solid ${BORDER_COLOR}`, backgroundColor: DARK_BG }}>
+          <ToolsPanel
+            workspaceId={workspaceId}
+            onSelectTool={(tool) => {
+              setSelectedTools(prev => {
+                if (prev.includes(tool.id)) return prev;
+                return [...prev, tool.id];
+              });
+            }}
+            selectedTools={selectedTools}
+          />
+        </div>
+
+        {/* --- MODALS --- */}
+
+        {/* Settings Modal */}
+        <Modal
+          title={<span style={{ fontFamily: 'Manrope' }}>Crew Configuration</span>}
+          open={showSettingsModal}
+          onCancel={() => setShowSettingsModal(false)}
+          footer={null}
+          width={500}
+        >
+          <Form layout="vertical" style={{ marginTop: '20px' }}>
+            <Form.Item label="Crew Name">
+              <Input value={crewName} onChange={e => setCrewName(e.target.value)} />
+            </Form.Item>
+            
+            <Form.Item label="Process Type">
+              <Select
+                value={processType}
+                onChange={setProcessType}
+                options={[
+                  { value: 'sequential', label: 'Sequential' },
+                  { value: 'hierarchical', label: 'Hierarchical' }
+                ]}
+              />
+            </Form.Item>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <span style={{ color: '#fff' }}>Enable Memory</span>
+                <Switch />
+            </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#fff' }}>Verbose Mode</span>
+                <Switch defaultChecked />
+            </div>
+          </Form>
+        </Modal>
+
+        {/* Agent Edit Modal */}
+        <Modal
+          title={<span style={{ fontFamily: 'Manrope' }}>Edit Agent</span>}
+          open={!!editingAgent}
+          onCancel={() => setEditingAgent(null)}
+          onOk={() => {
+            agentForm.validateFields().then(values => {
+              setNodes(prev => prev.map(n => 
+                n.id === editingAgent?.id ? { ...n, data: { ...n.data, ...values } } : n
+              ));
+              setEditingAgent(null);
             });
           }}
-          selectedTools={selectedTools}
-        />
+          width={600}
+          okButtonProps={{ style: { backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' } }}
+        >
+          <Form form={agentForm} layout="vertical" style={{ marginTop: '20px' }}>
+            <Form.Item name="name" label="Name" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="role" label="Role" rules={[{ required: true }]}>
+              <Input placeholder="e.g. Research Analyst" />
+            </Form.Item>
+            <Form.Item name="goal" label="Goal" rules={[{ required: true }]}>
+              <TextArea rows={3} placeholder="What is the agent's objective?" />
+            </Form.Item>
+            <Form.Item name="backstory" label="Backstory">
+              <TextArea rows={3} />
+            </Form.Item>
+             <Form.Item name="avatar" label="Avatar">
+              <Input placeholder="Emoji or URL" style={{ width: '120px' }} />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Task Edit Modal */}
+        <Modal
+          title={<span style={{ fontFamily: 'Manrope' }}>Edit Task</span>}
+          open={!!editingTask}
+          onCancel={() => setEditingTask(null)}
+          onOk={() => {
+            taskForm.validateFields().then(values => {
+              setNodes(prev => prev.map(n => 
+                n.id === editingTask?.id ? { ...n, data: { ...n.data, ...values } } : n
+              ));
+              setEditingTask(null);
+            });
+          }}
+          width={600}
+          okButtonProps={{ style: { backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' } }}
+        >
+          <Form form={taskForm} layout="vertical" style={{ marginTop: '20px' }}>
+            <Form.Item name="description" label="Description" rules={[{ required: true }]}>
+              <TextArea rows={4} />
+            </Form.Item>
+            <Form.Item name="expectedOutput" label="Expected Output" rules={[{ required: true }]}>
+              <TextArea rows={2} />
+            </Form.Item>
+            <Form.Item name="assignedAgentId" label="Assigned Agent">
+              <Select
+                options={nodes.filter(n => n.type === 'agent').map(n => ({ value: n.id, label: n.data.name }))}
+              />
+            </Form.Item>
+            <div style={{ display: 'flex', gap: '24px' }}>
+                 <Form.Item name={['config', 'async']} valuePropName="checked" label="Async Execution">
+                    <Switch />
+                </Form.Item>
+                <Form.Item name={['config', 'humanInput']} valuePropName="checked" label="Human Input">
+                    <Switch />
+                </Form.Item>
+            </div>
+          </Form>
+        </Modal>
       </div>
-
-      {/* Settings Modal */}
-      <Modal
-        title="Crew Settings"
-        open={showSettingsModal}
-        onCancel={() => setShowSettingsModal(false)}
-        footer={null}
-        width={600}
-      >
-        <Form layout="vertical">
-          <Form.Item label="Crew Name">
-            <Input 
-              value={crewName} 
-              onChange={e => setCrewName(e.target.value)}
-            />
-          </Form.Item>
-          
-          <Form.Item label="Process Type">
-            <Select
-              value={processType}
-              onChange={setProcessType}
-              options={[
-                { 
-                  value: 'sequential', 
-                  label: '📋 Sequential - Tasks run one after another' 
-                },
-                { 
-                  value: 'hierarchical', 
-                  label: '🏢 Hierarchical - Manager agent coordinates tasks' 
-                }
-              ]}
-            />
-          </Form.Item>
-          
-          <Form.Item label="Enable Memory">
-            <Switch />
-            <Text type="secondary" style={{ marginLeft: '8px', fontSize: '12px' }}>
-              Agents remember context across executions
-            </Text>
-          </Form.Item>
-          
-          <Form.Item label="Verbose Mode">
-            <Switch defaultChecked />
-            <Text type="secondary" style={{ marginLeft: '8px', fontSize: '12px' }}>
-              Show detailed agent thought process
-            </Text>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Agent Edit Modal */}
-      <Modal
-        title="Edit Agent"
-        open={!!editingAgent}
-        onCancel={() => setEditingAgent(null)}
-        onOk={() => {
-          agentForm.validateFields().then(values => {
-            setNodes(prev => prev.map(n => 
-              n.id === editingAgent?.id 
-                ? { ...n, data: { ...n.data, ...values } }
-                : n
-            ));
-            setEditingAgent(null);
-          });
-        }}
-        width={600}
-      >
-        <Form form={agentForm} layout="vertical">
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="role" label="Role" rules={[{ required: true }]}>
-            <Input placeholder="e.g., Research Analyst, Content Writer" />
-          </Form.Item>
-          <Form.Item name="goal" label="Goal" rules={[{ required: true }]}>
-            <TextArea rows={2} placeholder="What is this agent trying to achieve?" />
-          </Form.Item>
-          <Form.Item name="backstory" label="Backstory">
-            <TextArea rows={3} placeholder="Background context that shapes agent behavior" />
-          </Form.Item>
-          <Form.Item name="avatar" label="Avatar (Emoji)">
-            <Input maxLength={2} style={{ width: '80px' }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Task Edit Modal */}
-      <Modal
-        title="Edit Task"
-        open={!!editingTask}
-        onCancel={() => setEditingTask(null)}
-        onOk={() => {
-          taskForm.validateFields().then(values => {
-            setNodes(prev => prev.map(n => 
-              n.id === editingTask?.id 
-                ? { ...n, data: { ...n.data, ...values } }
-                : n
-            ));
-            setEditingTask(null);
-          });
-        }}
-        width={600}
-      >
-        <Form form={taskForm} layout="vertical">
-          <Form.Item name="description" label="Description" rules={[{ required: true }]}>
-            <TextArea rows={3} placeholder="What should this task accomplish?" />
-          </Form.Item>
-          <Form.Item name="expectedOutput" label="Expected Output" rules={[{ required: true }]}>
-            <TextArea rows={2} placeholder="What should the output look like?" />
-          </Form.Item>
-          <Form.Item name="assignedAgentId" label="Assigned Agent">
-            <Select
-              options={nodes
-                .filter(n => n.type === 'agent')
-                .map(n => ({ value: n.id, label: n.data.name }))
-              }
-            />
-          </Form.Item>
-          <Form.Item name={['config', 'async']} valuePropName="checked" label="Async Execution">
-            <Switch />
-          </Form.Item>
-          <Form.Item name={['config', 'humanInput']} valuePropName="checked" label="Require Human Input">
-            <Switch />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+    </ConfigProvider>
   );
 };

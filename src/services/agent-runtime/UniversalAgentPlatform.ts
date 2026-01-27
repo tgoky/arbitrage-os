@@ -354,7 +354,7 @@ export class CrewTemplates {
 // 1. Blog Writing Crew
 CrewTemplates.registerTemplate({
   id: 'blog_writing_crew',
-  name: 'Blog Writing Crew',
+  name: 'Blog Writing Auto',
   description: 'Research and write SEO-optimized blog posts',
   category: 'content',
   process: 'sequential',
@@ -416,7 +416,7 @@ CrewTemplates.registerTemplate({
 // 2. Market Research Crew
 CrewTemplates.registerTemplate({
   id: 'market_research_crew',
-  name: 'Market Research Crew',
+  name: 'Market Research Auto',
   description: 'Conduct comprehensive market analysis',
   category: 'research',
   process: 'parallel',
@@ -482,7 +482,7 @@ CrewTemplates.registerTemplate({
 // 3. Customer Support Crew
 CrewTemplates.registerTemplate({
   id: 'customer_support_crew',
-  name: 'Customer Support Crew',
+  name: 'Customer Support Auto',
   description: 'Automated customer support and ticket resolution',
   category: 'communication',
   process: 'sequential',
@@ -546,7 +546,7 @@ CrewTemplates.registerTemplate({
 // 4. Data Analysis Crew
 CrewTemplates.registerTemplate({
   id: 'data_analysis_crew',
-  name: 'Data Analysis Crew',
+  name: 'Data Analysis Auto',
   description: 'Analyze data and generate insights',
   category: 'data',
   process: 'sequential',
@@ -609,7 +609,7 @@ CrewTemplates.registerTemplate({
 // 5. Social Media Manager Crew
 CrewTemplates.registerTemplate({
   id: 'social_media_crew',
-  name: 'Social Media Manager Crew',
+  name: 'Social Media Manager Auto',
   description: 'Plan and execute social media strategy',
   category: 'marketing',
   process: 'sequential',
@@ -673,7 +673,7 @@ CrewTemplates.registerTemplate({
 // 6. Email Lead Outreach Crew (Your original one)
 CrewTemplates.registerTemplate({
   id: 'email_lead_crew',
-  name: 'Email Lead Outreach Crew',
+  name: 'Email Lead Outreach Auto',
   description: 'Research leads and execute email campaigns',
   category: 'sales',
   process: 'sequential',

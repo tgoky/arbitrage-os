@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import {
-  Card,
   Input,
   Button,
   Space,
@@ -11,9 +10,11 @@ import {
   Tag,
   Spin,
   Typography,
-  Divider,
   Alert,
-  message
+  message,
+  ConfigProvider,
+  theme as antTheme,
+  Divider
 } from 'antd';
 import {
   SendOutlined,
@@ -22,11 +23,23 @@ import {
   PauseCircleOutlined,
   PlayCircleOutlined,
   StopOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  LoadingOutlined,
+  ToolOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
 
 const { TextArea } = Input;
 const { Text } = Typography;
+
+// --- STYLING CONSTANTS ---
+const BRAND_GREEN = '#5CC49D';
+const DARK_BG = '#000000';
+const SURFACE_CARD = '#09090b';
+const SURFACE_ELEVATED = '#18181b';
+const BORDER_COLOR = '#27272a';
+const TEXT_SECONDARY = '#a1a1aa';
+const TEXT_PRIMARY = '#ffffff';
 
 interface ChatMessage {
   id: string;
@@ -65,6 +78,17 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // --- FONT INJECTION ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   // ==================== AUTO-SCROLL ====================
 
   useEffect(() => {
@@ -98,11 +122,9 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
     setIsExecuting(true);
 
     try {
-      // If no execution yet, start one
       if (!executionId) {
         await startExecution(input);
       } else {
-        // Send message to ongoing execution
         await continueExecution(input);
       }
     } catch (error: any) {
@@ -131,12 +153,7 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
 
       if (data.success) {
         setExecutionId(data.executionId);
-        
-        if (onExecutionStart) {
-          onExecutionStart(data.executionId);
-        }
-
-        // Connect to streaming
+        if (onExecutionStart) onExecutionStart(data.executionId);
         connectToStream(data.executionId);
       }
     } catch (error) {
@@ -150,13 +167,8 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
       await fetch(`/api/agent-crews/executions/${executionId}/continue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId,
-          userInput
-        })
+        body: JSON.stringify({ workspaceId, userInput })
       });
-
-      // Stream will receive updates automatically
     } catch (error) {
       console.error('Failed to continue execution:', error);
       throw error;
@@ -170,7 +182,6 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspaceId })
       });
-
       setIsPaused(true);
       message.info('Execution paused');
     } catch (error) {
@@ -186,7 +197,6 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspaceId })
       });
-
       setIsPaused(false);
       message.info('Execution resumed');
     } catch (error) {
@@ -202,20 +212,15 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspaceId })
       });
-
       setIsExecuting(false);
+      if (eventSourceRef.current) eventSourceRef.current.close();
       
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-
       const systemMessage: ChatMessage = {
         id: `msg_${Date.now()}`,
         role: 'system',
         content: 'Execution stopped by user',
         timestamp: new Date()
       };
-
       setMessages(prev => [...prev, systemMessage]);
       message.warning('Execution stopped');
     } catch (error) {
@@ -227,9 +232,7 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
   // ==================== STREAMING ====================
 
   const connectToStream = (execId: string) => {
-    const eventSource = new EventSource(
-      `/api/agent-crews/executions/${execId}/chat-stream?workspaceId=${workspaceId}`
-    );
+    const eventSource = new EventSource(`/api/agent-crews/executions/${execId}/chat-stream?workspaceId=${workspaceId}`);
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -239,14 +242,11 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
           setStreamingAgent(data.agentName);
           setStreamingMessage('');
           break;
-
         case 'agent_chunk':
           setStreamingMessage(prev => prev + data.chunk);
           setStreamingAgent(data.agentName);
           break;
-
         case 'agent_response':
-          // Finalize streaming message
           const agentMessage: ChatMessage = {
             id: data.messageId,
             role: 'agent',
@@ -255,25 +255,21 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
             timestamp: new Date(),
             metadata: data.metadata
           };
-
           setMessages(prev => [...prev, agentMessage]);
           setStreamingMessage('');
           setStreamingAgent('');
           break;
-
         case 'tool_call':
           const toolMessage: ChatMessage = {
             id: `tool_${Date.now()}`,
             role: 'tool',
-            content: `🔧 ${data.agentName} used ${data.toolName}`,
+            content: `Used tool: ${data.toolName}`,
             agentName: data.agentName,
             timestamp: new Date(),
             metadata: data.toolResult
           };
-
           setMessages(prev => [...prev, toolMessage]);
           break;
-
         case 'system':
           const systemMessage: ChatMessage = {
             id: `sys_${Date.now()}`,
@@ -281,45 +277,29 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
             content: data.message,
             timestamp: new Date()
           };
-
           setMessages(prev => [...prev, systemMessage]);
           break;
-
         case 'complete':
           setIsExecuting(false);
-          
-          if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-          }
-
+          if (eventSourceRef.current) eventSourceRef.current.close();
           const completeMessage: ChatMessage = {
             id: `sys_${Date.now()}`,
             role: 'system',
-            content: '✅ Crew execution completed!',
+            content: '✅ Execution completed successfully.',
             timestamp: new Date()
           };
-
           setMessages(prev => [...prev, completeMessage]);
-
-          if (onExecutionComplete) {
-            onExecutionComplete(data.result);
-          }
+          if (onExecutionComplete) onExecutionComplete(data.result);
           break;
-
         case 'error':
           setIsExecuting(false);
-          
-          if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-          }
-
+          if (eventSourceRef.current) eventSourceRef.current.close();
           const errorMessage: ChatMessage = {
             id: `err_${Date.now()}`,
             role: 'system',
-            content: `❌ Error: ${data.error}`,
+            content: `Error: ${data.error}`,
             timestamp: new Date()
           };
-
           setMessages(prev => [...prev, errorMessage]);
           message.error('Execution failed');
           break;
@@ -339,14 +319,12 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
 
   const getAgentColor = (agentName?: string): string => {
     if (!agentName) return '#1890ff';
-
     const agent = agents.find(a => a.name === agentName);
-    return agent?.color || '#5CC49D';
+    return agent?.color || BRAND_GREEN;
   };
 
   const getAgentAvatar = (agentName?: string): string => {
     if (!agentName) return '🤖';
-
     const agent = agents.find(a => a.name === agentName);
     return agent?.avatar || '🤖';
   };
@@ -354,36 +332,57 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
   // ==================== RENDER ====================
 
   return (
-    <div
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#fff'
+    <ConfigProvider
+      theme={{
+        algorithm: antTheme.darkAlgorithm,
+        token: {
+          colorPrimary: BRAND_GREEN,
+          fontFamily: 'Manrope, sans-serif',
+          colorBgContainer: SURFACE_CARD,
+          colorBorder: BORDER_COLOR,
+          colorText: TEXT_PRIMARY,
+          colorTextSecondary: TEXT_SECONDARY,
+          borderRadius: 8,
+        },
+        components: {
+          Button: { fontWeight: 600, defaultBg: 'transparent', defaultBorderColor: BORDER_COLOR },
+          Input: { colorBgContainer: '#000000', activeBorderColor: BRAND_GREEN, hoverBorderColor: BRAND_GREEN },
+          Alert: { colorInfoBg: 'rgba(92, 196, 157, 0.1)', colorInfoBorder: 'rgba(92, 196, 157, 0.2)' }
+        }
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: '16px',
-          borderBottom: '1px solid #f0f0f0',
-          backgroundColor: '#fafafa'
-        }}
-      >
-        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: DARK_BG, fontFamily: 'Manrope, sans-serif' }}>
+        
+        {/* Header */}
+        <div style={{ 
+          padding: '16px 24px', 
+          borderBottom: `1px solid ${BORDER_COLOR}`, 
+          backgroundColor: SURFACE_CARD,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <div>
-            <Space>
-              <ThunderboltOutlined style={{ fontSize: '20px', color: '#5CC49D' }} />
-              <Text strong>Crew Chat</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                  width: '32px', height: '32px', borderRadius: '8px', 
+                  background: 'rgba(92, 196, 157, 0.1)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `1px solid ${BRAND_GREEN}40`
+              }}>
+                  <ThunderboltOutlined style={{ fontSize: '16px', color: BRAND_GREEN }} />
+              </div>
+              <Text strong style={{ fontSize: '16px', color: '#fff' }}>Crew Chat</Text>
+              
               {isExecuting && !isPaused && (
-                <Tag color="processing">Executing</Tag>
+                <Tag color="success" style={{ margin: 0, border: 'none', fontWeight: 600 }}>LIVE</Tag>
               )}
               {isPaused && (
-                <Tag color="warning">Paused</Tag>
+                <Tag color="warning" style={{ margin: 0, border: 'none', fontWeight: 600 }}>PAUSED</Tag>
               )}
-            </Space>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              {agents.length} agents ready
+            </div>
+            <div style={{ fontSize: '11px', color: TEXT_SECONDARY, marginTop: '4px', marginLeft: '44px' }}>
+              {agents.length} agents active
             </div>
           </div>
 
@@ -391,243 +390,247 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
           {isExecuting && (
             <Space>
               {!isPaused ? (
-                <Button
-                  size="small"
-                  icon={<PauseCircleOutlined />}
-                  onClick={pauseExecution}
-                >
-                  Pause
-                </Button>
+                <Button size="small" icon={<PauseCircleOutlined />} onClick={pauseExecution}>Pause</Button>
               ) : (
-                <Button
-                  size="small"
-                  icon={<PlayCircleOutlined />}
-                  onClick={resumeExecution}
-                  type="primary"
-                >
-                  Resume
-                </Button>
+                <Button size="small" icon={<PlayCircleOutlined />} onClick={resumeExecution} type="primary" style={{ backgroundColor: BRAND_GREEN, color: '#000' }}>Resume</Button>
               )}
-              <Button
-                size="small"
-                danger
-                icon={<StopOutlined />}
-                onClick={stopExecution}
-              >
-                Stop
-              </Button>
+              <Button size="small" danger icon={<StopOutlined />} onClick={stopExecution} ghost>Stop</Button>
             </Space>
           )}
-        </Space>
-      </div>
+        </div>
 
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '16px',
-          backgroundColor: '#fff'
-        }}
-      >
-        {messages.length === 0 && !streamingMessage && (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              💬
+        {/* Messages Area */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', scrollbarWidth: 'thin' }}>
+          {messages.length === 0 && !streamingMessage && (
+            <div style={{ textAlign: 'center', padding: '80px 20px', opacity: 0.7 }}>
+              <div style={{ 
+                  width: '80px', height: '80px', borderRadius: '50%', 
+                  backgroundColor: 'rgba(255,255,255,0.03)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  margin: '0 auto 24px', border: `1px solid ${BORDER_COLOR}`
+              }}>
+                  <RobotOutlined style={{ fontSize: '32px', color: TEXT_SECONDARY }} />
+              </div>
+              <Text type="secondary" style={{ fontSize: '16px' }}>Start a conversation to activate the crew.</Text>
+              
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                {agents.map(agent => (
+                  <Tag key={agent.id} style={{ 
+                      padding: '6px 12px', fontSize: '12px', 
+                      backgroundColor: SURFACE_ELEVATED, 
+                      border: `1px solid ${BORDER_COLOR}`,
+                      color: TEXT_SECONDARY
+                  }}>
+                    {agent.avatar} {agent.name}
+                  </Tag>
+                ))}
+              </div>
             </div>
-            <Text type="secondary">
-              Start a conversation with your crew
-            </Text>
-            <div style={{ marginTop: '16px' }}>
-              <Space direction="vertical">
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Available agents:
-                </Text>
-                <Space wrap>
-                  {agents.map(agent => (
-                    <Tag key={agent.id}>
-                      {agent.avatar} {agent.name}
-                    </Tag>
-                  ))}
-                </Space>
-              </Space>
-            </div>
-          </div>
-        )}
+          )}
 
-        {messages.map(message => (
-          <div
-            key={message.id}
-            style={{
-              display: 'flex',
-              marginBottom: '16px',
-              justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
-            }}
-          >
-            {message.role !== 'user' && message.role !== 'system' && (
+          {messages.map((message, index) => {
+            const isUser = message.role === 'user';
+            const isSystem = message.role === 'system';
+            const isTool = message.role === 'tool';
+
+            if (isSystem) {
+                return (
+                    <div key={message.id} style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
+                        <div style={{ 
+                            backgroundColor: 'rgba(255,255,255,0.05)', 
+                            padding: '4px 12px', borderRadius: '100px', 
+                            fontSize: '11px', color: TEXT_SECONDARY,
+                            display: 'flex', alignItems: 'center', gap: '6px'
+                        }}>
+                            <InfoCircleOutlined /> {message.content}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+              <div
+                key={message.id}
+                style={{
+                  display: 'flex',
+                  marginBottom: '24px',
+                  justifyContent: isUser ? 'flex-end' : 'flex-start',
+                  gap: '12px',
+                  animation: 'fadeIn 0.3s ease-out'
+                }}
+              >
+                {!isUser && (
+                  <Avatar
+                    style={{
+                      backgroundColor: isTool ? '#71717a' : getAgentColor(message.agentName),
+                      color: isTool ? '#fff' : '#000',
+                      border: `1px solid ${isTool ? '#52525b' : getAgentColor(message.agentName)}`,
+                      fontWeight: 700,
+                      flexShrink: 0
+                    }}
+                  >
+                    {isTool ? <ToolOutlined /> : getAgentAvatar(message.agentName)}
+                  </Avatar>
+                )}
+
+                <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                  {!isUser && (
+                    <div style={{ fontSize: '11px', color: TEXT_SECONDARY, marginBottom: '4px', marginLeft: '4px' }}>
+                      {message.agentName} {isTool && <span style={{ opacity: 0.7 }}>• Tool Output</span>}
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      padding: isTool ? '12px' : '16px',
+                      borderRadius: isUser ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
+                      backgroundColor: isUser 
+                        ? BRAND_GREEN 
+                        : isTool ? 'rgba(39, 39, 42, 0.5)' : SURFACE_ELEVATED,
+                      color: isUser ? '#000' : isTool ? TEXT_SECONDARY : '#e4e4e7',
+                      border: isUser ? 'none' : isTool ? `1px dashed ${BORDER_COLOR}` : `1px solid ${BORDER_COLOR}`,
+                      fontSize: isTool ? '12px' : '14px',
+                      fontFamily: isTool ? 'monospace' : 'inherit',
+                      lineHeight: '1.6',
+                      boxShadow: isUser ? `0 4px 12px ${BRAND_GREEN}30` : 'none'
+                    }}
+                  >
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{message.content}</div>
+
+                    {message.metadata && (
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px dashed ${isUser ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` }}>
+                        <details>
+                          <summary style={{ cursor: 'pointer', fontSize: '10px', opacity: 0.7 }}>View Data</summary>
+                          <pre style={{ marginTop: '8px', fontSize: '10px', padding: '8px', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '4px', overflowX: 'auto' }}>
+                            {JSON.stringify(message.metadata, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{ marginTop: '4px', fontSize: '10px', color: '#52525b', marginLeft: isUser ? 0 : '4px', marginRight: isUser ? '4px' : 0 }}>
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+
+                {isUser && (
+                  <Avatar icon={<UserOutlined style={{ color: '#fff' }} />} style={{ backgroundColor: '#27272a', border: `1px solid ${BORDER_COLOR}`, flexShrink: 0 }} />
+                )}
+              </div>
+            );
+          })}
+
+          {/* Streaming Indicator */}
+          {streamingMessage && (
+            <div style={{ display: 'flex', marginBottom: '16px', gap: '12px', animation: 'fadeIn 0.3s ease-out' }}>
               <Avatar
                 style={{
-                  backgroundColor: getAgentColor(message.agentName),
-                  marginRight: '8px',
+                  backgroundColor: getAgentColor(streamingAgent),
+                  color: '#000',
+                  fontWeight: 700,
                   flexShrink: 0
                 }}
               >
-                {getAgentAvatar(message.agentName)}
+                {getAgentAvatar(streamingAgent)}
               </Avatar>
-            )}
 
-            <div style={{ maxWidth: '70%' }}>
-              {message.agentName && (
-                <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
-                  {message.agentName}
-                </div>
-              )}
-
-              <div
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor:
-                    message.role === 'user' ? '#5CC49D' :
-                    message.role === 'system' ? '#f0f0f0' :
-                    message.role === 'tool' ? '#f9f0ff' :
-                    '#e6f7ff',
-                  color: message.role === 'user' ? '#000' : '#000'
-                }}
-              >
-                <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {message.content}
+              <div style={{ maxWidth: '80%' }}>
+                <div style={{ fontSize: '11px', color: BRAND_GREEN, marginBottom: '4px', marginLeft: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {streamingAgent} <LoadingOutlined />
                 </div>
 
-                {message.metadata && (
-                  <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.7 }}>
-                    <details>
-                      <summary style={{ cursor: 'pointer' }}>Details</summary>
-                      <pre style={{ marginTop: '4px', fontSize: '10px' }}>
-                        {JSON.stringify(message.metadata, null, 2)}
-                      </pre>
-                    </details>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
-                {new Date(message.timestamp).toLocaleTimeString()}
+                <div
+                  style={{
+                    padding: '16px',
+                    borderRadius: '4px 16px 16px 16px',
+                    backgroundColor: SURFACE_ELEVATED,
+                    border: `1px solid ${BORDER_COLOR}`,
+                    color: '#e4e4e7',
+                    fontSize: '14px',
+                    lineHeight: '1.6'
+                  }}
+                >
+                  {streamingMessage}
+                  <span className="cursor-blink" style={{ marginLeft: '2px', color: BRAND_GREEN }}>▋</span>
+                </div>
               </div>
             </div>
+          )}
 
-            {message.role === 'user' && (
-              <Avatar
-                icon={<UserOutlined />}
-                style={{ backgroundColor: '#1890ff', marginLeft: '8px', flexShrink: 0 }}
-              />
-            )}
-          </div>
-        ))}
-
-        {/* Streaming Message */}
-        {streamingMessage && (
-          <div style={{ display: 'flex', marginBottom: '16px' }}>
-            <Avatar
-              style={{
-                backgroundColor: getAgentColor(streamingAgent),
-                marginRight: '8px'
-              }}
-            >
-              {getAgentAvatar(streamingAgent)}
-            </Avatar>
-
-            <div style={{ maxWidth: '70%' }}>
-              {streamingAgent && (
-                <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
-                  {streamingAgent} <Spin size="small" style={{ marginLeft: '8px' }} />
-                </div>
-              )}
-
-              <div
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: '#e6f7ff'
-                }}
-              >
-                {streamingMessage}
-                <span className="cursor-blink" style={{ marginLeft: '2px' }}>▋</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <div
-        style={{
-          padding: '16px',
-          borderTop: '1px solid #f0f0f0',
-          backgroundColor: '#fafafa'
-        }}
-      >
-        {isPaused && (
-          <Alert
-            message="Execution is paused. Resume to continue."
-            type="warning"
-            showIcon
-            style={{ marginBottom: '12px' }}
-          />
-        )}
-
-        <Space.Compact style={{ width: '100%' }}>
-          <TextArea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onPressEnter={(e) => {
-              if (!e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            placeholder={
-              isPaused 
-                ? "Resume execution to continue..." 
-                : "Type your message... (Shift+Enter for new line)"
-            }
-            disabled={isExecuting && !isPaused}
-            autoSize={{ minRows: 1, maxRows: 4 }}
-            style={{ resize: 'none' }}
-          />
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={sendMessage}
-            loading={isExecuting && !isPaused}
-            disabled={isPaused || !input.trim()}
-            style={{
-              backgroundColor: '#5CC49D',
-              borderColor: '#5CC49D',
-              height: 'auto'
-            }}
-          >
-            Send
-          </Button>
-        </Space.Compact>
-
-        <div style={{ fontSize: '11px', color: '#999', marginTop: '8px' }}>
-          Press Enter to send, Shift+Enter for new line
+          <div ref={messagesEndRef} />
         </div>
+
+        {/* Input Area */}
+        <div style={{ padding: '24px', borderTop: `1px solid ${BORDER_COLOR}`, backgroundColor: SURFACE_CARD }}>
+          {isPaused && (
+            <Alert
+              message="Execution paused. Resume to continue."
+              type="warning"
+              showIcon
+              style={{ marginBottom: '16px', backgroundColor: 'rgba(250, 173, 20, 0.1)', border: '1px solid rgba(250, 173, 20, 0.2)', color: '#faad14' }}
+            />
+          )}
+
+          <div style={{ 
+              position: 'relative', 
+              backgroundColor: DARK_BG, 
+              borderRadius: '12px', 
+              border: `1px solid ${BORDER_COLOR}`,
+              padding: '4px',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}>
+            <TextArea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onPressEnter={(e) => {
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+                }}
+                placeholder={isPaused ? "Resume to continue..." : "Message the crew..."}
+                disabled={isExecuting && !isPaused}
+                autoSize={{ minRows: 1, maxRows: 4 }}
+                bordered={false}
+                style={{ 
+                    resize: 'none', 
+                    padding: '12px 16px', 
+                    fontSize: '14px', 
+                    backgroundColor: 'transparent',
+                    color: '#fff'
+                }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 8px 0' }}>
+                <Button
+                    type="primary"
+                    shape="circle"
+                    icon={<SendOutlined />}
+                    onClick={sendMessage}
+                    loading={isExecuting && !isPaused}
+                    disabled={isPaused || !input.trim()}
+                    style={{ 
+                        backgroundColor: input.trim() ? BRAND_GREEN : '#27272a', 
+                        borderColor: input.trim() ? BRAND_GREEN : '#27272a',
+                        color: input.trim() ? '#000' : '#71717a',
+                        transform: input.trim() ? 'scale(1)' : 'scale(0.95)',
+                        transition: 'all 0.2s'
+                    }}
+                />
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '8px' }}>
+             <Text style={{ fontSize: '10px', color: '#52525b' }}>AI agents can make mistakes. Review generated content.</Text>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .cursor-blink { animation: blink 1s infinite; }
+          @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        `}</style>
       </div>
-
-      <style jsx>{`
-        .cursor-blink {
-          animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-          0%, 49% { opacity: 1; }
-          50%, 100% { opacity: 0; }
-        }
-      `}</style>
-    </div>
+    </ConfigProvider>
   );
 };
