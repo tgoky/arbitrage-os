@@ -287,11 +287,11 @@ export default function RootLayout({
                           },
                         },
                         {
-                          name: "Automations",
-                          list: "/automations",
-                          create: "/automations/create",
-                          edit: "/automations/edit/:id",
-                          show: "/automations/show/:id",
+                          name: "Automation",
+                          list: "/automation",
+                          create: "/automation/create",
+                          edit: "/automation/edit/:id",
+                          show: "/automation/show/:id",
                           meta: {
                             canDelete: true,
                           },

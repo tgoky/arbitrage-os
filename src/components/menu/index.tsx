@@ -39,7 +39,7 @@ const getGroupForMenuItem = (itemKey: string): string | null => {
   if (["Email_Agent"].includes(itemName)) return "agents";
 
   // 5. Arbitrage AI
-  if (["Client_Profiles"].includes(itemName)) return "arbitrage_ai";
+  if (["Automation"].includes(itemName)) return "arbitrage_ai";
   
   return null;
 };

@@ -88,7 +88,7 @@ const menuGroups: MenuGroupConfig[] = [
     label: "Arbitrage AI", // Moved to last place
     icon: <Sparkles className="h-4 w-4" />,
     items: [
-      "Client_Profiles"
+      "Automation"
     ],
   },
 ];
