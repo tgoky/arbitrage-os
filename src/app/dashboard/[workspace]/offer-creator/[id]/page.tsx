@@ -47,6 +47,8 @@ import {
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 import './offer-detail.css';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
@@ -256,7 +258,17 @@ export default function OfferCreatorDetailPage() {
   if (!isWorkspaceReady) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Spin size="large" />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+ <Spin size="large" />
+</ConfigProvider>
+       
       </div>
     );
   }
@@ -265,7 +277,17 @@ export default function OfferCreatorDetailPage() {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center py-12">
-          <Spin size="large"  tip="Loading offer details.."/>
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large"  tip="Loading offer details.."/>
+</ConfigProvider>
+       
           <p className="mt-4">.</p>
         </div>
       </div>

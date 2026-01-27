@@ -48,6 +48,8 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
@@ -296,7 +298,17 @@ Score: ${lead.score}/100
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+      
       </div>
     );
   }
@@ -304,7 +316,17 @@ Score: ${lead.score}/100
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading lead details..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+       <Spin size="large" tip="Loading lead details..." />
+</ConfigProvider>
+ 
       </div>
     );
   }

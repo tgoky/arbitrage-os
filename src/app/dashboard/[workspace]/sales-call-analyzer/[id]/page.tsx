@@ -41,6 +41,8 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
@@ -186,7 +188,17 @@ const SalesCallAnalysisDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" tip="Loading workspace..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+ <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+       
         <p></p>
       </div>
     );
@@ -195,7 +207,17 @@ const SalesCallAnalysisDetailPage = () => {
   if (fetchLoading && !analysis) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" tip="Loading analysis details..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+       <Spin size="large" tip="Loading analysis details..." />
+</ConfigProvider>
+ 
       </div>
     );
   }

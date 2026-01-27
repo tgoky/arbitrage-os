@@ -40,6 +40,8 @@ import {
 } from "@ant-design/icons";
 import { GeneratedNicheReport, MultiNicheReport } from "@/types/nicheResearcher";
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -970,7 +972,18 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..." />
+
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+      
       </div>
     );
   }
@@ -1030,7 +1043,17 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
       >
         {loading ? (
           <div className="text-center py-8">
-            <Spin size="large" tip="Loading your niche reports..." />
+
+            <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" tip="Loading your niche reports..." />
+</ConfigProvider>
+         
           </div>
         ) : niches.length === 0 ? (
           <div className="text-center py-12">
@@ -1151,7 +1174,17 @@ const renderDetailedNicheReport = (reportData: GeneratedNicheReport, reportId: s
       >
        {modalLoading ? (
   <div className="text-center py-4">
-    <Spin size="large" tip="Loading niche report details..."/>
+
+    <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+<Spin size="large" tip="Loading niche report details..."/>
+</ConfigProvider>
+    
   </div>
 ) : modalError ? (
   <Alert

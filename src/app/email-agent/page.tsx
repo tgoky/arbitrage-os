@@ -43,6 +43,8 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 
+import { ConfigProvider } from "antd";
+
 const { Option } = Select;
 const { TextArea } = Input;
 
@@ -908,7 +910,17 @@ const resetCampaignForm = () => {
   if (pageLoading) {
     return (
       <div style={{ padding: '100px', textAlign: 'center' }}>
-        <Spin size="large" />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+ <Spin size="large" />
+</ConfigProvider>
+       
         <div style={{ marginTop: '16px', color: '#666' }}>Loading Email Agent...</div>
       </div>
     );

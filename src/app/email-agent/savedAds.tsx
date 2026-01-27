@@ -27,6 +27,8 @@ import {
 } from "@ant-design/icons";
 import { GeneratedAd, FullScript } from "@/types/adWriter";
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -118,7 +120,17 @@ export const SavedAdsHistory = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+     
         {/* <p className="mt-4"></p> */}
       </div>
     );
@@ -182,7 +194,17 @@ export const SavedAdsHistory = () => {
       >
         {loading ? (
           <div className="text-center py-8">
-            <Spin size="large" tip="Loading your ads..." />
+
+            <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+    <Spin size="large" tip="Loading your ads..." />
+</ConfigProvider>
+        
             {/* <div className="mt-4"></div> */}
           </div>
         ) : ads.length === 0 ? (

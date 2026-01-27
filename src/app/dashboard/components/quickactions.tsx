@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
 import { useWorkItems } from '../../hooks/useDashboardData';
 
+import { ConfigProvider } from "antd";
+
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 const { Option } = Select;
@@ -449,7 +451,18 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
           flexDirection: 'column',
           gap: 16
         }}>
-          <Spin size="large" />
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+      <Spin size="large" />
+</ConfigProvider>
+
+    
           <Text style={{ color: isDark ? '#6b7280' : '#9ca3af', fontFamily: fontFamily, fontSize: '13px' }}>
             Gathering data...
           </Text>

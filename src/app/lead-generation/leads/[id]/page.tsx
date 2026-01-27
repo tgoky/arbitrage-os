@@ -45,6 +45,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTheme } from '../../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../../hooks/useWorkspaceContext';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
@@ -234,7 +236,17 @@ const LeadDetailPage = () => {
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-        <Spin size="large" />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" />
+</ConfigProvider>
+      
       </div>
     );
   }

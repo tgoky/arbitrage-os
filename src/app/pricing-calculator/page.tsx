@@ -73,6 +73,9 @@ import {
   type GeneratedPricingPackage
 } from '../hooks/usePricingCalculator';
 
+
+
+
 import LoadingOverlay from './LoadingOverlay';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { useRouter } from 'next/navigation';
@@ -175,8 +178,19 @@ const PricingCalculator = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center min-h-[50vh] flex items-center justify-center" style={{ background: DARK_BG }}>
-        <Spin size="large" />
-        <p className="mt-4 font-manrope" style={{ color: TEXT_MUTED }}>Initializing Workspace...</p>
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+       <Spin size="large" />
+</ConfigProvider>
+
+ 
+
       </div>
     );
   }
@@ -424,7 +438,7 @@ const PricingCalculator = () => {
           },
           Card: {
             headerFontSize: 18,
-            headerFontWeight: 700,
+            // headerFontWeight: 700,
             colorBgContainer: DARK_CARD,
             colorBorderSecondary: DARK_BORDER,
           },
@@ -1330,7 +1344,7 @@ const PricingCalculator = () => {
                           renderItem={(item) => (
                             <List.Item>
                               <Card size="small" className="h-full rounded-xl" style={{ background: DARK_SURFACE, border: `1px solid ${DARK_BORDER}`, borderLeftColor: '#EF4444' }}>
-                                <div className="font-bold mb-2" style={{ color: '#EF4444' }}>"{item.objection}"</div>
+                                <div className="font-bold mb-2" style={{ color: '#EF4444' }}>{item.objection}</div>
                                 <div className="text-sm mb-2" style={{ color: TEXT_PRIMARY }}><strong>Response:</strong> {item.response}</div>
                                 <div className="text-xs" style={{ color: TEXT_MUTED }}><strong>Alternatives:</strong> {item.alternatives.join(', ')}</div>
                               </Card>
@@ -1412,7 +1426,23 @@ const PricingCalculator = () => {
                             <Space>
                               <Button
                                 size="small"
-                                icon={viewLoadingStates[record.id] ? <Spin size="small" /> : <EyeOutlined />}
+                                icon={viewLoadingStates[record.id] ? 
+
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+     <Spin size="small" />
+</ConfigProvider>
+                                
+                           
+                                
+                                
+                                : <EyeOutlined />}
                                 loading={viewLoadingStates[record.id]}
                                 onClick={() => handleView(record)}
                                 style={{ borderColor: DARK_BORDER, color: TEXT_SECONDARY }}
@@ -1456,7 +1486,21 @@ const PricingCalculator = () => {
             style={{ top: 20 }}
           >
             {viewDetailLoading ? (
-              <div className="py-20 text-center"><Spin size="large" /></div>
+              <div className="py-20 text-center">
+                
+
+                <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" />
+</ConfigProvider>
+             
+                
+                </div>
             ) : viewingCalculation ? (
               <div className="space-y-6 pt-4 pricing-details-container">
                 {/* Key metrics in cards */}

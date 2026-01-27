@@ -70,7 +70,20 @@ export default function ReviewRecordingPage() {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..."/>
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+
+     <Spin size="large" tip="Loading workspace..."/>
+
+</ConfigProvider>
+
+     
       </div>
     );
   }
@@ -208,7 +221,7 @@ export default function ReviewRecordingPage() {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,

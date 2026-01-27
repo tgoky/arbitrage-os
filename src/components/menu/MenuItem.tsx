@@ -42,7 +42,7 @@ export const MenuItem = ({
         nested ? "px-5" : "px-3"
       } ${
         selected || pathname === item.route || pathname === itemRoute
-          ? "text-indigo-300 font-medium border-r-2 border-blue-500"
+          ? "text-emerald-400 font-medium border-r-2 border-blue-500"
           : theme === "dark"
           ? "text-gray-400 hover:text-gray-300"
           : "text-gray-500 hover:text-gray-700"

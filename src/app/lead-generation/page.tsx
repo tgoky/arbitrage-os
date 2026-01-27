@@ -43,6 +43,8 @@ import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import CreditsDisplayHeader from '../../components/credits/CreditsDisplayHeader';
 import type { ColumnsType } from 'antd/es/table';
 
+
+
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
@@ -1101,7 +1103,17 @@ const LeadGenerationPage = () => {
                     {/* Table */}
                     {loading ? (
                       <div className="py-24 text-center">
-                        <Spin size="large" tip="Loading leads..." />
+
+                        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+    <Spin size="large" tip="Loading leads..." />
+</ConfigProvider>
+                    
                       </div>
                     ) : filteredLeads.length > 0 ? (
                       <Table
@@ -1168,7 +1180,18 @@ const LeadGenerationPage = () => {
                     }}
                   >
                     {loading ? (
-                      <Spin className="w-full py-12" />
+
+                      <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+    <Spin className="w-full py-12" />
+</ConfigProvider>
+
+                  
                     ) : generations.length > 0 ? (
                       <Table
                         columns={generationColumns}

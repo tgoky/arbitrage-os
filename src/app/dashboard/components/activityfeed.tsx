@@ -24,6 +24,8 @@ import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { useWorkItems, WorkItem } from '../../hooks/useDashboardData';
 
+import { ConfigProvider } from "antd";
+
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
@@ -275,7 +277,18 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column', gap: 16 }}>
-          <Spin size="large" />
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+         <Spin size="large" />
+</ConfigProvider>
+
+ 
           <Text style={{ fontFamily: fontFamily, color: isDark ? '#6b7280' : '#9ca3af' }}>Loading activities...</Text>
         </div>
       </Card>

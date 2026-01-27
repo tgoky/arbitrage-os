@@ -64,6 +64,7 @@ export interface GeneratedEmail {
     targetIndustry: string;
     targetRole: string;
     generatedAt: string;
+     targetFirstName?: string;
     variationIndex?: number;
     dayInterval?: number;
     sequenceNumber?: number;

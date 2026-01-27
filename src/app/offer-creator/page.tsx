@@ -53,6 +53,9 @@ import {
   theme,
 } from "antd";
 
+
+
+
 // Import the hooks and types
 import {
   useOfferCreator,
@@ -235,7 +238,17 @@ export default function OfferCreatorPage() {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace.." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" tip="Loading workspace.." />
+</ConfigProvider>
+     
       </div>
     );
   }
@@ -507,7 +520,7 @@ export default function OfferCreatorPage() {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,
@@ -1568,7 +1581,18 @@ export default function OfferCreatorPage() {
               >
                 {offersLoading ? (
                   <div className="text-center py-8">
-                    <Spin size="large" tip="Loading your offers..." />
+
+                    <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+     <Spin size="large" tip="Loading your offers..." />
+</ConfigProvider>
+
+               
                   </div>
                 ) : (offers.length > 0 || generatedOffer) ? (
                   <div className="space-y-4">

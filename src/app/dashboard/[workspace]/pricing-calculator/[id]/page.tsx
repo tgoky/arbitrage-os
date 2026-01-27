@@ -36,6 +36,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 import { GeneratedPricingPackage } from '../../../../hooks/usePricingCalculator';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
@@ -148,7 +150,18 @@ const PricingCalculationDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" tip="Loading workspace..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+<Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+
+        
         {/* <p></p> */}
       </div>
     );
@@ -157,7 +170,17 @@ const PricingCalculationDetailPage = () => {
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" tip="Loading pricing calculation..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" tip="Loading pricing calculation..." />
+</ConfigProvider>
+      
       </div>
     );
   }

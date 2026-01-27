@@ -79,6 +79,8 @@ import LoadingOverlay from './LoadingOverlay';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { useRouter } from 'next/navigation';
 
+
+
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
@@ -205,8 +207,22 @@ export default function GrowthPlanCreatorPage() {
   if (!isWorkspaceReady) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: DARK_BG }}>
-        <Spin size="large" />
-        <p className="mt-4 font-manrope" style={{ color: TEXT_MUTED }}>Initializing Workspace...</p>
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+
+     <Spin size="large" />
+
+
+</ConfigProvider>
+
+
+     
       </div>
     );
   }
@@ -614,7 +630,17 @@ export default function GrowthPlanCreatorPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
           <div className="col-span-full py-20 flex justify-center">
-            <Spin size="large" />
+
+            <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" />
+</ConfigProvider>
+         
           </div>
         ) : plans.length === 0 ? (
           <div className="col-span-full">
@@ -639,34 +665,37 @@ export default function GrowthPlanCreatorPage() {
               className="rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl group"
               style={{ background: DARK_CARD, borderColor: DARK_BORDER }}
               bodyStyle={{ padding: '24px' }}
-              actions={[
-                <Button 
-                  type="text" 
-                  icon={<AreaChartOutlined />} 
-                  onClick={() => handlePlanSelect(plan.id)}
-                  style={{ color: TEXT_SECONDARY }}
-                >
-                  View
-                </Button>,
-                <Button 
-                  type="text" 
-                  icon={<DownloadOutlined />} 
-                  loading={exportLoading[plan.id]} 
-                  onClick={() => handleExport(plan.id, 'markdown')}
-                  style={{ color: TEXT_SECONDARY }}
-                >
-                  Export
-                </Button>,
-                <Button 
-                  type="text" 
-                  danger 
-                  icon={<DeleteOutlined />} 
-                  loading={deleteLoading[plan.id]} 
-                  onClick={() => handlePlanDelete(plan.id)}
-                >
-                  Delete
-                </Button>
-              ]}
+            actions={[
+  <Button 
+    key="view"
+    type="text" 
+    icon={<AreaChartOutlined />} 
+    onClick={() => handlePlanSelect(plan.id)}
+    style={{ color: TEXT_SECONDARY }}
+  >
+    View
+  </Button>,
+  <Button 
+    key="export"
+    type="text" 
+    icon={<DownloadOutlined />} 
+    loading={exportLoading[plan.id]} 
+    onClick={() => handleExport(plan.id, 'markdown')}
+    style={{ color: TEXT_SECONDARY }}
+  >
+    Export
+  </Button>,
+  <Button 
+    key="delete"
+    type="text" 
+    danger 
+    icon={<DeleteOutlined />} 
+    loading={deleteLoading[plan.id]} 
+    onClick={() => handlePlanDelete(plan.id)}
+  >
+    Delete
+  </Button>
+]}
             >
               <div className="flex justify-between items-start mb-4">
                 <Avatar 

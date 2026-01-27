@@ -45,6 +45,8 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
 const { TabPane } = Tabs;
@@ -280,7 +282,19 @@ export const CrewTemplateGallery: React.FC<CrewTemplateGalleryProps> = ({
   if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" />
+
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" />
+</ConfigProvider>
+
+     
         <div style={{ marginTop: '16px' }}>
           <Text type="secondary">Loading templates...</Text>
         </div>

@@ -9,46 +9,30 @@ import {
   Layout,
   Card,
   Button,
-  Input,
-  Tabs,
-  Radio,
-  Space,
   Avatar,
   Typography,
   Row,
   Col,
-  Badge,
-  Divider,
+  Space,
+  theme,
   Alert,
-  Spin,
-  Tag,
-  theme
+  Spin
 } from 'antd';
 import {
-  MessageOutlined,
   CustomerServiceOutlined,
   BulbOutlined,
-  SearchOutlined,
   UserOutlined,
   ArrowLeftOutlined,
-  CheckCircleOutlined,
   LoadingOutlined,
-  BugOutlined,
-  CommentOutlined,
-  FileTextOutlined,
   RocketOutlined,
-  StarOutlined,
-  FireOutlined
+  MessageOutlined
 } from '@ant-design/icons';
 
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
-
 import { useRouter } from 'next/navigation';
-
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
-const { Search } = Input;
 
 // TypeScript declaration for FeatureBase
 declare global {
@@ -65,18 +49,28 @@ interface UserIdentity {
 }
 
 export default function FeedbackPage() {
-  const [activeTab, setActiveTab] = useState('new');
-  const [filter, setFilter] = useState('all');
   const [feedbackWidgetReady, setFeedbackWidgetReady] = useState(false);
   const [messengerReady, setMessengerReady] = useState(false);
   const { theme: appTheme } = useTheme();
   const { data: identity, isLoading } = useGetIdentity<UserIdentity>();
-      const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
-       const router = useRouter();
+  const { currentWorkspace } = useWorkspaceContext();
+  const router = useRouter();
 
   const { token } = theme.useToken();
+  const isDark = appTheme === 'dark';
 
-  // Initialize widgets when component mounts - KEEPING ORIGINAL LOGIC INTACT
+  // --- 1. FORCE LOAD MANROPE FONT ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+       // cleanup optional
+    };
+  }, []);
+
+  // --- 2. Initialize FeatureBase (Logic Unchanged) ---
   useEffect(() => {
     const initializeWidgets = () => {
       console.log('Initializing FeatureBase widgets...');
@@ -93,52 +87,36 @@ export default function FeedbackPage() {
         'initialize_feedback_widget',
         {
           organization: 'growai',
-          theme: appTheme === 'dark' ? 'dark' : 'light',
+          theme: isDark ? 'dark' : 'light',
           email: identity?.email || '',
           name: identity?.name || '',
           locale: 'en',
         },
         (err: any, callback: any) => {
-          console.log('Feedback widget callback:', { err, callback });
-          
-          if (err) {
-            console.error('Feedback widget error:', err);
-          }
-          
           if (callback?.action === 'widgetReady') {
-            console.log('Feedback widget ready!');
             setFeedbackWidgetReady(true);
-          }
-          
-          if (callback?.action === 'feedbackSubmitted') {
-            console.log('Feedback submitted:', callback.post);
           }
         }
       );
 
       // Initialize Messenger Widget
       win.Featurebase("boot", {
-       appId: process.env.NEXT_PUBLIC_ARBITRAGEOS_APP_ID , // Replace with your actual appId from dashboard
+        appId: process.env.NEXT_PUBLIC_ARBITRAGEOS_APP_ID, 
         email: identity?.email || '',
         userId: identity?.id || '',
-        createdAt: new Date().toISOString(), // User's account creation date
-        theme: appTheme === 'dark' ? 'dark' : 'light',
+        createdAt: new Date().toISOString(),
+        theme: isDark ? 'dark' : 'light',
         language: 'en',
-        // Add custom user data
         userName: identity?.name || '',
         userAvatar: identity?.avatar || '',
-        // userHash: 'YOUR_USER_HASH', // Add if identity verification is enabled
       });
 
       // Initialize Embedded Portal
       win.Featurebase("init_embed_widget", {
         organization: "growai",
-        embedOptions: {
-          path: "/",
-          filters: "",
-        },
+        embedOptions: { path: "/", filters: "" },
         stylingOptions: {
-          theme: appTheme === 'dark' ? 'dark' : 'light',
+          theme: isDark ? 'dark' : 'light',
           hideMenu: false,
           hideLogo: false,
         },
@@ -152,485 +130,318 @@ export default function FeedbackPage() {
         locale: "en"
       });
 
-      // Set messenger as ready immediately since boot doesn't have callbacks like initialize_feedback_widget
       setMessengerReady(true);
     };
 
-    // Initialize when user data is available
     if (identity && !isLoading) {
       const timer = setTimeout(initializeWidgets, 500);
       return () => clearTimeout(timer);
     }
-  }, [identity, appTheme, isLoading]);
+  }, [identity, isDark, isLoading]);
 
-  // KEEPING ORIGINAL HANDLERS INTACT
+  // --- Handlers ---
   const handleFeedbackWidget = (boardType?: string) => {
-    if (!identity) {
-      alert('Please log in to submit feedback');
-      return;
-    }
+    if (!identity) return alert('Please log in to submit feedback');
+    if (!feedbackWidgetReady) return alert('Feedback widget is loading...');
 
-    if (!feedbackWidgetReady) {
-      alert('Feedback widget is still loading. Please try again in a moment.');
-      return;
-    }
-
-    // If specific board is requested, use postMessage to specify it
     if (boardType) {
       window.postMessage({
         target: 'FeaturebaseWidget',
-        data: { 
-          action: 'openFeedbackWidget',
-          setBoard: boardType
-        }
+        data: { action: 'openFeedbackWidget', setBoard: boardType }
       });
     }
-
-    console.log('Opening feedback widget with board:', boardType || 'default');
   };
 
   const handleMessenger = () => {
-    if (!identity) {
-      alert('Please log in to open messenger');
-      return;
-    }
-
-    if (!messengerReady) {
-      alert('Messenger is still loading. Please wait a moment.');
-      return;
-    }
-
+    if (!identity) return alert('Please log in to open messenger');
+    if (!messengerReady) return alert('Messenger is loading...');
     try {
       (window as any).Featurebase('show');
-      console.log('Opening FeatureBase messenger...');
     } catch (e) {
-      console.error('Failed to open messenger:', e);
-      alert('Failed to open messenger. Please try again.');
+      alert('Failed to open messenger.');
     }
   };
 
-  const tabItems = [
-    {
-      key: 'new',
-      label: (
-        <Space>
-          <StarOutlined />
-          New
-        </Space>
-      )
-    },
-    {
-      key: 'top',
-      label: (
-        <Space>
-          <RocketOutlined />
-          Top
-        </Space>
-      )
-    },
-    {
-      key: 'trending',
-      label: (
-        <Space>
-          <FireOutlined />
-          Trending
-        </Space>
-      )
-    }
-  ];
-
-
-     const handleBack = () => {
+  const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
   };
 
-
-  const filterOptions = [
-    { 
-      value: 'all', 
-      label: 'All Feedback', 
-      icon: <FileTextOutlined />,
-      color: 'default' as const
-    },
-    { 
-      value: 'feature-request', 
-      label: 'Feature Requests', 
-      icon: <BulbOutlined />,
-      color: 'gold' as const
-    },
-    { 
-      value: 'bug-reports', 
-      label: 'Bug Reports', 
-      icon: <BugOutlined />,
-      color: 'red' as const
-    },
-    { 
-      value: 'general', 
-      label: 'General Feedback', 
-      icon: <CommentOutlined />,
-      color: 'blue' as const
-    }
-  ];
+  // --- Styling Constants ---
+  const fontFamily = "'Manrope', sans-serif";
+  const bgMain = isDark ? '#050505' : '#F9FAFB';
+  const cardBg = isDark ? '#141414' : '#FFFFFF';
+  const borderColor = isDark ? '#303030' : '#E5E7EB';
+  const primaryGradient = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+  const secondaryGradient = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
 
   return (
-    <div>
-        <Button style={{ left: 15}} 
-        icon={<ArrowLeftOutlined />} 
-        onClick={handleBack}
-      // negative margin top
-      >
-        Back
-      </Button>
-      
-    <Layout style={{ minHeight: '100vh', background: appTheme === 'dark' ? '#000000' : '#f5f5f5' }}>
-        
+    <div style={{ fontFamily, backgroundColor: bgMain, minHeight: '100vh' }}>
       <Head>
-        <title>Feedback & Feature Requests | Your App</title>
-        <meta name="description" content="Share your feedback and feature requests to help us improve our product." />
+        <title>Feedback Hub | ArbitrageOS</title>
       </Head>
 
-      {/* Load FeatureBase SDK */}
       <Script 
         src="https://do.featurebase.app/js/sdk.js" 
         id="featurebase-sdk"
         strategy="afterInteractive"
       />
 
-      <Content style={{ padding: '24px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <Title level={1} style={{ marginBottom: 16, fontSize: '2.5rem', fontWeight: 700 }}>
-              💬 Have something to say?
-            </Title>
-            <Paragraph style={{ fontSize: '1.2rem', maxWidth: 600, margin: '0 auto' }}>
-              Tell us how we could make ArbitrageOS more useful to you.
-            </Paragraph>
-          </div>
+      {/* Header Bar */}
+      <div style={{ 
+        padding: '20px 40px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        borderBottom: `1px solid ${borderColor}`,
+        backgroundColor: isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(10px)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
+      }}>
+        <Button 
+          type="text"
+          icon={<ArrowLeftOutlined />} 
+          onClick={handleBack}
+          style={{ 
+            fontFamily, 
+            fontSize: '14px', 
+            fontWeight: 600,
+            color: isDark ? '#9CA3AF' : '#4B5563',
+            padding: 0
+          }}
+        >
+          Back to Dashboard
+        </Button>
+      </div>
 
-          <Row gutter={[32, 32]}>
-            {/* Main Content */}
-            <Col xs={24} lg={16}>
-              {/* Action Buttons - Most Important */}
-              <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-                <Col xs={24} sm={12}>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={feedbackWidgetReady ? <BulbOutlined /> : <LoadingOutlined spin />}
-                    onClick={() => handleFeedbackWidget()}
-                    disabled={!identity || isLoading || !feedbackWidgetReady}
-                    style={{ 
-                      width: '100%', 
-                      height: 64,
-                      fontSize: '16px',
-                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                      border: 'none',
-                      borderRadius: 12,
-                      boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)'
-                    }}
-                    data-featurebase-feedback
-                  >
-                    {!identity ? 'Login Required' : !feedbackWidgetReady ? 'Loading...' : 'Submit Feedback'}
-                  </Button>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={messengerReady ? <CustomerServiceOutlined /> : <LoadingOutlined spin />}
-                    onClick={handleMessenger}
-                    disabled={!identity || isLoading || !messengerReady}
-                    style={{ 
-                      width: '100%', 
-                      height: 64,
-                      fontSize: '16px',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      border: 'none',
-                      borderRadius: 12,
-                      boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)'
-                    }}
-                  >
-                    {!identity ? 'Login Required' : !messengerReady ? 'Loading Messenger...' : 'Open Chat Support'}
-                  </Button>
-                </Col>
-              </Row>
-
-              {/* User Status Card */}
-              {identity && (
-                <Card 
-                  style={{ 
-                    marginBottom: 24,
-                    borderRadius: 16,
-                    background: appTheme === 'dark' 
-                      ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
-                      : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  <Row align="middle" gutter={16}>
-                    <Col>
-                      {identity.avatar ? (
-                        <Avatar size={56} src={identity.avatar} />
-                      ) : (
-                        <Avatar 
-                          size={56} 
-                          style={{ 
-                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' 
-                          }}
-                        >
-                          {identity.name?.charAt(0).toUpperCase() || identity.email?.charAt(0).toUpperCase() || <UserOutlined />}
-                        </Avatar>
-                      )}
-                    </Col>
-                    <Col flex={1}>
-                      <Title level={4} style={{ margin: 0 }}>
-                        Welcome, {identity.name || 'User'}!
-                      </Title>
-                      <Text type="secondary">{identity.email}</Text>
-                      <div style={{ marginTop: 8 }}>
-                        <Space>
-                          {/* <Badge 
-                            status={feedbackWidgetReady ? "success" : "processing"} 
-                            // text={`Feedback Widget: ${feedbackWidgetReady ? 'Ready' : 'Loading...'}`}
-                          />
-                          <Badge 
-                            status={messengerReady ? "success" : "processing"} 
-                            text={`Messenger: ${messengerReady ? 'Ready' : 'Loading...'}`}
-                          /> */}
-                        </Space>
-                      </div>
-                    </Col>
-                  </Row>
-                </Card>
-              )}
-
-              {/* Tabs */}
-              <Card 
-                style={{ 
-                  marginBottom: 24,
-                  borderRadius: 16,
-                  border: 'none',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <Tabs 
-                  activeKey={activeTab}
-                  onChange={setActiveTab}
-                  items={tabItems}
-                  size="large"
-                  style={{ marginBottom: 16 }}
-                />
-                
-                <Search
-                  placeholder="Search feedback..."
-                  size="large"
-                  prefix={<SearchOutlined />}
-                  style={{ marginBottom: 0 }}
-                />
-              </Card>
-
-              {/* Three Ways to Give Feedback */}
-              <Card 
-                title={
-                  <Space>
-                    <MessageOutlined />
-                    Three Ways to Give Feedback
-                  </Space>
-                }
-                style={{ 
-                  marginBottom: 24,
-                  borderRadius: 16,
-                  border: 'none',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={8}>
-                    <Card 
-                      size="small"
-                      style={{ 
-                        height: '100%',
-                        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                        border: 'none',
-                        borderRadius: 12
-                      }}
-                    >
-                      <Space direction="vertical" size="small">
-                        <BulbOutlined style={{ fontSize: 24, color: '#d97706' }} />
-                        <Title level={5} style={{ color: '#92400e', margin: 0 }}>
-                          Quick Feedback
-                        </Title>
-                        <Text style={{ color: '#78350f' }}>
-                          Submit feedback quickly with our popup form and screenshot tools.
-                        </Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <Card 
-                      size="small"
-                      style={{ 
-                        height: '100%',
-                        background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                        border: 'none',
-                        borderRadius: 12
-                      }}
-                    >
-                      <Space direction="vertical" size="small">
-                        <CustomerServiceOutlined style={{ fontSize: 24, color: '#059669' }} />
-                        <Title level={5} style={{ color: '#047857', margin: 0 }}>
-                          Chat Support
-                        </Title>
-                        <Text style={{ color: '#065f46' }}>
-                          Get live support and submit feedback through our messenger interface.
-                        </Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <Card 
-                      size="small"
-                      style={{ 
-                        height: '100%',
-                        background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                        border: 'none',
-                        borderRadius: 12
-                      }}
-                    >
-                      <Space direction="vertical" size="small">
-                        <FileTextOutlined style={{ fontSize: 24, color: '#2563eb' }} />
-                        <Title level={5} style={{ color: '#1d4ed8', margin: 0 }}>
-                          Full Portal
-                        </Title>
-                        <Text style={{ color: '#1e40af' }}>
-                          Browse all feedback, vote on existing requests, and see our roadmap.
-                        </Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                </Row>
-              </Card>
-
-              {/* Embedded Portal */}
-              <Card
-                title={
-                  <Space>
-                    <RocketOutlined />
-                    Full Feedback Portal
-                  </Space>
-                }
-                style={{ 
-                  borderRadius: 16,
-                  border: 'none',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <div 
-                  data-featurebase-embed 
-                  style={{ 
-                    minHeight: 600,
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    border: `1px solid ${token.colorBorder}`
-                  }}
-                />
-              </Card>
-            </Col>
-
-            {/* Sidebar */}
-            <Col xs={24} lg={8}>
-              <div style={{ position: 'sticky', top: 24 }}>
-                <Card 
-                  title={
-                    <Space>
-                      <FileTextOutlined />
-                      Feedback Categories
-                    </Space>
-                  }
-                  style={{ 
-                    marginBottom: 24,
-                    borderRadius: 16,
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  <Radio.Group
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    style={{ width: '100%' }}
-                  >
-                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                      {filterOptions.map((option) => (
-                        <Radio 
-                          key={option.value} 
-                          value={option.value}
-                          style={{ 
-                            width: '100%',
-                            padding: '12px 16px',
-                            borderRadius: 8,
-                            border: `1px solid ${filter === option.value ? token.colorPrimary : token.colorBorder}`,
-                            background: filter === option.value 
-                              ? `${token.colorPrimary}08`
-                              : 'transparent'
-                          }}
-                        >
-                          <Space>
-                            {option.icon}
-                            <Text strong={filter === option.value}>
-                              {option.label}
-                            </Text>
-                            <Tag color={option.color} style={{ marginLeft: 'auto' }}>
-                              {Math.floor(Math.random() * 50) + 1}
-                            </Tag>
-                          </Space>
-                        </Radio>
-                      ))}
-                    </Space>
-                  </Radio.Group>
-
-                  <Divider />
-                  
-                  <Button
-                    type="dashed"
-                    size="large"
-                    icon={<BulbOutlined />}
-                    onClick={() => handleFeedbackWidget()}
-                    disabled={!feedbackWidgetReady}
-                    style={{ 
-                      width: '100%',
-                      height: 48,
-                      borderRadius: 12,
-                      borderStyle: 'dashed',
-                      borderWidth: 2
-                    }}
-                    data-featurebase-feedback
-                  >
-                    Quick Feedback
-                  </Button>
-                </Card>
-
-                {/* Status Card */}
-                {!identity && (
-                  <Alert
-                    message="Authentication Required"
-                    description="Please log in to submit feedback and access all features."
-                    type="info"
-                    showIcon
-                    style={{ 
-                      borderRadius: 12,
-                      border: 'none',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                )}
+      <Layout style={{ background: 'transparent' }}>
+        <Content style={{ padding: '40px 24px' }}>
+          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            
+            {/* 1. Hero Section */}
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <div style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                padding: '6px 16px', 
+                borderRadius: '20px', 
+                backgroundColor: isDark ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.08)',
+                marginBottom: 24,
+                border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'}`
+              }}>
+                <MessageOutlined style={{ color: '#6366f1' }} />
+                <Text style={{ color: '#6366f1', fontWeight: 600, fontFamily }}>Feedback Hub</Text>
               </div>
-            </Col>
-          </Row>
-        </div>
-      </Content>
-    </Layout>
+              
+              <Title level={1} style={{ 
+                marginBottom: 16, 
+                fontSize: '3rem', 
+                fontWeight: 800, 
+                fontFamily,
+                letterSpacing: '-0.02em',
+                color: isDark ? '#fff' : '#111827'
+              }}>
+                Help shape the future.
+              </Title>
+              <Paragraph style={{ 
+                fontSize: '1.25rem', 
+                color: isDark ? '#9CA3AF' : '#6B7280', 
+                maxWidth: 600, 
+                margin: '0 auto', 
+                fontFamily,
+                lineHeight: 1.6
+              }}>
+                We build ArbitrageOS for you. Share your ideas, report bugs, or just say hello directly to the team.
+              </Paragraph>
+            </div>
+
+            {/* 2. User Welcome Card */}
+            {identity && (
+               <div style={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'space-between',
+                 backgroundColor: cardBg,
+                 border: `1px solid ${borderColor}`,
+                 borderRadius: '20px',
+                 padding: '24px',
+                 marginBottom: 32,
+                 boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.02)'
+               }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    {identity.avatar ? (
+                      <Avatar size={56} src={identity.avatar} style={{ border: `2px solid ${borderColor}` }} />
+                    ) : (
+                      <Avatar size={56} style={{ background: primaryGradient }} icon={<UserOutlined />} />
+                    )}
+                    <div>
+                      <Title level={4} style={{ margin: 0, fontFamily, fontWeight: 700 }}>
+                        Welcome back, {identity.name?.split(' ')[0]}
+                      </Title>
+                      <Text style={{ fontFamily, color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                        {identity.email}
+                      </Text>
+                    </div>
+                 </div>
+                 {!feedbackWidgetReady && <Spin />}
+               </div>
+            )}
+
+            {!identity && (
+              <Alert
+                message="Authentication Required"
+                description="Please log in to your account to submit feedback."
+                type="warning"
+                showIcon
+                style={{ marginBottom: 32, borderRadius: 12 }}
+              />
+            )}
+
+            {/* 3. Action Grid */}
+            <Row gutter={[24, 24]} style={{ marginBottom: 48 }}>
+              <Col xs={24} md={12}>
+                <button
+                  onClick={() => handleFeedbackWidget()}
+                  disabled={!identity || !feedbackWidgetReady}
+                  style={{
+                    width: '100%',
+                    padding: '32px',
+                    borderRadius: '24px',
+                    border: 'none',
+                    background: primaryGradient,
+                    cursor: (!identity || !feedbackWidgetReady) ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    height: '180px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'transform 0.2s ease',
+                    boxShadow: '0 10px 30px rgba(99, 102, 241, 0.3)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{ 
+                    background: 'rgba(255,255,255,0.2)', 
+                    padding: 12, 
+                    borderRadius: '12px',
+                    marginBottom: 16
+                  }}>
+                     {!feedbackWidgetReady ? <LoadingOutlined style={{ fontSize: 24, color: '#fff' }} /> : <BulbOutlined style={{ fontSize: 24, color: '#fff' }} />}
+                  </div>
+                  <div style={{ textAlign: 'left', zIndex: 1 }}>
+                    <Text style={{ display: 'block', fontSize: '20px', fontWeight: 700, color: '#fff', fontFamily }}>
+                      Submit Feedback
+                    </Text>
+                    <Text style={{ display: 'block', fontSize: '14px', color: 'rgba(255,255,255,0.8)', fontFamily, marginTop: 4 }}>
+                      Request features or report issues directly.
+                    </Text>
+                  </div>
+                  {/* Decorative Circle */}
+                  <div style={{
+                    position: 'absolute',
+                    top: -20,
+                    right: -20,
+                    width: 100,
+                    height: 100,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)'
+                  }} />
+                </button>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <button
+                  onClick={handleMessenger}
+                  disabled={!identity || !messengerReady}
+                  style={{
+                    width: '100%',
+                    padding: '32px',
+                    borderRadius: '24px',
+                    border: 'none',
+                    background: secondaryGradient,
+                    cursor: (!identity || !messengerReady) ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    height: '180px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'transform 0.2s ease',
+                    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{ 
+                    background: 'rgba(255,255,255,0.2)', 
+                    padding: 12, 
+                    borderRadius: '12px',
+                    marginBottom: 16
+                  }}>
+                     {!messengerReady ? <LoadingOutlined style={{ fontSize: 24, color: '#fff' }} /> : <CustomerServiceOutlined style={{ fontSize: 24, color: '#fff' }} />}
+                  </div>
+                  <div style={{ textAlign: 'left', zIndex: 1 }}>
+                    <Text style={{ display: 'block', fontSize: '20px', fontWeight: 700, color: '#fff', fontFamily }}>
+                      Live Support
+                    </Text>
+                    <Text style={{ display: 'block', fontSize: '14px', color: 'rgba(255,255,255,0.8)', fontFamily, marginTop: 4 }}>
+                      Chat with our team for immediate help.
+                    </Text>
+                  </div>
+                  {/* Decorative Circle */}
+                  <div style={{
+                    position: 'absolute',
+                    top: -20,
+                    right: -20,
+                    width: 100,
+                    height: 100,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)'
+                  }} />
+                </button>
+              </Col>
+            </Row>
+
+            {/* 4. Full Portal Embed */}
+            <Card
+              bordered={false}
+              style={{
+                borderRadius: '24px',
+                background: cardBg,
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 40px rgba(0,0,0,0.04)',
+                overflow: 'hidden'
+              }}
+              bodyStyle={{ padding: 0 }}
+            >
+              <div style={{ 
+                padding: '24px 32px', 
+                borderBottom: `1px solid ${borderColor}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <RocketOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
+                <Title level={4} style={{ margin: 0, fontFamily, fontWeight: 700 }}>
+                  Community Roadmap
+                </Title>
+              </div>
+              <div 
+                data-featurebase-embed 
+                style={{ 
+                  minHeight: 700,
+                  width: '100%'
+                }}
+              />
+            </Card>
+
+          </div>
+        </Content>
+      </Layout>
     </div>
   );
 }

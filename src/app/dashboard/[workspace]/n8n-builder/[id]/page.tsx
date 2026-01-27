@@ -47,6 +47,8 @@ import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 import { useWorkflowExport } from '../../../../hooks/useN8nWorkflowBuilder';
 import { SavedWorkflow, ExportFormat } from '@/types/n8nWorkflowBuilder';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
@@ -230,7 +232,19 @@ ${workflow.setupInstructions.troubleshooting.map((trouble: string) => `• ${tro
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" tip="Loading workflow details..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+     <Spin size="large" tip="Loading workflow details..." />
+</ConfigProvider>
+
+
+   
         <p style={{ marginTop: 16 }}></p>
       </div>
     );

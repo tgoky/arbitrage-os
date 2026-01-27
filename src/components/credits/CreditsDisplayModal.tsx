@@ -24,6 +24,8 @@ import {
 } from '@ant-design/icons';
 import { loadStripe } from '@stripe/stripe-js';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text } = Typography;
 
 interface CreditsPurchaseModalProps {
@@ -218,7 +220,18 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
             <div className="space-y-4">
               {loading ? (
                 <div className="text-center py-8">
-                  <Spin size="large" />
+
+                  <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+     <Spin size="large" />
+</ConfigProvider>
+
+             
                 </div>
               ) : (
                 packages.map((pkg) => (
@@ -328,7 +341,17 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
               ) : (
                 <div className="text-center py-8">
                   {loading ? (
-                    <Spin size="small" />
+
+                    <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="small" />
+</ConfigProvider>
+                  
                   ) : (
                     <Text type="secondary">Select a package to see order summary</Text>
                   )}

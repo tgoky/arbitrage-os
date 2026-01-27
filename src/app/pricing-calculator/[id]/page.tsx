@@ -38,6 +38,8 @@ import { useSavedCalculations } from '../../hooks/usePricingCalculator';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { GeneratedPricingPackage } from '../../hooks/usePricingCalculator';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
@@ -141,7 +143,19 @@ const SavedCalculationDetail = () => {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center py-12">
-          <Spin size="large" tip="Loading calculation details..." />
+
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" tip="Loading calculation details..." />
+</ConfigProvider>
+
+        
         </div>
       </div>
     );

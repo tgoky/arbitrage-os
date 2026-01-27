@@ -34,6 +34,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTheme } from '../../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../../hooks/useWorkspaceContext';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text } = Typography;
 
 interface Lead {
@@ -244,7 +246,19 @@ const leadColumns = [
     return (
       <div style={{ backgroundColor: theme === 'dark' ? '#000000' : '#ffffff', padding: 24, minHeight: '100vh' }}>
         <div className="text-center py-12">
-          <Spin size="large" />
+
+          
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" />
+</ConfigProvider>
+
+       
           <div className="mt-4">Loading campaign details...</div>
         </div>
       </div>

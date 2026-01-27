@@ -37,6 +37,8 @@ import { useWorkspaceContext } from "../../hooks/useWorkspaceContext";
 import { useNicheResearcher } from "../../hooks/useNicheResearcher";
 import { GeneratedNicheReport, MultiNicheReport } from "@/types/nicheResearcher";
 
+
+
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
@@ -1231,7 +1233,17 @@ const NicheResearchDetailPage = () => {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center py-12">
-          <Spin size="large" tip="Loading niche report..." />
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+      <Spin size="large" tip="Loading niche report..." />
+</ConfigProvider>
+    
         </div>
       </div>
     );

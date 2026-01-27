@@ -16,6 +16,8 @@ import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkItems } from '../../hooks/useDashboardData';
 import { NotificationBell } from '../../../components/notification/NotificationBell';
 
+
+
 const { useBreakpoint } = Grid;
 
 // --- STYLING CONSTANTS ---
@@ -160,7 +162,17 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
     return (
       <div className="p-12 rounded-xl border flex flex-col items-center justify-center gap-4"
            style={{ background: GLASS_BG, borderColor: GLASS_BORDER }}>
+
+            <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
         <Spin size="large" />
+</ConfigProvider>
+
         <span style={{ color: STEEL_COLOR }} className="font-manrope text-sm">Synchronizing workspace...</span>
       </div>
     );

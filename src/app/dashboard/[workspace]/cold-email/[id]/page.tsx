@@ -38,6 +38,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { GeneratedEmail } from '@/types/coldEmail';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
@@ -167,7 +169,19 @@ const ColdEmailDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+  
+
+  <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+
         <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+
         {/* <p className="mt-4">Loading workspace...</p> */}
       </div>
     );
@@ -176,7 +190,17 @@ const ColdEmailDetailPage = () => {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading email details..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" tip="Loading email details..." />
+</ConfigProvider>
+     
         <p className="mt-4"></p>
       </div>
     );

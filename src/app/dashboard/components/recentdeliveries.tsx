@@ -21,6 +21,8 @@ import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { useWorkItems, WorkItem } from '../../hooks/useDashboardData';
 
+import { ConfigProvider } from "antd";
+
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
@@ -145,7 +147,18 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
         style={{ borderRadius: '16px', border: `1px solid ${borderColor}`, backgroundColor }}
       >
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" />
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+       <Spin size="large" />
+</ConfigProvider>
+
+   
           <Text style={{ display: 'block', marginTop: 16, color: isDark ? '#6b7280' : '#999', fontFamily }}>
             Loading workspace...
           </Text>
@@ -228,7 +241,19 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     >
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" />
+          
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+       <Spin size="large" />
+
+</ConfigProvider>
+     
           <Text style={{ display: 'block', marginTop: 16, color: isDark ? '#6b7280' : '#999', fontFamily }}>
             Fetching recent work...
           </Text>

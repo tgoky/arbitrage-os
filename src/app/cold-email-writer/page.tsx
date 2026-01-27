@@ -58,6 +58,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { AutoComplete } from 'antd';
 
+
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 const { Option } = Select;
@@ -173,7 +175,18 @@ const ColdEmailWriter = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8 text-center min-h-[50vh] flex flex-col items-center justify-center bg-gray-900">
+      
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
         <Spin size="large" tip="Initializing Workspace..." />
+</ConfigProvider>
+      
+
       </div>
     );
   }
@@ -734,7 +747,7 @@ const ColdEmailWriter = () => {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,
@@ -1606,7 +1619,20 @@ const ColdEmailWriter = () => {
               
               {savedEmailsLoading ? (
                 <div className="text-center py-12">
-                  <Spin size="large" tip="Loading saved emails..." />
+
+                  
+
+                  <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+   <Spin size="large" tip="Loading saved emails..." />
+</ConfigProvider>
+
+                
                 </div>
               ) : savedEmails.length === 0 ? (
                 <div className="text-center py-12">
@@ -1670,15 +1696,15 @@ const ColdEmailWriter = () => {
                       key: 'action', 
                       render: (r) => (
                         <Space>
-                          <Button 
-                            size="small" 
-                            icon={viewLoading === r.id ? <Spin size="small" /> : <EyeOutlined />} 
-                            onClick={() => handleViewSavedEmail(r.id)}
-                            disabled={viewLoading !== null}
-                            style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
-                          >
-                            View
-                          </Button>
+                       <Button 
+  size="small" 
+  icon={viewLoading === r.id ? <Spin size="small" style={{ color: '#5CC49D' }} /> : <EyeOutlined />} 
+  onClick={() => handleViewSavedEmail(r.id)}
+  disabled={viewLoading !== null}
+  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+>
+  View
+</Button>
                           <Button 
                             size="small" 
                             danger 

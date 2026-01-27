@@ -426,7 +426,19 @@ const IntegratedWorkDashboard = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: SPACE_BG }}>
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
         <Spin size="large" tip={<span style={{ color: STEEL_COLOR }}>Loading workspace...</span>} />
+</ConfigProvider>
+
+
+
       </div>
     );
   }
@@ -435,7 +447,17 @@ const IntegratedWorkDashboard = () => {
   if (isLoading && workItems.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: SPACE_BG }}>
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
         <Spin size="large" tip={<span style={{ color: STEEL_COLOR }}>Loading your work...</span>} />
+</ConfigProvider>
+
       </div>
     );
   }

@@ -45,6 +45,8 @@ import { GeneratedAd, FullScript } from '@/types/adWriter';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 import { motion } from 'framer-motion';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
@@ -352,7 +354,18 @@ const AdWriterDetailPage = () => {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..." />
+
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+      <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+  
         {/* <p className="mt-4"></p> */}
       </div>
     );
@@ -361,7 +374,19 @@ const AdWriterDetailPage = () => {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading ad details...<" />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" tip="Loading ad details...<" />
+</ConfigProvider>
+
+
+       
         {/* <p className="mt-4">/p> */}
       </div>
     );

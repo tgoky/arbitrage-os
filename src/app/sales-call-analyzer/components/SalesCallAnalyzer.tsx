@@ -47,6 +47,7 @@ import {
   ConfigProvider,
   theme
 } from 'antd';
+
 import { useGo } from "@refinedev/core";
 import { NewCallModal } from '../callmodel';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
@@ -158,7 +159,19 @@ export default function SalesCallAnalyzerPage() {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 text-center min-h-[50vh] flex flex-col items-center justify-center bg-gray-900">
-        <Spin size="large" tip="Initializing Workspace..." />
+
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+    <Spin size="large" tip="Initializing Workspace..." />
+</ConfigProvider>
+
+    
       </div>
     );
   }
@@ -455,7 +468,7 @@ export default function SalesCallAnalyzerPage() {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,

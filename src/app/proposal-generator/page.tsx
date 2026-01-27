@@ -43,6 +43,8 @@ import {
   theme
 } from "antd";
 
+
+
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { useRouter } from 'next/navigation';
 import {
@@ -155,7 +157,18 @@ export default function ProposalGeneratorPage() {
   if (!isWorkspaceReady) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <Spin size="large" tip="Loading workspace..." />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+  <Spin size="large" tip="Loading workspace..." />
+</ConfigProvider>
+
+      
       </div>
     );
   }
@@ -344,7 +357,7 @@ export default function ProposalGeneratorPage() {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,
@@ -1163,7 +1176,17 @@ function ProposalHistory({
     >
       {loading ? (
         <div className="text-center py-12">
-          <Spin size="large" tip="Loading proposals..." />
+
+          <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+     <Spin size="large" tip="Loading proposals..." />
+</ConfigProvider>
+     
         </div>
       ) : proposals.length === 0 ? (
         <div className="text-center py-12">

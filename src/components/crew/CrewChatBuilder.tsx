@@ -5,6 +5,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Input, Button, Space, Card, message, Spin, Typography, Tag, Avatar } from 'antd';
 import { SendOutlined, RobotOutlined, UserOutlined, ThunderboltOutlined } from '@ant-design/icons';
 
+import { ConfigProvider } from "antd";
+
 const { TextArea } = Input;
 const { Text } = Typography;
 
@@ -172,7 +174,18 @@ export const CrewChatBuilder: React.FC<CrewChatBuilderProps> = ({
               >
                 {message.isThinking ? (
                   <Space>
-                    <Spin size="small" />
+
+                    <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+     <Spin size="small" />
+</ConfigProvider>
+
+               
                     <Text>{message.content}</Text>
                   </Space>
                 ) : (

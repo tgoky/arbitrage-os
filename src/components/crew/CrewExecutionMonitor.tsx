@@ -38,6 +38,8 @@ import {
 } from '@ant-design/icons';
 import ReactJson from 'react-json-view';
 
+import { ConfigProvider } from "antd";
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
@@ -314,7 +316,17 @@ export const CrewExecutionMonitor: React.FC<CrewExecutionMonitorProps> = ({
   if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" />
+
+        <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#5CC49D',
+    },
+  }}
+>
+      <Spin size="large" />
+</ConfigProvider>
+  
         <div style={{ marginTop: '16px' }}>
           <Text type="secondary">Loading execution...</Text>
         </div>

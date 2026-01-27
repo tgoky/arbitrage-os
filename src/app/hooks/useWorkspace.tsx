@@ -1,4 +1,5 @@
 // app/hooks/useWorkspace.tsx - FIXED VERSION
+// Now persists workspace selection across page refreshes via localStorage
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -71,6 +72,10 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           if (workspace) {
             console.log('Setting valid workspace from URL:', workspace);
             setCurrentWorkspace(workspace);
+            // Also save to localStorage to persist across refreshes
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('current-workspace', JSON.stringify(workspace));
+            }
           } else {
             // Workspace exists but not in user's list (shouldn't happen)
             setValidationError('Workspace access denied');
@@ -82,9 +87,37 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           handleInvalidWorkspace(data);
         }
       } else if (data.length > 0 && !currentWorkspace) {
-        // No workspace in URL, set first available
-        console.log('No workspace in URL, setting first available:', data[0]);
-        setCurrentWorkspace(data[0]);
+        // No workspace in URL, try to restore from localStorage first
+        let workspaceToSet = data[0]; // Default to first workspace
+
+        if (typeof window !== 'undefined') {
+          const savedWorkspace = localStorage.getItem('current-workspace');
+          if (savedWorkspace) {
+            try {
+              const parsed = JSON.parse(savedWorkspace);
+              // Find the saved workspace in the current list (to ensure it still exists)
+              const foundWorkspace = data.find(w => w.id === parsed.id || w.slug === parsed.slug);
+              if (foundWorkspace) {
+                console.log('Restored workspace from localStorage:', foundWorkspace);
+                workspaceToSet = foundWorkspace;
+              } else {
+                console.log('Saved workspace no longer exists, using first available');
+                // Clear invalid saved workspace
+                localStorage.removeItem('current-workspace');
+              }
+            } catch (e) {
+              console.log('Failed to parse saved workspace, using first available');
+              localStorage.removeItem('current-workspace');
+            }
+          }
+        }
+
+        console.log('No workspace in URL, setting workspace:', workspaceToSet);
+        setCurrentWorkspace(workspaceToSet);
+        // Save to localStorage (updates with fresh data from database)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('current-workspace', JSON.stringify(workspaceToSet));
+        }
       } else if (data.length === 0) {
         // No workspaces available
         setCurrentWorkspace(null);
@@ -149,6 +182,10 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
             if (workspace) {
               console.log('URL changed, updating current workspace:', workspace);
               setCurrentWorkspace(workspace);
+              // Save to localStorage to persist across refreshes
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('current-workspace', JSON.stringify(workspace));
+              }
             } else {
               // Workspace valid but not in user's list
               setValidationError('Workspace access denied');
