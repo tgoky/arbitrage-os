@@ -12,21 +12,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  // Force dark theme - no light mode
+  const [theme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark";
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.className = savedTheme;
-    }
+    // Always set dark theme on mount, overriding any saved preference
+    localStorage.setItem("theme", "dark");
+    document.documentElement.className = "dark";
   }, []);
 
+  // No-op toggle function (kept for compatibility if anything calls it)
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.className = newTheme;
+    // Theme switching disabled - app is dark-only
   };
 
   
