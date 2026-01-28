@@ -119,11 +119,13 @@ interface Analytics {
   };
 }
 
-interface EmailAgentDashboardProps {
-  workspaceId: string;
-}
+// interface EmailAgentDashboardProps {
+//   workspaceId: string;
+// }
 
-const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: propWorkspaceId }) => {
+// const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: propWorkspaceId }) => {
+
+const EmailAgentDashboard: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -131,7 +133,8 @@ const EmailAgentDashboard: React.FC<EmailAgentDashboardProps> = ({ workspaceId: 
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
   // ✅ Prefer workspace context, fallback to prop
-  const workspaceId = currentWorkspace?.id || propWorkspaceId;
+  // const workspaceId = currentWorkspace?.id || propWorkspaceId;
+  const workspaceId = currentWorkspace?.id;
   
   // ✅ Validate workspace ID immediately
   useEffect(() => {
