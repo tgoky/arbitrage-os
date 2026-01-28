@@ -378,7 +378,7 @@ export default function CrewsPage() {
                 onClick={handleNewCrew}
                 style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
               >
-                New Crew
+                New Automation
               </Button>
             </Space>
           </div>
