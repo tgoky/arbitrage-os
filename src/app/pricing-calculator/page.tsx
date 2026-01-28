@@ -305,7 +305,9 @@ const PricingCalculator = () => {
   const handleDelete = async (record: SavedCalculation) => {
     Modal.confirm({
       title: <span style={{ color: TEXT_PRIMARY }}>Delete Calculation</span>,
-      content: <span style={{ color: TEXT_SECONDARY }}>Are you sure you want to delete the calculation for "{record.clientName || 'Unnamed Client'}"?</span>,
+      content: <span style={{ color: TEXT_SECONDARY }}>  Are you sure you want to delete the calculation for &quot;?
+    {record.clientName || 'Unnamed Client'}
+    &quot;?</span>,
       okText: 'Delete',
       okType: 'danger',
       cancelText: 'Cancel',

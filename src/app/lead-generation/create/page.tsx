@@ -211,7 +211,7 @@ const SearchPreview = ({ industries, roles, countries, states, cities, companySi
       {parts.length > 2 && (
         <div className="mt-2">
           <Text type="warning" className="text-sm" style={{ color: '#faad14' }}>
-            "To improve search results, you can use the keywords below for better accuracy and relevance."
+            To improve search results, you can use the keywords below for better accuracy and relevance.
           </Text>
         </div>
       )}
@@ -1086,7 +1086,7 @@ const CampaignCreatePage = () => {
               {parts.length > 2 && (
                 <div className="mt-2">
                   <Text type="warning" className="text-sm" style={{ color: '#faad14' }}>
-                    "To improve search results, you can use the keywords below for better accuracy and relevance."
+                    To improve search results, you can use the keywords below for better accuracy and relevance.
                   </Text>
                 </div>
               )}
@@ -1105,7 +1105,12 @@ const CampaignCreatePage = () => {
             </Tooltip>
           </span>
         }
-        extra={<span style={{ color: TEXT_TERTIARY }}>Optional: Add specific terms like 'SaaS', 'fintech', 'AI'</span>}
+extra={
+  <span style={{ color: TEXT_TERTIARY }}>
+    Optional: Add specific terms like &apos;SaaS&apos;, &apos;fintech&apos;, &apos;AI&apos;
+  </span>
+}
+
       >
         <Select
           mode="tags"
@@ -1683,7 +1688,7 @@ const CampaignCreatePage = () => {
 
       <ConfigProvider
         theme={{
-          algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        // algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
           token: {
             fontFamily: FONT_FAMILY,
             colorPrimary: BRAND_COLOR,
@@ -1707,7 +1712,7 @@ const CampaignCreatePage = () => {
             },
             Input: {
               paddingBlock: 10,
-              borderColor: SURFACE_LIGHTER,
+              // borderColor: SURFACE_LIGHTER,
               activeBorderColor: BRAND_COLOR,
               hoverBorderColor: BRAND_COLOR,
               colorBgContainer: SURFACE_BG,

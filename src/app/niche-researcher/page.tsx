@@ -1268,7 +1268,7 @@ const NicheResearcher = () => {
               
               <Form.Item
                 name="timeCommitment"
-                label={<span style={{ color: TEXT_SECONDARY }}>Hours per Week You'll Invest (Optional)</span>}
+                label={<span style={{ color: TEXT_SECONDARY }}>Hours per Week  You&apos;ll Invest (Optional)</span>}
               >
                 <Select 
                   placeholder="Select time commitment"
@@ -1294,7 +1294,7 @@ const NicheResearcher = () => {
               
               <Form.Item
                 name="problems"
-                label={<span style={{ color: TEXT_SECONDARY }}>Problems You're Passionate About Solving (Optional)</span>}
+                label={<span style={{ color: TEXT_SECONDARY }}>Problems  You&apos;re Passionate About Solving (Optional)</span>}
               >
                 <TextArea 
                   rows={3} 
@@ -1571,7 +1571,7 @@ const NicheResearcher = () => {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,

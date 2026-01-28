@@ -747,7 +747,7 @@ const AdWriter = () => {
             
             <Form.Item
               name="failedSolutions"
-              label={<span style={{ color: TEXT_SECONDARY }}>What They've Tried Before</span>}
+              label={<span style={{ color: TEXT_SECONDARY }}>What They&apos;ve Tried Before</span>}
             >
               <TextArea 
                 rows={2} 
@@ -1323,7 +1323,7 @@ const AdWriter = () => {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,
