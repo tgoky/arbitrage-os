@@ -41,7 +41,14 @@ import {
   CloseCircleFilled,
   RightOutlined
 } from '@ant-design/icons';
-import ReactJson from 'react-json-view';
+// import ReactJson from 'react-json-view';
+
+import dynamic from 'next/dynamic';
+
+const ReactJson = dynamic(() => import('react-json-view'), {
+  ssr: false,
+  loading: () => <div style={{ color: '#666' }}>Loading...</div>
+});
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
