@@ -22,7 +22,7 @@ import {
   UserOutlined, 
   ThunderboltOutlined,
   CheckCircleFilled,
-  SparklesOrdered
+
 } from '@ant-design/icons';
 
 const { TextArea } = Input;
