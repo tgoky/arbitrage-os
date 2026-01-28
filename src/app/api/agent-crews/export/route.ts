@@ -514,14 +514,14 @@ class MyCustomTool(BaseTool):
         return "Tool output"
 `);
 
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-      
-      return new NextResponse(zipBuffer, {
-        headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="${projectName}_crew.zip"`
-        }
-      });
+    const zipBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+
+return new NextResponse(zipBuffer, {
+  headers: {
+    'Content-Type': 'application/zip',
+    'Content-Disposition': `attachment; filename="${projectName}_crew.zip"`
+  }
+});
 
     } else if (format === 'json') {
       // Return structured JSON for preview
