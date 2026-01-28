@@ -66,7 +66,7 @@ const { Step } = Steps;
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#0f172a';
-const SURFACE_BG = '#1e293b';
+const SURFACE_BG = '#000000';
 const SURFACE_LIGHTER = '#334155';
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
@@ -391,7 +391,7 @@ export default function ProposalGeneratorPage() {
         }
       }}
     >
-      <div className="min-h-screen bg-gray-900 font-manrope">
+      <div className="min-h-screen bg-black font-manrope">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <LoadingOverlay visible={generating} />
           
@@ -405,16 +405,7 @@ export default function ProposalGeneratorPage() {
           </Button>
 
           <div className="text-center mb-8">
-            <Title level={1} className="mb-2" style={{ color: TEXT_PRIMARY }}>
-              <span style={{
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                fontSize: '17px',
-              }}>
-                Proposal Generator
-              </span>
-            </Title>
+                    <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Proposal Generator</Title>
             <Text style={{ color: SPACE_COLOR }} className="text-lg">
               Generate customized service agreements and statements of work
             </Text>

@@ -90,7 +90,7 @@ const { TabPane } = Tabs;
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#0f172a';
-const SURFACE_BG = '#1e293b';
+const SURFACE_BG = '#000000';
 const SURFACE_LIGHTER = '#334155';
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
@@ -1363,7 +1363,7 @@ const AdWriter = () => {
         }
       }}
     >
-      <div className="min-h-screen bg-gray-900 font-manrope">
+      <div className="min-h-screen bg-black font-manrope">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <LoadingOverlay visible={loading} />
           
@@ -1377,18 +1377,7 @@ const AdWriter = () => {
           </Button>
 
           <div className="text-center mb-8">
-            <Title level={2} className="flex items-center justify-center">
-              <span style={{
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                fontSize: '19px',
-                fontFamily: 'Manrope, sans-serif'
-              }}>
-                <span style={{ color: BRAND_GREEN }}>a</span>rb
-                <span style={{ color: BRAND_GREEN }}>i</span>trageOS ad Writer 
-              </span>
-            </Title>
+                <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Ad Writer</Title>
             <Text style={{ color: SPACE_COLOR }} className="text-lg">
               Generate high-converting ad copy tailored to your business and audience
             </Text>

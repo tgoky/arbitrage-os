@@ -63,7 +63,7 @@ const { Search } = Input;
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#0f172a'; // Deep space dark background
-const SURFACE_BG = '#1e293b'; // Card surface background
+const SURFACE_BG = '#000000'; // Card surface background
 const SURFACE_LIGHTER = '#334155'; // Lighter surfaces
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
@@ -500,7 +500,7 @@ export default function SalesCallAnalyzerPage() {
         }
       }}
     >
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen bg-black">
         <div className="max-w-7xl mx-auto px-4 py-6 font-manrope">
           <Spin spinning={loading} tip="Loading analysis data...">
             <Button 

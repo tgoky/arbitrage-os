@@ -123,8 +123,8 @@ const { Option } = Select;
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#0f172a';
-const SURFACE_BG = '#1e293b';
-const SURFACE_LIGHTER = '#334155';
+const SURFACE_BG = '#000000';
+const SURFACE_LIGHTER = '#212935';
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
 const BORDER_COLOR = '#334155';
@@ -1617,7 +1617,7 @@ const NicheResearcher = () => {
         }
       }}
     >
-      <div className="min-h-screen bg-gray-900 font-manrope">
+      <div className="min-h-screen bg-black font-manrope">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <LoadingOverlay visible={isLoading} />
           
@@ -1633,7 +1633,7 @@ const NicheResearcher = () => {
                 >
                   Back to Dashboard
                 </Button>
-                <Title level={2} className="mb-0 flex items-center">
+                {/* <Title level={2} className="mb-0 flex items-center">
                   <span style={{
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
@@ -1644,7 +1644,7 @@ const NicheResearcher = () => {
                     <span style={{ color: BRAND_GREEN }}>a</span>rb
                     <span style={{ color: BRAND_GREEN }}>i</span>trageOS Niche Research Reports
                   </span>
-                </Title>
+                </Title> */}
               </div>
               
               <Badge count={previousReports.length} overflowCount={99}>

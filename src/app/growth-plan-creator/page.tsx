@@ -90,8 +90,8 @@ const { Panel } = Collapse;
 const BRAND_GREEN = '#5CC49D';
 const SPACE_COLOR = '#9DA2B3';
 const DARK_BG = '#0a0a0f';
-const DARK_SURFACE = '#12121a';
-const DARK_CARD = '#1a1a24';
+const DARK_SURFACE = '#040404';
+const DARK_CARD = '#000000';
 const DARK_BORDER = '#2a2a3a';
 const DARK_HOVER = '#242430';
 const TEXT_PRIMARY = '#f0f0f5';
@@ -1502,11 +1502,7 @@ export default function GrowthPlanCreatorPage() {
               Back to Dashboard
             </Button>
 
-            <div className="px-6 py-2 rounded-full mb-4" style={{ background: `${DARK_SURFACE}80`, border: `1px solid ${DARK_BORDER}` }}>
-              <span className="text-[15px] font-bold tracking-widest uppercase" style={{ color: TEXT_PRIMARY }}>
-                <span style={{ color: BRAND_GREEN }}>a</span>rb<span style={{ color: BRAND_GREEN }}>i</span>trageOS
-              </span>
-            </div>
+         
             <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Growth Plan Creator</Title>
             <Text className="text-lg" style={{ color: TEXT_MUTED }}>Data-driven roadmaps to scale your clients</Text>
           </div>

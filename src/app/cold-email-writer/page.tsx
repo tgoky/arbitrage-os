@@ -69,7 +69,7 @@ const { TextArea } = Input;
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#0f172a'; // Deep space dark background
-const SURFACE_BG = '#1e293b'; // Card surface background
+const SURFACE_BG = '#000000'; // Card surface background
 const SURFACE_LIGHTER = '#334155'; // Lighter surfaces
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
@@ -801,7 +801,7 @@ const ColdEmailWriter = () => {
         }
       }}
     >
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen bg-black">
         <div className="max-w-6xl mx-auto px-4 py-12 font-manrope">
           <LoadingOverlay visible={loading} />
           
@@ -934,7 +934,7 @@ const ColdEmailWriter = () => {
                   <Panel 
                     header={
                       <div className="flex items-center py-2">
-                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mr-4 text-gray-400">
+                        <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center mr-4 text-gray-400">
                           <UserOutlined style={{ fontSize: '18px' }} />
                         </div>
                         <div>
@@ -944,7 +944,7 @@ const ColdEmailWriter = () => {
                       </div>
                     } 
                     key="1"
-                    className="mb-4 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                    className="mb-4 bg-black border border-gray-700 rounded-xl overflow-hidden shadow-sm"
                   >
                     <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
@@ -978,7 +978,7 @@ const ColdEmailWriter = () => {
                   <Panel 
                     header={
                       <div className="flex items-center py-2">
-                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mr-4 text-gray-400">
+                        <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center mr-4 text-gray-400">
                           <SolutionOutlined style={{ fontSize: '18px' }} />
                         </div>
                         <div>
@@ -988,7 +988,7 @@ const ColdEmailWriter = () => {
                       </div>
                     } 
                     key="2"
-                    className="mb-4 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                    className="mb-4 bg-black border border-gray-700 rounded-xl overflow-hidden shadow-sm"
                   >
                     <div className="p-2">
                       <Form.Item name="method" initialValue="direct" className="mb-8">
@@ -1126,7 +1126,7 @@ const ColdEmailWriter = () => {
                           </Radio.Group>
                         </Form.Item>
                         
-                        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-900 p-6 rounded-xl border border-gray-800">
+                        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 bg-black p-6 rounded-xl border border-gray-800">
                           <div>
                             <Form.Item name="generateFollowUps" valuePropName="checked" label="Follow-up Sequence" className="mb-2">
                               <Switch checkedChildren="On" unCheckedChildren="Off" />
@@ -1171,7 +1171,7 @@ const ColdEmailWriter = () => {
                       </div>
                     } 
                     key="3"
-                    className="mb-4 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                    className="mb-4 bg-black border border-gray-700 rounded-xl overflow-hidden shadow-sm"
                   >
                     <div className="p-2">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1283,7 +1283,7 @@ const ColdEmailWriter = () => {
                       </div>
                     }
                     key="4"
-                    className="mb-4 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                    className="mb-4 bg-black border border-gray-700 rounded-xl overflow-hidden shadow-sm"
                   >
                     <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Form.Item name="callToAction" label="Desired Next Step">
@@ -1323,7 +1323,7 @@ const ColdEmailWriter = () => {
                       </div>
                     }
                     key="5"
-                    className="mb-4 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                    className="mb-4 bg-black border border-gray-700 rounded-xl overflow-hidden shadow-sm"
                   >
                     <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Form.Item name="phone" label="Your Phone Number">
@@ -1352,7 +1352,7 @@ const ColdEmailWriter = () => {
                       </div>
                     }
                     key="6"
-                    className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                    className="bg-black border border-gray-700 rounded-xl overflow-hidden shadow-sm"
                   >
                     <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Form.Item name="referrerFirstName" label="Referrer's First Name">

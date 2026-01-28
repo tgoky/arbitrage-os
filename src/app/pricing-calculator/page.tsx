@@ -550,9 +550,7 @@ const PricingCalculator = () => {
             </Button>
 
             <div className="px-6 py-2 rounded-full mb-4" style={{ background: `${DARK_SURFACE}80`, border: `1px solid ${DARK_BORDER}` }}>
-              <span className="text-[15px] font-bold tracking-widest uppercase" style={{ color: TEXT_PRIMARY }}>
-                <span style={{ color: BRAND_GREEN }}>a</span>rb<span style={{ color: BRAND_GREEN }}>i</span>trageOS
-              </span>
+           
             </div>
             <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Pricing Calculator</Title>
             <Text className="text-lg" style={{ color: TEXT_MUTED }}>AI-powered strategy to maximize your deal value</Text>
