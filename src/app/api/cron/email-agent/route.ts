@@ -141,19 +141,21 @@ export async function GET(req: NextRequest) {
           results.inboundEmailsFetched += newEmails.length;
           console.log(`  Found ${newEmails.length} new emails`);
 
-          if (newEmails.length > 0) {
-            // Process emails (sentiment analysis, lead updates, etc.)
-            await agent.processInboundEmails(account.id);
-            results.inboundEmailsProcessed += newEmails.length;
+       if (newEmails.length > 0) {
+  // Process emails (sentiment analysis, lead updates, etc.)
+ for (const email of newEmails) {
+  await agent.processInboundEmails(account.id, account.workspace_id);
+}
+  results.inboundEmailsProcessed += newEmails.length;
 
-            // Update last sync time
-            await prisma.emailAccount.update({
-              where: { id: account.id },
-              data: { last_sync_at: new Date() }
-            });
+  // Update last sync time
+  await prisma.emailAccount.update({
+    where: { id: account.id },
+    data: { last_sync_at: new Date() }
+  });
 
-            console.log(`  ✅ Processed ${newEmails.length} emails`);
-          }
+  console.log(`  ✅ Processed ${newEmails.length} emails`);
+}
 
         } catch (error: any) {
           console.error(`❌ Failed to process inbound for ${account.email}:`, error.message);
@@ -185,7 +187,12 @@ export async function GET(req: NextRequest) {
       for (const campaign of campaignsWithFollowup) {
         try {
           console.log(`\n📨 Processing follow-ups for: ${campaign.name}`);
-          await agent.scheduleFollowups(campaign.id);
+    //  await agent.processFollowups(campaign.id);
+
+    // await agent.processFollowups(campaign.id);
+// TODO: Implement follow-up scheduling
+console.log(`  ⚠️  Follow-up scheduling not yet implemented for: ${campaign.name}`);
+
           results.followupsSent++;
         } catch (error: any) {
           console.error(`❌ Failed to schedule followups for ${campaign.id}:`, error.message);
