@@ -445,12 +445,12 @@ const WorkspaceHomePage = () => {
     workspace.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const userMenuItems = [
-    { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
-    { key: 'settings', label: 'Settings', icon: <SettingOutlined /> },
-    { type: 'divider' },
-    { key: 'logout', label: 'Logout', icon: <LogoutOutlined /> }
-  ];
+ const userMenuItems = [
+  { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
+  { key: 'settings', label: 'Settings', icon: <SettingOutlined /> },
+  { type: 'divider' as const },
+  { key: 'logout', label: 'Logout', icon: <LogoutOutlined /> }
+];
 
   // ==================== RENDER ====================
 
@@ -632,7 +632,7 @@ const WorkspaceHomePage = () => {
             
             <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
+<div style={{ textAlign: 'right', display: 'none' }}>                
                   <Text style={{ color: '#fff', fontSize: '13px', fontWeight: 600, display: 'block' }}>{displayName}</Text>
                   <Text style={{ color: TEXT_SECONDARY, fontSize: '11px' }}>{userProfile?.email}</Text>
                 </div>
@@ -785,7 +785,9 @@ const WorkspaceHomePage = () => {
                   </div>
 
                   <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: `1px solid ${BORDER_COLOR}` }}>
-                    <Text style={{ fontSize: '11px', color: '#52525b' }}>Edited {new Date(workspace.created_at).toLocaleDateString()}</Text>
+                   <Text style={{ fontSize: '11px', color: '#52525b' }}>
+  Edited {workspace.created_at ? new Date(workspace.created_at).toLocaleDateString() : 'Recently'}
+</Text>
                   </div>
                 </div>
               </Col>
