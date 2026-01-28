@@ -1392,7 +1392,7 @@ export default function GrowthPlanCreatorPage() {
           },
           Card: {
             headerFontSize: 18,
-            headerFontWeight: 700,
+            // headerFontWeight: 700,
             colorBgContainer: DARK_CARD,
             colorBorderSecondary: DARK_BORDER,
           },
