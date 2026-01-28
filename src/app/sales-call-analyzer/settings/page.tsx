@@ -96,7 +96,7 @@ export default function SalesCallSettingsPage() {
           },
           Input: {
             paddingBlock: 10,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             activeBorderColor: BRAND_GREEN,
             hoverBorderColor: BRAND_GREEN,
             colorBgContainer: SURFACE_BG,
@@ -105,7 +105,7 @@ export default function SalesCallSettingsPage() {
           InputNumber: {
             colorBgContainer: SURFACE_BG,
             colorText: TEXT_PRIMARY,
-            borderColor: SURFACE_LIGHTER,
+            // borderColor: SURFACE_LIGHTER,
             hoverBorderColor: BRAND_GREEN,
             activeBorderColor: BRAND_GREEN,
           },
