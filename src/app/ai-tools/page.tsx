@@ -252,7 +252,7 @@ const AIToolsDashboard = () => {
                 <Select
                   style={{ width: '100%' }}
                   value={filter.value}
-                  onChange={filter.setter}
+                  onChange={(value) => filter.setter(value as any)}
                   disabled={filter.disabled}
                   variant="borderless" // Cleaner look
                   className={`border ${isDark ? 'border-gray-800 bg-black' : 'border-gray-200 bg-white'} rounded-md px-1`}
