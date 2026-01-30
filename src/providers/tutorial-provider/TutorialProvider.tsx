@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { TourProvider, useTour, StepType } from '@reactour/tour';
+import { TourProvider, useTour, StepType, PopoverContentProps } from '@reactour/tour';
 import { useTheme } from '../ThemeProvider';
 import { X, Lightbulb, ChevronRight, ArrowRight, Check } from 'lucide-react';
 
@@ -245,77 +245,8 @@ const tutorialSteps: StepType[] = [
     content: (
       <StepContent
         title="The Growth Engine"
-        description="Your complete toolkit for growth: Ad Writer, Cold Email Writer, Proposal Generator, Lead Generation, and more."
+        description="Your complete toolkit for growth: Ad Writer, Cold Email Writer, Proposal Generator, Lead Generation, and more. Click to expand and explore all the tools."
         tip="The Growth Engine is the heart of Arbitrage-OS - master these tools!"
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="ad-writer"]',
-    content: (
-      <StepContent
-        title="Ad Writer"
-        description="Generate high-converting ad copy for any platform. Input your product details and get optimized headlines and descriptions."
-        tip="Specify your target audience for more personalized copy."
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="cold-email-writer"]',
-    content: (
-      <StepContent
-        title="Cold Email Writer"
-        description="Craft personalized outreach emails that get responses. Use our AI to generate sequences and follow-ups."
-        tip="Personalization tokens increase open rates by up to 26%."
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="proposal-generator"]',
-    content: (
-      <StepContent
-        title="Proposal Generator"
-        description="Create professional proposals in minutes. Customize templates with your branding, pricing, and deliverables."
-        tip="Link client profiles to auto-fill proposal details."
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="lead-generation"]',
-    content: (
-      <StepContent
-        title="Lead Generation"
-        description="Build and manage your prospect database. Import leads, score them, and track your outreach progress."
-        tip="Use filters to segment leads by industry, size, or engagement."
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="niche-research"]',
-    content: (
-      <StepContent
-        title="Niche Research Report"
-        description="Deep-dive into any market niche. Get comprehensive reports on competition, opportunities, keywords, and growth potential."
-        tip="Export reports as PDFs for client presentations."
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="n8n-builder"]',
-    content: (
-      <StepContent
-        title="N8n Builder"
-        description="Build custom automation workflows visually. Connect APIs, trigger actions, and automate repetitive tasks without code."
-        tip="Check the N8n Library for pre-built templates to get started faster."
-      />
-    ),
-  },
-  {
-    selector: '[data-tour="pricing-calculator"]',
-    content: (
-      <StepContent
-        title="Pricing Calculator"
-        description="Calculate optimal pricing for your services. Factor in costs, margins, and market rates to set competitive prices."
       />
     ),
   },
@@ -577,12 +508,23 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
   };
 
   // Helper to wrap content with padding and navigation
-  const ContentWrapper = ({ content }: { content: React.ReactNode }) => (
-    <div style={{ padding: '24px 24px 8px 24px' }}>
-      {content}
-      <CustomNavigationWithContext />
-    </div>
-  );
+  const ContentWrapper = (props: PopoverContentProps) => {
+    const { steps, currentStep } = props;
+    const stepContent = steps[currentStep]?.content;
+
+    // Content can be ReactElement, string, or function
+    // Our steps use ReactElement, so we cast accordingly
+    const renderedContent = typeof stepContent === 'function'
+      ? null // Functions in @reactour return void (side effects only)
+      : stepContent;
+
+    return (
+      <div style={{ padding: '24px 24px 8px 24px' }}>
+        {renderedContent}
+        <CustomNavigationWithContext />
+      </div>
+    );
+  };
 
   const CustomNavigationWithContext = () => {
     const tour = useTour();
@@ -600,7 +542,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       disableInteraction={true} // Prevents clicking on the highlighted element during tour
       className="arbitrage-tour-popover"
       maskClassName="arbitrage-tour-mask"
-      ContentComponent={({ content }) => <ContentWrapper content={content} />}
+      ContentComponent={ContentWrapper}
       onClickClose={({ setIsOpen }) => {
         setIsOpen(false);
         localStorage.setItem('tutorial-completed', 'true');
