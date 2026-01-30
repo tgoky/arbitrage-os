@@ -4,7 +4,33 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TourProvider, useTour, StepType } from '@reactour/tour';
 import { useTheme } from '../ThemeProvider';
+import { X, Lightbulb, ChevronRight, ArrowRight, Check } from 'lucide-react';
 
+// --- PREMIUM THEME CONSTANTS ---
+const THEME = {
+  colors: {
+    bg: '#050505',
+    surface: '#0A0A0B',
+    surfaceHighlight: '#18181B',
+    border: 'rgba(255, 255, 255, 0.08)',
+    borderHover: 'rgba(255, 255, 255, 0.15)',
+    textPrimary: '#EDEDED',
+    textSecondary: '#A1A1AA',
+    brand: '#5CC49D',
+    brandText: '#000000', // Text color on top of brand color
+    brandGlow: 'rgba(92, 196, 157, 0.25)',
+    accent: '#A78BFA',
+  },
+  fonts: {
+    main: "'Manrope', sans-serif",
+  },
+  shadows: {
+    popover: '0 0 0 1px rgba(255,255,255,0.08), 0 20px 40px -12px rgba(0,0,0,0.9), 0 0 80px -20px rgba(0,0,0,0.8)',
+    button: '0 0 15px rgba(92, 196, 157, 0.15)',
+  }
+};
+
+// --- CONTEXT SETUP ---
 interface TutorialContextType {
   startTutorial: () => void;
   skipTutorial: () => void;
@@ -22,103 +48,304 @@ export const useTutorial = () => {
   return context;
 };
 
-// Tutorial steps configuration
+// --- UI COMPONENT: Step Header & Content ---
+const StepHeader = ({ current, total, title }: { current: number; total: number; title: string }) => (
+  <div style={{ marginBottom: '16px' }}>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      marginBottom: '10px' 
+    }}>
+      <span style={{ 
+        fontSize: '11px', 
+        fontWeight: 700, 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.08em',
+        color: THEME.colors.brand,
+        background: 'rgba(92, 196, 157, 0.1)',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        border: '1px solid rgba(92, 196, 157, 0.2)'
+      }}>
+        Step {current} / {total}
+      </span>
+    </div>
+    <h3 style={{
+      fontSize: '18px',
+      fontWeight: 700,
+      color: THEME.colors.textPrimary,
+      margin: 0,
+      lineHeight: 1.3,
+      letterSpacing: '-0.01em'
+    }}>
+      {title}
+    </h3>
+  </div>
+);
+
+const StepContent: React.FC<{ title: string; description: string; tip?: string }> = ({ title, description, tip }) => {
+  const { currentStep, steps } = useTour();
+  
+  return (
+    <div style={{ fontFamily: THEME.fonts.main }}>
+      {/* Header */}
+      <StepHeader current={currentStep + 1} total={steps.length} title={title} />
+      
+      {/* Description */}
+      <p style={{
+        fontSize: '14px',
+        color: THEME.colors.textSecondary,
+        lineHeight: 1.6,
+        marginBottom: '20px',
+        fontWeight: 400
+      }}>
+        {description}
+      </p>
+
+      {/* Premium Tip Card */}
+      {tip && (
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          padding: '14px',
+          backgroundColor: 'rgba(255, 255, 255, 0.02)',
+          border: `1px solid ${THEME.colors.border}`,
+          borderRadius: '10px',
+          backdropFilter: 'blur(10px)',
+        }}>
+          <div style={{ 
+            color: THEME.colors.brand, 
+            marginTop: '2px',
+            filter: 'drop-shadow(0 0 8px rgba(92, 196, 157, 0.4))'
+          }}>
+            <Lightbulb size={16} strokeWidth={2.5} />
+          </div>
+          <div>
+            <span style={{ 
+              display: 'block', 
+              fontSize: '11px', 
+              fontWeight: 700, 
+              color: THEME.colors.brand, 
+              marginBottom: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Pro Tip
+            </span>
+            <p style={{
+              fontSize: '13px',
+              color: '#d4d4d8',
+              margin: 0,
+              lineHeight: 1.5
+            }}>
+              {tip}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- DATA: Full Tutorial Steps Configuration ---
 const tutorialSteps: StepType[] = [
+  // === GETTING STARTED ===
   {
     selector: '[data-tour="workspace-header"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Welcome to Your Workspace</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          This is your workspace selector. You can create multiple workspaces to organize different projects or clients.
-        </p>
-      </div>
+      <StepContent
+        title="Welcome to Arbitrage-OS"
+        description="This is your workspace selector. Organize different projects or clients into separate workspaces for better management."
+        tip="Create a workspace for each client to keep deliverables organized."
+      />
     ),
   },
   {
     selector: '[data-tour="navigation-menu"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Navigation Menu</h3>
-        <p className="text-sm text-gray-900 dark:text-gray-300">
-          Access all your tools, automations, and content from this sidebar. Click on any item to get started.
-        </p>
-      </div>
+      <StepContent
+        title="Navigation Command Center"
+        description="Your command center for all tools. The sidebar is organized into Strategy, Growth Engine, Agents, and Arbitrage AI."
+        tip="Each section contains powerful tools designed for specific tasks."
+      />
     ),
   },
   {
     selector: '[data-tour="sidebar-toggle"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Collapse Sidebar</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Toggle this button to expand or collapse the sidebar for more workspace.
-        </p>
-      </div>
+      <StepContent
+        title="Focus Mode"
+        description="Toggle this to expand or collapse the sidebar. Great for maximizing your workspace when working on detailed tasks."
+      />
     ),
   },
+  // === DASHBOARD FEATURES ===
   {
     selector: '[data-tour="welcome-panel"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Dashboard Overview</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Your dashboard shows key metrics and quick stats about your workspace activities.
-        </p>
-      </div>
+      <StepContent
+        title="Dashboard Overview"
+        description="Your central hub showing key metrics, recent activity, and quick access to important features."
+      />
     ),
   },
   {
     selector: '[data-tour="quick-actions"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Quick Actions</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Start your most common tasks quickly with these action buttons.
-        </p>
-      </div>
+      <StepContent
+        title="Quick Actions"
+        description="One-click access to your most common tasks. Launch the Ad Writer, create proposals, or start a new automation instantly."
+        tip="These shortcuts save time on repetitive workflows."
+      />
     ),
   },
   {
     selector: '[data-tour="activity-feed"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Activity Feed</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Track all your recent activities, automations, and tool usage in real-time.
-        </p>
-      </div>
+      <StepContent
+        title="Activity Feed"
+        description="Track all your recent activities in real-time. See when automations complete, content is generated, or leads are captured."
+      />
     ),
   },
   {
     selector: '[data-tour="recent-deliverables"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Recent Deliverables</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Access your latest deliverables and export or copy them as needed.
-        </p>
-      </div>
+      <StepContent
+        title="Recent Deliverables"
+        description="Access your latest generated content, proposals, and outputs. Export or copy them directly from here."
+        tip="Click any deliverable to view, edit, or share it."
+      />
     ),
   },
   {
     selector: '[data-tour="running-automations"]',
     content: (
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Running Automations</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Monitor your active automations, agents, and workflows in progress.
-        </p>
-      </div>
+      <StepContent
+        title="Running Automations"
+        description="Monitor your active automations, agents, and workflows. See progress, pause, or stop any running process."
+      />
+    ),
+  },
+  // === STRATEGY SECTION ===
+  {
+    selector: '[data-tour="strategy-section"]',
+    content: (
+      <StepContent
+        title="Strategy Tools"
+        description="Access powerful research and planning tools: Top 50 Niches, AI Tools directory, N8n Library, and the Prompt Directory."
+        tip="Start here when entering a new market or planning campaigns."
+      />
+    ),
+  },
+  // === GROWTH ENGINE ===
+  {
+    selector: '[data-tour="growth-section"]',
+    content: (
+      <StepContent
+        title="The Growth Engine"
+        description="Your complete toolkit for growth: Ad Writer, Cold Email Writer, Proposal Generator, Lead Generation, and more."
+        tip="The Growth Engine is the heart of Arbitrage-OS - master these tools!"
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="ad-writer"]',
+    content: (
+      <StepContent
+        title="Ad Writer"
+        description="Generate high-converting ad copy for any platform. Input your product details and get optimized headlines and descriptions."
+        tip="Specify your target audience for more personalized copy."
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="cold-email-writer"]',
+    content: (
+      <StepContent
+        title="Cold Email Writer"
+        description="Craft personalized outreach emails that get responses. Use our AI to generate sequences and follow-ups."
+        tip="Personalization tokens increase open rates by up to 26%."
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="proposal-generator"]',
+    content: (
+      <StepContent
+        title="Proposal Generator"
+        description="Create professional proposals in minutes. Customize templates with your branding, pricing, and deliverables."
+        tip="Link client profiles to auto-fill proposal details."
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="lead-generation"]',
+    content: (
+      <StepContent
+        title="Lead Generation"
+        description="Build and manage your prospect database. Import leads, score them, and track your outreach progress."
+        tip="Use filters to segment leads by industry, size, or engagement."
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="niche-research"]',
+    content: (
+      <StepContent
+        title="Niche Research Report"
+        description="Deep-dive into any market niche. Get comprehensive reports on competition, opportunities, keywords, and growth potential."
+        tip="Export reports as PDFs for client presentations."
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="n8n-builder"]',
+    content: (
+      <StepContent
+        title="N8n Builder"
+        description="Build custom automation workflows visually. Connect APIs, trigger actions, and automate repetitive tasks without code."
+        tip="Check the N8n Library for pre-built templates to get started faster."
+      />
+    ),
+  },
+  {
+    selector: '[data-tour="pricing-calculator"]',
+    content: (
+      <StepContent
+        title="Pricing Calculator"
+        description="Calculate optimal pricing for your services. Factor in costs, margins, and market rates to set competitive prices."
+      />
+    ),
+  },
+  // === AGENTS ===
+  {
+    selector: '[data-tour="agents-section"]',
+    content: (
+      <StepContent
+        title="AI Agents"
+        description="Deploy autonomous AI agents to handle tasks. The Email Agent can manage outreach campaigns and follow up automatically."
+        tip="Agents work 24/7 - set them up once and let them run."
+      />
+    ),
+  },
+  // === ARBITRAGE AI ===
+  {
+    selector: '[data-tour="automation-section"]',
+    content: (
+      <StepContent
+        title="Arbitrage AI & Automation"
+        description="The core intelligence of the platform. Set up complex automations that combine multiple tools and scale your operations."
+        tip="Start with simple automations and gradually add complexity."
+      />
     ),
   },
 ];
 
-// Internal tutorial logic component
+// --- LOGIC COMPONENT ---
 const TutorialLogic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { theme } = useTheme();
   const [isTutorialCompleted, setIsTutorialCompleted] = useState(false);
-  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const { setIsOpen } = useTour();
 
   useEffect(() => {
@@ -126,33 +353,26 @@ const TutorialLogic: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     const tutorialCompleted = localStorage.getItem('tutorial-completed');
     const welcomeModalSeen = localStorage.getItem('welcome-modal-seen');
     
-    setHasCheckedStorage(true);
-    
     if (tutorialCompleted === 'true') {
       setIsTutorialCompleted(true);
     } else {
       setIsTutorialCompleted(false);
       
-      // If no welcome modal has been seen, we'll let the modal handle the tour start
-      // If welcome modal was seen but tour not completed, auto-start tour
+      // Auto-start for new users who have seen the welcome modal but not the tour
       if (welcomeModalSeen === 'true' && !tutorialCompleted) {
         const timer = setTimeout(() => {
-          console.log('Auto-starting tutorial for returning user');
           setIsOpen(true);
         }, 1500);
-        
         return () => clearTimeout(timer);
       }
     }
   }, [setIsOpen]);
 
   const startTutorial = () => {
-    console.log('Starting tutorial manually');
     setIsOpen(true);
   };
 
   const skipTutorial = () => {
-    console.log('Skipping tutorial');
     setIsOpen(false);
     setIsTutorialCompleted(true);
     localStorage.setItem('tutorial-completed', 'true');
@@ -181,6 +401,126 @@ const TutorialLogic: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   );
 };
 
+// --- CUSTOM NAVIGATION FOOTER ---
+// Replaces default buttons with high-end controls
+function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any) {
+  const isLast = currentStep === steps.length - 1;
+
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center',
+      marginTop: '24px',
+      paddingTop: '20px',
+      borderTop: `1px solid ${THEME.colors.border}`
+    }}>
+      {/* Skip Button */}
+      <button
+        onClick={() => {
+          setIsOpen(false);
+          localStorage.setItem('tutorial-completed', 'true');
+        }}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: THEME.colors.textSecondary,
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          padding: '8px 4px',
+          transition: 'color 0.2s',
+          fontFamily: THEME.fonts.main
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.textPrimary}
+        onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.textSecondary}
+      >
+        Skip Tour
+      </button>
+
+      <div style={{ display: 'flex', gap: '12px' }}>
+        {/* Previous Button */}
+        <button
+          onClick={() => setCurrentStep(Math.max(currentStep - 1, 0))}
+          disabled={currentStep === 0}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: 'transparent',
+            border: `1px solid ${currentStep === 0 ? 'transparent' : THEME.colors.border}`,
+            color: currentStep === 0 ? 'rgba(255,255,255,0.1)' : THEME.colors.textPrimary,
+            cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (currentStep !== 0) {
+              e.currentTarget.style.backgroundColor = THEME.colors.border;
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
+        </button>
+
+        {/* Next/Finish Button */}
+        <button
+          onClick={() => {
+            if (isLast) {
+              setIsOpen(false);
+              localStorage.setItem('tutorial-completed', 'true');
+            } else {
+              setCurrentStep(currentStep + 1);
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            height: '42px',
+            padding: '0 24px',
+            borderRadius: '12px',
+            background: isLast ? THEME.colors.brand : THEME.colors.surfaceHighlight,
+            border: isLast ? 'none' : `1px solid ${THEME.colors.border}`,
+            color: isLast ? THEME.colors.brandText : THEME.colors.textPrimary,
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontFamily: THEME.fonts.main,
+            boxShadow: isLast ? THEME.shadows.button : 'none',
+          }}
+          onMouseEnter={(e) => {
+            if (!isLast) {
+              e.currentTarget.style.backgroundColor = THEME.colors.border;
+              e.currentTarget.style.borderColor = THEME.colors.borderHover;
+            } else {
+              e.currentTarget.style.opacity = '0.9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLast) {
+              e.currentTarget.style.backgroundColor = THEME.colors.surfaceHighlight;
+              e.currentTarget.style.borderColor = THEME.colors.border;
+            } else {
+              e.currentTarget.style.opacity = '1';
+            }
+          }}
+        >
+          {isLast ? 'Finish' : 'Next'}
+          {isLast ? <Check size={16} strokeWidth={3} /> : <ArrowRight size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- MAIN PROVIDER COMPONENT ---
 interface TutorialProviderProps {
   children: React.ReactNode;
 }
@@ -188,102 +528,85 @@ interface TutorialProviderProps {
 export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) => {
   const { theme } = useTheme();
 
+  // Premium glass styles for the Reactour specific parts
   const tourStyles = {
     popover: (base: any) => ({
       ...base,
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#466d60',
-      border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-      borderRadius: '12px',
-      boxShadow: theme === 'dark'
-        ? '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
-        : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-      color: theme === 'dark' ? '#f9fafb' : '#1f2937',
-      maxWidth: '400px',
+      backgroundColor: 'rgba(10, 10, 11, 0.95)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: `1px solid ${THEME.colors.border}`,
+      borderRadius: '20px',
+      boxShadow: THEME.shadows.popover,
+      color: THEME.colors.textPrimary,
+      maxWidth: '420px',
+      padding: '4px', // Wrapper padding
       zIndex: 10000,
+      fontFamily: THEME.fonts.main,
+      outline: 'none',
     }),
-    maskArea: (base: any) => ({
+    maskArea: (base: any) => ({ 
+      ...base, 
+      rx: 16 
+    }),
+    maskWrapper: (base: any) => ({ 
+      ...base, 
+      color: 'rgba(0, 0, 0, 0.7)' 
+    }),
+    // Hide default controls to use our CustomNavigation
+    controls: (base: any) => ({ 
+      ...base, 
+      display: 'none' 
+    }),
+    close: (base: any) => ({
       ...base,
-      rx: 8,
+      right: '18px',
+      top: '18px',
+      color: THEME.colors.textSecondary,
+      width: '12px',
+      height: '12px',
+      padding: '8px',
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      borderRadius: '50%',
+      transition: 'all 0.2s',
+      '&:hover': {
+        color: THEME.colors.textPrimary,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+      }
     }),
-    badge: (base: any) => ({
-      ...base,
-      backgroundColor: '#6366f1',
-      color: 'white',
-      fontSize: '12px',
-      fontWeight: '600',
-    }),
-    dot: (base: any, { current }: any) => ({
-      ...base,
-      backgroundColor: current ? '#6366f1' : theme === 'dark' ? '#374151' : '#d1d5db',
-    }),
+  };
+
+  // Helper to wrap content with padding and navigation
+  const ContentWrapper = ({ content }: { content: React.ReactNode }) => (
+    <div style={{ padding: '24px 24px 8px 24px' }}>
+      {content}
+      <CustomNavigationWithContext />
+    </div>
+  );
+
+  const CustomNavigationWithContext = () => {
+    const tour = useTour();
+    return <CustomNavigation {...tour} />;
   };
 
   return (
     <TourProvider
       steps={tutorialSteps}
       styles={tourStyles}
-      showBadge={true}
+      showBadge={false}
       showCloseButton={true}
-      showNavigation={true}
-      showDots={true}
-      disableDotsNavigation={false}
-      disableKeyboardNavigation={false}
-      className="tour-popover"
-      maskClassName="tour-mask"
-      highlightedMaskClassName="tour-highlight"
-      padding={{ mask: 10, popover: [10, 10] }}
-      prevButton={({ setCurrentStep, currentStep }) => (
-        <button
-          onClick={() => setCurrentStep(Math.max(currentStep - 1, 0))}
-          disabled={currentStep === 0}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors mr-2
-            ${currentStep === 0
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}
-        >
-          Previous
-        </button>
-      )}
-      nextButton={({ setCurrentStep, currentStep, steps, setIsOpen }) => {
-        const isLastStep = currentStep === steps!.length - 1;
-        return (
-          <button
-            onClick={() => {
-              if (isLastStep) {
-                setIsOpen(false);
-                localStorage.setItem('tutorial-completed', 'true');
-              } else {
-                setCurrentStep(currentStep + 1);
-              }
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isLastStep
-                ? 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600'
-              }`}
-          >
-            {isLastStep ? 'Finish' : 'Next'}
-          </button>
-        );
-      }}
+      showNavigation={false}
+      showDots={false}
+      disableInteraction={true} // Prevents clicking on the highlighted element during tour
+      className="arbitrage-tour-popover"
+      maskClassName="arbitrage-tour-mask"
+      ContentComponent={({ content }) => <ContentWrapper content={content} />}
       onClickClose={({ setIsOpen }) => {
         setIsOpen(false);
         localStorage.setItem('tutorial-completed', 'true');
       }}
-      afterOpen={(target: Element | null) => {
-        if (target) {
-          target.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'center'
-          });
-        }
-      }}
-      beforeClose={() => {
-        localStorage.setItem('tutorial-completed', 'true');
-        return Promise.resolve();
-      }}
+      scrollSmooth={true}
+      padding={{ mask: 10, popover: [10, 10] }}
     >
       <TutorialLogic>
         {children}

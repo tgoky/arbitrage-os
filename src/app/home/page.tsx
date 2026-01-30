@@ -685,9 +685,7 @@ const WorkspaceHomePage = () => {
                     <Text style={{ color: TEXT_SECONDARY, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Last Action</Text>
                     <Title level={4} style={{ margin: '8px 0 0', color: '#fff' }}>{metrics.recentToolName}</Title>
                   </div>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ThunderboltFilled style={{ color: '#a855f7', fontSize: '20px' }} />
-                  </div>
+                 
                 </div>
               </Card>
             </Col>
