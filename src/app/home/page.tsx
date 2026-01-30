@@ -597,58 +597,51 @@ const WorkspaceHomePage = () => {
     >
       <div style={{ minHeight: '100vh', backgroundColor: DARK_BG, fontFamily: 'Manrope, sans-serif', display: 'flex', flexDirection: 'column' }}>
         
-        {/* --- HEADER --- */}
-        <header style={{ 
-          height: '70px', 
-          borderBottom: `1px solid ${BORDER_COLOR}`, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          padding: '0 32px',
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(10px)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/aoswhite.png" alt="ArbitrageOS" style={{ height: '32px', marginRight: '40px' }} />
-            <Input 
-              prefix={<SearchOutlined style={{ color: TEXT_SECONDARY }} />} 
-              placeholder="Search workspaces..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              bordered={false}
-              style={{ width: '300px', backgroundColor: SURFACE_ELEVATED, borderRadius: '100px', fontSize: '13px' }}
-            />
-          </div>
+      {/* --- HEADER --- */}
+<header style={{ 
+  height: '70px', 
+  borderBottom: `1px solid ${BORDER_COLOR}`, 
+  display: 'flex', 
+  alignItems: 'center', 
+  justifyContent: 'space-between',
+  padding: '0 32px',
+  backgroundColor: 'rgba(0,0,0,0.8)',
+  backdropFilter: 'blur(10px)',
+  position: 'sticky',
+  top: 0,
+  zIndex: 50
+}}>
+  <div style={{ display: 'flex', alignItems: 'center' }}>
+    <img src="/aoswhite.png" alt="Grow AI" style={{ height: '75px', width: '75px',  }} />
+  </div>
 
-          <Space size={24}>
-            <Popover content={notificationContent} trigger="click" placement="bottomRight" arrow={false}>
-              <Badge count={unreadCount} size="small" color={BRAND_GREEN}>
-                <Button type="text" icon={<BellOutlined style={{ fontSize: '18px', color: TEXT_SECONDARY }} />} />
-              </Badge>
-            </Popover>
-            
-            <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-<div style={{ textAlign: 'right', display: 'none' }}>                
-                  <Text style={{ color: '#fff', fontSize: '13px', fontWeight: 600, display: 'block' }}>{displayName}</Text>
-                  <Text style={{ color: TEXT_SECONDARY, fontSize: '11px' }}>{userProfile?.email}</Text>
-                </div>
-                <Avatar 
-                  src={userProfile?.avatar} 
-                  style={{ backgroundColor: SURFACE_ELEVATED, border: `1px solid ${BORDER_COLOR}`, color: BRAND_GREEN }}
-                >
-                  {userInitial}
-                </Avatar>
-              </div>
-            </Dropdown>
-          </Space>
-        </header>
+  <Space size={24}>
+    <Popover content={notificationContent} trigger="click" placement="bottomRight" arrow={false}>
+      <Badge count={unreadCount} size="small" color={BRAND_GREEN}>
+        <Button type="text" icon={<BellOutlined style={{ fontSize: '18px', color: TEXT_SECONDARY }} />} />
+      </Badge>
+    </Popover>
+    
+    {/* Just show the avatar without dropdown */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Avatar 
+        src={userProfile?.avatar} 
+        style={{ backgroundColor: SURFACE_ELEVATED, border: `1px solid ${BORDER_COLOR}`, color: BRAND_GREEN }}
+      >
+        {userInitial}
+      </Avatar>
+    </div>
+  </Space>
+</header>
 
         {/* --- MAIN CONTENT --- */}
-        <main style={{ flex: 1, padding: '40px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+        <main style={{ 
+  flex: 1, 
+  padding: '40px',
+  maxWidth: '1400px',
+  margin: '0 auto',     // ← THIS centers it
+  width: '100%' 
+}}>
           
           <div style={{ marginBottom: '40px' }}>
             <Title level={2} style={{ color: '#fff', marginBottom: '8px', letterSpacing: '-0.5px' }}>
