@@ -22,6 +22,14 @@ interface MenuGroupProps {
   allMenuItems: IMenuItem[];
 }
 
+// Map group IDs to data-tour attributes for the tutorial system
+const groupTourAttributes: Record<string, string> = {
+  strategy: "strategy-section",
+  growth: "growth-section",
+  agents: "agents-section",
+  arbitrage_ai: "automation-section",
+};
+
 export const MenuGroup = ({
   group,
   collapsed,
@@ -42,8 +50,11 @@ export const MenuGroup = ({
 
   if (groupItems.length === 0) return null;
 
+  // Get the data-tour attribute for this group if it exists
+  const tourAttribute = groupTourAttributes[group.id];
+
   return (
-    <div className="mb-2">
+    <div className="mb-2" {...(tourAttribute ? { "data-tour": tourAttribute } : {})}>
       {/* Group Header */}
       <button
         onClick={handleGroupHeaderClick}
