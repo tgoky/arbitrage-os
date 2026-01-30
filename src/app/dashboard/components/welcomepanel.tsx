@@ -187,7 +187,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
         }
       }}
     >
-      <div className="w-full mb-6 font-manrope">
+      <div className="w-full mb-6 font-manrope" data-tour="welcome-panel">
         
         {/* HEADER ROW */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">

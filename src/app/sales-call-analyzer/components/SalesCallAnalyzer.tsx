@@ -49,7 +49,6 @@ import {
 } from 'antd';
 
 import { useGo } from "@refinedev/core";
-import { NewCallModal } from '../callmodel';
 import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 import type { ColumnsType } from 'antd/es/table';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
@@ -89,7 +88,6 @@ interface CallRecord {
 
 export default function SalesCallAnalyzerPage() {
   const [activeTab, setActiveTab] = useState('all');
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [analyses, setAnalyses] = useState<CallRecord[]>([]);
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
@@ -534,10 +532,10 @@ export default function SalesCallAnalyzerPage() {
                 >
                   Settings
                 </Button>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => setIsModalVisible(true)}
+                  onClick={() => go({ to: "/sales-call-analyzer/review-recording" })}
                   style={{
                     backgroundColor: BRAND_GREEN,
                     borderColor: BRAND_GREEN,
@@ -547,13 +545,6 @@ export default function SalesCallAnalyzerPage() {
                 >
                   New Call
                 </Button>
-                <NewCallModal 
-                  visible={isModalVisible} 
-                  onClose={() => {
-                    setIsModalVisible(false);
-                    loadAnalyses(); // Refresh after new call
-                  }}
-                />
               </Space>
             </div>
 
@@ -820,10 +811,10 @@ export default function SalesCallAnalyzerPage() {
                       <FileSearchOutlined className="text-3xl mb-2" style={{ color: TEXT_SECONDARY }} />
                       <Text style={{ color: TEXT_SECONDARY }}>No sales calls found</Text>
                       <div className="mt-2">
-                        <Button 
-                          type="primary" 
+                        <Button
+                          type="primary"
                           icon={<PlusOutlined />}
-                          onClick={() => setIsModalVisible(true)}
+                          onClick={() => go({ to: "/sales-call-analyzer/review-recording" })}
                           style={{
                             backgroundColor: BRAND_GREEN,
                             borderColor: BRAND_GREEN,
