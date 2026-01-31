@@ -56,6 +56,32 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ Session created successfully for user:', session.user.id);
 
+      // ALWAYS ensure user exists in database on every login
+      // This is critical for workspace queries to work correctly
+      try {
+        await prisma.user.upsert({
+          where: { id: session.user.id },
+          update: {
+            status: 'active',
+            last_login: new Date(),
+            // Update email in case it changed (rare but possible)
+            email: session.user.email!,
+          },
+          create: {
+            id: session.user.id,
+            email: session.user.email!,
+            name: session.user.user_metadata?.full_name || null,
+            status: 'active',
+            last_login: new Date()
+          }
+        });
+        console.log('✅ User record ensured in database');
+      } catch (userError) {
+        console.error('❌ Error ensuring user exists:', userError);
+        // Don't block login if user creation fails - they can still use the app
+        // and ensureUserExists will be called when creating workspaces
+      }
+
       // Handle invite acceptance if invite_id is present
       if (inviteId) {
         try {
@@ -75,30 +101,21 @@ export async function GET(request: NextRequest) {
             // Mark invite as accepted
             await prisma.userInvite.update({
               where: { id: inviteId },
-              data: { 
+              data: {
                 status: 'accepted',
                 accepted_at: new Date()
               }
             });
 
-            // Update or create user record
-            await prisma.user.upsert({
-              where: { email: session.user.email! },
-              update: {
-                status: 'active',
-                last_login: new Date()
-              },
-              create: {
-                id: session.user.id,
-                email: session.user.email!,
-                name: session.user.user_metadata?.full_name || null,
-                status: 'active',
-                last_login: new Date(),
+            // Update user with invite info
+            await prisma.user.update({
+              where: { id: session.user.id },
+              data: {
                 invite_sent_at: invite.sent_at
               }
             });
 
-            console.log('✅ Invite accepted and user created/updated');
+            console.log('✅ Invite accepted and user updated with invite info');
           }
         } catch (inviteError) {
           console.error('❌ Error processing invite:', inviteError);

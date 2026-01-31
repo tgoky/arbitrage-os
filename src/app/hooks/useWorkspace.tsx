@@ -1,10 +1,12 @@
 // app/hooks/useWorkspace.tsx - FIXED VERSION
 // Now persists workspace selection across page refreshes via localStorage
+// Fixed: Now properly waits for auth state before fetching workspaces
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
 import { workspaceService, type Workspace, type CreateWorkspaceInput } from '@/services/workspace.service';
+import { supabaseBrowserClient } from '@/utils/supabase/client';
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
@@ -160,8 +162,67 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Track if we've already loaded workspaces for the current user
+  const loadedForUserRef = useRef<string | null>(null);
+  const isLoadingRef = useRef(false);
+
+  // Listen for auth state changes and load workspaces when authenticated
   useEffect(() => {
-    loadWorkspaces();
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabaseBrowserClient.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          if (session?.user) {
+            // Only load if we haven't already loaded for this user
+            if (loadedForUserRef.current !== session.user.id && !isLoadingRef.current) {
+              console.log('Loading workspaces for user:', session.user.id);
+              loadedForUserRef.current = session.user.id;
+              isLoadingRef.current = true;
+              await loadWorkspaces();
+              isLoadingRef.current = false;
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          // Clear state on sign out
+          console.log('User signed out, clearing workspaces');
+          loadedForUserRef.current = null;
+          setWorkspaces([]);
+          setCurrentWorkspace(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // Also try to load immediately if there's already a session
+    // This handles the case where the component mounts after auth is already established
+    const loadInitial = async () => {
+      try {
+        const { data: { session } } = await supabaseBrowserClient.auth.getSession();
+        if (session?.user && loadedForUserRef.current !== session.user.id && !isLoadingRef.current) {
+          console.log('Initial session found, loading workspaces for:', session.user.id);
+          loadedForUserRef.current = session.user.id;
+          isLoadingRef.current = true;
+          await loadWorkspaces();
+          isLoadingRef.current = false;
+        } else if (!session) {
+          // No session yet, set loading to false so UI doesn't hang
+          // Auth state change will trigger loading when user logs in
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error checking initial session:', error);
+        setIsLoading(false);
+      }
+    };
+
+    loadInitial();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Update current workspace when URL params change
