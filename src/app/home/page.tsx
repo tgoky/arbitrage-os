@@ -638,8 +638,7 @@ const WorkspaceHomePage = () => {
         <main style={{ 
   flex: 1, 
   padding: '40px',
-  maxWidth: '1400px',
-  margin: '0 auto',     // ← THIS centers it
+    // ← THIS centers it
   width: '100%' 
 }}>
           
