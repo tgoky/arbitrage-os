@@ -1,20 +1,20 @@
-// types/salesCallAnalyzer.ts - UPDATED VERSION
+// types/salesCallAnalyzer.ts - UPDATED VERSION WITH DEAL ARCHITECTURE
 export interface SalesCallInput {
   // Basic Call Information
   title: string;
   callType: 'discovery' | 'interview' | 'sales' | 'podcast';
   scheduledDate?: Date;
   actualDate?: Date;
-  
+
   // Transcript Input (removed audio-related fields)
   transcript: string; // Made required since we're text-only now
-  
+
   // Prospect Information
   prospectName?: string;
   prospectTitle?: string;
   prospectEmail?: string;
   prospectLinkedin?: string;
-  
+
   // Company Information
   companyName?: string;
   companyWebsite?: string;
@@ -23,14 +23,267 @@ export interface SalesCallInput {
   companyRevenue?: string;
   companyLocation?: string;
   companyLinkedin?: string;
-  
+
   // Additional Context
   additionalContext?: string;
   specificQuestions?: string[];
   analysisGoals?: string[];
-  
+
   // System fields
   userId: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DEAL ARCHITECTURE TYPES - NEW COMMERCIAL FOCUS
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Prospect Diagnosis - Understanding the "Why"
+ * Identifies business profile, pain points, and qualification status
+ */
+export interface ProspectDiagnosis {
+  // Business Profile
+  businessProfile: {
+    industry: string;
+    businessType: 'blue_collar' | 'local_service' | 'ecommerce' | 'saas' | 'agency' | 'professional_services' | 'other';
+    estimatedTeamSize: string;
+    estimatedRevenue: string;
+    currentTechStack: string[];
+    location?: string;
+  };
+
+  // The "Bleeding Neck" Problems - Top 3 urgent pain points
+  bleedingNeckProblems: Array<{
+    problem: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    frequency: string; // e.g., "Daily", "Weekly", "Monthly"
+    estimatedCost: string; // e.g., "$2,000/month in missed calls"
+    quotedEvidence?: string; // Direct quote from transcript
+  }>;
+
+  // Financial Qualification
+  financialQualification: {
+    isQualified: 'yes' | 'no' | 'maybe';
+    qualificationReason: string;
+    estimatedBudget?: string;
+    urgencyLevel: 'immediate' | 'this_quarter' | 'this_year' | 'exploring';
+    decisionMakerPresent: boolean;
+    buyingSignals: string[];
+    redFlags: string[];
+  };
+
+  // Buying Committee
+  buyingCommittee?: {
+    decisionMaker?: string;
+    influencers?: string[];
+    endUsers?: string[];
+    blockers?: string[];
+  };
+}
+
+/**
+ * Solution Stack - The "What" to Build
+ * Three-tiered solution approach for high-ticket recurring revenue
+ */
+export interface SolutionStack {
+  // Phase 1: Quick Win (Immediate Implementation)
+  phase1QuickWin: {
+    phaseName: string;
+    timeline: string; // e.g., "24-48 hours"
+    tools: Array<{
+      toolName: string;
+      toolType: 'ghl_workflow' | 'make_scenario' | 'ai_agent' | 'landing_page' | 'crm_setup' | 'automation' | 'integration' | 'other';
+      description: string;
+      whyItHelps: string;
+      setupComplexity: 'low' | 'medium' | 'high';
+      estimatedSetupHours: number;
+    }>;
+    expectedOutcome: string;
+    proofOfConcept: string; // How to demonstrate quick value
+  };
+
+  // Phase 2: Core System (The Retainer Foundation)
+  phase2CoreSystem: {
+    phaseName: string;
+    timeline: string; // e.g., "1-2 weeks"
+    tools: Array<{
+      toolName: string;
+      toolType: 'ghl_workflow' | 'make_scenario' | 'ai_agent' | 'landing_page' | 'crm_setup' | 'automation' | 'integration' | 'other';
+      description: string;
+      whyItHelps: string;
+      setupComplexity: 'low' | 'medium' | 'high';
+      estimatedSetupHours: number;
+      monthlyMaintenanceHours?: number;
+    }>;
+    expectedOutcome: string;
+    retainerJustification: string; // Why they need ongoing support
+  };
+
+  // Phase 3: AI "Wow" Factor (High Ticket Upsell)
+  phase3AIWowFactor: {
+    phaseName: string;
+    timeline: string; // e.g., "2-4 weeks"
+    tools: Array<{
+      toolName: string;
+      toolType: 'ai_voice_agent' | 'ai_chat_agent' | 'ai_booking_agent' | 'ai_qualifier' | 'ai_support' | 'custom_ai' | 'other';
+      description: string;
+      whyItHelps: string;
+      setupComplexity: 'low' | 'medium' | 'high';
+      estimatedSetupHours: number;
+      replacesRole?: string; // e.g., "Full-time receptionist ($45k/year)"
+      monthlyMaintenanceHours?: number;
+    }>;
+    expectedOutcome: string;
+    roiProjection: string; // e.g., "Saves $3,750/month in labor costs"
+  };
+
+  // Integration Requirements
+  integrationMap: {
+    requiredIntegrations: string[];
+    niceToHaveIntegrations: string[];
+    potentialBlockers: string[];
+  };
+}
+
+/**
+ * Pricing Strategy - The "How Much"
+ * Maximizes agency profit while fitting prospect's budget
+ */
+export interface PricingStrategy {
+  // Setup Fees
+  setupFee: {
+    minimum: number;
+    maximum: number;
+    recommended: number;
+    breakdown: Array<{
+      item: string;
+      cost: number;
+      justification: string;
+    }>;
+  };
+
+  // Monthly Retainer
+  monthlyRetainer: {
+    minimum: number;
+    maximum: number;
+    recommended: number;
+    breakdown: Array<{
+      item: string;
+      monthlyCost: number;
+      justification: string;
+    }>;
+    includedHours?: number;
+    overhourlyRate?: number;
+  };
+
+  // The Pitch Angle - How to frame the price
+  pitchAngle: {
+    headline: string; // e.g., "Replace a $50k admin for the price of coffee a day"
+    valueFraming: string;
+    comparisonPoint: string; // What they're currently spending/losing
+    urgencyHook: string;
+  };
+
+  // Contract Terms
+  contractTerms: {
+    recommendedTerm: '3_months' | '6_months' | '12_months';
+    discountForLongerTerm?: string;
+    paymentStructure: string;
+    guaranteeOffered?: string;
+  };
+
+  // Upsell Path
+  upsellOpportunities: Array<{
+    service: string;
+    timing: string; // When to pitch it
+    additionalRevenue: number;
+  }>;
+
+  // Total Deal Value
+  totalDealValue: {
+    firstYearValue: number;
+    lifetimeValueEstimate: number;
+    profitMarginEstimate: string;
+  };
+}
+
+/**
+ * Sales Performance Analysis - The Coaching (maintained from original)
+ * Critiques the agency owner's performance on the call
+ */
+export interface SalesPerformanceAnalysis {
+  // Green Flags - What went well
+  greenFlags: Array<{
+    observation: string;
+    example?: string; // Quote or specific moment
+    impact: string;
+  }>;
+
+  // Red Flags - Areas to improve
+  redFlags: Array<{
+    observation: string;
+    example?: string;
+    howToFix: string;
+    priority: 'high' | 'medium' | 'low';
+  }>;
+
+  // Missed Opportunities - Questions they should have asked
+  missedOpportunities: Array<{
+    topic: string;
+    questionToAsk: string;
+    whyItMatters: string;
+  }>;
+
+  // Call Score Card
+  callScoreCard: {
+    rapportBuilding: number; // 0-10
+    discoveryDepth: number; // 0-10
+    painIdentification: number; // 0-10
+    valuePresentation: number; // 0-10
+    objectionHandling: number; // 0-10
+    closingStrength: number; // 0-10
+    overallScore: number; // 0-100
+  };
+
+  // Next Call Preparation
+  nextCallPreparation: string[];
+}
+
+/**
+ * Deal Grade - Overall deal quality assessment
+ */
+export interface DealGrade {
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  gradeReason: string;
+  winProbability: number; // 0-100
+  recommendedNextStep: string;
+  dealRisks: string[];
+  dealStrengths: string[];
+}
+
+/**
+ * Complete Deal Architecture Package
+ * The main output combining all deal-focused analysis
+ */
+export interface DealArchitecturePackage {
+  // Core Deal Analysis
+  prospectDiagnosis: ProspectDiagnosis;
+  solutionStack: SolutionStack;
+  pricingStrategy: PricingStrategy;
+
+  // Sales Coaching (maintained)
+  salesPerformance: SalesPerformanceAnalysis;
+
+  // Deal Assessment
+  dealGrade: DealGrade;
+
+  // Quick Reference
+  executiveBrief: {
+    oneLineSummary: string;
+    topPriority: string;
+    immediateAction: string;
+    dealValue: string;
+  };
 }
 
 export interface CallStructureAnalysis {
@@ -207,14 +460,19 @@ export interface SalesCallResults {
 
 export interface GeneratedCallPackage {
   callResults: SalesCallResults;
-  
+
+  // ═══════════════════════════════════════════════════════════════════
+  // NEW: Deal Architecture (Commercial Focus)
+  // ═══════════════════════════════════════════════════════════════════
+  dealArchitecture?: DealArchitecturePackage;
+
   // Client-Ready Materials
   summaryPresentation: Array<{
     title: string;
     content: string;
     visualType: 'text' | 'chart' | 'bullet' | 'quote';
   }>;
-  
+
   // Strategic Recommendations
   nextStepsStrategy: {
     immediateActions: string[];
@@ -222,7 +480,7 @@ export interface GeneratedCallPackage {
     longTermStrategy: string[];
     riskMitigation: string[];
   };
-  
+
   // Performance Analytics - UPDATED to match service output
   performanceMetrics: {
     talkTime: number; // Changed from talkTimePercentage
@@ -234,7 +492,7 @@ export interface GeneratedCallPackage {
     enthusiasmLevel?: number;
     professionalismScore?: number;
   };
-  
+
   tokensUsed: number;
   processingTime: number;
 }

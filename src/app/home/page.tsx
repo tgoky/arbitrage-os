@@ -598,198 +598,612 @@ const WorkspaceHomePage = () => {
       <div style={{ minHeight: '100vh', backgroundColor: DARK_BG, fontFamily: 'Manrope, sans-serif', display: 'flex', flexDirection: 'column' }}>
         
       {/* --- HEADER --- */}
+{/* --- HEADER --- */}
+{/* --- HEADER --- */}
 <header style={{ 
   height: '70px', 
+  width: '100%',
   borderBottom: `1px solid ${BORDER_COLOR}`, 
   display: 'flex', 
-  alignItems: 'center', 
-  justifyContent: 'space-between',
+  alignItems: 'center',
+  justifyContent: 'space-between', /* <--- THIS IS THE KEY CHANGE */
   padding: '0 32px',
-  backgroundColor: 'rgba(0,0,0,0.8)',
+  backgroundColor: 'rgba(0,0,0,0.95)', 
   backdropFilter: 'blur(10px)',
   position: 'sticky',
   top: 0,
-  zIndex: 50
+  zIndex: 1000, 
+  boxSizing: 'border-box'
 }}>
-  <div style={{ display: 'flex', alignItems: 'center' }}>
-    <img src="/aoswhite.png" alt="Grow AI" style={{ height: '75px', width: '75px',  }} />
+  {/* 1. Logo Section (Left) */}
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center',
+    flexShrink: 0
+  }}>
+    <img 
+      src="/aoswhite.png" 
+      alt="ArbitrageOS" 
+      style={{ 
+        height: '40px',
+        width: 'auto',
+        objectFit: 'contain'
+      }} 
+    />
   </div>
 
-  <Space size={24}>
-    <Popover content={notificationContent} trigger="click" placement="bottomRight" arrow={false}>
-      <Badge count={unreadCount} size="small" color={BRAND_GREEN}>
-        <Button type="text" icon={<BellOutlined style={{ fontSize: '18px', color: TEXT_SECONDARY }} />} />
+  {/* REMOVED THE EMPTY SPACER DIV HERE */}
+
+  {/* 2. Notification and Profile Section (Right) */}
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center',
+    gap: '20px'
+  }}>
+    {/* Notification Bell */}
+    <Popover 
+      content={notificationContent} 
+      trigger="click" 
+      placement="bottomRight"
+    >
+      <Badge 
+        count={unreadCount} 
+        size="small" 
+        color={BRAND_GREEN}
+        style={{ cursor: 'pointer' }}
+      >
+        <div style={{
+          width: '40px',
+          height: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '8px',
+          backgroundColor: SURFACE_ELEVATED,
+          border: `1px solid ${BORDER_COLOR}`,
+          cursor: 'pointer'
+        }}>
+          <BellOutlined style={{ 
+            fontSize: '18px', 
+            color: TEXT_SECONDARY 
+          }} />
+        </div>
       </Badge>
     </Popover>
-    
-    {/* Just show the avatar without dropdown */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+    {/* Profile Avatar */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '12px',
+      cursor: 'pointer'
+    }}>
       <Avatar 
         src={userProfile?.avatar} 
-        style={{ backgroundColor: SURFACE_ELEVATED, border: `1px solid ${BORDER_COLOR}`, color: BRAND_GREEN }}
+        style={{ 
+          backgroundColor: SURFACE_ELEVATED, 
+          border: `1px solid ${BORDER_COLOR}`, 
+          color: BRAND_GREEN,
+          width: '40px',
+          height: '40px',
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }}
       >
         {userInitial}
       </Avatar>
     </div>
-  </Space>
+  </div>
 </header>
 
         {/* --- MAIN CONTENT --- */}
+              {/* Main Content - UPDATED FOR FULL WIDTH */}
         <main style={{ 
-  flex: 1, 
-  padding: '40px',
-    // ← THIS centers it
-  width: '100%' 
-}}>
+          flex: 1, 
+          padding: '40px',
+          width: '100%',
+          minHeight: 'calc(100vh - 140px)',
+          backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb'
+        }}>
           
-          <div style={{ marginBottom: '40px' }}>
-            <Title level={2} style={{ color: '#fff', marginBottom: '8px', letterSpacing: '-0.5px' }}>
-              Welcome back, {displayName.split(' ')[0]}
-            </Title>
-            <Text style={{ color: TEXT_SECONDARY, fontSize: '16px' }}>Manage your arbitrage projects and AI workflows.</Text>
-          </div>
-
-          {/* Quick Stats */}
-          <Row gutter={[20, 20]} style={{ marginBottom: '40px' }}>
-            <Col xs={24} sm={8}>
-              <Card style={{ border: `1px solid ${BORDER_COLOR}`, background: `linear-gradient(180deg, ${SURFACE_CARD} 0%, #000 100%)` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div>
-                    <Text style={{ color: TEXT_SECONDARY, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Workspaces</Text>
-                    <Title level={2} style={{ margin: '8px 0 0', color: '#fff' }}>{workspaces.length}</Title>
-                  </div>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'rgba(92, 196, 157, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FolderOutlined style={{ color: BRAND_GREEN, fontSize: '20px' }} />
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card style={{ border: `1px solid ${BORDER_COLOR}`, background: `linear-gradient(180deg, ${SURFACE_CARD} 0%, #000 100%)` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div>
-                    <Text style={{ color: TEXT_SECONDARY, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Recent</Text>
-                    <Title level={4} style={{ margin: '8px 0 0', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mostRecentWorkspace?.name || "None"}</Title>
-                  </div>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <HistoryOutlined style={{ color: '#3b82f6', fontSize: '20px' }} />
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card style={{ border: `1px solid ${BORDER_COLOR}`, background: `linear-gradient(180deg, ${SURFACE_CARD} 0%, #000 100%)` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div>
-                    <Text style={{ color: TEXT_SECONDARY, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Last Action</Text>
-                    <Title level={4} style={{ margin: '8px 0 0', color: '#fff' }}>{metrics.recentToolName}</Title>
-                  </div>
-                 
-                </div>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Password Banner */}
-          {hasPassword === false && (
-            <div style={{ 
-              marginBottom: '40px', padding: '24px', borderRadius: '16px', 
-              background: 'linear-gradient(90deg, rgba(92, 196, 157, 0.1) 0%, rgba(0,0,0,0) 100%)',
-              border: `1px solid ${BRAND_GREEN}40`, display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+          {/* Welcome Section */}
+          <div style={{ 
+            marginBottom: '32px',
+            maxWidth: '100%'
+          }}>
+            <Title level={3} style={{ 
+              color: theme === 'dark' ? '#fff' : '#000',
+              fontSize: '28px',
+              fontWeight: 700,
+              marginBottom: '4px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: BRAND_GREEN, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${BRAND_GREEN}60` }}>
-                  <LockOutlined style={{ color: '#000', fontSize: '20px' }} />
-                </div>
-                <div>
-                  <Title level={5} style={{ color: '#fff', margin: 0 }}>Secure Your Account</Title>
-                  <Text style={{ color: TEXT_SECONDARY }}>Set up a password for faster and more secure access.</Text>
-                </div>
-              </div>
-              <Button type="primary" onClick={() => setShowPasswordModal(true)} style={{ backgroundColor: BRAND_GREEN, color: '#000', borderColor: BRAND_GREEN, fontWeight: 700 }}>
-                Setup Password
-              </Button>
-            </div>
-          )}
-
-          {/* Workspaces Grid */}
-          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Title level={4} style={{ color: '#fff', margin: 0 }}>Your Workspaces</Title>
+              Workspace Environment
+            </Title>
+            <Text style={{ 
+              color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
+              fontSize: '14px'
+            }}>
+              Manage your arbitrage projects and team collaborations
+            </Text>
           </div>
 
-          <Row gutter={[24, 24]}>
-            {/* Create New Card */}
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <div 
-                onClick={() => setShowCreateModal(true)}
-                style={{ 
-                  height: '180px', borderRadius: '16px', 
-                  border: `1px dashed ${BORDER_COLOR}`, 
-                  backgroundColor: 'rgba(255,255,255,0.02)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', transition: 'all 0.2s ease',
-                  color: TEXT_SECONDARY
-                }}
-                className="hover:border-green-500 hover:text-green-500 hover:bg-green-900/10"
-              >
-                <PlusOutlined style={{ fontSize: '24px', marginBottom: '12px' }} />
-                <span style={{ fontWeight: 600 }}>Create Workspace</span>
-              </div>
-            </Col>
-
-            {/* Workspace Cards */}
-            {filteredWorkspaces.map((workspace) => (
-              <Col xs={24} sm={12} md={8} lg={6} key={workspace.id}>
-                <div 
-                  onClick={() => handleWorkspaceClick(workspace)}
-                  style={{ 
-                    height: '180px', borderRadius: '16px', 
-                    border: `1px solid ${BORDER_COLOR}`, 
-                    backgroundColor: SURFACE_CARD,
-                    padding: '24px',
-                    display: 'flex', flexDirection: 'column',
-                    cursor: 'pointer', transition: 'all 0.2s ease',
-                    position: 'relative', overflow: 'hidden'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = BRAND_GREEN;
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = `0 10px 30px -10px rgba(92, 196, 157, 0.15)`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = BORDER_COLOR;
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: SURFACE_ELEVATED, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${BORDER_COLOR}` }}>
-                      <FolderOutlined style={{ color: '#fff' }} />
+          {/* Stats Cards - FULL WIDTH */}
+          <div style={{ 
+            width: '100%',
+            marginBottom: '40px'
+          }}>
+            <Row gutter={[20, 20]} style={{ width: '100%' }}>
+              <Col xs={24} sm={8} style={{ width: '33.33%' }}>
+                <div style={{ 
+                  height: '100px',
+                  borderRadius: '12px',
+                  border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
+                  backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
+                  padding: '20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ 
+                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '8px'
+                    }}>
+                      Active Workspaces
                     </div>
-                    <ArrowRightOutlined style={{ color: TEXT_SECONDARY, transform: 'rotate(-45deg)' }} />
+                    <div style={{ 
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '28px',
+                      fontWeight: 700
+                    }}>
+                      {workspaces.length}
+                    </div>
                   </div>
-                  
-                  <div style={{ flex: 1 }}>
-                    <Text strong style={{ color: '#fff', fontSize: '16px', display: 'block', marginBottom: '4px' }}>{workspace.name}</Text>
-                    <Text ellipsis style={{ color: TEXT_SECONDARY, fontSize: '13px' }}>{workspace.description || 'No description'}</Text>
-                  </div>
-
-                  <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: `1px solid ${BORDER_COLOR}` }}>
-                   <Text style={{ fontSize: '11px', color: '#52525b' }}>
-  Edited {workspace.created_at ? new Date(workspace.created_at).toLocaleDateString() : 'Recently'}
-</Text>
+                  <div style={{ 
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '10px',
+                    backgroundColor: theme === 'dark' ? 'rgba(92, 196, 157, 0.1)' : 'rgba(92, 196, 157, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <FolderOutlined style={{ 
+                      color: '#5CC49D',
+                      fontSize: '20px'
+                    }} />
                   </div>
                 </div>
               </Col>
-            ))}
-          </Row>
+              
+              <Col xs={24} sm={8} style={{ width: '33.33%' }}>
+                <div style={{ 
+                  height: '100px',
+                  borderRadius: '12px',
+                  border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
+                  backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
+                  padding: '20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ 
+                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '8px'
+                    }}>
+                      Recent Workspace
+                    </div>
+                    <div style={{ 
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      marginBottom: '4px'
+                    }}>
+                      {mostRecentWorkspace?.name || "None"}
+                    </div>
+                    {mostRecentWorkspace && (
+                      <div style={{ 
+                        color: theme === 'dark' ? '#71717a' : '#9ca3af',
+                        fontSize: '12px'
+                      }}>
+                        {new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ 
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '10px',
+                    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: '12px'
+                  }}>
+                    <HistoryOutlined style={{ 
+                      color: '#3b82f6',
+                      fontSize: '20px'
+                    }} />
+                  </div>
+                </div>
+              </Col>
+              
+              <Col xs={24} sm={8} style={{ width: '33.33%' }}>
+                <div style={{ 
+                  height: '100px',
+                  borderRadius: '12px',
+                  border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
+                  backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
+                  padding: '20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ 
+                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '8px'
+                    }}>
+                      Recent Tool Used
+                    </div>
+                    <div style={{ 
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      marginBottom: '4px'
+                    }}>
+                      {metrics.recentToolName}
+                    </div>
+                    {metrics.recentToolTime && (
+                      <div style={{ 
+                        color: theme === 'dark' ? '#71717a' : '#9ca3af',
+                        fontSize: '12px'
+                      }}>
+                        {(() => {
+                          const now = new Date();
+                          const itemDate = new Date(metrics.recentToolTime);
+                          const diffMs = now.getTime() - itemDate.getTime();
+                          const diffMins = Math.floor(diffMs / (1000 * 60));
+                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                          
+                          if (diffMins < 1) return 'Just now';
+                          if (diffMins < 60) return `${diffMins}m ago`;
+                          if (diffHours < 24) return `${diffHours}h ago`;
+                          if (diffDays === 1) return 'Yesterday';
+                          return `${diffDays}d ago`;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ 
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '10px',
+                    backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: '12px'
+                  }}>
+                    <RiseOutlined style={{ 
+                      color: '#8b5cf6',
+                      fontSize: '20px'
+                    }} />
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </div>
 
+          {/* Workspaces Grid Header */}
+          <div style={{ 
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px',
+            width: '100%'
+          }}>
+            <Title level={4} style={{ 
+              color: theme === 'dark' ? '#fff' : '#000',
+              margin: 0,
+              fontSize: '20px',
+              fontWeight: 600
+            }}>
+              Your Workspaces
+            </Title>
+          </div>
+
+          {/* Workspaces Grid - FIXED FULL WIDTH */}
+          <div style={{ width: '100%' }}>
+            <Row gutter={[20, 20]} style={{ width: '100%', margin: 0 }}>
+              {/* Create New Workspace Card */}
+              <Col xs={24} sm={12} md={8} lg={6} xl={4} style={{ width: '20%', minWidth: '200px' }}>
+                <div 
+                  onClick={() => setShowCreateModal(true)}
+                  style={{ 
+                    height: '160px',
+                    borderRadius: '12px',
+                    border: `2px dashed ${theme === 'dark' ? '#27272a' : '#d1d5db'}`,
+                    backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    width: '100%'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#5CC49D';
+                    e.currentTarget.style.backgroundColor = theme === 'dark' 
+                      ? 'rgba(92, 196, 157, 0.05)' 
+                      : 'rgba(92, 196, 157, 0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = theme === 'dark' ? '#27272a' : '#d1d5db';
+                    e.currentTarget.style.backgroundColor = theme === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.02)' 
+                      : 'rgba(0, 0, 0, 0.02)';
+                  }}
+                >
+                  <div style={{ 
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '10px',
+                    backgroundColor: theme === 'dark' ? '#063f48' : '#5CC49D',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '12px'
+                  }}>
+                    <PlusOutlined style={{ 
+                      color: '#fff',
+                      fontSize: '18px'
+                    }} />
+                  </div>
+                  <Text style={{ 
+                    color: theme === 'dark' ? '#fff' : '#000',
+                    fontSize: '14px',
+                    fontWeight: 600
+                  }}>
+                    New Workspace
+                  </Text>
+                </div>
+              </Col>
+
+              {/* Existing Workspaces - DYNAMIC WIDTH */}
+              {filteredWorkspaces.map((workspace) => (
+                <Col 
+                  key={workspace.id} 
+                  xs={24} 
+                  sm={12} 
+                  md={8} 
+                  lg={6} 
+                  xl={4}
+                  style={{ 
+                    width: '20%',
+                    minWidth: '200px'
+                  }}
+                >
+                  <div 
+                    onClick={() => handleWorkspaceClick(workspace)}
+                    style={{ 
+                      height: '160px',
+                      borderRadius: '12px',
+                      border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
+                      backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#5CC49D';
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = theme === 'dark'
+                        ? '0 12px 32px rgba(0, 0, 0, 0.3)'
+                        : '0 12px 32px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = theme === 'dark' ? '#27272a' : '#e5e7eb';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start',
+                      marginBottom: '16px'
+                    }}>
+                      <div style={{ 
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        backgroundColor: '#5CC49D',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <FolderOutlined style={{ 
+                          color: '#fff',
+                          fontSize: '16px'
+                        }} />
+                      </div>
+                      <ArrowRightOutlined style={{ 
+                        color: theme === 'dark' ? '#71717a' : '#9ca3af',
+                        fontSize: '14px',
+                        marginTop: '4px'
+                      }} />
+                    </div>
+                    
+                    <div style={{ 
+                      flex: 1,
+                      minHeight: 0,
+                      marginBottom: '12px'
+                    }}>
+                      <Text strong style={{ 
+                        color: theme === 'dark' ? '#fff' : '#000',
+                        fontSize: '16px',
+                        display: 'block',
+                        marginBottom: '6px',
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {workspace.name}
+                      </Text>
+                      
+                      {workspace.description && (
+                        <div style={{ marginTop: '6px' }}>
+                          <Text style={{ 
+                            color: theme === 'dark' ? '#71717a' : '#6b7280',
+                            fontSize: '12px',
+                            lineHeight: 1.4,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            height: '32px'
+                          }}>
+                            {workspace.description}
+                          </Text>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ 
+                      marginTop: 'auto',
+                      paddingTop: '12px',
+                      borderTop: `1px solid ${theme === 'dark' ? '#27272a' : '#f3f4f6'}`
+                    }}>
+                      <Text style={{ 
+                        fontSize: '12px',
+                        color: theme === 'dark' ? '#71717a' : '#9ca3af'
+                      }}>
+                        {workspace.created_at 
+                          ? new Date(workspace.created_at).toLocaleDateString('en-US', { 
+                              month: 'short',
+                              day: 'numeric'
+                            })
+                          : 'Recent'}
+                      </Text>
+                    </div>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </div>
+
+          {/* Empty State */}
           {workspaces.length === 0 && !searchQuery && (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<Text style={{ color: TEXT_SECONDARY }}>No workspaces found</Text>}
-              style={{ marginTop: '60px' }}
-            />
+            <div style={{ 
+              padding: '80px 0',
+              textAlign: 'center',
+              marginTop: '60px',
+              width: '100%'
+            }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <div>
+                    <Title level={4} style={{ 
+                      marginBottom: '12px',
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '20px'
+                    }}>
+                      No workspaces yet
+                    </Title>
+                    <Text style={{ 
+                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
+                      fontSize: '15px',
+                      maxWidth: '400px',
+                      margin: '0 auto'
+                    }}>
+                      Create your first workspace to start managing your arbitrage projects
+                    </Text>
+                  </div>
+                }
+              >
+                <Button 
+                  type="primary"
+                  size="large"
+                  icon={<PlusOutlined />}
+                  onClick={() => setShowCreateModal(true)}
+                  style={{ 
+                    backgroundColor: '#5CC49D',
+                    borderColor: '#5CC49D',
+                    color: '#000',
+                    fontWeight: 600,
+                    height: '44px',
+                    padding: '0 32px',
+                    fontSize: '15px',
+                    marginTop: '20px'
+                  }}
+                >
+                  Create Workspace
+                </Button>
+              </Empty>
+            </div>
+          )}
+
+          {/* No Search Results */}
+          {searchQuery && filteredWorkspaces.length === 0 && (
+            <div style={{ 
+              padding: '80px 0',
+              textAlign: 'center',
+              marginTop: '60px',
+              width: '100%'
+            }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <div>
+                    <Title level={4} style={{ 
+                      marginBottom: '12px',
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '20px'
+                    }}>
+                      No results found
+                    </Title>
+                    <Text style={{ 
+                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
+                      fontSize: '15px',
+                      maxWidth: '400px',
+                      margin: '0 auto'
+                    }}>
+                      Try adjusting your search terms
+                    </Text>
+                  </div>
+                } 
+              />
+            </div>
           )}
         </main>
 
