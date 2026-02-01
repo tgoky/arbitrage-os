@@ -175,13 +175,31 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
           if (session?.user) {
-            // Only load if we haven't already loaded for this user
+            // Only load if we haven't already loaded for this user AND not currently loading
             if (loadedForUserRef.current !== session.user.id && !isLoadingRef.current) {
               console.log('Loading workspaces for user:', session.user.id);
-              loadedForUserRef.current = session.user.id;
               isLoadingRef.current = true;
-              await loadWorkspaces();
-              isLoadingRef.current = false;
+              try {
+                await loadWorkspaces();
+                // Only mark as loaded AFTER successful completion
+                loadedForUserRef.current = session.user.id;
+              } catch (error) {
+                console.error('Failed to load workspaces:', error);
+                // Don't set loadedForUserRef so retry is possible
+              } finally {
+                isLoadingRef.current = false;
+              }
+            } else if (loadedForUserRef.current === session.user.id && workspaces.length === 0 && !isLoadingRef.current) {
+              // Already "loaded" but no workspaces - might have been a failed load, retry
+              console.log('No workspaces found, retrying load for user:', session.user.id);
+              isLoadingRef.current = true;
+              try {
+                await loadWorkspaces();
+              } catch (error) {
+                console.error('Failed to retry workspace load:', error);
+              } finally {
+                isLoadingRef.current = false;
+              }
             }
           }
         } else if (event === 'SIGNED_OUT') {
@@ -202,10 +220,18 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         const { data: { session } } = await supabaseBrowserClient.auth.getSession();
         if (session?.user && loadedForUserRef.current !== session.user.id && !isLoadingRef.current) {
           console.log('Initial session found, loading workspaces for:', session.user.id);
-          loadedForUserRef.current = session.user.id;
           isLoadingRef.current = true;
-          await loadWorkspaces();
-          isLoadingRef.current = false;
+          try {
+            await loadWorkspaces();
+            // Only mark as loaded AFTER successful completion
+            loadedForUserRef.current = session.user.id;
+          } catch (error) {
+            console.error('Failed to load workspaces on init:', error);
+            // Don't set loadedForUserRef so retry is possible on auth state change
+            setIsLoading(false);
+          } finally {
+            isLoadingRef.current = false;
+          }
         } else if (!session) {
           // No session yet, set loading to false so UI doesn't hang
           // Auth state change will trigger loading when user logs in
@@ -223,7 +249,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [workspaces.length]);
 
   // Update current workspace when URL params change
   useEffect(() => {
