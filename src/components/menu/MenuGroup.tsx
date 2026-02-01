@@ -24,6 +24,7 @@ interface MenuGroupProps {
 
 // Map group IDs to data-tour attributes for the tutorial system
 const groupTourAttributes: Record<string, string> = {
+  deliverables: "deliverables-section",
   strategy: "strategy-section",
   growth: "growth-section",
   agents: "agents-section",

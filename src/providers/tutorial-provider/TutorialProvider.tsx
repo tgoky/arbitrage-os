@@ -218,11 +218,12 @@ const tutorialSteps: StepType[] = [
     ),
   },
   {
-    selector: '[data-tour="running-automations"]',
+    selector: '[data-tour="deliverables-section"]',
     content: (
       <StepContent
-        title="Running Automations"
-        description="Monitor your active automations, agents, and workflows. See progress, pause, or stop any running process."
+        title="Deliverables Hub"
+        description="Your central command for all outputs. Access your Dashboard for an overview and Submissions to view all your generated content."
+        tip="Check Submissions regularly to review and export your deliverables."
       />
     ),
   },
