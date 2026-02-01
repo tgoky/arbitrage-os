@@ -23,8 +23,29 @@ export interface CreateWorkspaceInput {
 class WorkspaceService {
   private async getAuthToken(): Promise<string | null> {
     try {
+      // First try to get the cached session (fast path)
       const { data: { session } } = await supabaseBrowserClient.auth.getSession();
-      return session?.access_token || null;
+
+      if (session?.access_token) {
+        return session.access_token;
+      }
+
+      // If no cached session, try to refresh - this handles fresh page loads
+      // where cookies exist but session isn't hydrated yet
+      console.log('No cached session, attempting to refresh...');
+      const { data: { session: refreshedSession }, error } = await supabaseBrowserClient.auth.refreshSession();
+
+      if (error) {
+        console.warn('Session refresh failed:', error.message);
+        return null;
+      }
+
+      if (refreshedSession?.access_token) {
+        console.log('Session refreshed successfully');
+        return refreshedSession.access_token;
+      }
+
+      return null;
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
