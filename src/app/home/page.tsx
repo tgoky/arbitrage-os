@@ -667,6 +667,14 @@ const WorkspaceHomePage = () => {
   }
 
   return (
+      <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: 'Manrope, sans-serif',
+          colorPrimary: BRAND_GREEN,
+        },
+      }}
+    >
     <div className="min-h-screen w-full" style={{ 
       backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' ,
       fontFamily: 'Manrope, sans-serif'
@@ -1236,6 +1244,7 @@ const WorkspaceHomePage = () => {
         </div>
       </Modal>
     </div>
+    </ConfigProvider>
   );
 };
 
