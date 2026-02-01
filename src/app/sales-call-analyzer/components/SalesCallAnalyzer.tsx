@@ -512,11 +512,7 @@ export default function SalesCallAnalyzerPage() {
             
             <div className="flex justify-between items-center mb-6">
               <div>
-                <div className="bg-gray-800/50 backdrop-blur-sm px-4 py-1.5 rounded-full border border-gray-700 mb-2 inline-block">
-                  <span className="text-[13px] font-bold tracking-widest uppercase text-gray-100">
-                    <span style={{ color: BRAND_GREEN }}>a</span>rb<span style={{ color: BRAND_GREEN }}>i</span>trageOS
-                  </span>
-                </div>
+               
                 <Title level={1} style={{ marginBottom: 8, fontSize: '32px', fontWeight: 800, color: TEXT_PRIMARY }}>
                   Sales Calls Analyzer
                 </Title>

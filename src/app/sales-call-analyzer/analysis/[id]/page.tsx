@@ -716,13 +716,16 @@ export default function AnalysisDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
-            onClick={() => go({ to: "/sales-call-analyzer" })}
-            className="mr-4"
+          <button 
+             onClick={() => go({ to: "/sales-call-analyzer" })}
+            className={`
+              group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
+              bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white
+            `}
           >
-            Back
-          </Button>
+            <ArrowLeftOutlined className="text-xs transition-transform group-hover:-translate-x-1" />
+            <span className="text-sm font-medium font-manrope">Back to Dashboard</span>
+          </button>
           <div>
             <Title level={3} className="mb-1">{analysis.title}</Title>
             <div className="flex items-center space-x-4">
