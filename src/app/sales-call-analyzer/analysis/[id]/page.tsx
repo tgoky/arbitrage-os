@@ -323,10 +323,11 @@ interface AnalysisData {
           expectedOutcome: string;
           roiProjection: string;
         };
-        systemIntegration: {
-          dataFlowDescription: string;
-          integrationPoints: string[];
-          potentialChallenges: string[];
+        // Matches types file: integrationMap not systemIntegration
+        integrationMap: {
+          requiredIntegrations: string[];
+          niceToHaveIntegrations: string[];
+          potentialBlockers: string[];
         };
       };
       pricingStrategy: {
@@ -369,10 +370,11 @@ interface AnalysisData {
           timing: string;
           additionalRevenue: number;
         }>;
+        // Matches types file: lifetimeValueEstimate is number, profitMarginEstimate is string
         totalDealValue: {
           firstYearValue: number;
-          monthlyRecurring: number;
-          lifetimeValueEstimate: string;
+          lifetimeValueEstimate: number;
+          profitMarginEstimate: string;
         };
       };
       salesPerformance: {
@@ -1925,28 +1927,32 @@ export default function AnalysisDetailPage() {
                     )}
                   </Row>
 
-                {/* System Integration */}
-                {analysis.analysis.dealArchitecture.solutionStack?.systemIntegration && (
+                {/* Integration Map */}
+                {analysis.analysis.dealArchitecture.solutionStack?.integrationMap && (
                   <Card size="small" className="mt-4 bg-gray-50">
-                    <Title level={5}><LinkOutlined className="mr-2" />System Integration</Title>
+                    <Title level={5}><LinkOutlined className="mr-2" />Integration Requirements</Title>
                     <Row gutter={16}>
-                      <Col xs={24} md={12}>
-                        <Text strong>Data Flow:</Text>
-                        <Paragraph className="text-sm">{analysis.analysis.dealArchitecture.solutionStack.systemIntegration.dataFlowDescription || 'Not specified'}</Paragraph>
-                      </Col>
-                      <Col xs={24} md={6}>
-                        <Text strong>Integration Points:</Text>
+                      <Col xs={24} md={8}>
+                        <Text strong className="text-green-600">Required Integrations:</Text>
                         <div className="mt-1">
-                          {(analysis.analysis.dealArchitecture.solutionStack.systemIntegration.integrationPoints || []).map((point, i) => (
-                            <Tag key={i} color="blue" className="mb-1">{point}</Tag>
+                          {(analysis.analysis.dealArchitecture.solutionStack.integrationMap.requiredIntegrations || []).map((integration, i) => (
+                            <Tag key={i} color="green" className="mb-1">{integration}</Tag>
                           ))}
                         </div>
                       </Col>
-                      <Col xs={24} md={6}>
-                        <Text strong>Potential Challenges:</Text>
+                      <Col xs={24} md={8}>
+                        <Text strong className="text-blue-600">Nice to Have:</Text>
                         <div className="mt-1">
-                          {(analysis.analysis.dealArchitecture.solutionStack.systemIntegration.potentialChallenges || []).map((challenge, i) => (
-                            <Tag key={i} color="orange" className="mb-1">{challenge}</Tag>
+                          {(analysis.analysis.dealArchitecture.solutionStack.integrationMap.niceToHaveIntegrations || []).map((integration, i) => (
+                            <Tag key={i} color="blue" className="mb-1">{integration}</Tag>
+                          ))}
+                        </div>
+                      </Col>
+                      <Col xs={24} md={8}>
+                        <Text strong className="text-orange-600">Potential Blockers:</Text>
+                        <div className="mt-1">
+                          {(analysis.analysis.dealArchitecture.solutionStack.integrationMap.potentialBlockers || []).map((blocker, i) => (
+                            <Tag key={i} color="orange" className="mb-1">{blocker}</Tag>
                           ))}
                         </div>
                       </Col>
@@ -2041,16 +2047,16 @@ export default function AnalysisDetailPage() {
                         <Row gutter={8}>
                           <Col span={12}>
                             <Statistic
-                              title={<span className="text-xs">Monthly Recurring</span>}
-                              value={analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.monthlyRecurring || 0}
+                              title={<span className="text-xs">Lifetime Value</span>}
+                              value={analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 0}
                               prefix="$"
                               valueStyle={{ fontSize: '16px', color: '#52c41a' }}
                             />
                           </Col>
                           <Col span={12}>
                             <div className="text-center">
-                              <Text type="secondary" className="text-xs block">Lifetime Estimate</Text>
-                              <Text strong className="text-purple-600">{analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 'N/A'}</Text>
+                              <Text type="secondary" className="text-xs block">Profit Margin</Text>
+                              <Text strong className="text-purple-600">{analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.profitMarginEstimate || 'N/A'}</Text>
                             </div>
                           </Col>
                         </Row>
