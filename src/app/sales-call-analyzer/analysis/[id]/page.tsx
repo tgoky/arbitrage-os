@@ -22,7 +22,16 @@ import {
   EnvironmentOutlined,
   LinkOutlined,
   CalendarOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  DollarOutlined,
+  RocketOutlined,
+  ThunderboltOutlined,
+  TrophyOutlined,
+  FireOutlined,
+  ToolOutlined,
+  StarOutlined,
+  AlertOutlined,
+  AimOutlined
 } from '@ant-design/icons';
 import {
   Button,
@@ -233,8 +242,184 @@ interface AnalysisData {
     };
     tokensUsed: number;
     processingTime: number;
+
+    // Deal Architecture Package (for sales/discovery calls)
+    dealArchitecture?: {
+      prospectDiagnosis: {
+        businessProfile: {
+          industry: string;
+          businessType: string;
+          estimatedTeamSize: string;
+          estimatedRevenue: string;
+          currentTechStack: string[];
+          location?: string;
+        };
+        bleedingNeckProblems: Array<{
+          problem: string;
+          severity: 'critical' | 'high' | 'medium' | 'low';
+          frequency: string;
+          estimatedCost: string;
+          quotedEvidence?: string;
+        }>;
+        financialQualification: {
+          isQualified: 'yes' | 'no' | 'maybe';
+          qualificationReason: string;
+          estimatedBudget?: string;
+          urgencyLevel: 'immediate' | 'this_quarter' | 'this_year' | 'exploring';
+          decisionMakerPresent: boolean;
+          buyingSignals: string[];
+          redFlags: string[];
+        };
+        buyingCommittee?: {
+          decisionMaker?: string;
+          influencers?: string[];
+          endUsers?: string[];
+          blockers?: string[];
+        };
+      };
+      solutionStack: {
+        phase1QuickWin: {
+          phaseName: string;
+          timeline: string;
+          tools: Array<{
+            toolName: string;
+            toolType: string;
+            description: string;
+            whyItHelps: string;
+            setupComplexity: 'low' | 'medium' | 'high';
+            estimatedSetupHours: number;
+          }>;
+          expectedOutcome: string;
+          proofOfConcept: string;
+        };
+        phase2CoreSystem: {
+          phaseName: string;
+          timeline: string;
+          tools: Array<{
+            toolName: string;
+            toolType: string;
+            description: string;
+            whyItHelps: string;
+            setupComplexity: 'low' | 'medium' | 'high';
+            estimatedSetupHours: number;
+            monthlyMaintenanceHours?: number;
+          }>;
+          expectedOutcome: string;
+          retainerJustification: string;
+        };
+        phase3AIWowFactor: {
+          phaseName: string;
+          timeline: string;
+          tools: Array<{
+            toolName: string;
+            toolType: string;
+            description: string;
+            whyItHelps: string;
+            setupComplexity: 'low' | 'medium' | 'high';
+            estimatedSetupHours: number;
+            replacesRole?: string;
+            monthlyMaintenanceHours?: number;
+          }>;
+          expectedOutcome: string;
+          roiProjection: string;
+        };
+        systemIntegration: {
+          dataFlowDescription: string;
+          integrationPoints: string[];
+          potentialChallenges: string[];
+        };
+      };
+      pricingStrategy: {
+        setupFee: {
+          minimum: number;
+          maximum: number;
+          recommended: number;
+          breakdown: Array<{
+            item: string;
+            cost: number;
+            justification: string;
+          }>;
+        };
+        monthlyRetainer: {
+          minimum: number;
+          maximum: number;
+          recommended: number;
+          breakdown: Array<{
+            item: string;
+            monthlyCost: number;
+            justification: string;
+          }>;
+          includedHours?: number;
+          overhourlyRate?: number;
+        };
+        pitchAngle: {
+          headline: string;
+          valueFraming: string;
+          comparisonPoint: string;
+          urgencyHook: string;
+        };
+        contractTerms: {
+          recommendedTerm: '3_months' | '6_months' | '12_months';
+          discountForLongerTerm?: string;
+          paymentStructure: string;
+          guaranteeOffered?: string;
+        };
+        upsellOpportunities: Array<{
+          service: string;
+          timing: string;
+          additionalRevenue: number;
+        }>;
+        totalDealValue: {
+          firstYearValue: number;
+          monthlyRecurring: number;
+          lifetimeValueEstimate: string;
+        };
+      };
+      salesPerformance: {
+        greenFlags: Array<{
+          observation: string;
+          example?: string;
+          impact: string;
+        }>;
+        redFlags: Array<{
+          observation: string;
+          example?: string;
+          howToFix: string;
+          priority: 'high' | 'medium' | 'low';
+        }>;
+        missedOpportunities: Array<{
+          topic: string;
+          questionToAsk: string;
+          whyItMatters: string;
+        }>;
+        callScoreCard: {
+          rapportBuilding: number;
+          discoveryDepth: number;
+          painIdentification: number;
+          valuePresentation: number;
+          objectionHandling: number;
+          closingStrength: number;
+          overallScore: number;
+        };
+        nextCallPreparation: string[];
+      };
+      dealGrade: {
+        grade: 'A' | 'B' | 'C' | 'D' | 'F';
+        gradeReason: string;
+        winProbability: number;
+        recommendedNextStep: string;
+        dealRisks: string[];
+        dealStrengths: string[];
+      };
+      executiveBrief: {
+        oneLineSummary: string;
+        topPriority: string;
+        immediateAction: string;
+        dealValue: string;
+      };
+    };
   };
-  
+
   // Metadata contains the input information
   metadata: {
     callType: string;
@@ -1391,7 +1576,743 @@ export default function AnalysisDetailPage() {
           </Card>
         </TabPane>
 
+        {/* Deal Architecture Tab - NEW */}
+        <TabPane
+          tab={
+            <span>
+              <RocketOutlined /> Deal Architecture
+            </span>
+          }
+          key="deal-architecture"
+        >
+          {analysis?.analysis?.dealArchitecture ? (
+            <div className="space-y-6">
+              {/* Executive Brief Card */}
+              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                <Row gutter={16} align="middle">
+                  <Col xs={24} md={6}>
+                    <div className="text-center">
+                      <div className={`text-6xl font-bold ${
+                        analysis.analysis.dealArchitecture.dealGrade.grade === 'A' ? 'text-green-600' :
+                        analysis.analysis.dealArchitecture.dealGrade.grade === 'B' ? 'text-blue-600' :
+                        analysis.analysis.dealArchitecture.dealGrade.grade === 'C' ? 'text-yellow-600' :
+                        analysis.analysis.dealArchitecture.dealGrade.grade === 'D' ? 'text-orange-600' : 'text-red-600'
+                      }`}>
+                        {analysis.analysis.dealArchitecture.dealGrade.grade}
+                      </div>
+                      <Text type="secondary">Deal Grade</Text>
+                      <div className="mt-2">
+                        <Progress
+                          percent={analysis.analysis.dealArchitecture.dealGrade.winProbability}
+                          status={analysis.analysis.dealArchitecture.dealGrade.winProbability >= 60 ? 'success' : 'normal'}
+                          size="small"
+                        />
+                        <Text type="secondary" className="text-xs">Win Probability</Text>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} md={18}>
+                    <Title level={4}>{analysis.analysis.dealArchitecture.executiveBrief.oneLineSummary}</Title>
+                    <Row gutter={16} className="mt-4">
+                      <Col xs={12} md={6}>
+                        <div className="p-3 bg-white rounded shadow-sm">
+                          <Text type="secondary" className="block text-xs">DEAL VALUE</Text>
+                          <Text strong className="text-lg text-green-600">{analysis.analysis.dealArchitecture.executiveBrief.dealValue}</Text>
+                        </div>
+                      </Col>
+                      <Col xs={12} md={6}>
+                        <div className="p-3 bg-white rounded shadow-sm">
+                          <Text type="secondary" className="block text-xs">TOP PRIORITY</Text>
+                          <Text strong className="text-sm">{analysis.analysis.dealArchitecture.executiveBrief.topPriority}</Text>
+                        </div>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <div className="p-3 bg-white rounded shadow-sm">
+                          <Text type="secondary" className="block text-xs">IMMEDIATE ACTION</Text>
+                          <Text strong className="text-sm">{analysis.analysis.dealArchitecture.executiveBrief.immediateAction}</Text>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Card>
 
+              {/* Prospect Diagnosis */}
+              <Card
+                title={
+                  <span><FireOutlined className="text-red-500 mr-2" />Prospect Diagnosis - "Bleeding Neck" Problems</span>
+                }
+              >
+                <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <div className="mb-4 p-4 bg-gray-50 rounded">
+                      <Title level={5}>Business Profile</Title>
+                      <div className="space-y-2">
+                        <div><Text type="secondary">Industry:</Text> <Text strong>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.industry}</Text></div>
+                        <div><Text type="secondary">Type:</Text> <Tag color="blue">{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.businessType.replace(/_/g, ' ')}</Tag></div>
+                        <div><Text type="secondary">Team Size:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.estimatedTeamSize}</Text></div>
+                        <div><Text type="secondary">Revenue:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.estimatedRevenue}</Text></div>
+                        {analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.location && (
+                          <div><Text type="secondary">Location:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.location}</Text></div>
+                        )}
+                        <div className="mt-2">
+                          <Text type="secondary">Tech Stack:</Text>
+                          <div className="mt-1">
+                            {analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.currentTechStack.map((tech, i) => (
+                              <Tag key={i} className="mb-1">{tech}</Tag>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded">
+                      <Title level={5}>Financial Qualification</Title>
+                      <div className="text-center mb-3">
+                        <Tag
+                          color={
+                            analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'green' :
+                            analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'orange' : 'red'
+                          }
+                          className="text-lg px-4 py-1"
+                        >
+                          {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'QUALIFIED' :
+                           analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'NEEDS VALIDATION' : 'NOT QUALIFIED'}
+                        </Tag>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div><Text type="secondary">Reason:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.qualificationReason}</Text></div>
+                        {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.estimatedBudget && (
+                          <div><Text type="secondary">Budget:</Text> <Text strong className="text-green-600">{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.estimatedBudget}</Text></div>
+                        )}
+                        <div><Text type="secondary">Urgency:</Text> <Tag color="purple">{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.urgencyLevel.replace(/_/g, ' ')}</Tag></div>
+                        <div><Text type="secondary">Decision Maker Present:</Text> {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.decisionMakerPresent ? <CheckCircleOutlined className="text-green-500" /> : <CloseCircleOutlined className="text-red-500" />}</div>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} md={16}>
+                    <Title level={5} className="mb-3">Top Pain Points (Urgency-Ranked)</Title>
+                    <List
+                      dataSource={analysis.analysis.dealArchitecture.prospectDiagnosis.bleedingNeckProblems}
+                      renderItem={(problem, index) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            avatar={
+                              <Badge
+                                count={index + 1}
+                                style={{
+                                  backgroundColor: problem.severity === 'critical' ? '#f5222d' :
+                                                 problem.severity === 'high' ? '#fa541c' :
+                                                 problem.severity === 'medium' ? '#faad14' : '#52c41a'
+                                }}
+                              />
+                            }
+                            title={
+                              <div className="flex items-center gap-2">
+                                <Text strong>{problem.problem}</Text>
+                                <Tag color={
+                                  problem.severity === 'critical' ? 'red' :
+                                  problem.severity === 'high' ? 'orange' :
+                                  problem.severity === 'medium' ? 'gold' : 'green'
+                                }>{problem.severity.toUpperCase()}</Tag>
+                              </div>
+                            }
+                            description={
+                              <div className="mt-2">
+                                <div className="flex gap-4 text-sm">
+                                  <span><ClockCircleOutlined className="mr-1" />{problem.frequency}</span>
+                                  <span><DollarOutlined className="mr-1 text-red-500" />{problem.estimatedCost}</span>
+                                </div>
+                                {problem.quotedEvidence && (
+                                  <div className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-sm italic">
+                                    "{problem.quotedEvidence}"
+                                  </div>
+                                )}
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+
+                    {/* Buying Signals & Red Flags */}
+                    <Row gutter={16} className="mt-4">
+                      <Col xs={24} md={12}>
+                        <div className="p-3 bg-green-50 rounded border border-green-200">
+                          <Text strong className="text-green-700"><LikeOutlined className="mr-1" /> Buying Signals</Text>
+                          <ul className="mt-2 ml-4 text-sm">
+                            {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.buyingSignals.map((signal, i) => (
+                              <li key={i} className="text-green-600">{signal}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <div className="p-3 bg-red-50 rounded border border-red-200">
+                          <Text strong className="text-red-700"><WarningOutlined className="mr-1" /> Red Flags</Text>
+                          <ul className="mt-2 ml-4 text-sm">
+                            {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.redFlags.map((flag, i) => (
+                              <li key={i} className="text-red-600">{flag}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* Solution Stack - Three Phases */}
+              <Card
+                title={
+                  <span><ToolOutlined className="text-blue-500 mr-2" />Solution Stack - What to Build</span>
+                }
+              >
+                <Row gutter={16}>
+                  {/* Phase 1: Quick Win */}
+                  <Col xs={24} md={8}>
+                    <Card
+                      size="small"
+                      className="h-full border-green-200"
+                      title={
+                        <div className="text-center">
+                          <ThunderboltOutlined className="text-green-500 text-xl" />
+                          <div className="text-green-600 font-bold">PHASE 1: QUICK WIN</div>
+                          <Tag color="green">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.timeline}</Tag>
+                        </div>
+                      }
+                    >
+                      <Text strong className="block mb-2">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.phaseName}</Text>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.tools}
+                        renderItem={(tool) => (
+                          <List.Item className="py-2">
+                            <div className="w-full">
+                              <div className="flex justify-between items-center">
+                                <Text strong className="text-sm">{tool.toolName}</Text>
+                                <Tag color="blue" className="text-xs">{tool.toolType.replace(/_/g, ' ')}</Tag>
+                              </div>
+                              <Text className="text-xs text-gray-500 block">{tool.description}</Text>
+                              <div className="flex justify-between text-xs mt-1">
+                                <span><ClockCircleOutlined className="mr-1" />{tool.estimatedSetupHours}h setup</span>
+                                <Tag color={tool.setupComplexity === 'low' ? 'green' : tool.setupComplexity === 'medium' ? 'orange' : 'red'} className="text-xs">{tool.setupComplexity}</Tag>
+                              </div>
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                      <Divider className="my-2" />
+                      <div className="p-2 bg-green-50 rounded text-sm">
+                        <Text strong className="text-green-700">Expected Outcome:</Text>
+                        <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.expectedOutcome}</div>
+                      </div>
+                      <div className="p-2 bg-blue-50 rounded text-sm mt-2">
+                        <Text strong className="text-blue-700">Proof of Concept:</Text>
+                        <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.proofOfConcept}</div>
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Phase 2: Core System */}
+                  <Col xs={24} md={8}>
+                    <Card
+                      size="small"
+                      className="h-full border-blue-200"
+                      title={
+                        <div className="text-center">
+                          <ToolOutlined className="text-blue-500 text-xl" />
+                          <div className="text-blue-600 font-bold">PHASE 2: CORE SYSTEM</div>
+                          <Tag color="blue">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.timeline}</Tag>
+                        </div>
+                      }
+                    >
+                      <Text strong className="block mb-2">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.phaseName}</Text>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.tools}
+                        renderItem={(tool) => (
+                          <List.Item className="py-2">
+                            <div className="w-full">
+                              <div className="flex justify-between items-center">
+                                <Text strong className="text-sm">{tool.toolName}</Text>
+                                <Tag color="blue" className="text-xs">{tool.toolType.replace(/_/g, ' ')}</Tag>
+                              </div>
+                              <Text className="text-xs text-gray-500 block">{tool.description}</Text>
+                              <div className="flex justify-between text-xs mt-1">
+                                <span><ClockCircleOutlined className="mr-1" />{tool.estimatedSetupHours}h setup</span>
+                                <Tag color={tool.setupComplexity === 'low' ? 'green' : tool.setupComplexity === 'medium' ? 'orange' : 'red'} className="text-xs">{tool.setupComplexity}</Tag>
+                              </div>
+                              {tool.monthlyMaintenanceHours && (
+                                <div className="text-xs text-purple-500 mt-1">
+                                  <ClockCircleOutlined className="mr-1" />{tool.monthlyMaintenanceHours}h/mo maintenance
+                                </div>
+                              )}
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                      <Divider className="my-2" />
+                      <div className="p-2 bg-blue-50 rounded text-sm">
+                        <Text strong className="text-blue-700">Expected Outcome:</Text>
+                        <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.expectedOutcome}</div>
+                      </div>
+                      <div className="p-2 bg-purple-50 rounded text-sm mt-2">
+                        <Text strong className="text-purple-700">Why They Need Retainer:</Text>
+                        <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.retainerJustification}</div>
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Phase 3: AI Wow Factor */}
+                  <Col xs={24} md={8}>
+                    <Card
+                      size="small"
+                      className="h-full border-purple-200"
+                      title={
+                        <div className="text-center">
+                          <RocketOutlined className="text-purple-500 text-xl" />
+                          <div className="text-purple-600 font-bold">PHASE 3: AI WOW FACTOR</div>
+                          <Tag color="purple">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.timeline}</Tag>
+                        </div>
+                      }
+                    >
+                      <Text strong className="block mb-2">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.phaseName}</Text>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.tools}
+                        renderItem={(tool) => (
+                          <List.Item className="py-2">
+                            <div className="w-full">
+                              <div className="flex justify-between items-center">
+                                <Text strong className="text-sm">{tool.toolName}</Text>
+                                <Tag color="purple" className="text-xs">{tool.toolType.replace(/_/g, ' ')}</Tag>
+                              </div>
+                              <Text className="text-xs text-gray-500 block">{tool.description}</Text>
+                              <div className="flex justify-between text-xs mt-1">
+                                <span><ClockCircleOutlined className="mr-1" />{tool.estimatedSetupHours}h setup</span>
+                                <Tag color={tool.setupComplexity === 'low' ? 'green' : tool.setupComplexity === 'medium' ? 'orange' : 'red'} className="text-xs">{tool.setupComplexity}</Tag>
+                              </div>
+                              {tool.replacesRole && (
+                                <div className="text-xs text-green-600 mt-1 font-semibold">
+                                  <StarOutlined className="mr-1" />Replaces: {tool.replacesRole}
+                                </div>
+                              )}
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                      <Divider className="my-2" />
+                      <div className="p-2 bg-purple-50 rounded text-sm">
+                        <Text strong className="text-purple-700">Expected Outcome:</Text>
+                        <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.expectedOutcome}</div>
+                      </div>
+                      <div className="p-2 bg-green-50 rounded text-sm mt-2">
+                        <Text strong className="text-green-700">ROI Projection:</Text>
+                        <div className="mt-1 font-semibold">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.roiProjection}</div>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+
+                {/* System Integration */}
+                <Card size="small" className="mt-4 bg-gray-50">
+                  <Title level={5}><LinkOutlined className="mr-2" />System Integration</Title>
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Text strong>Data Flow:</Text>
+                      <Paragraph className="text-sm">{analysis.analysis.dealArchitecture.solutionStack.systemIntegration.dataFlowDescription}</Paragraph>
+                    </Col>
+                    <Col xs={24} md={6}>
+                      <Text strong>Integration Points:</Text>
+                      <div className="mt-1">
+                        {analysis.analysis.dealArchitecture.solutionStack.systemIntegration.integrationPoints.map((point, i) => (
+                          <Tag key={i} color="blue" className="mb-1">{point}</Tag>
+                        ))}
+                      </div>
+                    </Col>
+                    <Col xs={24} md={6}>
+                      <Text strong>Potential Challenges:</Text>
+                      <div className="mt-1">
+                        {analysis.analysis.dealArchitecture.solutionStack.systemIntegration.potentialChallenges.map((challenge, i) => (
+                          <Tag key={i} color="orange" className="mb-1">{challenge}</Tag>
+                        ))}
+                      </div>
+                    </Col>
+                  </Row>
+                </Card>
+              </Card>
+
+              {/* Pricing Strategy */}
+              <Card
+                title={
+                  <span><DollarOutlined className="text-green-500 mr-2" />Pricing Strategy</span>
+                }
+              >
+                <Row gutter={16}>
+                  {/* Setup Fee */}
+                  <Col xs={24} md={8}>
+                    <Card size="small" className="text-center bg-blue-50">
+                      <Title level={5}>Setup Fee</Title>
+                      <div className="text-3xl font-bold text-blue-600">
+                        ${analysis.analysis.dealArchitecture.pricingStrategy.setupFee.recommended.toLocaleString()}
+                      </div>
+                      <Text type="secondary" className="text-xs">
+                        Range: ${analysis.analysis.dealArchitecture.pricingStrategy.setupFee.minimum.toLocaleString()} - ${analysis.analysis.dealArchitecture.pricingStrategy.setupFee.maximum.toLocaleString()}
+                      </Text>
+                      <Divider className="my-2" />
+                      <div className="text-left">
+                        <Text strong className="text-sm">Breakdown:</Text>
+                        <List
+                          size="small"
+                          dataSource={analysis.analysis.dealArchitecture.pricingStrategy.setupFee.breakdown}
+                          renderItem={(item) => (
+                            <List.Item className="py-1">
+                              <div className="flex justify-between w-full text-xs">
+                                <span>{item.item}</span>
+                                <span className="font-semibold">${item.cost.toLocaleString()}</span>
+                              </div>
+                            </List.Item>
+                          )}
+                        />
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Monthly Retainer */}
+                  <Col xs={24} md={8}>
+                    <Card size="small" className="text-center bg-green-50">
+                      <Title level={5}>Monthly Retainer</Title>
+                      <div className="text-3xl font-bold text-green-600">
+                        ${analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.recommended.toLocaleString()}<span className="text-sm">/mo</span>
+                      </div>
+                      <Text type="secondary" className="text-xs">
+                        Range: ${analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.minimum.toLocaleString()} - ${analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.maximum.toLocaleString()}
+                      </Text>
+                      {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.includedHours && (
+                        <div className="text-sm text-purple-600 mt-1">
+                          {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.includedHours} hrs included
+                          {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.overhourlyRate && (
+                            <span> | ${analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.overhourlyRate}/hr overage</span>
+                          )}
+                        </div>
+                      )}
+                      <Divider className="my-2" />
+                      <div className="text-left">
+                        <Text strong className="text-sm">Breakdown:</Text>
+                        <List
+                          size="small"
+                          dataSource={analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.breakdown}
+                          renderItem={(item) => (
+                            <List.Item className="py-1">
+                              <div className="flex justify-between w-full text-xs">
+                                <span>{item.item}</span>
+                                <span className="font-semibold">${item.monthlyCost.toLocaleString()}/mo</span>
+                              </div>
+                            </List.Item>
+                          )}
+                        />
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Total Deal Value */}
+                  <Col xs={24} md={8}>
+                    <Card size="small" className="text-center bg-purple-50">
+                      <Title level={5}>Total Deal Value</Title>
+                      <div className="text-3xl font-bold text-purple-600">
+                        ${analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue.firstYearValue.toLocaleString()}
+                      </div>
+                      <Text type="secondary" className="text-xs">First Year Value</Text>
+                      <Divider className="my-2" />
+                      <Row gutter={8}>
+                        <Col span={12}>
+                          <Statistic
+                            title={<span className="text-xs">Monthly Recurring</span>}
+                            value={analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue.monthlyRecurring}
+                            prefix="$"
+                            valueStyle={{ fontSize: '16px', color: '#52c41a' }}
+                          />
+                        </Col>
+                        <Col span={12}>
+                          <div className="text-center">
+                            <Text type="secondary" className="text-xs block">Lifetime Estimate</Text>
+                            <Text strong className="text-purple-600">{analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue.lifetimeValueEstimate}</Text>
+                          </div>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                </Row>
+
+                {/* Pitch Angle */}
+                <Card size="small" className="mt-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
+                  <Title level={5}><AimOutlined className="mr-2" />The Pitch Angle</Title>
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <div className="p-3 bg-white rounded shadow-sm mb-2">
+                        <Text type="secondary" className="text-xs block">HEADLINE</Text>
+                        <Text strong className="text-lg">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.headline}</Text>
+                      </div>
+                      <div className="p-3 bg-white rounded shadow-sm">
+                        <Text type="secondary" className="text-xs block">VALUE FRAMING</Text>
+                        <Text>{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.valueFraming}</Text>
+                      </div>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <div className="p-3 bg-white rounded shadow-sm mb-2">
+                        <Text type="secondary" className="text-xs block">COMPARISON POINT</Text>
+                        <Text className="text-red-600">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.comparisonPoint}</Text>
+                      </div>
+                      <div className="p-3 bg-white rounded shadow-sm">
+                        <Text type="secondary" className="text-xs block">URGENCY HOOK</Text>
+                        <Text className="text-orange-600 font-semibold">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.urgencyHook}</Text>
+                      </div>
+                    </Col>
+                  </Row>
+                </Card>
+
+                {/* Contract Terms & Upsells */}
+                <Row gutter={16} className="mt-4">
+                  <Col xs={24} md={12}>
+                    <Card size="small">
+                      <Title level={5}>Contract Terms</Title>
+                      <div className="space-y-2">
+                        <div><Text type="secondary">Recommended Term:</Text> <Tag color="blue">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.recommendedTerm.replace(/_/g, ' ')}</Tag></div>
+                        {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.discountForLongerTerm && (
+                          <div><Text type="secondary">Discount:</Text> <Text className="text-green-600">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.discountForLongerTerm}</Text></div>
+                        )}
+                        <div><Text type="secondary">Payment:</Text> <Text>{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.paymentStructure}</Text></div>
+                        {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.guaranteeOffered && (
+                          <div><Text type="secondary">Guarantee:</Text> <Text className="text-blue-600">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.guaranteeOffered}</Text></div>
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card size="small">
+                      <Title level={5}>Upsell Opportunities</Title>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.pricingStrategy.upsellOpportunities}
+                        renderItem={(upsell) => (
+                          <List.Item>
+                            <List.Item.Meta
+                              avatar={<StarOutlined className="text-yellow-500" />}
+                              title={upsell.service}
+                              description={
+                                <div className="flex justify-between">
+                                  <span className="text-xs">{upsell.timing}</span>
+                                  <span className="text-green-600 font-semibold">+${upsell.additionalRevenue.toLocaleString()}</span>
+                                </div>
+                              }
+                            />
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* Sales Performance */}
+              <Card
+                title={
+                  <span><TrophyOutlined className="text-yellow-500 mr-2" />Sales Performance Coaching</span>
+                }
+              >
+                <Row gutter={16}>
+                  {/* Score Card */}
+                  <Col xs={24} md={8}>
+                    <Card size="small" className="bg-gray-50">
+                      <Title level={5} className="text-center">Call Score Card</Title>
+                      <div className="text-center mb-4">
+                        <Progress
+                          type="circle"
+                          percent={analysis.analysis.dealArchitecture.salesPerformance.callScoreCard.overallScore}
+                          format={percent => (
+                            <div>
+                              <div className="text-2xl font-bold">{percent}</div>
+                              <div className="text-xs">Overall</div>
+                            </div>
+                          )}
+                          size={100}
+                          strokeColor={
+                            analysis.analysis.dealArchitecture.salesPerformance.callScoreCard.overallScore >= 80 ? '#52c41a' :
+                            analysis.analysis.dealArchitecture.salesPerformance.callScoreCard.overallScore >= 60 ? '#faad14' : '#f5222d'
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'rapportBuilding', label: 'Rapport Building' },
+                          { key: 'discoveryDepth', label: 'Discovery Depth' },
+                          { key: 'painIdentification', label: 'Pain Identification' },
+                          { key: 'valuePresentation', label: 'Value Presentation' },
+                          { key: 'objectionHandling', label: 'Objection Handling' },
+                          { key: 'closingStrength', label: 'Closing Strength' },
+                        ].map(({ key, label }) => (
+                          <div key={key} className="flex justify-between items-center">
+                            <Text className="text-xs">{label}</Text>
+                            <Progress
+                              percent={(analysis.analysis.dealArchitecture?.salesPerformance.callScoreCard as any)[key] * 10}
+                              size="small"
+                              className="w-24"
+                              strokeColor={
+                                (analysis.analysis.dealArchitecture?.salesPerformance.callScoreCard as any)[key] >= 8 ? '#52c41a' :
+                                (analysis.analysis.dealArchitecture?.salesPerformance.callScoreCard as any)[key] >= 6 ? '#faad14' : '#f5222d'
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Green & Red Flags */}
+                  <Col xs={24} md={16}>
+                    <Row gutter={16}>
+                      <Col xs={24} md={12}>
+                        <Card size="small" className="bg-green-50 border-green-200 mb-4">
+                          <Title level={5} className="text-green-700"><LikeOutlined className="mr-1" /> Green Flags</Title>
+                          <List
+                            size="small"
+                            dataSource={analysis.analysis.dealArchitecture.salesPerformance.greenFlags}
+                            renderItem={(flag) => (
+                              <List.Item className="py-2">
+                                <div>
+                                  <Text strong className="text-sm">{flag.observation}</Text>
+                                  {flag.example && (
+                                    <div className="text-xs text-gray-500 italic mt-1">"{flag.example}"</div>
+                                  )}
+                                  <div className="text-xs text-green-600 mt-1"><BulbOutlined className="mr-1" />{flag.impact}</div>
+                                </div>
+                              </List.Item>
+                            )}
+                          />
+                        </Card>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Card size="small" className="bg-red-50 border-red-200 mb-4">
+                          <Title level={5} className="text-red-700"><AlertOutlined className="mr-1" /> Red Flags</Title>
+                          <List
+                            size="small"
+                            dataSource={analysis.analysis.dealArchitecture.salesPerformance.redFlags}
+                            renderItem={(flag) => (
+                              <List.Item className="py-2">
+                                <div>
+                                  <div className="flex justify-between">
+                                    <Text strong className="text-sm">{flag.observation}</Text>
+                                    <Tag color={flag.priority === 'high' ? 'red' : flag.priority === 'medium' ? 'orange' : 'blue'} className="text-xs">{flag.priority}</Tag>
+                                  </div>
+                                  {flag.example && (
+                                    <div className="text-xs text-gray-500 italic mt-1">"{flag.example}"</div>
+                                  )}
+                                  <div className="text-xs text-blue-600 mt-1"><ToolOutlined className="mr-1" />Fix: {flag.howToFix}</div>
+                                </div>
+                              </List.Item>
+                            )}
+                          />
+                        </Card>
+                      </Col>
+                    </Row>
+
+                    {/* Missed Opportunities */}
+                    <Card size="small" className="bg-yellow-50 border-yellow-200">
+                      <Title level={5} className="text-yellow-700"><BulbOutlined className="mr-1" /> Missed Opportunities</Title>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.salesPerformance.missedOpportunities}
+                        renderItem={(opp) => (
+                          <List.Item className="py-2">
+                            <div className="w-full">
+                              <Text strong className="text-sm">{opp.topic}</Text>
+                              <div className="text-sm mt-1 p-2 bg-white rounded">
+                                <Text type="secondary">Ask: </Text>
+                                <Text className="italic">"{opp.questionToAsk}"</Text>
+                              </div>
+                              <div className="text-xs text-purple-600 mt-1"><StarOutlined className="mr-1" />{opp.whyItMatters}</div>
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+
+                {/* Next Call Preparation */}
+                <Card size="small" className="mt-4 bg-blue-50 border-blue-200">
+                  <Title level={5}><CalendarOutlined className="mr-2" />Next Call Preparation</Title>
+                  <Row gutter={16}>
+                    {analysis.analysis.dealArchitecture.salesPerformance.nextCallPreparation.map((item, i) => (
+                      <Col xs={24} md={8} key={i}>
+                        <div className="p-2 bg-white rounded flex items-start mb-2">
+                          <Badge count={i + 1} className="mr-2" />
+                          <Text className="text-sm">{item}</Text>
+                        </div>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              </Card>
+
+              {/* Deal Grade Summary */}
+              <Card className="bg-gradient-to-r from-gray-50 to-blue-50">
+                <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <div className="text-center">
+                      <Title level={5}>Deal Strengths</Title>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.dealGrade.dealStrengths}
+                        renderItem={(strength) => (
+                          <List.Item className="py-1">
+                            <CheckCircleOutlined className="text-green-500 mr-2" />
+                            <Text className="text-sm">{strength}</Text>
+                          </List.Item>
+                        )}
+                      />
+                    </div>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <div className="text-center">
+                      <Title level={5}>Deal Risks</Title>
+                      <List
+                        size="small"
+                        dataSource={analysis.analysis.dealArchitecture.dealGrade.dealRisks}
+                        renderItem={(risk) => (
+                          <List.Item className="py-1">
+                            <WarningOutlined className="text-orange-500 mr-2" />
+                            <Text className="text-sm">{risk}</Text>
+                          </List.Item>
+                        )}
+                      />
+                    </div>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Card size="small" className="bg-white">
+                      <Title level={5} className="text-center">Recommended Next Step</Title>
+                      <div className="p-3 bg-blue-100 rounded text-center">
+                        <Text strong className="text-blue-700">{analysis.analysis.dealArchitecture.dealGrade.recommendedNextStep}</Text>
+                      </div>
+                      <div className="mt-3 text-center">
+                        <Text type="secondary" className="text-sm">{analysis.analysis.dealArchitecture.dealGrade.gradeReason}</Text>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <Alert
+                message="Deal Architecture Not Available"
+                description="Deal architecture analysis is only generated for sales and discovery calls. This may be a different call type, or the analysis was created before this feature was added."
+                type="info"
+                showIcon
+              />
+            </Card>
+          )}
+        </TabPane>
 
       </Tabs>
 

@@ -5,12 +5,7 @@ import {
   GeneratedCallPackage,
   CallParticipant,
   CallStructureAnalysis,
-  DealArchitecturePackage,
-  ProspectDiagnosis,
-  SolutionStack,
-  PricingStrategy,
-  SalesPerformanceAnalysis,
-  DealGrade
+  DealArchitecturePackage
 } from '@/types/salesCallAnalyzer';
 import { Redis } from '@upstash/redis';
 
