@@ -1960,6 +1960,7 @@ export default function AnalysisDetailPage() {
                   </Card>
                 )}
               </Card>
+              )}
 
               {/* Pricing Strategy */}
               {analysis.analysis.dealArchitecture.pricingStrategy && (
