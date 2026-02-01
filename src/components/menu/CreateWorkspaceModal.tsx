@@ -65,7 +65,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
       />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-lg transform rounded-2xl border border-gray-800 bg-[#0f172a] p-8 shadow-2xl transition-all font-manrope">
+      <div className="relative w-full max-w-lg transform rounded-2xl border border-gray-800 bg-black p-8 shadow-2xl transition-all font-manrope">
         {/* Decorative Glow effect behind the top border */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#5CC49D] to-transparent opacity-50" />
 
