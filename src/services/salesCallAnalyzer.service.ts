@@ -1,6 +1,17 @@
 // services/salesCallAnalyzer.service.ts
 import { OpenRouterClient } from '@/lib/openrouter';
-import { SalesCallInput, GeneratedCallPackage, CallParticipant, CallStructureAnalysis } from '@/types/salesCallAnalyzer';
+import {
+  SalesCallInput,
+  GeneratedCallPackage,
+  CallParticipant,
+  CallStructureAnalysis,
+  DealArchitecturePackage,
+  ProspectDiagnosis,
+  SolutionStack,
+  PricingStrategy,
+  SalesPerformanceAnalysis,
+  DealGrade
+} from '@/types/salesCallAnalyzer';
 import { Redis } from '@upstash/redis';
 
 export class SalesCallAnalyzerService {
@@ -132,21 +143,36 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
         console.warn('⚠️ Proposal generation failed (non-critical):', proposalError);
       }
     }
-    
+
+    // ✅ STEP 5.5: Generate Deal Architecture (NEW - Commercial Focus)
+    console.log('🏗️ Step 5.5: Generating deal architecture (solution stack, pricing, diagnosis)...');
+    let dealArchitecture: DealArchitecturePackage | undefined;
+    if (input.callType === 'sales' || input.callType === 'discovery') {
+      try {
+        dealArchitecture = await this.generateDealArchitecture(input, input.transcript);
+        console.log('✅ Deal architecture generated successfully');
+      } catch (dealError) {
+        console.warn('⚠️ Deal architecture generation failed (non-critical):', dealError);
+        // Generate fallback deal architecture
+        dealArchitecture = this.generateFallbackDealArchitecture(input, input.transcript);
+      }
+    }
+
     // ✅ STEP 6: Combine all results
- const callPackage: GeneratedCallPackage = {
-  ...analysisResults,
-  callResults: {
-    ...analysisResults.callResults,
-    transcript: input.transcript, // ✅ CHANGED: Full transcript instead of truncated
-    detailedReport, // AI-generated or fallback
-    callStructureAnalysis: callStructure || undefined, // Optional enhancement
-    followUpEmail: followUpEmail || analysisResults.callResults.followUpEmail,
-    proposalTemplate: proposalTemplate || analysisResults.callResults.proposalTemplate
-  },
-  tokensUsed: mainResponse.usage?.total_tokens || 0,
-  processingTime: Date.now() - startTime
-};
+    const callPackage: GeneratedCallPackage = {
+      ...analysisResults,
+      callResults: {
+        ...analysisResults.callResults,
+        transcript: input.transcript, // ✅ CHANGED: Full transcript instead of truncated
+        detailedReport, // AI-generated or fallback
+        callStructureAnalysis: callStructure || undefined, // Optional enhancement
+        followUpEmail: followUpEmail || analysisResults.callResults.followUpEmail,
+        proposalTemplate: proposalTemplate || analysisResults.callResults.proposalTemplate
+      },
+      dealArchitecture, // ✅ NEW: Deal architecture package
+      tokensUsed: mainResponse.usage?.total_tokens || 0,
+      processingTime: Date.now() - startTime
+    };
 
 
     // ✅ STEP 7: Cache result
@@ -1877,6 +1903,671 @@ Keep it concise and professional.`;
     const sentiment = this.analyzeSentiment(transcript, overallScore);
     return `${input.callType} call with ${input.companyName || 'prospect'} completed with ${sentiment} sentiment. Key objectives were addressed and next steps established.`;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEAL ARCHITECTURE GENERATION - NEW COMMERCIAL FOCUS
+// Analyzes calls to extract: Prospect Diagnosis, Solution Stack, Pricing Strategy
+// ═══════════════════════════════════════════════════════════════════════════
+
+private async generateDealArchitecture(input: SalesCallInput, transcript: string): Promise<DealArchitecturePackage> {
+  console.log('🏗️ Generating comprehensive deal architecture...');
+
+  const dealArchitecturePrompt = this.buildDealArchitecturePrompt(input, transcript);
+
+  try {
+    const response = await this.openRouterClient.complete({
+      model: 'openai/gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: this.getDealArchitectureSystemPrompt()
+        },
+        {
+          role: 'user',
+          content: dealArchitecturePrompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 16000
+    });
+
+    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Validate the structure has required fields
+      if (parsed.prospectDiagnosis && parsed.solutionStack && parsed.pricingStrategy) {
+        console.log('✅ Deal architecture parsed successfully');
+        return parsed as DealArchitecturePackage;
+      }
+    }
+
+    console.warn('⚠️ Deal architecture parsing incomplete, using fallback');
+    return this.generateFallbackDealArchitecture(input, transcript);
+
+  } catch (error) {
+    console.error('❌ Deal architecture generation failed:', error);
+    return this.generateFallbackDealArchitecture(input, transcript);
+  }
+}
+
+private getDealArchitectureSystemPrompt(): string {
+  return `You are an expert AI Solutions Architect and Senior Sales Coach for a high-level automation agency.
+
+Your EXPERTISE:
+- GoHighLevel (GHL) workflows, funnels, and CRM setups
+- Make.com automation scenarios
+- AI Agents (voice, chat, booking, qualification)
+- Local Service Business (LSB) and "Blue Collar" business automation
+- High-ticket recurring revenue deal structures
+
+Your GOAL: Analyze sales call transcripts between an Agency Owner (seller) and a Business Owner (prospect) to produce:
+1. PROSPECT DIAGNOSIS - The "Why" (pain points, qualification, business profile)
+2. SOLUTION STACK - The "What" (three-tiered implementation plan)
+3. PRICING STRATEGY - The "How Much" (setup fees, monthly retainer, pitch angle)
+4. SALES PERFORMANCE - Coaching feedback on the call
+
+Your output must be:
+- Actionable and commercially viable
+- Geared towards closing high-ticket recurring revenue deals
+- Specific to automation/AI solutions for service businesses
+- Based ONLY on evidence from the transcript (quote specific moments)
+
+Return ONLY valid JSON matching the exact structure requested.`;
+}
+
+private buildDealArchitecturePrompt(input: SalesCallInput, transcript: string): string {
+  return `Analyze this ${input.callType} call transcript and generate a complete Deal Architecture Package.
+
+═══════════════════════════════════════════════════════════════════════════
+CALL CONTEXT
+═══════════════════════════════════════════════════════════════════════════
+- Call Type: ${input.callType.toUpperCase()}
+- Title: ${input.title}
+- Company: ${input.companyName || 'Not specified'}
+- Industry: ${input.companyIndustry || 'Not specified'}
+- Company Size: ${input.companyHeadcount || 'Not specified'}
+- Revenue Range: ${input.companyRevenue || 'Not specified'}
+- Prospect: ${input.prospectName || 'Unknown'} (${input.prospectTitle || 'Unknown Title'})
+- Location: ${input.companyLocation || 'Not specified'}
+
+═══════════════════════════════════════════════════════════════════════════
+TRANSCRIPT
+═══════════════════════════════════════════════════════════════════════════
+${transcript}
+
+═══════════════════════════════════════════════════════════════════════════
+REQUIRED OUTPUT - Return ONLY valid JSON with this EXACT structure:
+═══════════════════════════════════════════════════════════════════════════
+
+{
+  "prospectDiagnosis": {
+    "businessProfile": {
+      "industry": "<specific industry from transcript>",
+      "businessType": "<blue_collar|local_service|ecommerce|saas|agency|professional_services|other>",
+      "estimatedTeamSize": "<team size mentioned or estimated>",
+      "estimatedRevenue": "<revenue mentioned or estimated based on context>",
+      "currentTechStack": ["<current tools they mentioned using>"],
+      "location": "<location if mentioned>"
+    },
+    "bleedingNeckProblems": [
+      {
+        "problem": "<specific pain point #1 - be very specific>",
+        "severity": "<critical|high|medium|low>",
+        "frequency": "<how often this happens: Daily, Weekly, etc.>",
+        "estimatedCost": "<estimated cost of this problem: $X/month or X hours/week>",
+        "quotedEvidence": "<direct quote from transcript proving this pain>"
+      },
+      {
+        "problem": "<specific pain point #2>",
+        "severity": "<critical|high|medium|low>",
+        "frequency": "<frequency>",
+        "estimatedCost": "<estimated cost>",
+        "quotedEvidence": "<quote from transcript>"
+      },
+      {
+        "problem": "<specific pain point #3>",
+        "severity": "<critical|high|medium|low>",
+        "frequency": "<frequency>",
+        "estimatedCost": "<estimated cost>",
+        "quotedEvidence": "<quote from transcript>"
+      }
+    ],
+    "financialQualification": {
+      "isQualified": "<yes|no|maybe>",
+      "qualificationReason": "<why they are or aren't qualified - be specific>",
+      "estimatedBudget": "<budget if discussed or estimated based on business size>",
+      "urgencyLevel": "<immediate|this_quarter|this_year|exploring>",
+      "decisionMakerPresent": <true or false>,
+      "buyingSignals": ["<specific buying signal from call>", "<another signal>"],
+      "redFlags": ["<any red flags or concerns>"]
+    },
+    "buyingCommittee": {
+      "decisionMaker": "<who makes the final decision>",
+      "influencers": ["<other people who influence the decision>"],
+      "endUsers": ["<who will actually use the solution>"],
+      "blockers": ["<potential blockers to the deal>"]
+    }
+  },
+
+  "solutionStack": {
+    "phase1QuickWin": {
+      "phaseName": "<catchy name for Phase 1>",
+      "timeline": "24-48 hours",
+      "tools": [
+        {
+          "toolName": "<e.g., Missed Call Text Back, Google Review Automation, Database Reactivation>",
+          "toolType": "<ghl_workflow|make_scenario|ai_agent|landing_page|crm_setup|automation|integration|other>",
+          "description": "<what this tool does>",
+          "whyItHelps": "<how it solves their specific pain point #1>",
+          "setupComplexity": "<low|medium|high>",
+          "estimatedSetupHours": <number>
+        }
+      ],
+      "expectedOutcome": "<specific measurable outcome: e.g., 'Capture 90% of missed calls'>",
+      "proofOfConcept": "<how to demonstrate value quickly: e.g., 'Run for 1 week and track recovered leads'>"
+    },
+    "phase2CoreSystem": {
+      "phaseName": "<catchy name for Phase 2: The Retainer>",
+      "timeline": "1-2 weeks",
+      "tools": [
+        {
+          "toolName": "<e.g., Custom Landing Page, Unified Inbox, CRM Pipeline, Booking Calendar>",
+          "toolType": "<ghl_workflow|make_scenario|ai_agent|landing_page|crm_setup|automation|integration|other>",
+          "description": "<what this tool does>",
+          "whyItHelps": "<how it stabilizes their operations>",
+          "setupComplexity": "<low|medium|high>",
+          "estimatedSetupHours": <number>,
+          "monthlyMaintenanceHours": <number>
+        }
+      ],
+      "expectedOutcome": "<specific outcome: e.g., 'All leads captured and nurtured automatically'>",
+      "retainerJustification": "<why they need ongoing support: e.g., 'System requires weekly optimization and reporting'>"
+    },
+    "phase3AIWowFactor": {
+      "phaseName": "<catchy name for Phase 3: The AI Upsell>",
+      "timeline": "2-4 weeks",
+      "tools": [
+        {
+          "toolName": "<e.g., 24/7 AI Voice Receptionist, AI Booking Agent, AI Lead Qualifier>",
+          "toolType": "<ai_voice_agent|ai_chat_agent|ai_booking_agent|ai_qualifier|ai_support|custom_ai|other>",
+          "description": "<what this AI does>",
+          "whyItHelps": "<specific value it provides>",
+          "setupComplexity": "<low|medium|high>",
+          "estimatedSetupHours": <number>,
+          "replacesRole": "<e.g., 'Full-time receptionist ($45k/year)' or 'Part-time admin ($25k/year)'>",
+          "monthlyMaintenanceHours": <number>
+        }
+      ],
+      "expectedOutcome": "<outcome: e.g., '24/7 coverage without additional staff'>",
+      "roiProjection": "<specific ROI: e.g., 'Saves $3,750/month in labor costs'>"
+    },
+    "integrationMap": {
+      "requiredIntegrations": ["<e.g., 'Google Calendar', 'Stripe', 'Their existing CRM'>"],
+      "niceToHaveIntegrations": ["<optional integrations>"],
+      "potentialBlockers": ["<technical or business blockers>"]
+    }
+  },
+
+  "pricingStrategy": {
+    "setupFee": {
+      "minimum": <minimum setup fee in dollars>,
+      "maximum": <maximum setup fee in dollars>,
+      "recommended": <recommended setup fee>,
+      "breakdown": [
+        {
+          "item": "<line item: e.g., 'Phase 1: Quick Win Setup'>",
+          "cost": <cost in dollars>,
+          "justification": "<why this cost is justified>"
+        },
+        {
+          "item": "<Phase 2: Core System>",
+          "cost": <cost>,
+          "justification": "<justification>"
+        },
+        {
+          "item": "<Phase 3: AI Implementation>",
+          "cost": <cost>,
+          "justification": "<justification>"
+        }
+      ]
+    },
+    "monthlyRetainer": {
+      "minimum": <minimum monthly retainer>,
+      "maximum": <maximum monthly retainer>,
+      "recommended": <recommended retainer>,
+      "breakdown": [
+        {
+          "item": "<e.g., 'GHL SaaS Access'>",
+          "monthlyCost": <cost>,
+          "justification": "<why>"
+        },
+        {
+          "item": "<e.g., 'AI Agent Usage'>",
+          "monthlyCost": <cost>,
+          "justification": "<why>"
+        },
+        {
+          "item": "<e.g., 'Optimization & Support (X hours)'>",
+          "monthlyCost": <cost>,
+          "justification": "<why>"
+        }
+      ],
+      "includedHours": <number of support hours included>,
+      "overhourlyRate": <rate for additional hours>
+    },
+    "pitchAngle": {
+      "headline": "<one powerful sentence: e.g., 'Replace a $50k admin for the price of coffee a day'>",
+      "valueFraming": "<how to frame the value: e.g., 'This isn't an expense, it's an investment that pays for itself 3x over'>",
+      "comparisonPoint": "<what they're currently spending: e.g., 'You mentioned losing $2k/month to missed calls'>",
+      "urgencyHook": "<create urgency: e.g., 'Every day without this system is another 10 missed opportunities'>"
+    },
+    "contractTerms": {
+      "recommendedTerm": "<3_months|6_months|12_months>",
+      "discountForLongerTerm": "<e.g., '10% discount for 12-month commitment'>",
+      "paymentStructure": "<e.g., '50% upfront, 50% on completion'>",
+      "guaranteeOffered": "<e.g., '30-day money-back guarantee if no improvement in lead capture'>"
+    },
+    "upsellOpportunities": [
+      {
+        "service": "<future upsell service>",
+        "timing": "<when to pitch: e.g., 'After 30 days of proven results'>",
+        "additionalRevenue": <estimated additional monthly revenue>
+      }
+    ],
+    "totalDealValue": {
+      "firstYearValue": <total first year value: setup + (monthly * 12)>,
+      "lifetimeValueEstimate": <estimated 3-year value>,
+      "profitMarginEstimate": "<e.g., '70-80%'>"
+    }
+  },
+
+  "salesPerformance": {
+    "greenFlags": [
+      {
+        "observation": "<what the agency owner did well>",
+        "example": "<specific quote or moment from transcript>",
+        "impact": "<why this was effective>"
+      }
+    ],
+    "redFlags": [
+      {
+        "observation": "<what needs improvement>",
+        "example": "<specific moment where this happened>",
+        "howToFix": "<specific actionable advice>",
+        "priority": "<high|medium|low>"
+      }
+    ],
+    "missedOpportunities": [
+      {
+        "topic": "<topic that wasn't explored>",
+        "questionToAsk": "<specific question they should have asked>",
+        "whyItMatters": "<why this information is valuable>"
+      }
+    ],
+    "callScoreCard": {
+      "rapportBuilding": <0-10>,
+      "discoveryDepth": <0-10>,
+      "painIdentification": <0-10>,
+      "valuePresentation": <0-10>,
+      "objectionHandling": <0-10>,
+      "closingStrength": <0-10>,
+      "overallScore": <0-100>
+    },
+    "nextCallPreparation": ["<what to prepare for next call>", "<another item>"]
+  },
+
+  "dealGrade": {
+    "grade": "<A|B|C|D|F>",
+    "gradeReason": "<2-3 sentence explanation of the grade>",
+    "winProbability": <0-100 percent>,
+    "recommendedNextStep": "<specific next action>",
+    "dealRisks": ["<risk 1>", "<risk 2>"],
+    "dealStrengths": ["<strength 1>", "<strength 2>"]
+  },
+
+  "executiveBrief": {
+    "oneLineSummary": "<one sentence summary of the entire deal opportunity>",
+    "topPriority": "<the single most important thing to do next>",
+    "immediateAction": "<action to take in the next 24 hours>",
+    "dealValue": "<total potential deal value in plain English: e.g., '$15,000 first year, $8,400/year ongoing'>"
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════
+CRITICAL REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════
+
+1. BLEEDING NECK PROBLEMS: Must be SPECIFIC pain points from the transcript with QUOTES as evidence
+   - Bad: "Needs better marketing"
+   - Good: "Missing 40% of incoming calls during peak hours" with quote "we probably miss about 4-5 calls a day"
+
+2. SOLUTION STACK: Must map DIRECTLY to identified pain points
+   - Phase 1 should address the MOST URGENT pain point
+   - Phase 2 should create operational stability
+   - Phase 3 should be a "wow factor" AI solution that replaces a human role
+
+3. PRICING: Must be realistic and justified
+   - Setup fees typically: $1,500 - $10,000 for small businesses
+   - Monthly retainers typically: $297 - $1,997 for SMB
+   - Always show the ROI comparison to justify the price
+
+4. SALES PERFORMANCE: Be HONEST and SPECIFIC
+   - Quote actual moments from the transcript
+   - Don't be generic - reference what actually happened
+   - Missed opportunities should be specific questions, not vague topics
+
+5. DEAL GRADE: Be realistic
+   - A = Ready to close, budget confirmed, decision maker present, urgent need
+   - B = Good opportunity, some qualification gaps
+   - C = Needs more discovery, not fully qualified
+   - D = Significant concerns, low probability
+   - F = Not a fit, should not pursue
+
+Return ONLY the JSON object, no additional text.`;
+}
+
+private generateFallbackDealArchitecture(input: SalesCallInput, transcript: string): DealArchitecturePackage {
+  console.log('🔄 Generating fallback deal architecture...');
+
+  const questionCount = (transcript.match(/\?/g) || []).length;
+  const hasBudgetDiscussion = transcript.toLowerCase().includes('budget') || transcript.toLowerCase().includes('cost') || transcript.toLowerCase().includes('price');
+  const hasTimelineDiscussion = transcript.toLowerCase().includes('timeline') || transcript.toLowerCase().includes('when') || transcript.toLowerCase().includes('start');
+  const hasPainPoints = transcript.toLowerCase().includes('problem') || transcript.toLowerCase().includes('challenge') || transcript.toLowerCase().includes('pain') || transcript.toLowerCase().includes('struggle');
+
+  // Determine business type based on industry
+  const industryLower = (input.companyIndustry || '').toLowerCase();
+  let businessType: 'blue_collar' | 'local_service' | 'ecommerce' | 'saas' | 'agency' | 'professional_services' | 'other' = 'other';
+  if (industryLower.includes('plumb') || industryLower.includes('hvac') || industryLower.includes('electric') || industryLower.includes('construct') || industryLower.includes('roofing')) {
+    businessType = 'blue_collar';
+  } else if (industryLower.includes('dental') || industryLower.includes('medical') || industryLower.includes('law') || industryLower.includes('account')) {
+    businessType = 'professional_services';
+  } else if (industryLower.includes('restaurant') || industryLower.includes('salon') || industryLower.includes('spa') || industryLower.includes('fitness')) {
+    businessType = 'local_service';
+  }
+
+  // Calculate deal grade
+  let grade: 'A' | 'B' | 'C' | 'D' | 'F' = 'C';
+  let winProbability = 40;
+  if (hasBudgetDiscussion && hasTimelineDiscussion && hasPainPoints) {
+    grade = 'B';
+    winProbability = 60;
+  } else if (hasBudgetDiscussion || (hasTimelineDiscussion && hasPainPoints)) {
+    grade = 'B';
+    winProbability = 50;
+  } else if (!hasPainPoints) {
+    grade = 'D';
+    winProbability = 20;
+  }
+
+  return {
+    prospectDiagnosis: {
+      businessProfile: {
+        industry: input.companyIndustry || 'Not specified',
+        businessType,
+        estimatedTeamSize: input.companyHeadcount || 'Unknown',
+        estimatedRevenue: input.companyRevenue || 'Unknown',
+        currentTechStack: ['Unknown - needs discovery'],
+        location: input.companyLocation
+      },
+      bleedingNeckProblems: [
+        {
+          problem: 'Lead capture and follow-up processes need improvement',
+          severity: 'high' as const,
+          frequency: 'Daily',
+          estimatedCost: 'Unknown - requires deeper discovery',
+          quotedEvidence: 'Pain points mentioned but specific details need follow-up'
+        },
+        {
+          problem: 'Manual processes consuming team time',
+          severity: 'medium' as const,
+          frequency: 'Weekly',
+          estimatedCost: 'Estimated 10-20 hours/week in manual work',
+          quotedEvidence: 'Inferred from typical service business challenges'
+        },
+        {
+          problem: 'Inconsistent customer communication',
+          severity: 'medium' as const,
+          frequency: 'Daily',
+          estimatedCost: 'Potential lost customers and reviews',
+          quotedEvidence: 'Common challenge for businesses without automation'
+        }
+      ],
+      financialQualification: {
+        isQualified: hasBudgetDiscussion ? 'yes' as const : 'maybe' as const,
+        qualificationReason: hasBudgetDiscussion
+          ? 'Budget was discussed on the call'
+          : 'Budget not explicitly discussed - needs follow-up',
+        estimatedBudget: hasBudgetDiscussion ? '$1,500-5,000 setup, $500-1,500/month' : undefined,
+        urgencyLevel: hasTimelineDiscussion ? 'this_quarter' as const : 'exploring' as const,
+        decisionMakerPresent: true,
+        buyingSignals: hasPainPoints ? ['Expressed pain points', 'Engaged in discussion'] : ['Took the call'],
+        redFlags: !hasBudgetDiscussion ? ['Budget not discussed'] : []
+      },
+      buyingCommittee: {
+        decisionMaker: input.prospectName || 'Unknown',
+        influencers: [],
+        endUsers: ['Team members'],
+        blockers: []
+      }
+    },
+    solutionStack: {
+      phase1QuickWin: {
+        phaseName: 'Immediate Lead Capture',
+        timeline: '24-48 hours',
+        tools: [
+          {
+            toolName: 'Missed Call Text Back',
+            toolType: 'ghl_workflow' as const,
+            description: 'Automatically text leads who call when you miss their call',
+            whyItHelps: 'Captures leads that would otherwise be lost to competitors',
+            setupComplexity: 'low' as const,
+            estimatedSetupHours: 2
+          },
+          {
+            toolName: 'Google Review Automation',
+            toolType: 'ghl_workflow' as const,
+            description: 'Automatically request reviews from happy customers',
+            whyItHelps: 'Builds online reputation with minimal effort',
+            setupComplexity: 'low' as const,
+            estimatedSetupHours: 2
+          }
+        ],
+        expectedOutcome: 'Capture 90% of missed call leads and increase review requests by 5x',
+        proofOfConcept: 'Run for 1 week and track recovered leads'
+      },
+      phase2CoreSystem: {
+        phaseName: 'Core Business Hub',
+        timeline: '1-2 weeks',
+        tools: [
+          {
+            toolName: 'Unified Inbox',
+            toolType: 'crm_setup' as const,
+            description: 'All customer communications in one place',
+            whyItHelps: 'Never miss a message across SMS, email, Facebook, etc.',
+            setupComplexity: 'medium' as const,
+            estimatedSetupHours: 4,
+            monthlyMaintenanceHours: 1
+          },
+          {
+            toolName: 'CRM Pipeline Setup',
+            toolType: 'crm_setup' as const,
+            description: 'Organized lead tracking from first contact to closed deal',
+            whyItHelps: 'Visibility into every opportunity and their status',
+            setupComplexity: 'medium' as const,
+            estimatedSetupHours: 4,
+            monthlyMaintenanceHours: 1
+          },
+          {
+            toolName: 'Automated Nurture Sequences',
+            toolType: 'ghl_workflow' as const,
+            description: 'Email/SMS sequences that follow up automatically',
+            whyItHelps: 'Keeps leads warm without manual effort',
+            setupComplexity: 'medium' as const,
+            estimatedSetupHours: 6,
+            monthlyMaintenanceHours: 2
+          }
+        ],
+        expectedOutcome: 'All leads tracked, nothing falls through cracks, consistent follow-up',
+        retainerJustification: 'System requires ongoing optimization, new sequences, and reporting'
+      },
+      phase3AIWowFactor: {
+        phaseName: 'AI-Powered Growth Engine',
+        timeline: '2-4 weeks',
+        tools: [
+          {
+            toolName: '24/7 AI Voice Receptionist',
+            toolType: 'ai_voice_agent' as const,
+            description: 'AI answers calls, qualifies leads, books appointments',
+            whyItHelps: 'Never miss a call, even after hours or when busy',
+            setupComplexity: 'high' as const,
+            estimatedSetupHours: 12,
+            replacesRole: 'Part-time receptionist ($25,000/year)',
+            monthlyMaintenanceHours: 2
+          }
+        ],
+        expectedOutcome: '24/7 professional call handling without additional staff',
+        roiProjection: 'Saves approximately $2,000/month compared to hiring part-time help'
+      },
+      integrationMap: {
+        requiredIntegrations: ['Google Calendar', 'Payment processor (if applicable)'],
+        niceToHaveIntegrations: ['Existing website forms', 'Social media accounts'],
+        potentialBlockers: ['Current system integrations unknown']
+      }
+    },
+    pricingStrategy: {
+      setupFee: {
+        minimum: 1500,
+        maximum: 5000,
+        recommended: 2997,
+        breakdown: [
+          {
+            item: 'Phase 1: Quick Win Setup',
+            cost: 500,
+            justification: 'Immediate value delivered in first 48 hours'
+          },
+          {
+            item: 'Phase 2: Core System Build',
+            cost: 1497,
+            justification: 'Complete CRM and automation infrastructure'
+          },
+          {
+            item: 'Phase 3: AI Implementation',
+            cost: 1000,
+            justification: 'Custom AI agent training and deployment'
+          }
+        ]
+      },
+      monthlyRetainer: {
+        minimum: 497,
+        maximum: 1497,
+        recommended: 797,
+        breakdown: [
+          {
+            item: 'GHL SaaS Access',
+            monthlyCost: 297,
+            justification: 'Platform access and usage'
+          },
+          {
+            item: 'AI Agent Usage',
+            monthlyCost: 200,
+            justification: 'AI minutes and processing'
+          },
+          {
+            item: 'Optimization & Support (2 hours)',
+            monthlyCost: 300,
+            justification: 'Ongoing improvements and support'
+          }
+        ],
+        includedHours: 2,
+        overhourlyRate: 150
+      },
+      pitchAngle: {
+        headline: 'Never miss another lead - even at 2am on a Sunday',
+        valueFraming: 'This system pays for itself by capturing just 2-3 leads per month that you would have lost',
+        comparisonPoint: 'Most businesses lose 30-40% of leads to slow follow-up',
+        urgencyHook: 'Every day without this system is potential revenue walking to your competitors'
+      },
+      contractTerms: {
+        recommendedTerm: '3_months' as const,
+        discountForLongerTerm: '10% discount for 6-month commitment',
+        paymentStructure: '50% upfront, 50% on completion',
+        guaranteeOffered: '30-day satisfaction guarantee'
+      },
+      upsellOpportunities: [
+        {
+          service: 'Additional AI agents (chat, qualification)',
+          timing: 'After 60 days of proven voice agent results',
+          additionalRevenue: 300
+        },
+        {
+          service: 'Website rebuild/optimization',
+          timing: 'After CRM shows traffic patterns',
+          additionalRevenue: 2000
+        }
+      ],
+      totalDealValue: {
+        firstYearValue: 2997 + (797 * 12),
+        lifetimeValueEstimate: 2997 + (797 * 36),
+        profitMarginEstimate: '65-75%'
+      }
+    },
+    salesPerformance: {
+      greenFlags: questionCount > 5
+        ? [{ observation: 'Good discovery questioning', example: `Asked ${questionCount} questions during the call`, impact: 'Gathered information to tailor solution' }]
+        : [{ observation: 'Took the meeting', example: 'Prospect engaged in conversation', impact: 'Shows some level of interest' }],
+      redFlags: !hasBudgetDiscussion
+        ? [{ observation: 'Budget not discussed', example: 'No mention of investment expectations', howToFix: 'Ask about budget early: "What have you set aside to solve this problem?"', priority: 'high' as const }]
+        : [],
+      missedOpportunities: [
+        {
+          topic: 'Current costs of the problem',
+          questionToAsk: 'How much do you estimate this problem costs you per month in lost revenue or wasted time?',
+          whyItMatters: 'Helps justify ROI and frame pricing'
+        },
+        {
+          topic: 'Timeline for decision',
+          questionToAsk: 'When do you need this solved by?',
+          whyItMatters: 'Creates urgency and helps prioritize deal'
+        }
+      ],
+      callScoreCard: {
+        rapportBuilding: 6,
+        discoveryDepth: questionCount > 8 ? 7 : 5,
+        painIdentification: hasPainPoints ? 7 : 4,
+        valuePresentation: 5,
+        objectionHandling: 5,
+        closingStrength: hasTimelineDiscussion ? 6 : 4,
+        overallScore: Math.round((6 + (questionCount > 8 ? 7 : 5) + (hasPainPoints ? 7 : 4) + 5 + 5 + (hasTimelineDiscussion ? 6 : 4)) / 6 * 10)
+      },
+      nextCallPreparation: [
+        'Prepare specific case study for their industry',
+        'Create custom demo showing their exact use case',
+        'Prepare pricing presentation with ROI calculator'
+      ]
+    },
+    dealGrade: {
+      grade,
+      gradeReason: `Based on the call analysis: ${hasBudgetDiscussion ? 'Budget was discussed.' : 'Budget needs clarification.'} ${hasPainPoints ? 'Clear pain points identified.' : 'Pain points need deeper discovery.'} ${hasTimelineDiscussion ? 'Timeline established.' : 'Timeline unclear.'}`,
+      winProbability,
+      recommendedNextStep: 'Schedule follow-up call to present tailored solution and discuss investment',
+      dealRisks: [
+        !hasBudgetDiscussion ? 'Budget not confirmed' : '',
+        !hasTimelineDiscussion ? 'No urgency established' : ''
+      ].filter(Boolean),
+      dealStrengths: [
+        hasPainPoints ? 'Clear pain points' : '',
+        'Decision maker engaged'
+      ].filter(Boolean)
+    },
+    executiveBrief: {
+      oneLineSummary: `${input.companyName || 'Prospect'} in ${input.companyIndustry || 'services'} needs automation to improve lead capture and follow-up.`,
+      topPriority: 'Confirm budget and timeline on follow-up call',
+      immediateAction: 'Send recap email with case study and scheduling link',
+      dealValue: `$${2997 + (797 * 12)} first year potential ($2,997 setup + $797/month)`
+    }
+  };
 }
 
 
