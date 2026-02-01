@@ -340,16 +340,20 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
   const isLast = currentStep === steps.length - 1;
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
       alignItems: 'center',
       marginTop: '24px',
       paddingTop: '20px',
-      borderTop: `1px solid ${THEME.colors.border}`
+      borderTop: `1px solid ${THEME.colors.border}`,
+      position: 'relative',
+      zIndex: 10001,
+      pointerEvents: 'auto',
     }}>
       {/* Skip Button */}
       <button
+        type="button"
         onClick={() => {
           setIsOpen(false);
           localStorage.setItem('tutorial-completed', 'true');
@@ -363,7 +367,10 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
           cursor: 'pointer',
           padding: '8px 4px',
           transition: 'color 0.2s',
-          fontFamily: THEME.fonts.main
+          fontFamily: THEME.fonts.main,
+          position: 'relative',
+          zIndex: 10002,
+          pointerEvents: 'auto',
         }}
         onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.textPrimary}
         onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.textSecondary}
@@ -371,9 +378,10 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
         Skip Tour
       </button>
 
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: '12px', position: 'relative', zIndex: 10002 }}>
         {/* Previous Button */}
         <button
+          type="button"
           onClick={() => setCurrentStep(Math.max(currentStep - 1, 0))}
           disabled={currentStep === 0}
           style={{
@@ -388,6 +396,9 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
             color: currentStep === 0 ? 'rgba(255,255,255,0.1)' : THEME.colors.textPrimary,
             cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
+            position: 'relative',
+            zIndex: 10002,
+            pointerEvents: 'auto',
           }}
           onMouseEnter={(e) => {
             if (currentStep !== 0) {
@@ -403,6 +414,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
 
         {/* Next/Finish Button */}
         <button
+          type="button"
           onClick={() => {
             if (isLast) {
               setIsOpen(false);
@@ -427,6 +439,9 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
             transition: 'all 0.2s ease',
             fontFamily: THEME.fonts.main,
             boxShadow: isLast ? THEME.shadows.button : 'none',
+            position: 'relative',
+            zIndex: 10002,
+            pointerEvents: 'auto',
           }}
           onMouseEnter={(e) => {
             if (!isLast) {
@@ -521,7 +536,12 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       : stepContent;
 
     return (
-      <div style={{ padding: '24px 24px 8px 24px' }}>
+      <div style={{
+        padding: '24px 24px 8px 24px',
+        position: 'relative',
+        zIndex: 10001,
+        pointerEvents: 'auto',
+      }}>
         {renderedContent}
         <CustomNavigation
           steps={steps}
