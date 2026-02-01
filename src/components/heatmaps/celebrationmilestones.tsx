@@ -137,6 +137,7 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
     // Applied font family to the wrapper div to ensure it trickles down
     <div style={{ fontFamily }}>
       <Card 
+         data-tour="milestones-view"
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{

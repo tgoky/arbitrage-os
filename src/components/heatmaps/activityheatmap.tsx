@@ -252,6 +252,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
     // Wrap in div to enforce font family on all children
     <div style={{ fontFamily }}>
         <Card 
+           data-tour="heatmaps-view"
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{

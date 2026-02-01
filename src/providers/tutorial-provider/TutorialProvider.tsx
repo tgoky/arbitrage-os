@@ -218,11 +218,34 @@ const tutorialSteps: StepType[] = [
     ),
   },
   {
-    selector: '[data-tour="running-automations"]',
+  selector: '[data-tour="milestones-view"]',
+  content: (
+    <StepContent
+      title="Milestones"
+      description="Track your progress and achievements as you use AI tools. Unlock milestones based on activity, consistency, and tool usage."
+      tip="Complete actions to unlock milestones and see your growth over time."
+    />
+  ),
+},
+
+   {
+  selector: '[data-tour="heatmaps-view"]',
+  content: (
+    <StepContent
+      title="Activity Heatmap"
+      description="Visualize your daily activity across time. Identify productivity patterns, streaks, and peak performance days at a glance."
+      tip="Hover over any cell to see detailed activity for that day."
+    />
+  ),
+},
+
+  {
+    selector: '[data-tour="deliverables-section"]',
     content: (
       <StepContent
-        title="Running Automations"
-        description="Monitor your active automations, agents, and workflows. See progress, pause, or stop any running process."
+        title="Deliverables Hub"
+        description="Your central command for all outputs. Access your Dashboard for an overview and Submissions to view all your generated content."
+        tip="Check Submissions regularly to review and export your deliverables."
       />
     ),
   },
