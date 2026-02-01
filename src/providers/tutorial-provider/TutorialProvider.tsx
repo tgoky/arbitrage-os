@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TourProvider, useTour, StepType, PopoverContentProps } from '@reactour/tour';
 import { useTheme } from '../ThemeProvider';
-import { X, Lightbulb, ChevronRight, ArrowRight, Check } from 'lucide-react';
+import { Lightbulb, ChevronRight, ArrowRight, Check } from 'lucide-react';
 
 // --- PREMIUM THEME CONSTANTS ---
 const THEME = {
@@ -17,7 +17,7 @@ const THEME = {
     textPrimary: '#EDEDED',
     textSecondary: '#A1A1AA',
     brand: '#5CC49D',
-    brandText: '#000000', // Text color on top of brand color
+    brandText: '#000000',
     brandGlow: 'rgba(92, 196, 157, 0.25)',
     accent: '#A78BFA',
   },
@@ -150,7 +150,6 @@ const StepContent: React.FC<{ title: string; description: string; tip?: string }
 
 // --- DATA: Full Tutorial Steps Configuration ---
 const tutorialSteps: StepType[] = [
-  // === GETTING STARTED ===
   {
     selector: '[data-tour="workspace-header"]',
     content: (
@@ -180,7 +179,6 @@ const tutorialSteps: StepType[] = [
       />
     ),
   },
-  // === DASHBOARD FEATURES ===
   {
     selector: '[data-tour="welcome-panel"]',
     content: (
@@ -228,7 +226,6 @@ const tutorialSteps: StepType[] = [
       />
     ),
   },
-  // === STRATEGY SECTION ===
   {
     selector: '[data-tour="strategy-section"]',
     content: (
@@ -239,18 +236,16 @@ const tutorialSteps: StepType[] = [
       />
     ),
   },
-  // === GROWTH ENGINE ===
   {
     selector: '[data-tour="growth-section"]',
     content: (
       <StepContent
         title="The Growth Engine"
-        description="Your complete toolkit for growth: Ad Writer, Cold Email Writer, Proposal Generator, Lead Generation, and more. Click to expand and explore all the tools."
+        description="Your complete toolkit for growth: Ad Writer, Cold Email Writer, Proposal Generator, Lead Generation, and more."
         tip="The Growth Engine is the heart of Arbitrage-OS - master these tools!"
       />
     ),
   },
-  // === AGENTS ===
   {
     selector: '[data-tour="agents-section"]',
     content: (
@@ -261,7 +256,6 @@ const tutorialSteps: StepType[] = [
       />
     ),
   },
-  // === ARBITRAGE AI ===
   {
     selector: '[data-tour="automation-section"]',
     content: (
@@ -277,29 +271,29 @@ const tutorialSteps: StepType[] = [
 // --- LOGIC COMPONENT ---
 const TutorialLogic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isTutorialCompleted, setIsTutorialCompleted] = useState(false);
-  const { setIsOpen } = useTour();
+  const { setIsOpen, setCurrentStep } = useTour();
 
   useEffect(() => {
-    // Check localStorage after component mounts
     const tutorialCompleted = localStorage.getItem('tutorial-completed');
     const welcomeModalSeen = localStorage.getItem('welcome-modal-seen');
-    
+
     if (tutorialCompleted === 'true') {
       setIsTutorialCompleted(true);
     } else {
       setIsTutorialCompleted(false);
-      
-      // Auto-start for new users who have seen the welcome modal but not the tour
+
       if (welcomeModalSeen === 'true' && !tutorialCompleted) {
         const timer = setTimeout(() => {
+          setCurrentStep(0);
           setIsOpen(true);
         }, 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [setIsOpen]);
+  }, [setIsOpen, setCurrentStep]);
 
   const startTutorial = () => {
+    setCurrentStep(0);
     setIsOpen(true);
   };
 
@@ -333,7 +327,6 @@ const TutorialLogic: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 // --- CUSTOM NAVIGATION FOOTER ---
-// Replaces default buttons with high-end controls
 function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any) {
   const isLast = currentStep === steps.length - 1;
 
@@ -344,11 +337,13 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
       alignItems: 'center',
       marginTop: '24px',
       paddingTop: '20px',
-      borderTop: `1px solid ${THEME.colors.border}`
+      borderTop: `1px solid ${THEME.colors.border}`,
+      pointerEvents: 'auto', // ✅ CRITICAL FIX
     }}>
       {/* Skip Button */}
       <button
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation(); // ✅ Prevent event bubbling
           setIsOpen(false);
           localStorage.setItem('tutorial-completed', 'true');
         }}
@@ -361,7 +356,8 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
           cursor: 'pointer',
           padding: '8px 4px',
           transition: 'color 0.2s',
-          fontFamily: THEME.fonts.main
+          fontFamily: THEME.fonts.main,
+          pointerEvents: 'auto', // ✅ CRITICAL FIX
         }}
         onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.textPrimary}
         onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.textSecondary}
@@ -369,10 +365,13 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
         Skip Tour
       </button>
 
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: '12px', pointerEvents: 'auto' }}> {/* ✅ CRITICAL FIX */}
         {/* Previous Button */}
         <button
-          onClick={() => setCurrentStep(Math.max(currentStep - 1, 0))}
+          onClick={(e) => {
+            e.stopPropagation(); // ✅ Prevent event bubbling
+            setCurrentStep(Math.max(currentStep - 1, 0));
+          }}
           disabled={currentStep === 0}
           style={{
             display: 'flex',
@@ -386,6 +385,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
             color: currentStep === 0 ? 'rgba(255,255,255,0.1)' : THEME.colors.textPrimary,
             cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
+            pointerEvents: 'auto', // ✅ CRITICAL FIX
           }}
           onMouseEnter={(e) => {
             if (currentStep !== 0) {
@@ -401,7 +401,8 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
 
         {/* Next/Finish Button */}
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation(); // ✅ Prevent event bubbling
             if (isLast) {
               setIsOpen(false);
               localStorage.setItem('tutorial-completed', 'true');
@@ -425,6 +426,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
             transition: 'all 0.2s ease',
             fontFamily: THEME.fonts.main,
             boxShadow: isLast ? THEME.shadows.button : 'none',
+            pointerEvents: 'auto', // ✅ CRITICAL FIX
           }}
           onMouseEnter={(e) => {
             if (!isLast) {
@@ -457,9 +459,6 @@ interface TutorialProviderProps {
 }
 
 export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) => {
-  const { theme } = useTheme();
-
-  // Premium glass styles for the Reactour specific parts
   const tourStyles = {
     popover: (base: any) => ({
       ...base,
@@ -471,20 +470,21 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       boxShadow: THEME.shadows.popover,
       color: THEME.colors.textPrimary,
       maxWidth: '420px',
-      padding: '4px', // Wrapper padding
+      padding: '4px',
       zIndex: 10000,
       fontFamily: THEME.fonts.main,
-      outline: 'none',
+      pointerEvents: 'auto', // ✅ CRITICAL FIX
     }),
     maskArea: (base: any) => ({ 
       ...base, 
-      rx: 16 
+      rx: 16,
+      pointerEvents: 'none', // ✅ Disable clicks on highlighted element
     }),
     maskWrapper: (base: any) => ({ 
       ...base, 
-      color: 'rgba(0, 0, 0, 0.7)' 
+      color: 'rgba(0, 0, 0, 0.7)',
+      pointerEvents: 'none', // ✅ Let clicks pass through mask
     }),
-    // Hide default controls to use our CustomNavigation
     controls: (base: any) => ({ 
       ...base, 
       display: 'none' 
@@ -500,35 +500,29 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       backgroundColor: 'rgba(255,255,255,0.03)',
       borderRadius: '50%',
       transition: 'all 0.2s',
-      '&:hover': {
-        color: THEME.colors.textPrimary,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-      }
+      pointerEvents: 'auto', // ✅ CRITICAL FIX
     }),
   };
 
-  // Helper to wrap content with padding and navigation
   const ContentWrapper = (props: PopoverContentProps) => {
-    const { steps, currentStep } = props;
+    const { steps, currentStep, setCurrentStep, setIsOpen } = props;
     const stepContent = steps[currentStep]?.content;
 
-    // Content can be ReactElement, string, or function
-    // Our steps use ReactElement, so we cast accordingly
     const renderedContent = typeof stepContent === 'function'
-      ? null // Functions in @reactour return void (side effects only)
+      ? null
       : stepContent;
 
     return (
-      <div style={{ padding: '24px 24px 8px 24px' }}>
+      <div style={{ padding: '24px 24px 8px 24px', pointerEvents: 'auto' }}> {/* ✅ CRITICAL FIX */}
         {renderedContent}
-        <CustomNavigationWithContext />
+        <CustomNavigation
+          steps={steps}
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
+          setIsOpen={setIsOpen}
+        />
       </div>
     );
-  };
-
-  const CustomNavigationWithContext = () => {
-    const tour = useTour();
-    return <CustomNavigation {...tour} />;
   };
 
   return (
@@ -539,7 +533,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       showCloseButton={true}
       showNavigation={false}
       showDots={false}
-      disableInteraction={true} // Prevents clicking on the highlighted element during tour
+      disableInteraction={false} // ✅ CHANGED: Allow interaction with popover
       className="arbitrage-tour-popover"
       maskClassName="arbitrage-tour-mask"
       ContentComponent={ContentWrapper}
