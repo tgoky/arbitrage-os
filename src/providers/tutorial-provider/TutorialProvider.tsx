@@ -331,19 +331,23 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
   const isLast = currentStep === steps.length - 1;
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
       alignItems: 'center',
       marginTop: '24px',
       paddingTop: '20px',
       borderTop: `1px solid ${THEME.colors.border}`,
-      pointerEvents: 'auto', // ✅ CRITICAL FIX
+      pointerEvents: 'auto',
+      position: 'relative',
+      zIndex: 10001, // Ensure buttons are above all overlays
     }}>
       {/* Skip Button */}
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation(); // ✅ Prevent event bubbling
+          e.preventDefault();
           setIsOpen(false);
           localStorage.setItem('tutorial-completed', 'true');
         }}
@@ -368,8 +372,10 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
       <div style={{ display: 'flex', gap: '12px', pointerEvents: 'auto' }}> {/* ✅ CRITICAL FIX */}
         {/* Previous Button */}
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation(); // ✅ Prevent event bubbling
+            e.preventDefault();
             setCurrentStep(Math.max(currentStep - 1, 0));
           }}
           disabled={currentStep === 0}
@@ -401,8 +407,10 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
 
         {/* Next/Finish Button */}
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation(); // ✅ Prevent event bubbling
+            e.preventDefault();
             if (isLast) {
               setIsOpen(false);
               localStorage.setItem('tutorial-completed', 'true');

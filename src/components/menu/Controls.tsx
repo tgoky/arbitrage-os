@@ -15,6 +15,7 @@ export const Controls = ({ collapsed, setCollapsed }: ControlsProps) => {
       )}
       <div className="flex items-center gap-3">
         <div
+          data-tour="sidebar-toggle"
           onClick={() => setCollapsed(!collapsed)}
           className="cursor-pointer text-gray-400 hover:text-gray-300"
         >

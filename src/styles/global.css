@@ -117,12 +117,16 @@
   color: #c4b5fd !important; /* indigo-300 */
 }
 
-.tour-popover {
+.tour-popover,
+.arbitrage-tour-popover {
   z-index: 9999 !important;
+  pointer-events: auto !important;
 }
 
-.tour-mask {
+.tour-mask,
+.arbitrage-tour-mask {
   z-index: 9998 !important;
+  pointer-events: none !important;
 }
 
 .tour-highlight {
@@ -132,6 +136,15 @@
 [data-tour] {
   position: relative;
   z-index: 1;
+}
+
+/* Ensure tour navigation buttons are always clickable */
+.arbitrage-tour-popover button,
+.tour-popover button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 10001 !important;
 }
 
 

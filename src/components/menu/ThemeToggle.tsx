@@ -7,8 +7,7 @@ export const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div 
-    data-tour="sidebar-toggle" 
+    <div
       onClick={toggleTheme}
       className="cursor-pointer text-gray-500 dark:text-gray-400"
     >
