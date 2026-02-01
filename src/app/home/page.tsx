@@ -28,19 +28,19 @@ import {
   theme as antTheme,
   Divider
 } from 'antd';
-import {
-  PlusOutlined,
-  FolderOutlined,
-  ArrowRightOutlined,
-  BellOutlined,
-  DownOutlined,
+import { 
+  PlusOutlined, 
+  FolderOutlined, 
+  ArrowRightOutlined, 
+  BellOutlined, 
+  DownOutlined, 
   LoadingOutlined,
   ClockCircleOutlined,
   HistoryOutlined,
   RiseOutlined,
   CheckCircleFilled,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
+  CheckCircleOutlined, 
+  ExclamationCircleOutlined, 
   InfoCircleOutlined,
   TrophyOutlined,
   LockOutlined,
@@ -89,7 +89,7 @@ interface Notification {
 
 const WorkspaceHomePage = () => {
   const router = useRouter();
-  const { theme } = useTheme(); 
+  const { theme } = useTheme();
   
   const { 
     workspaces, 
@@ -116,7 +116,7 @@ const WorkspaceHomePage = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Password setup state
+  // Password setup state (ADDED FROM CODE 1)
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState("");
@@ -127,7 +127,7 @@ const WorkspaceHomePage = () => {
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const [passwordSetSuccess, setPasswordSetSuccess] = useState(false);
 
-  // --- FONT INJECTION ---
+  // --- FONT INJECTION (ADDED FROM CODE 1) ---
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap';
@@ -181,7 +181,7 @@ const WorkspaceHomePage = () => {
     };
   }, [workItems]);
 
-  // Generate notifications (Logic kept identical)
+  // Generate notifications
   const notifications = React.useMemo(() => {
     const notifs: Notification[] = [];
     const now = new Date();
@@ -296,8 +296,25 @@ const WorkspaceHomePage = () => {
   const extractNameFromEmail = (email: string): string => {
     try {
       const localPart = email.split('@')[0];
-      // Logic for formatting name from email...
-      return localPart.charAt(0).toUpperCase() + localPart.slice(1);
+      
+      if (localPart.includes('.')) {
+        return localPart
+          .split('.')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else if (localPart.includes('_')) {
+        return localPart
+          .split('_')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else if (localPart.includes('-')) {
+        return localPart
+          .split('-')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else {
+        return localPart.charAt(0).toUpperCase() + localPart.slice(1).toLowerCase();
+      }
     } catch {
       return "User";
     }
@@ -305,22 +322,34 @@ const WorkspaceHomePage = () => {
 
   const displayName = React.useMemo(() => {
     if (!userProfile) return "User";
-    if (userProfile.name && userProfile.name.trim()) return userProfile.name.trim();
-    if (userProfile.email) return extractNameFromEmail(userProfile.email);
+    
+    if (userProfile.name && userProfile.name.trim()) {
+      return userProfile.name.trim();
+    } else if (userProfile.email) {
+      return extractNameFromEmail(userProfile.email);
+    }
+    
     return "User";
   }, [userProfile]);
 
   const userInitial = React.useMemo(() => {
-    return displayName.charAt(0).toUpperCase() || "U";
-  }, [displayName]);
+    return displayName.charAt(0).toUpperCase() || 
+           userProfile?.email?.charAt(0).toUpperCase() || 
+           "U";
+  }, [displayName, userProfile]);
 
   // Notification helpers
   const getNotificationIcon = (type: Notification['type']) => {
+    const iconProps = { style: { fontSize: '14px' } };
     switch (type) {
-      case 'success': return <CheckCircleOutlined style={{ fontSize: '14px', color: BRAND_GREEN }} />;
-      case 'warning': return <ExclamationCircleOutlined style={{ fontSize: '14px', color: '#faad14' }} />;
-      case 'achievement': return <TrophyOutlined style={{ fontSize: '14px', color: '#722ed1' }} />;
-      default: return <InfoCircleOutlined style={{ fontSize: '14px', color: '#3b82f6' }} />;
+      case 'success':
+        return <CheckCircleOutlined {...iconProps} style={{ ...iconProps.style, color: '#52c41a' }} />;
+      case 'warning':
+        return <ExclamationCircleOutlined {...iconProps} style={{ ...iconProps.style, color: '#faad14' }} />;
+      case 'achievement':
+        return <TrophyOutlined {...iconProps} style={{ ...iconProps.style, color: '#722ed1' }} />;
+      default:
+        return <InfoCircleOutlined {...iconProps} style={{ ...iconProps.style, color: '#1890ff' }} />;
     }
   };
 
@@ -329,16 +358,22 @@ const WorkspaceHomePage = () => {
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffMs / (1000 * 60 * 60 * 24))}d ago`;
+    return `${diffDays}d ago`;
   };
 
-  // Notification content
+  // Notification content (UPDATED FROM CODE 1)
   const notificationContent = (
-    <div style={{ width: 350, maxHeight: 400, overflow: 'auto', backgroundColor: SURFACE_CARD }}>
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${BORDER_COLOR}`, background: SURFACE_ELEVATED }}>
-        <Text strong style={{ color: '#fff' }}>Notifications</Text>
+    <div style={{ width: 350, maxHeight: 400, overflow: 'auto', backgroundColor: theme === 'dark' ? SURFACE_CARD : '#ffffff' }}>
+      <div style={{ 
+        padding: '12px 16px', 
+        borderBottom: `1px solid ${theme === 'dark' ? BORDER_COLOR : '#f0f0f0'}`, 
+        background: theme === 'dark' ? SURFACE_ELEVATED : '#fafafa'
+      }}>
+        <Text strong style={{ color: theme === 'dark' ? '#fff' : '#000' }}>Notifications</Text>
         {unreadCount > 0 && <Badge count={unreadCount} size="small" style={{ marginLeft: 8, backgroundColor: BRAND_GREEN }} />}
       </div>
       {notifications.length === 0 ? (
@@ -348,10 +383,15 @@ const WorkspaceHomePage = () => {
           size="small"
           dataSource={notifications}
           renderItem={(item) => (
-            <List.Item style={{ padding: '12px 16px', borderBottom: `1px solid ${BORDER_COLOR}`, cursor: item.actionable ? 'pointer' : 'default' }}>
+            <List.Item style={{ 
+              padding: '12px 16px', 
+              borderBottom: `1px solid ${theme === 'dark' ? BORDER_COLOR : '#f0f0f0'}`, 
+              cursor: item.actionable ? 'pointer' : 'default',
+              backgroundColor: theme === 'dark' ? SURFACE_CARD : '#ffffff'
+            }}>
               <List.Item.Meta
                 avatar={getNotificationIcon(item.type)}
-                title={<div style={{ display: 'flex', justifyContent: 'space-between' }}><Text style={{ color: '#fff', fontSize: '13px' }}>{item.title}</Text><Text type="secondary" style={{ fontSize: '10px' }}>{getRelativeTime(item.timestamp)}</Text></div>}
+                title={<div style={{ display: 'flex', justifyContent: 'space-between' }}><Text style={{ color: theme === 'dark' ? '#fff' : '#000', fontSize: '13px' }}>{item.title}</Text><Text type="secondary" style={{ fontSize: '10px' }}>{getRelativeTime(item.timestamp)}</Text></div>}
                 description={<Text type="secondary" style={{ fontSize: '12px' }}>{item.description}</Text>}
               />
             </List.Item>
@@ -361,29 +401,57 @@ const WorkspaceHomePage = () => {
     </div>
   );
 
+  // Event handlers
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) return;
     setIsCreating(true);
+    
     try {
-      const newWorkspace = await createWorkspace(newWorkspaceName.trim(), newWorkspaceDescription.trim() || undefined);
+      console.log('🆕 Creating workspace:', newWorkspaceName);
+      
+      const newWorkspace = await createWorkspace(
+        newWorkspaceName.trim(),
+        newWorkspaceDescription.trim() || undefined
+      );
+
+      console.log('✅ Workspace created successfully:', newWorkspace);
+
+      // Close modal and clear form
       setShowCreateModal(false);
       setNewWorkspaceName("");
       setNewWorkspaceDescription("");
+      
+      // Small delay to ensure state updates have propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Navigate to new workspace
+      console.log('🔄 Navigating to new workspace:', newWorkspace.slug);
       router.push(`/dashboard/${newWorkspace.slug}`);
+      
     } catch (error: any) {
-      alert(`Error: ${error.message || 'Failed to create workspace'}`);
+      console.error('❌ Error creating workspace:', error);
+      
+      // Show error to user
+      const errorMessage = error.message || 'Failed to create workspace';
+      alert(`Error: ${errorMessage}`);
+      
     } finally {
       setIsCreating(false);
     }
   };
 
+  // Handle workspace click with loading animation (UPDATED FROM CODE 1)
   const handleWorkspaceClick = (workspace: any) => {
     setSelectedWorkspace(workspace.name);
     setNavigating(true);
     setNavigationProgress(0);
+    
     const interval = setInterval(() => {
-      setNavigationProgress(prev => Math.min(prev + (Math.random() * 5), 100));
+      setNavigationProgress(prev => {
+        return Math.min(prev + (Math.random() * 5), 100);
+      });
     }, 100);
+    
     setTimeout(() => {
       clearInterval(interval);
       router.push(`/dashboard/${workspace.slug}`);
@@ -396,28 +464,47 @@ const WorkspaceHomePage = () => {
       const interval = setInterval(() => {
         setProgress(prev => Math.min(prev + (Math.random() * 3), 100));
       }, 100);
-      setTimeout(() => { clearInterval(interval); setProgress(100); setTimeout(() => setIsLoading(false), 500); }, 2000);
+      setTimeout(() => { 
+        clearInterval(interval); 
+        setProgress(100); 
+        setTimeout(() => setIsLoading(false), 500); 
+      }, 2000);
     };
-    if (!workspaceLoading && !userLoading) runBootSequence();
+    
+    if (!workspaceLoading && !userLoading) {
+      runBootSequence();
+    }
   }, [workspaceLoading, userLoading]);
 
-  // Check Password
+  // Check Password Status (ADDED FROM CODE 1)
   useEffect(() => {
     const checkPasswordStatus = async () => {
       try {
         const response = await fetch('/api/auth/set-password');
         const data = await response.json();
         if (data.success) setHasPassword(data.hasPassword);
-      } catch (error) { console.error(error); }
+      } catch (error) { 
+        console.error('Error checking password status:', error); 
+      }
     };
-    if (!userLoading && userProfile) checkPasswordStatus();
+    
+    if (!userLoading && userProfile) {
+      checkPasswordStatus();
+    }
   }, [userLoading, userProfile]);
 
-  // Handle password setup
+  // Handle password setup (ADDED FROM CODE 1)
   const handleSetPassword = async () => {
     setPasswordError('');
-    if (password.length < 8) { setPasswordError('Password must be at least 8 characters'); return; }
-    if (password !== confirmPassword) { setPasswordError('Passwords do not match'); return; }
+    if (password.length < 8) { 
+      setPasswordError('Password must be at least 8 characters'); 
+      return; 
+    }
+    if (password !== confirmPassword) { 
+      setPasswordError('Passwords do not match'); 
+      return; 
+    }
+    
     setIsSettingPassword(true);
     try {
       const response = await fetch('/api/auth/set-password', {
@@ -425,11 +512,17 @@ const WorkspaceHomePage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
+      
       const data = await response.json();
       if (data.success) {
         setPasswordSetSuccess(true);
         setHasPassword(true);
-        setTimeout(() => { setShowPasswordModal(false); setPassword(''); setConfirmPassword(''); setPasswordSetSuccess(false); }, 2000);
+        setTimeout(() => { 
+          setShowPasswordModal(false); 
+          setPassword(''); 
+          setConfirmPassword(''); 
+          setPasswordSetSuccess(false); 
+        }, 2000);
       } else {
         setPasswordError(data.error || 'Failed to set password');
       }
@@ -445,16 +538,16 @@ const WorkspaceHomePage = () => {
     workspace.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
- const userMenuItems = [
-  { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
-  { key: 'settings', label: 'Settings', icon: <SettingOutlined /> },
-  { type: 'divider' as const },
-  { key: 'logout', label: 'Logout', icon: <LogoutOutlined /> }
-];
+  const userMenuItems = [
+    { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
+    { key: 'settings', label: 'Settings', icon: <SettingOutlined /> },
+    { type: 'divider' as const },
+    { key: 'logout', label: 'Logout', icon: <LogoutOutlined /> }
+  ];
 
   // ==================== RENDER ====================
 
-  // UPDATED Loading Screen
+  // UPDATED Loading Screen from Code 1
   if (isLoading || workspaceLoading || userLoading) {
     // Determine system log text based on progress
     let logText = "> Initializing kernel...";
@@ -495,12 +588,12 @@ const WorkspaceHomePage = () => {
             filter: 'drop-shadow(0 0 15px rgba(92, 196, 157, 0.3))'
           }}>
              <img 
-              src="/aoswhite.png" 
+              src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"} 
               alt="ArbitrageOS" 
               style={{ 
                 height: '160px', 
                 objectFit: 'contain',
-                opacity: 0.9 + (Math.sin(Date.now() / 200) * 0.1) // Subtle breath effect
+                opacity: 0.9 + (Math.sin(Date.now() / 200) * 0.1)
               }} 
             />
           </div>
@@ -574,774 +667,575 @@ const WorkspaceHomePage = () => {
   }
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: antTheme.darkAlgorithm,
-        token: {
-          colorPrimary: BRAND_GREEN,
-          fontFamily: 'Manrope, sans-serif',
-          colorBgContainer: SURFACE_CARD,
-          colorBgElevated: SURFACE_ELEVATED,
-          colorBorder: BORDER_COLOR,
-          colorText: TEXT_PRIMARY,
-          colorTextSecondary: TEXT_SECONDARY,
-          borderRadius: 8,
-        },
-        components: {
-          Button: { fontWeight: 600, defaultBg: 'transparent', defaultBorderColor: BORDER_COLOR },
-          Input: { colorBgContainer: '#000000', activeBorderColor: BRAND_GREEN, hoverBorderColor: BRAND_GREEN },
-          Card: { headerBg: 'transparent', boxShadow: 'none' },
-          Modal: { contentBg: SURFACE_CARD, headerBg: SURFACE_CARD }
-        }
-      }}
-    >
-      <div style={{ minHeight: '100vh', backgroundColor: DARK_BG, fontFamily: 'Manrope, sans-serif', display: 'flex', flexDirection: 'column' }}>
-        
-      {/* --- HEADER --- */}
-{/* --- HEADER --- */}
-{/* --- HEADER --- */}
-<header style={{ 
-  height: '70px', 
-  width: '100%',
-  borderBottom: `1px solid ${BORDER_COLOR}`, 
-  display: 'flex', 
-  alignItems: 'center',
-  justifyContent: 'space-between', /* <--- THIS IS THE KEY CHANGE */
-  padding: '0 32px',
-  backgroundColor: 'rgba(0,0,0,0.95)', 
-  backdropFilter: 'blur(10px)',
-  position: 'sticky',
-  top: 0,
-  zIndex: 1000, 
-  boxSizing: 'border-box'
-}}>
-  {/* 1. Logo Section (Left) */}
-  <div style={{ 
-    display: 'flex', 
-    alignItems: 'center',
-    flexShrink: 0
-  }}>
-    <img 
-      src="/aoswhite.png" 
-      alt="ArbitrageOS" 
-      style={{ 
-        height: '40px',
-        width: 'auto',
-        objectFit: 'contain'
-      }} 
-    />
-  </div>
-
-  {/* REMOVED THE EMPTY SPACER DIV HERE */}
-
-  {/* 2. Notification and Profile Section (Right) */}
-  <div style={{ 
-    display: 'flex', 
-    alignItems: 'center',
-    gap: '20px'
-  }}>
-    {/* Notification Bell */}
-    <Popover 
-      content={notificationContent} 
-      trigger="click" 
-      placement="bottomRight"
-    >
-      <Badge 
-        count={unreadCount} 
-        size="small" 
-        color={BRAND_GREEN}
-        style={{ cursor: 'pointer' }}
-      >
-        <div style={{
-          width: '40px',
-          height: '40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: '8px',
-          backgroundColor: SURFACE_ELEVATED,
-          border: `1px solid ${BORDER_COLOR}`,
-          cursor: 'pointer'
-        }}>
-          <BellOutlined style={{ 
-            fontSize: '18px', 
-            color: TEXT_SECONDARY 
-          }} />
-        </div>
-      </Badge>
-    </Popover>
-
-    {/* Profile Avatar */}
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '12px',
-      cursor: 'pointer'
+    <div className="min-h-screen w-full" style={{ 
+      backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' ,
+      fontFamily: 'Manrope, sans-serif'
     }}>
-      <Avatar 
-        src={userProfile?.avatar} 
-        style={{ 
-          backgroundColor: SURFACE_ELEVATED, 
-          border: `1px solid ${BORDER_COLOR}`, 
-          color: BRAND_GREEN,
-          width: '40px',
-          height: '40px',
-          fontSize: '16px',
-          fontWeight: 'bold'
-        }}
+      {/* Navigation Loading Modal from Code 1 */}
+      <Modal
+        open={navigating}
+        footer={null}
+        closable={false}
+        centered
+        width={400}
+        styles={{ body: { padding: 0, backgroundColor: theme === 'dark' ? SURFACE_CARD : '#ffffff', overflow: 'hidden', borderRadius: '16px', border: `1px solid ${theme === 'dark' ? BORDER_COLOR : '#e5e7eb'}` } }}
       >
-        {userInitial}
-      </Avatar>
-    </div>
-  </div>
-</header>
-
-        {/* --- MAIN CONTENT --- */}
-              {/* Main Content - UPDATED FOR FULL WIDTH */}
-        <main style={{ 
-          flex: 1, 
-          padding: '40px',
-          width: '100%',
-          minHeight: 'calc(100vh - 140px)',
-          backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb'
-        }}>
-          
-          {/* Welcome Section */}
-          <div style={{ 
-            marginBottom: '32px',
-            maxWidth: '100%'
-          }}>
-            <Title level={3} style={{ 
-              color: theme === 'dark' ? '#fff' : '#000',
-              fontSize: '28px',
-              fontWeight: 700,
-              marginBottom: '4px'
-            }}>
-              Workspace Environment
-            </Title>
-            <Text style={{ 
-              color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
-              fontSize: '14px'
-            }}>
-              Manage your arbitrage projects and team collaborations
-            </Text>
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ marginBottom: '24px', position: 'relative', width: '80px', height: '80px', margin: '0 auto 24px' }}>
+             <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', border: `2px solid ${BRAND_GREEN}`, opacity: 0.2 }}></div>
+             <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', border: `2px solid ${BRAND_GREEN}`, borderTopColor: 'transparent', borderLeftColor: 'transparent', animation: 'spin 1s linear infinite' }}></div>
+             <FolderOutlined style={{ fontSize: '32px', color: BRAND_GREEN, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
           </div>
+          <Title level={4} style={{ color: theme === 'dark' ? '#fff' : '#000', marginBottom: '8px' }}>Opening Workspace</Title>
+          <Text style={{ color: theme === 'dark' ? TEXT_SECONDARY : '#6b7280', fontSize: '13px', marginBottom: '24px', display: 'block' }}>Preparing your environment...</Text>
+          <div style={{ height: '4px', backgroundColor: theme === 'dark' ? SURFACE_ELEVATED : '#e5e7eb', borderRadius: '2px', overflow: 'hidden', maxWidth: '200px', margin: '0 auto' }}>
+             <div style={{ height: '100%', backgroundColor: BRAND_GREEN, width: `${navigationProgress}%`, transition: 'width 0.1s linear' }}></div>
+          </div>
+        </div>
+      </Modal>
 
-          {/* Stats Cards - FULL WIDTH */}
-          <div style={{ 
-            width: '100%',
-            marginBottom: '40px'
-          }}>
-            <Row gutter={[20, 20]} style={{ width: '100%' }}>
-              <Col xs={24} sm={8} style={{ width: '33.33%' }}>
-                <div style={{ 
-                  height: '100px',
-                  borderRadius: '12px',
-                  border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
-                  backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
-                  padding: '20px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ 
-                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: '8px'
-                    }}>
-                      Active Workspaces
-                    </div>
-                    <div style={{ 
-                      color: theme === 'dark' ? '#fff' : '#000',
-                      fontSize: '28px',
-                      fontWeight: 700
-                    }}>
-                      {workspaces.length}
-                    </div>
-                  </div>
-                  <div style={{ 
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '10px',
-                    backgroundColor: theme === 'dark' ? 'rgba(92, 196, 157, 0.1)' : 'rgba(92, 196, 157, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <FolderOutlined style={{ 
-                      color: '#5CC49D',
-                      fontSize: '20px'
-                    }} />
-                  </div>
-                </div>
-              </Col>
+      {/* Password Modal from Code 1 */}
+      <Modal
+        title={null}
+        open={showPasswordModal}
+        footer={null}
+        closable={false}
+        width={440}
+        styles={{ body: { padding: '32px' } }}
+      >
+        {passwordSetSuccess ? (
+          <div style={{ textAlign: 'center' }}>
+            <CheckCircleFilled style={{ fontSize: '48px', color: BRAND_GREEN, marginBottom: '24px' }} />
+            <Title level={3} style={{ color: theme === 'dark' ? '#fff' : '#000', marginBottom: '12px' }}>All Set!</Title>
+            <Text style={{ color: theme === 'dark' ? TEXT_SECONDARY : '#666' }}>Your password has been created successfully.</Text>
+          </div>
+        ) : (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(92, 196, 157, 0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', border: `1px solid ${BRAND_GREEN}40` }}>
+                <SafetyOutlined style={{ fontSize: '28px', color: BRAND_GREEN }} />
+              </div>
+              <Title level={3} style={{ color: theme === 'dark' ? '#fff' : '#000', marginBottom: '8px', margin: 0 }}>Set Password</Title>
+              <Text style={{ color: theme === 'dark' ? TEXT_SECONDARY : '#666' }}>Secure your account with a strong password.</Text>
+            </div>
+
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <Input.Password 
+                placeholder="New Password" 
+                size="large" 
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+              />
+              <Input.Password 
+                placeholder="Confirm Password" 
+                size="large" 
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+              />
               
-              <Col xs={24} sm={8} style={{ width: '33.33%' }}>
-                <div style={{ 
-                  height: '100px',
-                  borderRadius: '12px',
-                  border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
-                  backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
-                  padding: '20px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ 
-                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: '8px'
-                    }}>
-                      Recent Workspace
-                    </div>
-                    <div style={{ 
-                      color: theme === 'dark' ? '#fff' : '#000',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      marginBottom: '4px'
-                    }}>
-                      {mostRecentWorkspace?.name || "None"}
-                    </div>
-                    {mostRecentWorkspace && (
-                      <div style={{ 
-                        color: theme === 'dark' ? '#71717a' : '#9ca3af',
-                        fontSize: '12px'
-                      }}>
-                        {new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ 
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '10px',
-                    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: '12px'
-                  }}>
-                    <HistoryOutlined style={{ 
-                      color: '#3b82f6',
-                      fontSize: '20px'
-                    }} />
-                  </div>
+              {passwordError && (
+                <div style={{ padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <ExclamationCircleOutlined style={{ color: '#ef4444' }} />
+                  <Text style={{ color: '#ef4444', fontSize: '13px' }}>{passwordError}</Text>
                 </div>
-              </Col>
-              
-              <Col xs={24} sm={8} style={{ width: '33.33%' }}>
-                <div style={{ 
-                  height: '100px',
-                  borderRadius: '12px',
-                  border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
-                  backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
-                  padding: '20px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ 
-                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: '8px'
-                    }}>
-                      Recent Tool Used
-                    </div>
-                    <div style={{ 
-                      color: theme === 'dark' ? '#fff' : '#000',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      marginBottom: '4px'
-                    }}>
-                      {metrics.recentToolName}
-                    </div>
-                    {metrics.recentToolTime && (
-                      <div style={{ 
-                        color: theme === 'dark' ? '#71717a' : '#9ca3af',
-                        fontSize: '12px'
-                      }}>
-                        {(() => {
-                          const now = new Date();
-                          const itemDate = new Date(metrics.recentToolTime);
-                          const diffMs = now.getTime() - itemDate.getTime();
-                          const diffMins = Math.floor(diffMs / (1000 * 60));
-                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                          
-                          if (diffMins < 1) return 'Just now';
-                          if (diffMins < 60) return `${diffMins}m ago`;
-                          if (diffHours < 24) return `${diffHours}h ago`;
-                          if (diffDays === 1) return 'Yesterday';
-                          return `${diffDays}d ago`;
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ 
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '10px',
-                    backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: '12px'
-                  }}>
-                    <RiseOutlined style={{ 
-                      color: '#8b5cf6',
-                      fontSize: '20px'
-                    }} />
-                  </div>
-                </div>
-              </Col>
-            </Row>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <Button block size="large" onClick={() => setShowPasswordModal(false)}>Cancel</Button>
+                <Button 
+                  block 
+                  type="primary" 
+                  size="large" 
+                  loading={isSettingPassword}
+                  onClick={handleSetPassword}
+                  style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
+                >
+                  Set Password
+                </Button>
+              </div>
+            </Space>
+          </div>
+        )}
+      </Modal>
+
+      {/* Header */}
+      <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+        <div className="flex items-center justify-between h-12">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <img
+              src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+              alt="ArbitrageOS Logo"
+              style={{ 
+                height: '140px',
+                width: 'auto',
+                objectFit: 'contain',
+                marginRight: '16px'
+              }}
+            />
           </div>
 
-          {/* Workspaces Grid Header */}
-          <div style={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '24px',
-            width: '100%'
-          }}>
-            <Title level={4} style={{ 
-              color: theme === 'dark' ? '#fff' : '#000',
-              margin: 0,
-              fontSize: '20px',
-              fontWeight: 600
-            }}>
-              Your Workspaces
-            </Title>
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md mx-8">
+            <Search
+              placeholder="Search workspaces..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              allowClear
+            />
           </div>
 
-          {/* Workspaces Grid - FIXED FULL WIDTH */}
-          <div style={{ width: '100%' }}>
-            <Row gutter={[20, 20]} style={{ width: '100%', margin: 0 }}>
-              {/* Create New Workspace Card */}
-              <Col xs={24} sm={12} md={8} lg={6} xl={4} style={{ width: '20%', minWidth: '200px' }}>
-                <div 
-                  onClick={() => setShowCreateModal(true)}
-                  style={{ 
-                    height: '160px',
-                    borderRadius: '12px',
-                    border: `2px dashed ${theme === 'dark' ? '#27272a' : '#d1d5db'}`,
-                    backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    width: '100%'
+          {/* User Menu */}
+          <Space size="middle">
+            <Popover
+              content={notificationContent}
+              title={null}
+              trigger="click"
+              placement="bottomRight"
+              overlayStyle={{
+                borderRadius: '8px',
+                boxShadow: theme === 'dark' 
+                  ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                  : '0 4px 12px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              <Badge count={unreadCount} size="small">
+                <Button 
+                  type="text" 
+                  icon={<BellOutlined />} 
+                  style={{
+                    color: theme === 'dark' ? '#fff' : '#000'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#5CC49D';
-                    e.currentTarget.style.backgroundColor = theme === 'dark' 
-                      ? 'rgba(92, 196, 157, 0.05)' 
-                      : 'rgba(92, 196, 157, 0.08)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = theme === 'dark' ? '#27272a' : '#d1d5db';
-                    e.currentTarget.style.backgroundColor = theme === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.02)' 
-                      : 'rgba(0, 0, 0, 0.02)';
-                  }}
-                >
-                  <div style={{ 
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '10px',
-                    backgroundColor: theme === 'dark' ? '#063f48' : '#5CC49D',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '12px'
-                  }}>
-                    <PlusOutlined style={{ 
-                      color: '#fff',
-                      fontSize: '18px'
-                    }} />
-                  </div>
-                  <Text style={{ 
-                    color: theme === 'dark' ? '#fff' : '#000',
-                    fontSize: '14px',
-                    fontWeight: 600
-                  }}>
-                    New Workspace
-                  </Text>
-                </div>
-              </Col>
-
-              {/* Existing Workspaces - DYNAMIC WIDTH */}
-              {filteredWorkspaces.map((workspace) => (
-                <Col 
-                  key={workspace.id} 
-                  xs={24} 
-                  sm={12} 
-                  md={8} 
-                  lg={6} 
-                  xl={4}
-                  style={{ 
-                    width: '20%',
-                    minWidth: '200px'
-                  }}
-                >
-                  <div 
-                    onClick={() => handleWorkspaceClick(workspace)}
+                />
+              </Badge>
+            </Popover>
+            
+            <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+              <Button type="text" className="flex items-center gap-2">
+                {userProfile?.avatar ? (
+                  <Avatar 
+                    size="small" 
+                    src={userProfile.avatar}
+                    style={{ backgroundColor: '#1890ff' }}
+                  />
+                ) : (
+                  <Avatar 
+                    size="small" 
+                    style={{ backgroundColor: '#1890ff' }}
+                  >
+                    {userInitial}
+                  </Avatar>
+                )}
+                <div className="flex flex-col items-start">
+                  <Text 
                     style={{ 
-                      height: '160px',
-                      borderRadius: '12px',
-                      border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
-                      backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff',
-                      padding: '20px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      width: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#5CC49D';
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = theme === 'dark'
-                        ? '0 12px 32px rgba(0, 0, 0, 0.3)'
-                        : '0 12px 32px rgba(0, 0, 0, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = theme === 'dark' ? '#27272a' : '#e5e7eb';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      color: theme === 'dark' ? '#fff' : '#000',
+                      fontSize: '12px',
+                      lineHeight: 1.2
                     }}
                   >
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'flex-start',
-                      marginBottom: '16px'
-                    }}>
-                      <div style={{ 
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '10px',
-                        backgroundColor: '#5CC49D',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <FolderOutlined style={{ 
-                          color: '#fff',
-                          fontSize: '16px'
-                        }} />
-                      </div>
-                      <ArrowRightOutlined style={{ 
-                        color: theme === 'dark' ? '#71717a' : '#9ca3af',
-                        fontSize: '14px',
-                        marginTop: '4px'
-                      }} />
+                    {displayName}
+                  </Text>
+                  {userProfile?.email && (
+                    <Text 
+                      style={{ 
+                        color: theme === 'dark' ? '#9ca3af' : '#666',
+                        fontSize: '10px',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {userProfile.email.length > 20 
+                        ? `${userProfile.email.substring(0, 20)}...` 
+                        : userProfile.email
+                      }
+                    </Text>
+                  )}
+                </div>
+                <DownOutlined />
+              </Button>
+            </Dropdown>
+          </Space>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="w-full px-6 py-6">
+        {/* Welcome Section */}
+        <div className="mb-6">
+          <Title level={3} className="mb-1" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+            Workspace Environment
+          </Title>
+          <Text type="secondary" className="text-sm">
+            Manage your arbitrage projects and team collaborations
+          </Text>
+        </div>
+
+        {/* Password Setup Card - ADDED HERE UNDER WELCOME SECTION */}
+        {hasPassword === false && (
+          <div className="mb-6">
+            <Card 
+              size="small"
+              className="w-full"
+              bodyStyle={{ padding: '16px' }}
+              style={{
+                border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
+                backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme === 'dark' ? 'rgba(92, 196, 157, 0.1)' : 'rgba(92, 196, 157, 0.15)' }}>
+                    <LockOutlined style={{ color: BRAND_GREEN, fontSize: '20px' }} />
+                  </div>
+                  <div>
+                    <Title level={5} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                      Secure Your Account
+                    </Title>
+                    <Text type="secondary" className="text-sm">
+                      Set up a password for added security
+                    </Text>
+                  </div>
+                </div>
+                <Button 
+                  type="primary"
+                  icon={<SafetyOutlined />}
+                  onClick={() => setShowPasswordModal(true)}
+                  style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
+                >
+                  Set Password
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <Row gutter={[12, 12]} className="mb-6">
+          <Col xs={24} sm={8}>
+            <Card 
+              size="small" 
+              className="text-center h-full" 
+              bodyStyle={{ padding: '12px 16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Active Workspaces</Text>
+                  <Title level={3} className="mb-0" style={{ marginBottom: 0 }}>{workspaces.length}</Title>
+                </div>
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <FolderOutlined className="text-green-600 text-sm" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+          
+          <Col xs={24} sm={8}>
+            <Card 
+              size="small" 
+              className="text-center h-full" 
+              bodyStyle={{ padding: '12px 16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Recent Workspace</Text>
+                  <Title 
+                    level={4} 
+                    className="mb-0" 
+                    style={{ 
+                      marginBottom: 0, 
+                      fontSize: '16px',
+                      lineHeight: 1.2
+                    }}
+                    ellipsis={{ tooltip: mostRecentWorkspace?.name }}
+                  >
+                    {mostRecentWorkspace?.name || "None"}
+                  </Title>
+                  {mostRecentWorkspace && (
+                    <Text 
+                      type="secondary" 
+                      className="text-xs"
+                      title={`Last used: ${new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleString()}`}
+                    >
+                      {new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleDateString()}
+                    </Text>
+                  )}
+                </div>
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <HistoryOutlined className="text-blue-600 text-sm" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+          
+          <Col xs={24} sm={8}>
+            <Card 
+              size="small" 
+              className="text-center h-full" 
+              bodyStyle={{ padding: '12px 16px' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <Text type="secondary" className="text-xs block mb-1">Recent Tool Used</Text>
+                  <Title 
+                    level={4} 
+                    className="mb-0" 
+                    style={{ 
+                      marginBottom: 0, 
+                      fontSize: '16px',
+                      lineHeight: 1.2,
+                      color: theme === 'dark' ? '#fff' : '#000'
+                    }}
+                    ellipsis={{ tooltip: metrics.recentToolName }}
+                  >
+                    {metrics.recentToolName}
+                  </Title>
+                  {metrics.recentToolTime && (
+                    <Text 
+                      type="secondary" 
+                      className="text-xs"
+                      title={new Date(metrics.recentToolTime).toLocaleString()}
+                    >
+                      {(() => {
+                        const now = new Date();
+                        const itemDate = new Date(metrics.recentToolTime);
+                        const diffMs = now.getTime() - itemDate.getTime();
+                        const diffMins = Math.floor(diffMs / (1000 * 60));
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                        
+                        if (diffMins < 1) return 'Just now';
+                        if (diffMins < 60) return `${diffMins}m ago`;
+                        if (diffHours < 24) return `${diffHours}h ago`;
+                        if (diffDays === 1) return 'Yesterday';
+                        return `${diffDays}d ago`;
+                      })()}
+                    </Text>
+                  )}
+                </div>
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <RiseOutlined className="text-purple-600 text-sm" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Workspaces Grid */}
+        <Row gutter={[16, 16]}>
+          {/* Create New Workspace Card */}
+          <Col xs={12} sm={12} md={8} lg={6} xl={6}>
+            <Card
+              hoverable
+              size="small"
+              className="cursor-pointer border-dashed h-full"
+              style={{ 
+                borderStyle: 'dashed', 
+                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                height: '140px'
+              }}
+              bodyStyle={{ 
+                padding: '16px', 
+                height: '100%', 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={() => setShowCreateModal(true)}
+            >
+              <div className="flex flex-col items-center justify-center w-full text-center">
+                <div className="w-10 h-10 bg-[#063f48] rounded-lg flex items-center justify-center mb-2">
+                  <PlusOutlined className="text-white text-sm" />
+                </div>
+                <Text className="text-sm font-medium">New Workspace</Text>
+              </div>
+            </Card>
+          </Col>
+
+          {/* Existing Workspaces */}
+          {filteredWorkspaces.map((workspace) => (
+            <Col xs={12} sm={12} md={8} lg={6} xl={6} key={workspace.id}>
+              <Card
+                hoverable
+                size="small"
+                className="cursor-pointer h-full"
+                style={{ height: '140px' }}
+                bodyStyle={{ 
+                  padding: '16px', 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column' 
+                }}
+                onClick={() => handleWorkspaceClick(workspace)}
+              >
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
+                      <FolderOutlined className="text-white text-sm" />
                     </div>
+                    <ArrowRightOutlined className="text-gray-400 text-xs mt-1" />
+                  </div>
+                  
+                  <div className="flex-1 min-h-0 mb-3">
+                    <Text 
+                      className="text-sm font-semibold block mb-2 leading-tight" 
+                      ellipsis={{ tooltip: workspace.name }}
+                      style={{ lineHeight: '1.2' }}
+                    >
+                      {workspace.name}
+                    </Text>
                     
-                    <div style={{ 
-                      flex: 1,
-                      minHeight: 0,
-                      marginBottom: '12px'
-                    }}>
-                      <Text strong style={{ 
-                        color: theme === 'dark' ? '#fff' : '#000',
-                        fontSize: '16px',
-                        display: 'block',
-                        marginBottom: '6px',
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {workspace.name}
-                      </Text>
-                      
-                      {workspace.description && (
-                        <div style={{ marginTop: '6px' }}>
-                          <Text style={{ 
-                            color: theme === 'dark' ? '#71717a' : '#6b7280',
-                            fontSize: '12px',
-                            lineHeight: 1.4,
+                    {workspace.description && (
+                      <div className="mt-1">
+                        <Text 
+                          type="secondary" 
+                          className="text-xs leading-relaxed block" 
+                          ellipsis={{ tooltip: workspace.description }}
+                          style={{ 
+                            lineHeight: '1.4',
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
-                            height: '32px'
-                          }}>
-                            {workspace.description}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div style={{ 
-                      marginTop: 'auto',
-                      paddingTop: '12px',
-                      borderTop: `1px solid ${theme === 'dark' ? '#27272a' : '#f3f4f6'}`
-                    }}>
-                      <Text style={{ 
-                        fontSize: '12px',
-                        color: theme === 'dark' ? '#71717a' : '#9ca3af'
-                      }}>
-                        {workspace.created_at 
-                          ? new Date(workspace.created_at).toLocaleDateString('en-US', { 
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : 'Recent'}
-                      </Text>
-                    </div>
+                            height: '36px'
+                          }}
+                        >
+                          {workspace.description}
+                        </Text>
+                      </div>
+                    )}
                   </div>
-                </Col>
-              ))}
-            </Row>
-          </div>
-
-          {/* Empty State */}
-          {workspaces.length === 0 && !searchQuery && (
-            <div style={{ 
-              padding: '80px 0',
-              textAlign: 'center',
-              marginTop: '60px',
-              width: '100%'
-            }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <div>
-                    <Title level={4} style={{ 
-                      marginBottom: '12px',
-                      color: theme === 'dark' ? '#fff' : '#000',
-                      fontSize: '20px'
-                    }}>
-                      No workspaces yet
-                    </Title>
-                    <Text style={{ 
-                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
-                      fontSize: '15px',
-                      maxWidth: '400px',
-                      margin: '0 auto'
-                    }}>
-                      Create your first workspace to start managing your arbitrage projects
+                  
+                  <div className="mt-auto pt-4 border-t border-gray-100 mt-1">
+                    <Text type="secondary" className="text-xs">
+                      {workspace.created_at 
+                        ? new Date(workspace.created_at).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                          })
+                        : 'Recent'}
                     </Text>
                   </div>
-                }
-              >
-                <Button 
-                  type="primary"
-                  size="large"
-                  icon={<PlusOutlined />}
-                  onClick={() => setShowCreateModal(true)}
-                  style={{ 
-                    backgroundColor: '#5CC49D',
-                    borderColor: '#5CC49D',
-                    color: '#000',
-                    fontWeight: 600,
-                    height: '44px',
-                    padding: '0 32px',
-                    fontSize: '15px',
-                    marginTop: '20px'
-                  }}
-                >
-                  Create Workspace
-                </Button>
-              </Empty>
-            </div>
-          )}
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
 
-          {/* No Search Results */}
-          {searchQuery && filteredWorkspaces.length === 0 && (
-            <div style={{ 
-              padding: '80px 0',
-              textAlign: 'center',
-              marginTop: '60px',
-              width: '100%'
-            }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <div>
-                    <Title level={4} style={{ 
-                      marginBottom: '12px',
-                      color: theme === 'dark' ? '#fff' : '#000',
-                      fontSize: '20px'
-                    }}>
-                      No results found
-                    </Title>
-                    <Text style={{ 
-                      color: theme === 'dark' ? '#a1a1aa' : '#6b7280',
-                      fontSize: '15px',
-                      maxWidth: '400px',
-                      margin: '0 auto'
-                    }}>
-                      Try adjusting your search terms
-                    </Text>
-                  </div>
-                } 
-              />
-            </div>
-          )}
-        </main>
-
-        {/* --- MODALS --- */}
-
-        {/* Create Workspace */}
-        <Modal
-          title={<span style={{ fontFamily: 'Manrope' }}>Create New Workspace</span>}
-          open={showCreateModal}
-          onCancel={() => setShowCreateModal(false)}
-          footer={null}
-          width={480}
-        >
-          <div style={{ marginTop: '24px' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <Text style={{ display: 'block', marginBottom: '8px', color: TEXT_SECONDARY }}>Name</Text>
-              <Input 
-                value={newWorkspaceName} 
-                onChange={e => setNewWorkspaceName(e.target.value)} 
-                placeholder="e.g. Marketing Campaign Q1" 
-                size="large"
-              />
-            </div>
-            <div style={{ marginBottom: '32px' }}>
-              <Text style={{ display: 'block', marginBottom: '8px', color: TEXT_SECONDARY }}>Description (Optional)</Text>
-              <Input.TextArea 
-                value={newWorkspaceDescription} 
-                onChange={e => setNewWorkspaceDescription(e.target.value)} 
-                rows={3} 
-                placeholder="What's this workspace for?" 
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <Button onClick={() => setShowCreateModal(false)}>Cancel</Button>
+        {/* Empty State */}
+        {workspaces.length === 0 && !searchQuery && (
+          <div className="text-center py-16">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <div>
+                  <Title level={4} className="mb-2">No workspaces yet</Title>
+                  <Text type="secondary" className="text-sm">
+                    Create your first workspace to start managing your arbitrage projects
+                  </Text>
+                </div>
+              }
+            >
               <Button 
                 type="primary" 
-                onClick={handleCreateWorkspace} 
-                loading={isCreating} 
-                disabled={!newWorkspaceName.trim()}
-                style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
+                size="large" 
+                icon={<PlusOutlined />}
+                onClick={() => setShowCreateModal(true)}
+                style={{ backgroundColor: '#5CC49D', borderColor: '#5CC49D'  }}
               >
                 Create Workspace
               </Button>
-            </div>
+            </Empty>
           </div>
-        </Modal>
+        )}
 
-        {/* Password Modal */}
-        <Modal
-          title={null}
-          open={showPasswordModal}
-          footer={null}
-          closable={false}
-          width={440}
-          styles={{ body: { padding: '32px' } }}
-        >
-          {passwordSetSuccess ? (
-            <div style={{ textAlign: 'center' }}>
-              <CheckCircleFilled style={{ fontSize: '48px', color: BRAND_GREEN, marginBottom: '24px' }} />
-              <Title level={3} style={{ color: '#fff', marginBottom: '12px' }}>All Set!</Title>
-              <Text style={{ color: TEXT_SECONDARY }}>Your password has been created successfully.</Text>
+        {/* No Search Results */}
+        {searchQuery && filteredWorkspaces.length === 0 && (
+          <div className="text-center py-16">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <div>
+                  <Title level={4} className="mb-2">No results found</Title>
+                  <Text type="secondary" className="text-sm">
+                    Try adjusting your search terms
+                  </Text>
+                </div>
+              }
+            />
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
+        <div className="flex items-center justify-center">
+          <Text type="secondary" className="text-xs">
+            <span className="" style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}
+            <span  style={{ color: '#5CC49D' }}>GrowAI</span>
+            {' '}© 2025 • Automate & Grow
+          </Text>
+        </div>
+      </footer>
+
+      {/* Create Workspace Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <PlusOutlined className="text-white text-sm" />
             </div>
-          ) : (
             <div>
-              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(92, 196, 157, 0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', border: `1px solid ${BRAND_GREEN}40` }}>
-                  <SafetyOutlined style={{ fontSize: '28px', color: BRAND_GREEN }} />
-                </div>
-                <Title level={3} style={{ color: '#fff', marginBottom: '8px', margin: 0 }}>Set Password</Title>
-                <Text style={{ color: TEXT_SECONDARY }}>Secure your account with a strong password.</Text>
-              </div>
-
-              <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <Input.Password 
-                  placeholder="New Password" 
-                  size="large" 
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
-                />
-                <Input.Password 
-                  placeholder="Confirm Password" 
-                  size="large" 
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
-                />
-                
-                {passwordError && (
-                  <div style={{ padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <ExclamationCircleOutlined style={{ color: '#ef4444' }} />
-                    <Text style={{ color: '#ef4444', fontSize: '13px' }}>{passwordError}</Text>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                  <Button block size="large" onClick={() => setShowPasswordModal(false)}>Cancel</Button>
-                  <Button 
-                    block 
-                    type="primary" 
-                    size="large" 
-                    loading={isSettingPassword}
-                    onClick={handleSetPassword}
-                    style={{ backgroundColor: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000', fontWeight: 600 }}
-                  >
-                    Set Password
-                  </Button>
-                </div>
-              </Space>
-            </div>
-          )}
-        </Modal>
-
-        {/* Navigation Loader */}
-        <Modal
-          open={navigating}
-          footer={null}
-          closable={false}
-          centered
-          width={400}
-          styles={{ body: { padding: 0, backgroundColor: SURFACE_CARD, overflow: 'hidden', borderRadius: '16px', border: `1px solid ${BORDER_COLOR}` } }}
-        >
-          <div style={{ padding: '40px', textAlign: 'center' }}>
-            <div style={{ marginBottom: '24px', position: 'relative', width: '80px', height: '80px', margin: '0 auto 24px' }}>
-               <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', border: `2px solid ${BRAND_GREEN}`, opacity: 0.2 }}></div>
-               <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', border: `2px solid ${BRAND_GREEN}`, borderTopColor: 'transparent', borderLeftColor: 'transparent', animation: 'spin 1s linear infinite' }}></div>
-               <FolderOutlined style={{ fontSize: '32px', color: BRAND_GREEN, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-            </div>
-            <Title level={4} style={{ color: '#fff', marginBottom: '8px' }}>Opening Workspace</Title>
-            <Text style={{ color: TEXT_SECONDARY, fontSize: '13px', marginBottom: '24px', display: 'block' }}>Preparing your environment...</Text>
-            <div style={{ height: '4px', backgroundColor: SURFACE_ELEVATED, borderRadius: '2px', overflow: 'hidden', maxWidth: '200px', margin: '0 auto' }}>
-               <div style={{ height: '100%', backgroundColor: BRAND_GREEN, width: `${navigationProgress}%`, transition: 'width 0.1s linear' }}></div>
+              <Title level={4} className="mb-0">Create New Workspace</Title>
+              <Text type="secondary" className="text-sm">Start a new arbitrage project</Text>
             </div>
           </div>
-        </Modal>
-
-      </div>
-    </ConfigProvider>
+        }
+        open={showCreateModal}
+        onCancel={() => setShowCreateModal(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setShowCreateModal(false)} disabled={isCreating}>
+            Cancel
+          </Button>,
+          <Button
+            key="create"
+            type="primary"
+            loading={isCreating}
+            disabled={!newWorkspaceName.trim()}
+            onClick={handleCreateWorkspace}
+            style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+          >
+            Create Workspace
+          </Button>
+        ]}
+      >
+        <div className="space-y-4 pt-4">
+          <div>
+            <Text strong className="block mb-2">Workspace Name</Text>
+            <Input
+              value={newWorkspaceName}
+              onChange={(e) => setNewWorkspaceName(e.target.value)}
+              placeholder="My Arbitrage Project"
+              autoFocus
+            />
+          </div>
+          
+          <div>
+            <Text strong className="block mb-2">
+              Description <Text type="secondary">(optional)</Text>
+            </Text>
+            <Input.TextArea
+              value={newWorkspaceDescription}
+              onChange={(e) => setNewWorkspaceDescription(e.target.value)}
+              placeholder="Describe your project goals..."
+              rows={3}
+              style={{ resize: 'none' }}
+            />
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };
 
