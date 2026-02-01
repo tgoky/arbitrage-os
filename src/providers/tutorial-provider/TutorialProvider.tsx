@@ -277,29 +277,31 @@ const tutorialSteps: StepType[] = [
 // --- LOGIC COMPONENT ---
 const TutorialLogic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isTutorialCompleted, setIsTutorialCompleted] = useState(false);
-  const { setIsOpen } = useTour();
+  const { setIsOpen, setCurrentStep } = useTour();
 
   useEffect(() => {
     // Check localStorage after component mounts
     const tutorialCompleted = localStorage.getItem('tutorial-completed');
     const welcomeModalSeen = localStorage.getItem('welcome-modal-seen');
-    
+
     if (tutorialCompleted === 'true') {
       setIsTutorialCompleted(true);
     } else {
       setIsTutorialCompleted(false);
-      
+
       // Auto-start for new users who have seen the welcome modal but not the tour
       if (welcomeModalSeen === 'true' && !tutorialCompleted) {
         const timer = setTimeout(() => {
+          setCurrentStep(0);
           setIsOpen(true);
         }, 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [setIsOpen]);
+  }, [setIsOpen, setCurrentStep]);
 
   const startTutorial = () => {
+    setCurrentStep(0);
     setIsOpen(true);
   };
 
@@ -509,7 +511,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
 
   // Helper to wrap content with padding and navigation
   const ContentWrapper = (props: PopoverContentProps) => {
-    const { steps, currentStep } = props;
+    const { steps, currentStep, setCurrentStep, setIsOpen } = props;
     const stepContent = steps[currentStep]?.content;
 
     // Content can be ReactElement, string, or function
@@ -521,14 +523,14 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
     return (
       <div style={{ padding: '24px 24px 8px 24px' }}>
         {renderedContent}
-        <CustomNavigationWithContext />
+        <CustomNavigation
+          steps={steps}
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
+          setIsOpen={setIsOpen}
+        />
       </div>
     );
-  };
-
-  const CustomNavigationWithContext = () => {
-    const tour = useTour();
-    return <CustomNavigation {...tour} />;
   };
 
   return (
