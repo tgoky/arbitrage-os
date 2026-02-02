@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLogout } from "@refinedev/core";
 import { useTheme } from '../../providers/ThemeProvider';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useWorkItems } from '../hooks/useDashboardData';
 import Image from 'next/image';
+import { Power } from "lucide-react";
 
 import { 
   Button, 
@@ -49,8 +51,6 @@ import {
   SafetyOutlined,
   SearchOutlined,
   LogoutOutlined,
-  UserOutlined,
-  SettingOutlined,
   ThunderboltFilled,
   CodeOutlined,
   ConsoleSqlOutlined
@@ -87,9 +87,51 @@ interface Notification {
   workspaceId?: string;
 }
 
+// Logout Dialog
+interface LogoutDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const LogoutDialog: React.FC<LogoutDialogProps> = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 backdrop-blur-sm font-manrope">
+      <div className="border border-zinc-800 bg-zinc-950 w-80 rounded-lg shadow-2xl overflow-hidden">
+        <div className="bg-black text-white px-3 py-2 flex justify-between items-center border-b border-zinc-800">
+          <div className="flex items-center gap-2">
+            <Power className="w-4 h-4 text-[#5CC49D]" />
+            <span className="font-bold text-xs tracking-widest text-zinc-400">SYSTEM LOGOFF</span>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">×</button>
+        </div>
+        <div className="p-6 bg-zinc-950 text-gray-300">
+          <p className="mb-6 text-sm text-zinc-400">Terminate session and return to login?</p>
+          <div className="flex justify-end space-x-3">
+            <button
+              className="px-4 py-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+              onClick={onClose}
+            >
+              CANCEL
+            </button>
+            <button
+              className="px-4 py-1.5 bg-[#5CC49D] text-black text-xs font-bold rounded hover:bg-[#4ab08b] transition-colors"
+              onClick={onConfirm}
+            >
+              CONFIRM
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const WorkspaceHomePage = () => {
   const router = useRouter();
   const { theme } = useTheme();
+  const { mutate: logout } = useLogout();
 
   const {
     workspaces,
@@ -117,6 +159,10 @@ const WorkspaceHomePage = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dataReady, setDataReady] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+  // Logout handler
+  const handleLogout = () => setShowLogoutDialog(true);
 
   // Keep loading until we actually have workspace data OR confirmed empty after load
   const workspaceLoading = workspaceHookLoading || (!dataReady && !workspaceHookLoading);
@@ -570,10 +616,7 @@ const WorkspaceHomePage = () => {
   );
 
   const userMenuItems = [
-    { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
-    { key: 'settings', label: 'Settings', icon: <SettingOutlined /> },
-    { type: 'divider' as const },
-    { key: 'logout', label: 'Logout', icon: <LogoutOutlined /> }
+    { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, onClick: handleLogout }
   ];
 
   // ==================== RENDER ====================
@@ -1274,6 +1317,16 @@ const WorkspaceHomePage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Logout Dialog */}
+      <LogoutDialog
+        isOpen={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={() => {
+          logout();
+          setShowLogoutDialog(false);
+        }}
+      />
     </div>
     </ConfigProvider>
   );
