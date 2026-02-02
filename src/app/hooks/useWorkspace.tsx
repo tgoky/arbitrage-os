@@ -189,17 +189,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
               } finally {
                 isLoadingRef.current = false;
               }
-            } else if (loadedForUserRef.current === session.user.id && workspaces.length === 0 && !isLoadingRef.current) {
-              // Already "loaded" but no workspaces - might have been a failed load, retry
-              console.log('No workspaces found, retrying load for user:', session.user.id);
-              isLoadingRef.current = true;
-              try {
-                await loadWorkspaces();
-              } catch (error) {
-                console.error('Failed to retry workspace load:', error);
-              } finally {
-                isLoadingRef.current = false;
-              }
             }
           }
         } else if (event === 'SIGNED_OUT') {
@@ -249,7 +238,8 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [workspaces.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update current workspace when URL params change
   useEffect(() => {

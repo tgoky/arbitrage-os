@@ -90,11 +90,12 @@ interface Notification {
 const WorkspaceHomePage = () => {
   const router = useRouter();
   const { theme } = useTheme();
-  
-  const { 
-    workspaces, 
-    isLoading: workspaceLoading, 
-    createWorkspace 
+
+  const {
+    workspaces,
+    isLoading: workspaceHookLoading,
+    createWorkspace,
+    refreshWorkspaces
   } = useWorkspace();
 
   const { data: userProfile, isLoading: userLoading } = useUserProfile() as {
@@ -103,7 +104,7 @@ const WorkspaceHomePage = () => {
   };
 
   const { data: workItems = [] } = useWorkItems(1000);
-  
+
   // State variables
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
@@ -115,6 +116,36 @@ const WorkspaceHomePage = () => {
   const [selectedWorkspace, setSelectedWorkspace] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dataReady, setDataReady] = useState(false);
+
+  // Keep loading until we actually have workspace data OR confirmed empty after load
+  const workspaceLoading = workspaceHookLoading || (!dataReady && !workspaceHookLoading);
+
+  // Effect to check if data is ready and retry if needed
+  useEffect(() => {
+    // If hook says loading is done
+    if (!workspaceHookLoading && !userLoading) {
+      // If we have workspaces, data is ready
+      if (workspaces.length > 0) {
+        setDataReady(true);
+      } else {
+        // No workspaces yet - could be first load or user has none
+        // Try refreshing once to make sure
+        const retryTimeout = setTimeout(async () => {
+          console.log('No workspaces found, attempting refresh...');
+          try {
+            await refreshWorkspaces();
+          } catch (e) {
+            console.error('Refresh failed:', e);
+          }
+          // After retry, mark data as ready regardless (user may have no workspaces)
+          setDataReady(true);
+        }, 500);
+
+        return () => clearTimeout(retryTimeout);
+      }
+    }
+  }, [workspaceHookLoading, userLoading, workspaces.length, refreshWorkspaces]);
 
   // Password setup state (ADDED FROM CODE 1)
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
@@ -405,36 +436,36 @@ const WorkspaceHomePage = () => {
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) return;
     setIsCreating(true);
-    
+
     try {
-      console.log('🆕 Creating workspace:', newWorkspaceName);
-      
+      console.log('Creating workspace:', newWorkspaceName);
+
       const newWorkspace = await createWorkspace(
         newWorkspaceName.trim(),
         newWorkspaceDescription.trim() || undefined
       );
 
-      console.log('✅ Workspace created successfully:', newWorkspace);
+      console.log('Workspace created successfully:', newWorkspace);
+
+      // Refresh workspaces list
+      await refreshWorkspaces();
 
       // Close modal and clear form
       setShowCreateModal(false);
       setNewWorkspaceName("");
       setNewWorkspaceDescription("");
-      
-      // Small delay to ensure state updates have propagated
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Navigate to new workspace
-      console.log('🔄 Navigating to new workspace:', newWorkspace.slug);
+      console.log('Navigating to new workspace:', newWorkspace.slug);
       router.push(`/dashboard/${newWorkspace.slug}`);
-      
+
     } catch (error: any) {
-      console.error('❌ Error creating workspace:', error);
-      
+      console.error('Error creating workspace:', error);
+
       // Show error to user
       const errorMessage = error.message || 'Failed to create workspace';
       alert(`Error: ${errorMessage}`);
-      
+
     } finally {
       setIsCreating(false);
     }
