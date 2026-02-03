@@ -76,19 +76,64 @@ export const createClient = () => {
 
 export const supabaseBrowserClient = createClient()
 
-// Utility to clear all auth-related cookies
+// Utility to clear all auth-related cookies and localStorage
 export const clearAuthCookies = () => {
-  if (typeof window !== 'undefined') {
-    const authCookieNames = [
-      'sb-access-token',
-      'sb-refresh-token',
-      'supabase-auth-token',
-      'supabase.auth.token'
-    ]
-    
-    authCookieNames.forEach(cookieName => {
-      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=${window.location.hostname}`
-      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`
-    })
+  if (typeof window === 'undefined') return
+
+  // Base cookie names to clear
+  const authCookieNames = [
+    'sb-access-token',
+    'sb-refresh-token',
+    'supabase-auth-token',
+    'supabase.auth.token'
+  ]
+
+  // Get project reference from URL to clear project-specific cookies
+  const projectRef = supabaseUrl?.match(/https:\/\/([^.]+)\./)?.[1]
+  if (projectRef) {
+    authCookieNames.push(`sb-${projectRef}-auth-token`)
+    authCookieNames.push(`sb-${projectRef}-auth-token-code-verifier`)
   }
+
+  // Also find any cookies that start with 'sb-' dynamically
+  const allCookies = document.cookie.split(';')
+  allCookies.forEach(cookie => {
+    const cookieName = cookie.split('=')[0].trim()
+    if (cookieName.startsWith('sb-') && !authCookieNames.includes(cookieName)) {
+      authCookieNames.push(cookieName)
+    }
+  })
+
+  // Clear all auth cookies with various domain combinations
+  authCookieNames.forEach(cookieName => {
+    // Clear without domain (current domain only)
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`
+    // Clear with explicit domain
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=${window.location.hostname}`
+    // Clear with dot-prefixed domain (for subdomains)
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=.${window.location.hostname}`
+  })
+}
+
+// Utility to clear all auth data (cookies + localStorage)
+export const clearAllAuthData = () => {
+  if (typeof window === 'undefined') return
+
+  // Clear cookies first
+  clearAuthCookies()
+
+  // Clear auth-related localStorage keys
+  const keysToRemove = Object.keys(localStorage).filter(key =>
+    key.startsWith('sb-') ||
+    key.includes('supabase') ||
+    key.includes('auth-token')
+  )
+
+  keysToRemove.forEach(key => {
+    try {
+      localStorage.removeItem(key)
+    } catch (e) {
+      console.warn(`Failed to remove localStorage key ${key}:`, e)
+    }
+  })
 }

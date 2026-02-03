@@ -9,8 +9,9 @@ import { authProviderClient } from "@providers/auth-provider/auth-provider.clien
 import { dataProvider } from "@providers/data-provider";
 import "@styles/global.css";
 
+import { AuthRecoveryProvider } from "../providers/auth-recovery-provider";
 import { ThemeProvider } from "../providers/ThemeProvider";
-import { NotificationProvider } from "../providers/NotificationProvider"; 
+import { NotificationProvider } from "../providers/NotificationProvider";
 import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
 import { WorkspaceProvider } from "../app/hooks/useWorkspace";
 import { TutorialProvider } from "@providers/tutorial-provider/TutorialProvider";
@@ -31,6 +32,7 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className="min-h-screen">
         <div id="modal-root" />
+        <AuthRecoveryProvider>
         <Suspense>
           <RefineKbarProvider>
             <ThemeProvider>
@@ -377,6 +379,7 @@ export default function RootLayout({
    
           </RefineKbarProvider>
         </Suspense>
+        </AuthRecoveryProvider>
       </body>
     </html>
   );
