@@ -63,7 +63,7 @@ const { Search } = Input;
 const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#000000';
 const SURFACE_CARD = '#09090b';
-const SURFACE_ELEVATED = '#18181b';
+const SURFACE_ELEVATED = '#000000';
 const BORDER_COLOR = '#27272a';
 const TEXT_SECONDARY = '#a1a1aa';
 const TEXT_PRIMARY = '#ffffff';
@@ -899,10 +899,10 @@ return (
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img
-              src={theme === 'dark' ? "/aoswhite.png" : "/aosblack.png"}
+              src={theme === 'dark' ? "/newlogo.png" : "/newlogo.png"}
               alt="ArbitrageOS Logo"
               style={{ 
-                height: '140px',
+                height: '40px',
                 width: 'auto',
                 objectFit: 'contain',
                 marginRight: '16px'
@@ -1165,7 +1165,8 @@ return (
               className="cursor-pointer border-dashed h-full"
               style={{ 
                 borderStyle: 'dashed', 
-                borderColor: theme === 'dark' ? '#000000' : '#ffffff',
+          borderColor: theme === 'dark' ? '#404040' : '#d1d5db',
+           background: theme === 'dark' ? '#000000' : '#ffffff',
                 height: '140px'
               }}
               bodyStyle={{ 
@@ -1178,7 +1179,7 @@ return (
               onClick={() => setShowCreateModal(true)}
             >
               <div className="flex flex-col items-center justify-center w-full text-center">
-                <div className="w-10 h-10 bg-[#063f48] rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-[#052c32] rounded-lg flex items-center justify-center mb-2">
                   <PlusOutlined className="text-white text-sm" />
                 </div>
                 <Text className="text-sm font-medium">New Workspace</Text>
@@ -1201,7 +1202,7 @@ return (
           height: '140px',
           // 2. Ensure base border colors are set
           borderColor: theme === 'dark' ? '#27272a' : '#f0f0f0',
-          background: theme === 'dark' ? '#18181b' : '#ffffff' 
+          background: theme === 'dark' ? '#000000' : '#ffffff' 
         }}
         bodyStyle={{ 
           padding: '16px', 
