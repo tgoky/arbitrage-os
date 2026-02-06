@@ -712,892 +712,541 @@ export default function AnalysisDetailPage() {
   const performanceMetrics = getPerformanceMetrics();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex items-center">
-          <button 
-             onClick={() => go({ to: "/sales-call-analyzer" })}
-            className={`
-              group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
-              bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white
-            `}
-          >
-            <ArrowLeftOutlined className="text-xs transition-transform group-hover:-translate-x-1" />
-            <span className="text-sm font-medium font-manrope">Back to Dashboard</span>
-          </button>
-          <div>
-            <Title level={3} className="mb-1">{analysis.title}</Title>
-            <div className="flex items-center space-x-4">
-              <Tag color={getSentimentColor(sentiment)}>
-                {sentiment} sentiment
-              </Tag>
-              <Text type="secondary">
-                <ClockCircleOutlined className="mr-1" />
-                {Math.floor(duration / 60)}:
-                {(duration % 60).toString().padStart(2, '0')}
-              </Text>
-              <Text type="secondary">
-                <CalendarOutlined className="mr-1" />
-                {new Date(analysis.createdAt).toLocaleDateString()}
-              </Text>
-            </div>
-          </div>
+      <div className="mb-10">
+        <button
+           onClick={() => go({ to: "/sales-call-analyzer" })}
+          className="flex items-center gap-2 mb-6 text-gray-400 hover:text-white transition-colors"
+        >
+          <ArrowLeftOutlined className="text-xs" />
+          <span className="text-sm">Back</span>
+        </button>
+        <Title level={3} className="mb-2">{analysis.title}</Title>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Tag color={getSentimentColor(sentiment)}>{sentiment}</Tag>
+          <Text type="secondary">
+            <ClockCircleOutlined className="mr-1" />
+            {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
+          </Text>
+          <Text type="secondary">
+            <CalendarOutlined className="mr-1" />
+            {new Date(analysis.createdAt).toLocaleDateString()}
+          </Text>
         </div>
-        <Space>
-          <Button icon={<DownloadOutlined />} onClick={() => handleExport()}>
-            Export
-          </Button>
-          <Button icon={<ShareAltOutlined />}>
-            Share
-          </Button>
-        </Space>
+        <div className="mt-4 flex gap-2">
+          <Button size="small" icon={<DownloadOutlined />} onClick={() => handleExport()}>Export</Button>
+          <Button size="small" icon={<ShareAltOutlined />}>Share</Button>
+        </div>
       </div>
 
-      {/* DEBUG SECTION - Remove this after fixing */}
-      {/* {process.env.NODE_ENV === 'development' && (
-        <Card className="mb-6 border-orange-200">
-          <Title level={4}>🔍 Debug Information</Title>
-          <div className="bg-gray-100 p-4 rounded text-xs overflow-auto max-h-96">
-            <pre>{JSON.stringify(analysis, null, 2)}</pre>
+      {/* Score */}
+      <div className="mb-10">
+        <div className="text-center mb-6">
+          <Progress
+            type="circle"
+            percent={overallScore}
+            format={percent => (
+              <div>
+                <Title level={2} className="mb-0">{percent}</Title>
+                <Text type="secondary" className="text-xs">Overall</Text>
+              </div>
+            )}
+            size={120}
+            strokeColor={overallScore >= 80 ? '#52c41a' : overallScore >= 60 ? '#faad14' : '#f5222d'}
+          />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="text-center">
+            <Text type="secondary" className="text-xs block">You</Text>
+            <Text strong className="text-lg">{Math.round(talkRatio.agent)}%</Text>
           </div>
-          <div className="mt-4">
-            <Text strong>Data Structure Summary:</Text>
-            <ul className="ml-4 mt-2">
-              <li>Top level keys: {analysis ? Object.keys(analysis).join(', ') : 'none'}</li>
-              <li>Has analysis: {analysis?.analysis ? 'Yes' : 'No'}</li>
-              <li>Has analysis.callResults: {analysis?.analysis?.callResults ? 'Yes' : 'No'}</li>
-              <li>Has metadata: {analysis?.metadata ? 'Yes' : 'No'}</li>
-              <li>Overall Score: {analysis?.analysis?.callResults?.analysis?.overallScore || 0}</li>
-              <li>Sentiment: {analysis?.analysis?.callResults?.analysis?.sentiment || 'none'}</li>
-            </ul>
+          <div className="text-center">
+            <Text type="secondary" className="text-xs block">Prospect</Text>
+            <Text strong className="text-lg">{Math.round(talkRatio.prospect)}%</Text>
           </div>
-        </Card>
-      )} */}
+          <div className="text-center">
+            <Text type="secondary" className="text-xs block">Silence</Text>
+            <Text strong className="text-lg">{Math.round(talkRatio.silence)}%</Text>
+          </div>
+          <div className="text-center">
+            <Text type="secondary" className="text-xs block">Buying Signals</Text>
+            <Text strong className="text-lg">{buyingSignals.length}</Text>
+          </div>
+        </div>
+        {strengths.length > 0 && (
+          <div>
+            <Text type="secondary" className="text-xs block mb-2">STRENGTHS</Text>
+            <Space wrap>
+              {strengths.slice(0, 3).map((strength, index) => (
+                <Tag color="green" key={index}>{strength}</Tag>
+              ))}
+            </Space>
+          </div>
+        )}
+      </div>
 
-      {/* Score Card */}
-      <Card className="mb-6">
-        <Row gutter={16}>
-          <Col xs={24} md={8}>
-            <div className="text-center">
-              <Progress
-                type="circle"
-                percent={overallScore}
-                format={percent => (
-                  <div>
-                    <Title level={2} className="mb-0">{percent}</Title>
-                    <Text type="secondary">Overall Score</Text>
-                  </div>
-                )}
-                size={150}
-                strokeColor={overallScore >= 80 ? '#52c41a' : 
-                            overallScore >= 60 ? '#faad14' : '#f5222d'}
-              />
-            </div>
-          </Col>
-          <Col xs={24} md={16}>
-            <Row gutter={16}>
-              <Col xs={12} sm={6}>
-                <Statistic
-                  title="Talk Ratio (You)"
-                  value={Math.round(talkRatio.agent)}
-                  suffix="%"
-                  prefix={<UserOutlined />}
-                />
-              </Col>
-              <Col xs={12} sm={6}>
-                <Statistic
-                  title="Talk Ratio (Prospect)"
-                  value={Math.round(talkRatio.prospect)}
-                  suffix="%"
-                  prefix={<TeamOutlined />}
-                />
-              </Col>
-              <Col xs={12} sm={6}>
-                <Statistic
-                  title="Silence"
-                  value={Math.round(talkRatio.silence)}
-                  suffix="%"
-                  prefix={<ClockCircleOutlined />}
-                />
-              </Col>
-              <Col xs={12} sm={6}>
-                <Statistic
-                  title="Buying Signals"
-                  value={buyingSignals.length}
-                  prefix={<BulbOutlined />}
-                />
-              </Col>
-            </Row>
-            <Divider className="my-4" />
-            <div>
-              <Text strong className="block mb-2">Key Strengths:</Text>
-              <Space wrap>
-                {strengths.slice(0, 3).map((strength, index) => (
-                  <Tag color="green" key={index}>{strength}</Tag>
-                ))}
-                {strengths.length === 0 && <Text type="secondary">No strengths identified.</Text>}
-              </Space>
-            </div>
-          </Col>
-        </Row>
-      </Card>
+      <Divider className="my-6" />
 
       {/* Main Content Tabs */}
       <Tabs activeKey={activeTab} onChange={setActiveTab} className="mb-6">
 
-         {/* Deal Architecture Tab - NEW */}
-        <TabPane
-          tab={
-            <span>
-              Deal Architecture
-            </span>
-          }
-          key="deal-architecture"
-        >
+         {/* Deal Architecture Tab */}
+        <TabPane tab="Deal Architecture" key="deal-architecture">
           {analysis?.analysis?.dealArchitecture ? (
-            <div className="space-y-6">
-              {/* Executive Brief Card */}
-              <Card className="">
-                <Row gutter={16} align="middle">
-                  <Col xs={24} md={6}>
-                    <div className="text-center">
-                      <div className={`text-6xl font-bold ${
-                        analysis.analysis.dealArchitecture.dealGrade.grade === 'A' ? 'text-green-600' :
-                        analysis.analysis.dealArchitecture.dealGrade.grade === 'B' ? 'text-blue-600' :
-                        analysis.analysis.dealArchitecture.dealGrade.grade === 'C' ? 'text-yellow-600' :
-                        analysis.analysis.dealArchitecture.dealGrade.grade === 'D' ? 'text-orange-600' : 'text-red-600'
-                      }`}>
-                        {analysis.analysis.dealArchitecture.dealGrade.grade}
-                      </div>
-                      <Text type="secondary">Deal Grade</Text>
-                      <div className="mt-2">
-                        <Progress
-                          percent={analysis.analysis.dealArchitecture.dealGrade.winProbability}
-                          status={analysis.analysis.dealArchitecture.dealGrade.winProbability >= 60 ? 'success' : 'normal'}
-                          size="small"
-                        />
-                        <Text type="secondary" className="text-xs">Win Probability</Text>
-                      </div>
-                    </div>
-                  </Col>
-                  <Col xs={24} md={18}>
-                    <Title level={4}>{analysis.analysis.dealArchitecture.executiveBrief.oneLineSummary}</Title>
-                    <Row gutter={16} className="mt-4">
-                      <Col xs={12} md={6}>
-                        <div className="p-3  rounded shadow-sm">
-                          <Text type="secondary" className="block text-xs">DEAL VALUE</Text>
-                          <Text strong className="text-lg text-green-600">{analysis.analysis.dealArchitecture.executiveBrief.dealValue}</Text>
-                        </div>
-                      </Col>
-                      <Col xs={12} md={6}>
-                        <div className="p-3  rounded shadow-sm">
-                          <Text type="secondary" className="block text-xs">TOP PRIORITY</Text>
-                          <Text strong className="text-sm">{analysis.analysis.dealArchitecture.executiveBrief.topPriority}</Text>
-                        </div>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <div className="p-3 rounded shadow-sm">
-                          <Text type="secondary" className="block text-xs">IMMEDIATE ACTION</Text>
-                          <Text strong className="text-sm">{analysis.analysis.dealArchitecture.executiveBrief.immediateAction}</Text>
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
+            <div className="space-y-8">
+              {/* Executive Brief */}
+              <div>
+                <div className="text-center mb-4">
+                  <div className={`text-5xl font-bold ${
+                    analysis.analysis.dealArchitecture.dealGrade.grade === 'A' ? 'text-green-600' :
+                    analysis.analysis.dealArchitecture.dealGrade.grade === 'B' ? 'text-blue-600' :
+                    analysis.analysis.dealArchitecture.dealGrade.grade === 'C' ? 'text-yellow-600' :
+                    analysis.analysis.dealArchitecture.dealGrade.grade === 'D' ? 'text-orange-600' : 'text-red-600'
+                  }`}>
+                    {analysis.analysis.dealArchitecture.dealGrade.grade}
+                  </div>
+                  <Text type="secondary" className="text-xs">Deal Grade</Text>
+                  <div className="max-w-xs mx-auto mt-2">
+                    <Progress
+                      percent={analysis.analysis.dealArchitecture.dealGrade.winProbability}
+                      status={analysis.analysis.dealArchitecture.dealGrade.winProbability >= 60 ? 'success' : 'normal'}
+                      size="small"
+                    />
+                    <Text type="secondary" className="text-xs">Win Probability</Text>
+                  </div>
+                </div>
+                <Title level={4} className="text-center">{analysis.analysis.dealArchitecture.executiveBrief.oneLineSummary}</Title>
+                <div className="space-y-3 mt-4">
+                  <div className="p-3 rounded border border-white/10">
+                    <Text type="secondary" className="text-xs block">DEAL VALUE</Text>
+                    <Text strong className="text-lg text-green-600">{analysis.analysis.dealArchitecture.executiveBrief.dealValue}</Text>
+                  </div>
+                  <div className="p-3 rounded border border-white/10">
+                    <Text type="secondary" className="text-xs block">TOP PRIORITY</Text>
+                    <Text strong className="text-sm">{analysis.analysis.dealArchitecture.executiveBrief.topPriority}</Text>
+                  </div>
+                  <div className="p-3 rounded border border-white/10">
+                    <Text type="secondary" className="text-xs block">IMMEDIATE ACTION</Text>
+                    <Text strong className="text-sm">{analysis.analysis.dealArchitecture.executiveBrief.immediateAction}</Text>
+                  </div>
+                </div>
+              </div>
+
+              <Divider />
 
               {/* Prospect Diagnosis */}
               {analysis.analysis.dealArchitecture.prospectDiagnosis && (
-                <Card
-                  title={
-                    <span><FireOutlined className="text-red-500 mr-2" />Prospect Diagnosis - Bleeding Neck Problems</span>
-                  }
-                >
-                  <Row gutter={16}>
-                    <Col xs={24} md={8}>
-                      <div className="mb-4 p-4  rounded">
-                        <Title level={5}>Business Profile</Title>
-                        <div className="space-y-2">
-                          <div><Text type="secondary">Industry:</Text> <Text strong>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.industry || 'N/A'}</Text></div>
-                          <div><Text type="secondary">Type:</Text> <Tag color="blue">{(analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.businessType || '').replace(/_/g, ' ') || 'N/A'}</Tag></div>
-                          <div><Text type="secondary">Team Size:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.estimatedTeamSize || 'N/A'}</Text></div>
-                          <div><Text type="secondary">Revenue:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.estimatedRevenue || 'N/A'}</Text></div>
-                          {analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.location && (
-                            <div><Text type="secondary">Location:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.location}</Text></div>
-                          )}
-                          <div className="mt-2">
-                            <Text type="secondary">Tech Stack:</Text>
-                            <div className="mt-1">
-                              {(analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.currentTechStack || []).map((tech, i) => (
-                                <Tag key={i} className="mb-1">{tech}</Tag>
-                              ))}
-                            </div>
-                          </div>
+                <div>
+                  <Title level={5}><FireOutlined className="text-red-500 mr-2" />Prospect Diagnosis</Title>
+
+                  <div className="space-y-3 mt-4">
+                    <Text type="secondary" className="text-xs block">BUSINESS PROFILE</Text>
+                    <div className="space-y-2 text-sm">
+                      <div><Text type="secondary">Industry:</Text> <Text strong>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.industry || 'N/A'}</Text></div>
+                      <div><Text type="secondary">Type:</Text> <Tag color="blue">{(analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.businessType || '').replace(/_/g, ' ') || 'N/A'}</Tag></div>
+                      <div><Text type="secondary">Team Size:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.estimatedTeamSize || 'N/A'}</Text></div>
+                      <div><Text type="secondary">Revenue:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.estimatedRevenue || 'N/A'}</Text></div>
+                      {analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.location && (
+                        <div><Text type="secondary">Location:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile.location}</Text></div>
+                      )}
+                      <div>
+                        <Text type="secondary">Tech Stack:</Text>
+                        <div className="mt-1">
+                          {(analysis.analysis.dealArchitecture.prospectDiagnosis.businessProfile?.currentTechStack || []).map((tech, i) => (
+                            <Tag key={i} className="mb-1">{tech}</Tag>
+                          ))}
                         </div>
                       </div>
-                      {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification && (
-                        <div className="p-4  rounded">
-                          <Title level={5}>Financial Qualification</Title>
-                          <div className="text-center mb-3">
-                            <Tag
-                              color={
-                                analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'green' :
-                                analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'orange' : 'red'
-                              }
-                              className="text-lg px-4 py-1"
-                            >
-                              {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'QUALIFIED' :
-                               analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'NEEDS VALIDATION' : 'NOT QUALIFIED'}
-                            </Tag>
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <div><Text type="secondary">Reason:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.qualificationReason || 'N/A'}</Text></div>
-                            {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.estimatedBudget && (
-                              <div><Text type="secondary">Budget:</Text> <Text strong className="text-green-600">{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.estimatedBudget}</Text></div>
-                            )}
-                            <div><Text type="secondary">Urgency:</Text> <Tag color="purple">{(analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.urgencyLevel || '').replace(/_/g, ' ') || 'N/A'}</Tag></div>
-                            <div><Text type="secondary">Decision Maker Present:</Text> {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.decisionMakerPresent ? <CheckCircleOutlined className="text-green-500" /> : <CloseCircleOutlined className="text-red-500" />}</div>
-                          </div>
-                        </div>
-                      )}
-                    </Col>
-                    <Col xs={24} md={16}>
-                      <Title level={5} className="mb-3">Top Pain Points (Urgency-Ranked)</Title>
-                      <List
-                        dataSource={analysis.analysis.dealArchitecture.prospectDiagnosis.bleedingNeckProblems || []}
-                        renderItem={(problem, index) => (
-                          <List.Item>
-                            <List.Item.Meta
-                              avatar={
-                                <Badge
-                                  count={index + 1}
-                                  style={{
-                                    backgroundColor: problem.severity === 'critical' ? '#f5222d' :
-                                                   problem.severity === 'high' ? '#fa541c' :
-                                                   problem.severity === 'medium' ? '#faad14' : '#52c41a'
-                                  }}
-                                />
-                              }
-                              title={
-                                <div className="flex items-center gap-2">
-                                  <Text strong>{problem.problem}</Text>
-                                  <Tag color={
-                                    problem.severity === 'critical' ? 'red' :
-                                    problem.severity === 'high' ? 'orange' :
-                                    problem.severity === 'medium' ? 'gold' : 'green'
-                                  }>{(problem.severity || '').toUpperCase()}</Tag>
-                                </div>
-                              }
-                              description={
-                                <div className="mt-2">
-                                  <div className="flex gap-4 text-sm">
-                                    <span><ClockCircleOutlined className="mr-1" />{problem.frequency || 'N/A'}</span>
-                                    <span><DollarOutlined className="mr-1 text-red-500" />{problem.estimatedCost || 'N/A'}</span>
-                                  </div>
-                                  {problem.quotedEvidence && (
-                                    <div className="mt-2 p-2  border-l-4 border-yellow-400 text-sm italic">
-                                      {problem.quotedEvidence}
-                                    </div>
-                                  )}
-                                </div>
-                              }
-                            />
-                          </List.Item>
+                    </div>
+                  </div>
+
+                  {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification && (
+                    <div className="mt-6">
+                      <Text type="secondary" className="text-xs block mb-2">FINANCIAL QUALIFICATION</Text>
+                      <Tag
+                        color={
+                          analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'green' :
+                          analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'orange' : 'red'
+                        }
+                        className="text-sm px-3 py-0.5 mb-3"
+                      >
+                        {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'QUALIFIED' :
+                         analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'NEEDS VALIDATION' : 'NOT QUALIFIED'}
+                      </Tag>
+                      <div className="space-y-2 text-sm mt-2">
+                        <div><Text type="secondary">Reason:</Text> <Text>{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.qualificationReason || 'N/A'}</Text></div>
+                        {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.estimatedBudget && (
+                          <div><Text type="secondary">Budget:</Text> <Text strong className="text-green-600">{analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.estimatedBudget}</Text></div>
                         )}
-                      />
+                        <div><Text type="secondary">Urgency:</Text> <Tag color="purple">{(analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.urgencyLevel || '').replace(/_/g, ' ') || 'N/A'}</Tag></div>
+                        <div><Text type="secondary">Decision Maker Present:</Text> {analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification.decisionMakerPresent ? <CheckCircleOutlined className="text-green-500 ml-1" /> : <CloseCircleOutlined className="text-red-500 ml-1" />}</div>
+                      </div>
+                    </div>
+                  )}
 
-                      {/* Buying Signals & Red Flags */}
-                      <Row gutter={16} className="mt-4">
-                        <Col xs={24} md={12}>
-                          <div className="p-3  rounded border border-green-200">
-                            <Text strong className="text-green-700"><LikeOutlined className="mr-1" /> Buying Signals</Text>
-                            <ul className="mt-2 ml-4 text-sm">
-                              {(analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification?.buyingSignals || []).map((signal, i) => (
-                                <li key={i} className="text-green-600">{signal}</li>
-                              ))}
-                            </ul>
+                  <Divider className="my-6" />
+                  <Text type="secondary" className="text-xs block mb-3">PAIN POINTS</Text>
+                  <List
+                    dataSource={analysis.analysis.dealArchitecture.prospectDiagnosis.bleedingNeckProblems || []}
+                    renderItem={(problem, index) => (
+                      <List.Item>
+                        <div className="w-full">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Text strong>{index + 1}. {problem.problem}</Text>
+                            <Tag color={
+                              problem.severity === 'critical' ? 'red' :
+                              problem.severity === 'high' ? 'orange' :
+                              problem.severity === 'medium' ? 'gold' : 'green'
+                            } className="text-xs">{(problem.severity || '').toUpperCase()}</Tag>
                           </div>
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <div className="p-3  rounded border border-red-200">
-                            <Text strong className="text-red-700"><WarningOutlined className="mr-1" /> Red Flags</Text>
-                            <ul className="mt-2 ml-4 text-sm">
-                              {(analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification?.redFlags || []).map((flag, i) => (
-                                <li key={i} className="text-red-600">{flag}</li>
-                              ))}
-                            </ul>
+                          <div className="text-sm text-gray-400">
+                            <span className="mr-4"><ClockCircleOutlined className="mr-1" />{problem.frequency || 'N/A'}</span>
+                            <span><DollarOutlined className="mr-1" />{problem.estimatedCost || 'N/A'}</span>
                           </div>
-                        </Col>
-                      </Row>
-                    </Col>
-                  </Row>
-                </Card>
+                          {problem.quotedEvidence && (
+                            <div className="mt-2 pl-3 border-l-2 border-yellow-400 text-sm italic text-gray-400">
+                              {problem.quotedEvidence}
+                            </div>
+                          )}
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+
+                  {/* Buying Signals & Red Flags */}
+                  <div className="mt-6 space-y-4">
+                    <div className="p-3 rounded border border-green-900/30">
+                      <Text strong className="text-green-600 text-xs block mb-2"><LikeOutlined className="mr-1" /> BUYING SIGNALS</Text>
+                      <ul className="ml-4 text-sm space-y-1">
+                        {(analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification?.buyingSignals || []).map((signal, i) => (
+                          <li key={i} className="text-green-600">{signal}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="p-3 rounded border border-red-900/30">
+                      <Text strong className="text-red-600 text-xs block mb-2"><WarningOutlined className="mr-1" /> RED FLAGS</Text>
+                      <ul className="ml-4 text-sm space-y-1">
+                        {(analysis.analysis.dealArchitecture.prospectDiagnosis.financialQualification?.redFlags || []).map((flag, i) => (
+                          <li key={i} className="text-red-600">{flag}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               )}
 
-              {/* Solution Stack - Three Phases */}
+              <Divider />
+
+              {/* Solution Stack */}
               {analysis.analysis.dealArchitecture.solutionStack && (
-                <Card
-                  title={
-                    <span><ToolOutlined className="text-blue-500 mr-2" />Solution Stack - What to Build</span>
-                  }
-                >
-                  <Row gutter={16}>
-                    {/* Phase 1: Quick Win */}
-                    {analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin && (
-                      <Col xs={24} md={8}>
-                        <Card
-                          size="small"
-                          className="h-full border-green-200"
-                          title={
-                            <div className="text-center">
-                              <ThunderboltOutlined className="text-green-500 text-xl" />
-                              <div className="text-green-600 font-bold">PHASE 1: QUICK WIN</div>
-                              <Tag color="green">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.timeline || 'N/A'}</Tag>
-                            </div>
-                          }
-                        >
-                          <Text strong className="block mb-2">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.phaseName || 'Quick Win'}</Text>
-                          <List
-                            size="small"
-                            dataSource={analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.tools || []}
-                            renderItem={(tool) => (
-                              <List.Item className="py-2">
-                                <div className="w-full">
-                                  <div className="flex justify-between items-center">
-                                    <Text strong className="text-sm">{tool.toolName}</Text>
-                                    <Tag color="blue" className="text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</Tag>
-                                  </div>
-                                  <Text className="text-xs text-gray-500 block">{tool.description}</Text>
-                                  <div className="flex justify-between text-xs mt-1">
-                                    <span><ClockCircleOutlined className="mr-1" />{tool.estimatedSetupHours || 0}h setup</span>
-                                    <Tag color={tool.setupComplexity === 'low' ? 'green' : tool.setupComplexity === 'medium' ? 'orange' : 'red'} className="text-xs">{tool.setupComplexity || 'N/A'}</Tag>
-                                  </div>
-                                </div>
-                              </List.Item>
-                            )}
-                          />
-                          <Divider className="my-2" />
-                          <div className="p-2  rounded text-sm">
-                            <Text strong className="text-green-700">Expected Outcome:</Text>
-                            <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.expectedOutcome || 'N/A'}</div>
-                          </div>
-                          <div className="p-2  rounded text-sm mt-2">
-                            <Text strong className="text-blue-700">Proof of Concept:</Text>
-                            <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.proofOfConcept || 'N/A'}</div>
-                          </div>
-                        </Card>
-                      </Col>
-                    )}
+                <div>
+                  <Title level={5}><ToolOutlined className="text-blue-500 mr-2" />Solution Stack</Title>
 
-                    {/* Phase 2: Core System */}
-                    {analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem && (
-                      <Col xs={24} md={8}>
-                        <Card
-                          size="small"
-                          className="h-full border-blue-200"
-                          title={
-                            <div className="text-center">
-                              <ToolOutlined className="text-blue-500 text-xl" />
-                              <div className="text-blue-600 font-bold">PHASE 2: CORE SYSTEM</div>
-                              <Tag color="blue">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.timeline || 'N/A'}</Tag>
-                            </div>
-                          }
-                        >
-                          <Text strong className="block mb-2">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.phaseName || 'Core System'}</Text>
-                          <List
-                            size="small"
-                            dataSource={analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.tools || []}
-                            renderItem={(tool) => (
-                              <List.Item className="py-2">
-                                <div className="w-full">
-                                  <div className="flex justify-between items-center">
-                                    <Text strong className="text-sm">{tool.toolName}</Text>
-                                    <Tag color="blue" className="text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</Tag>
-                                  </div>
-                                  <Text className="text-xs text-gray-500 block">{tool.description}</Text>
-                                  <div className="flex justify-between text-xs mt-1">
-                                    <span><ClockCircleOutlined className="mr-1" />{tool.estimatedSetupHours || 0}h setup</span>
-                                    <Tag color={tool.setupComplexity === 'low' ? 'green' : tool.setupComplexity === 'medium' ? 'orange' : 'red'} className="text-xs">{tool.setupComplexity || 'N/A'}</Tag>
-                                  </div>
-                                  {tool.monthlyMaintenanceHours && (
-                                    <div className="text-xs text-purple-500 mt-1">
-                                      <ClockCircleOutlined className="mr-1" />{tool.monthlyMaintenanceHours}h/mo maintenance
-                                    </div>
-                                  )}
-                                </div>
-                              </List.Item>
-                            )}
-                          />
-                          <Divider className="my-2" />
-                          <div className="p-2  rounded text-sm">
-                            <Text strong className="text-blue-700">Expected Outcome:</Text>
-                            <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.expectedOutcome || 'N/A'}</div>
-                          </div>
-                          <div className="p-2  rounded text-sm mt-2">
-                            <Text strong className="text-purple-700">Why They Need Retainer:</Text>
-                            <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.retainerJustification || 'N/A'}</div>
-                          </div>
-                        </Card>
-                      </Col>
-                    )}
+                  {/* Phase 1 */}
+                  {analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin && (
+                    <div className="mt-6 pl-3 border-l-2 border-green-500">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ThunderboltOutlined className="text-green-500" />
+                        <Text strong className="text-green-600">Phase 1: Quick Win</Text>
+                        <Tag color="green" className="text-xs">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.timeline || 'N/A'}</Tag>
+                      </div>
+                      <Text className="text-sm block mb-3">{analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.phaseName || 'Quick Win'}</Text>
+                      {(analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.tools || []).map((tool, i) => (
+                        <div key={i} className="mb-2 p-2 rounded border border-white/5 text-sm">
+                          <div className="flex justify-between"><Text strong>{tool.toolName}</Text><Tag className="text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</Tag></div>
+                          <Text type="secondary" className="text-xs">{tool.description}</Text>
+                          <div className="text-xs text-gray-500 mt-1">{tool.estimatedSetupHours || 0}h setup &middot; {tool.setupComplexity || 'N/A'} complexity</div>
+                        </div>
+                      ))}
+                      <div className="text-sm mt-2"><Text type="secondary">Outcome:</Text> {analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.expectedOutcome || 'N/A'}</div>
+                      <div className="text-sm"><Text type="secondary">PoC:</Text> {analysis.analysis.dealArchitecture.solutionStack.phase1QuickWin.proofOfConcept || 'N/A'}</div>
+                    </div>
+                  )}
 
-                    {/* Phase 3: AI Wow Factor */}
-                    {analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor && (
-                      <Col xs={24} md={8}>
-                        <Card
-                          size="small"
-                          className="h-full border-purple-200"
-                          title={
-                            <div className="text-center">
-                              <RocketOutlined className="text-purple-500 text-xl" />
-                              <div className="text-purple-600 font-bold">PHASE 3: AI WOW FACTOR</div>
-                              <Tag color="purple">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.timeline || 'N/A'}</Tag>
-                            </div>
-                          }
-                        >
-                          <Text strong className="block mb-2">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.phaseName || 'AI Wow Factor'}</Text>
-                          <List
-                            size="small"
-                            dataSource={analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.tools || []}
-                            renderItem={(tool) => (
-                              <List.Item className="py-2">
-                                <div className="w-full">
-                                  <div className="flex justify-between items-center">
-                                    <Text strong className="text-sm">{tool.toolName}</Text>
-                                    <Tag color="purple" className="text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</Tag>
-                                  </div>
-                                  <Text className="text-xs text-gray-500 block">{tool.description}</Text>
-                                  <div className="flex justify-between text-xs mt-1">
-                                    <span><ClockCircleOutlined className="mr-1" />{tool.estimatedSetupHours || 0}h setup</span>
-                                    <Tag color={tool.setupComplexity === 'low' ? 'green' : tool.setupComplexity === 'medium' ? 'orange' : 'red'} className="text-xs">{tool.setupComplexity || 'N/A'}</Tag>
-                                  </div>
-                                  {tool.replacesRole && (
-                                    <div className="text-xs text-green-600 mt-1 font-semibold">
-                                      <StarOutlined className="mr-1" />Replaces: {tool.replacesRole}
-                                    </div>
-                                  )}
-                                </div>
-                              </List.Item>
-                            )}
-                          />
-                          <Divider className="my-2" />
-                          <div className="p-2  rounded text-sm">
-                            <Text strong className="text-purple-700">Expected Outcome:</Text>
-                            <div className="mt-1">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.expectedOutcome || 'N/A'}</div>
+                  {/* Phase 2 */}
+                  {analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem && (
+                    <div className="mt-6 pl-3 border-l-2 border-blue-500">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ToolOutlined className="text-blue-500" />
+                        <Text strong className="text-blue-600">Phase 2: Core System</Text>
+                        <Tag color="blue" className="text-xs">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.timeline || 'N/A'}</Tag>
+                      </div>
+                      <Text className="text-sm block mb-3">{analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.phaseName || 'Core System'}</Text>
+                      {(analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.tools || []).map((tool, i) => (
+                        <div key={i} className="mb-2 p-2 rounded border border-white/5 text-sm">
+                          <div className="flex justify-between"><Text strong>{tool.toolName}</Text><Tag className="text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</Tag></div>
+                          <Text type="secondary" className="text-xs">{tool.description}</Text>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {tool.estimatedSetupHours || 0}h setup &middot; {tool.setupComplexity || 'N/A'} complexity
+                            {tool.monthlyMaintenanceHours && <span> &middot; {tool.monthlyMaintenanceHours}h/mo</span>}
                           </div>
-                          <div className="p-2  rounded text-sm mt-2">
-                            <Text strong className="text-green-700">ROI Projection:</Text>
-                            <div className="mt-1 font-semibold">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.roiProjection || 'N/A'}</div>
-                          </div>
-                        </Card>
-                      </Col>
-                    )}
-                  </Row>
+                        </div>
+                      ))}
+                      <div className="text-sm mt-2"><Text type="secondary">Outcome:</Text> {analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.expectedOutcome || 'N/A'}</div>
+                      <div className="text-sm"><Text type="secondary">Retainer:</Text> {analysis.analysis.dealArchitecture.solutionStack.phase2CoreSystem.retainerJustification || 'N/A'}</div>
+                    </div>
+                  )}
 
-                {/* Integration Map */}
-                {analysis.analysis.dealArchitecture.solutionStack?.integrationMap && (
-                  <Card size="small" className="mt-4 ">
-                    <Title level={5}><LinkOutlined className="mr-2" />Integration Requirements</Title>
-                    <Row gutter={16}>
-                      <Col xs={24} md={8}>
-                        <Text strong className="text-green-600">Required Integrations:</Text>
-                        <div className="mt-1">
-                          {(analysis.analysis.dealArchitecture.solutionStack.integrationMap.requiredIntegrations || []).map((integration, i) => (
-                            <Tag key={i} color="green" className="mb-1">{integration}</Tag>
-                          ))}
+                  {/* Phase 3 */}
+                  {analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor && (
+                    <div className="mt-6 pl-3 border-l-2 border-purple-500">
+                      <div className="flex items-center gap-2 mb-2">
+                        <RocketOutlined className="text-purple-500" />
+                        <Text strong className="text-purple-600">Phase 3: AI Wow Factor</Text>
+                        <Tag color="purple" className="text-xs">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.timeline || 'N/A'}</Tag>
+                      </div>
+                      <Text className="text-sm block mb-3">{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.phaseName || 'AI Wow Factor'}</Text>
+                      {(analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.tools || []).map((tool, i) => (
+                        <div key={i} className="mb-2 p-2 rounded border border-white/5 text-sm">
+                          <div className="flex justify-between"><Text strong>{tool.toolName}</Text><Tag className="text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</Tag></div>
+                          <Text type="secondary" className="text-xs">{tool.description}</Text>
+                          <div className="text-xs text-gray-500 mt-1">{tool.estimatedSetupHours || 0}h setup &middot; {tool.setupComplexity || 'N/A'} complexity</div>
+                          {tool.replacesRole && <div className="text-xs text-green-600 mt-1"><StarOutlined className="mr-1" />Replaces: {tool.replacesRole}</div>}
                         </div>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Text strong className="text-blue-600">Nice to Have:</Text>
-                        <div className="mt-1">
-                          {(analysis.analysis.dealArchitecture.solutionStack.integrationMap.niceToHaveIntegrations || []).map((integration, i) => (
-                            <Tag key={i} color="blue" className="mb-1">{integration}</Tag>
-                          ))}
-                        </div>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Text strong className="text-orange-600">Potential Blockers:</Text>
-                        <div className="mt-1">
-                          {(analysis.analysis.dealArchitecture.solutionStack.integrationMap.potentialBlockers || []).map((blocker, i) => (
-                            <Tag key={i} color="orange" className="mb-1">{blocker}</Tag>
-                          ))}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Card>
-                )}
-              </Card>
+                      ))}
+                      <div className="text-sm mt-2"><Text type="secondary">Outcome:</Text> {analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.expectedOutcome || 'N/A'}</div>
+                      <div className="text-sm"><Text type="secondary">ROI:</Text> <Text strong>{analysis.analysis.dealArchitecture.solutionStack.phase3AIWowFactor.roiProjection || 'N/A'}</Text></div>
+                    </div>
+                  )}
+
+                  {/* Integration Map */}
+                  {analysis.analysis.dealArchitecture.solutionStack?.integrationMap && (
+                    <div className="mt-6 space-y-3">
+                      <Text type="secondary" className="text-xs block">INTEGRATIONS</Text>
+                      <div>
+                        <Text type="secondary" className="text-xs">Required:</Text>
+                        <div className="mt-1">{(analysis.analysis.dealArchitecture.solutionStack.integrationMap.requiredIntegrations || []).map((integration, i) => (<Tag key={i} color="green" className="mb-1">{integration}</Tag>))}</div>
+                      </div>
+                      <div>
+                        <Text type="secondary" className="text-xs">Nice to Have:</Text>
+                        <div className="mt-1">{(analysis.analysis.dealArchitecture.solutionStack.integrationMap.niceToHaveIntegrations || []).map((integration, i) => (<Tag key={i} color="blue" className="mb-1">{integration}</Tag>))}</div>
+                      </div>
+                      <div>
+                        <Text type="secondary" className="text-xs">Blockers:</Text>
+                        <div className="mt-1">{(analysis.analysis.dealArchitecture.solutionStack.integrationMap.potentialBlockers || []).map((blocker, i) => (<Tag key={i} color="orange" className="mb-1">{blocker}</Tag>))}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
+
+              <Divider />
 
               {/* Pricing Strategy */}
               {analysis.analysis.dealArchitecture.pricingStrategy && (
-                <Card
-                  title={
-                    <span><DollarOutlined className="text-green-500 mr-2" />Pricing Strategy</span>
-                  }
-                >
-                  <Row gutter={16}>
+                <div>
+                  <Title level={5}><DollarOutlined className="text-green-500 mr-2" />Pricing Strategy</Title>
+
+                  <div className="space-y-4 mt-4">
                     {/* Setup Fee */}
-                    <Col xs={24} md={8}>
-                      <Card size="small" className="text-center ">
-                        <Title level={5}>Setup Fee</Title>
-                        <div className="text-3xl font-bold text-blue-600">
-                          ${(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.recommended || 0).toLocaleString()}
-                        </div>
-                        <Text type="secondary" className="text-xs">
-                          Range: ${(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.minimum || 0).toLocaleString()} - ${(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.maximum || 0).toLocaleString()}
-                        </Text>
-                        <Divider className="my-2" />
-                        <div className="text-left">
-                          <Text strong className="text-sm">Breakdown:</Text>
-                          <List
-                            size="small"
-                            dataSource={analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.breakdown || []}
-                            renderItem={(item) => (
-                              <List.Item className="py-1">
-                                <div className="flex justify-between w-full text-xs">
-                                  <span>{item.item}</span>
-                                  <span className="font-semibold">${(item.cost || 0).toLocaleString()}</span>
-                                </div>
-                              </List.Item>
-                            )}
-                          />
-                        </div>
-                      </Card>
-                    </Col>
+                    <div className="p-4 rounded border border-white/10">
+                      <Text type="secondary" className="text-xs block">SETUP FEE</Text>
+                      <Text strong className="text-2xl text-blue-600">${(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.recommended || 0).toLocaleString()}</Text>
+                      <Text type="secondary" className="text-xs block">Range: ${(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.minimum || 0).toLocaleString()} - ${(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.maximum || 0).toLocaleString()}</Text>
+                      {(analysis.analysis.dealArchitecture.pricingStrategy.setupFee?.breakdown || []).map((item, i) => (
+                        <div key={i} className="flex justify-between text-xs mt-1"><span>{item.item}</span><span>${(item.cost || 0).toLocaleString()}</span></div>
+                      ))}
+                    </div>
 
                     {/* Monthly Retainer */}
-                    <Col xs={24} md={8}>
-                      <Card size="small" className="text-center ">
-                        <Title level={5}>Monthly Retainer</Title>
-                        <div className="text-3xl font-bold text-green-600">
-                          ${(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.recommended || 0).toLocaleString()}<span className="text-sm">/mo</span>
-                        </div>
-                        <Text type="secondary" className="text-xs">
-                          Range: ${(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.minimum || 0).toLocaleString()} - ${(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.maximum || 0).toLocaleString()}
-                        </Text>
-                        {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.includedHours && (
-                          <div className="text-sm text-purple-600 mt-1">
-                            {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.includedHours} hrs included
-                            {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.overhourlyRate && (
-                              <span> | ${analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.overhourlyRate}/hr overage</span>
-                            )}
-                          </div>
-                        )}
-                        <Divider className="my-2" />
-                        <div className="text-left">
-                          <Text strong className="text-sm">Breakdown:</Text>
-                          <List
-                            size="small"
-                            dataSource={analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.breakdown || []}
-                            renderItem={(item) => (
-                              <List.Item className="py-1">
-                                <div className="flex justify-between w-full text-xs">
-                                  <span>{item.item}</span>
-                                  <span className="font-semibold">${(item.monthlyCost || 0).toLocaleString()}/mo</span>
-                                </div>
-                              </List.Item>
-                            )}
-                          />
-                        </div>
-                      </Card>
-                    </Col>
+                    <div className="p-4 rounded border border-white/10">
+                      <Text type="secondary" className="text-xs block">MONTHLY RETAINER</Text>
+                      <Text strong className="text-2xl text-green-600">${(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.recommended || 0).toLocaleString()}<span className="text-sm">/mo</span></Text>
+                      <Text type="secondary" className="text-xs block">Range: ${(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.minimum || 0).toLocaleString()} - ${(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.maximum || 0).toLocaleString()}</Text>
+                      {analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.includedHours && (
+                        <Text className="text-xs text-purple-500 block">{analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.includedHours} hrs included{analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.overhourlyRate && <span> | ${analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer.overhourlyRate}/hr overage</span>}</Text>
+                      )}
+                      {(analysis.analysis.dealArchitecture.pricingStrategy.monthlyRetainer?.breakdown || []).map((item, i) => (
+                        <div key={i} className="flex justify-between text-xs mt-1"><span>{item.item}</span><span>${(item.monthlyCost || 0).toLocaleString()}/mo</span></div>
+                      ))}
+                    </div>
 
                     {/* Total Deal Value */}
-                    <Col xs={24} md={8}>
-                      <Card size="small" className="text-center ">
-                        <Title level={5}>Total Deal Value</Title>
-                        <div className="text-3xl font-bold text-purple-600">
-                          ${(analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.firstYearValue || 0).toLocaleString()}
-                        </div>
-                        <Text type="secondary" className="text-xs">First Year Value</Text>
-                        <Divider className="my-2" />
-                        <Row gutter={8}>
-                          <Col span={12}>
-                            <Statistic
-                              title={<span className="text-xs">Lifetime Value</span>}
-                              value={analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 0}
-                              prefix="$"
-                              valueStyle={{ fontSize: '16px', color: '#52c41a' }}
-                            />
-                          </Col>
-                          <Col span={12}>
-                            <div className="text-center">
-                              <Text type="secondary" className="text-xs block">Profit Margin</Text>
-                              <Text strong className="text-purple-600">{analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.profitMarginEstimate || 'N/A'}</Text>
-                            </div>
-                          </Col>
-                        </Row>
-                      </Card>
-                    </Col>
-                  </Row>
+                    <div className="p-4 rounded border border-white/10">
+                      <Text type="secondary" className="text-xs block">TOTAL DEAL VALUE (YEAR 1)</Text>
+                      <Text strong className="text-2xl text-purple-600">${(analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.firstYearValue || 0).toLocaleString()}</Text>
+                      <div className="flex gap-6 mt-2 text-sm">
+                        <div><Text type="secondary">Lifetime:</Text> <Text className="text-green-600">${(analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 0).toLocaleString()}</Text></div>
+                        <div><Text type="secondary">Margin:</Text> <Text className="text-purple-600">{analysis.analysis.dealArchitecture.pricingStrategy.totalDealValue?.profitMarginEstimate || 'N/A'}</Text></div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Pitch Angle */}
                   {analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle && (
-                    <Card size="small" className="mt-4  border-yellow-200">
-                      <Title level={5}><AimOutlined className="mr-2" />The Pitch Angle</Title>
-                      <Row gutter={16}>
-                        <Col xs={24} md={12}>
-                          <div className="p-3 rounded shadow-sm mb-2">
-                            <Text type="secondary" className="text-xs block">HEADLINE</Text>
-                            <Text strong className="text-lg">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.headline || 'N/A'}</Text>
-                          </div>
-                          <div className="p-3  rounded shadow-sm">
-                            <Text type="secondary" className="text-xs block">VALUE FRAMING</Text>
-                            <Text>{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.valueFraming || 'N/A'}</Text>
-                          </div>
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <div className="p-3  rounded shadow-sm mb-2">
-                            <Text type="secondary" className="text-xs block">COMPARISON POINT</Text>
-                            <Text className="text-red-600">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.comparisonPoint || 'N/A'}</Text>
-                          </div>
-                          <div className="p-3  rounded shadow-sm">
-                            <Text type="secondary" className="text-xs block">URGENCY HOOK</Text>
-                            <Text className="text-orange-600 font-semibold">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.urgencyHook || 'N/A'}</Text>
-                          </div>
-                        </Col>
-                      </Row>
-                    </Card>
+                    <div className="mt-6 space-y-3">
+                      <Text type="secondary" className="text-xs block">PITCH ANGLE</Text>
+                      <div className="p-3 rounded border border-white/10">
+                        <Text type="secondary" className="text-xs block">HEADLINE</Text>
+                        <Text strong>{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.headline || 'N/A'}</Text>
+                      </div>
+                      <div className="p-3 rounded border border-white/10">
+                        <Text type="secondary" className="text-xs block">VALUE FRAMING</Text>
+                        <Text>{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.valueFraming || 'N/A'}</Text>
+                      </div>
+                      <div className="p-3 rounded border border-white/10">
+                        <Text type="secondary" className="text-xs block">COMPARISON</Text>
+                        <Text className="text-red-500">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.comparisonPoint || 'N/A'}</Text>
+                      </div>
+                      <div className="p-3 rounded border border-white/10">
+                        <Text type="secondary" className="text-xs block">URGENCY HOOK</Text>
+                        <Text className="text-orange-500">{analysis.analysis.dealArchitecture.pricingStrategy.pitchAngle.urgencyHook || 'N/A'}</Text>
+                      </div>
+                    </div>
                   )}
 
-                  {/* Contract Terms & Upsells */}
-                  <Row gutter={16} className="mt-4">
-                    <Col xs={24} md={12}>
-                      {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms && (
-                        <Card size="small">
-                          <Title level={5}>Contract Terms</Title>
-                          <div className="space-y-2">
-                            <div><Text type="secondary">Recommended Term:</Text> <Tag color="blue">{(analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.recommendedTerm || '').replace(/_/g, ' ')}</Tag></div>
-                            {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.discountForLongerTerm && (
-                              <div><Text type="secondary">Discount:</Text> <Text className="text-green-600">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.discountForLongerTerm}</Text></div>
-                            )}
-                            <div><Text type="secondary">Payment:</Text> <Text>{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.paymentStructure || 'N/A'}</Text></div>
-                            {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.guaranteeOffered && (
-                              <div><Text type="secondary">Guarantee:</Text> <Text className="text-blue-600">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.guaranteeOffered}</Text></div>
-                            )}
-                          </div>
-                        </Card>
-                      )}
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Card size="small">
-                        <Title level={5}>Upsell Opportunities</Title>
-                        <List
-                          size="small"
-                          dataSource={analysis.analysis.dealArchitecture.pricingStrategy.upsellOpportunities || []}
-                          renderItem={(upsell) => (
-                            <List.Item>
-                              <List.Item.Meta
-                                avatar={<StarOutlined className="text-yellow-500" />}
-                                title={upsell.service}
-                                description={
-                                  <div className="flex justify-between">
-                                    <span className="text-xs">{upsell.timing}</span>
-                                    <span className="text-green-600 font-semibold">+${(upsell.additionalRevenue || 0).toLocaleString()}</span>
-                                  </div>
-                                }
-                              />
-                            </List.Item>
-                          )}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-                </Card>
+                  {/* Contract Terms */}
+                  {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms && (
+                    <div className="mt-6">
+                      <Text type="secondary" className="text-xs block mb-2">CONTRACT TERMS</Text>
+                      <div className="space-y-1 text-sm">
+                        <div><Text type="secondary">Term:</Text> <Tag color="blue">{(analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.recommendedTerm || '').replace(/_/g, ' ')}</Tag></div>
+                        {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.discountForLongerTerm && (
+                          <div><Text type="secondary">Discount:</Text> <Text className="text-green-600">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.discountForLongerTerm}</Text></div>
+                        )}
+                        <div><Text type="secondary">Payment:</Text> <Text>{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.paymentStructure || 'N/A'}</Text></div>
+                        {analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.guaranteeOffered && (
+                          <div><Text type="secondary">Guarantee:</Text> <Text className="text-blue-600">{analysis.analysis.dealArchitecture.pricingStrategy.contractTerms.guaranteeOffered}</Text></div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upsells */}
+                  {(analysis.analysis.dealArchitecture.pricingStrategy.upsellOpportunities || []).length > 0 && (
+                    <div className="mt-6">
+                      <Text type="secondary" className="text-xs block mb-2">UPSELL OPPORTUNITIES</Text>
+                      {(analysis.analysis.dealArchitecture.pricingStrategy.upsellOpportunities || []).map((upsell, i) => (
+                        <div key={i} className="flex justify-between items-center py-2 border-b border-white/5 text-sm">
+                          <div><Text strong>{upsell.service}</Text><Text type="secondary" className="text-xs block">{upsell.timing}</Text></div>
+                          <Text className="text-green-600">+${(upsell.additionalRevenue || 0).toLocaleString()}</Text>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
+
+              <Divider />
 
               {/* Sales Performance */}
               {analysis.analysis.dealArchitecture.salesPerformance && (
-                <Card
-                  title={
-                    <span><TrophyOutlined className="text-yellow-500 mr-2" />Sales Performance Coaching</span>
-                  }
-                >
-                  <Row gutter={16}>
-                    {/* Score Card */}
-                    <Col xs={24} md={8}>
-                      <Card size="small" className="">
-                        <Title level={5} className="text-center">Call Score Card</Title>
-                        <div className="text-center mb-4">
-                          <Progress
-                            type="circle"
-                            percent={analysis.analysis.dealArchitecture.salesPerformance.callScoreCard?.overallScore || 0}
-                            format={percent => (
-                              <div>
-                                <div className="text-2xl font-bold">{percent}</div>
-                                <div className="text-xs">Overall</div>
-                              </div>
-                            )}
-                            size={100}
-                            strokeColor={
-                              (analysis.analysis.dealArchitecture.salesPerformance.callScoreCard?.overallScore || 0) >= 80 ? '#52c41a' :
-                              (analysis.analysis.dealArchitecture.salesPerformance.callScoreCard?.overallScore || 0) >= 60 ? '#faad14' : '#f5222d'
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          {[
-                            { key: 'rapportBuilding', label: 'Rapport Building' },
-                            { key: 'discoveryDepth', label: 'Discovery Depth' },
-                            { key: 'painIdentification', label: 'Pain Identification' },
-                            { key: 'valuePresentation', label: 'Value Presentation' },
-                            { key: 'objectionHandling', label: 'Objection Handling' },
-                            { key: 'closingStrength', label: 'Closing Strength' },
-                          ].map(({ key, label }) => (
-                            <div key={key} className="flex justify-between items-center">
-                              <Text className="text-xs">{label}</Text>
-                              <Progress
-                                percent={((analysis.analysis.dealArchitecture?.salesPerformance?.callScoreCard as any)?.[key] || 0) * 10}
-                                size="small"
-                                className="w-24"
-                                strokeColor={
-                                  ((analysis.analysis.dealArchitecture?.salesPerformance?.callScoreCard as any)?.[key] || 0) >= 8 ? '#52c41a' :
-                                  ((analysis.analysis.dealArchitecture?.salesPerformance?.callScoreCard as any)?.[key] || 0) >= 6 ? '#faad14' : '#f5222d'
-                                }
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </Card>
-                    </Col>
+                <div>
+                  <Title level={5}><TrophyOutlined className="text-yellow-500 mr-2" />Sales Performance</Title>
 
-                    {/* Green & Red Flags */}
-                    <Col xs={24} md={16}>
-                      <Row gutter={16}>
-                        <Col xs={24} md={12}>
-                          <Card size="small" className=" border-green-200 mb-4">
-                            <Title level={5} className="text-green-700"><LikeOutlined className="mr-1" /> Green Flags</Title>
-                            <List
-                              size="small"
-                              dataSource={analysis.analysis.dealArchitecture.salesPerformance.greenFlags || []}
-                              renderItem={(flag) => (
-                                <List.Item className="py-2">
-                                  <div>
-                                    <Text strong className="text-sm">{flag.observation}</Text>
-                                    {flag.example && (
-                                      <div className="text-xs text-gray-500 italic mt-1">{flag.example}</div>
-                                    )}
-                                    <div className="text-xs text-green-600 mt-1"><BulbOutlined className="mr-1" />{flag.impact}</div>
-                                  </div>
-                                </List.Item>
-                              )}
-                            />
-                          </Card>
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <Card size="small" className=" border-red-200 mb-4">
-                            <Title level={5} className="text-red-700"><AlertOutlined className="mr-1" /> Red Flags</Title>
-                            <List
-                              size="small"
-                              dataSource={analysis.analysis.dealArchitecture.salesPerformance.redFlags || []}
-                              renderItem={(flag) => (
-                                <List.Item className="py-2">
-                                  <div>
-                                    <div className="flex justify-between">
-                                      <Text strong className="text-sm">{flag.observation}</Text>
-                                      <Tag color={flag.priority === 'high' ? 'red' : flag.priority === 'medium' ? 'orange' : 'blue'} className="text-xs">{flag.priority}</Tag>
-                                    </div>
-                                    {flag.example && (
-                                      <div className="text-xs text-gray-500 italic mt-1">{flag.example}</div>
-                                    )}
-                                    <div className="text-xs text-blue-600 mt-1"><ToolOutlined className="mr-1" />Fix: {flag.howToFix}</div>
-                                  </div>
-                                </List.Item>
-                              )}
-                            />
-                          </Card>
-                        </Col>
-                      </Row>
-
-                      {/* Missed Opportunities */}
-                      <Card size="small" className=" border-yellow-200">
-                        <Title level={5} className="text-yellow-700"><BulbOutlined className="mr-1" /> Missed Opportunities</Title>
-                        <List
+                  {/* Score Card */}
+                  <div className="text-center my-4">
+                    <Progress
+                      type="circle"
+                      percent={analysis.analysis.dealArchitecture.salesPerformance.callScoreCard?.overallScore || 0}
+                      format={percent => <div><div className="text-2xl font-bold">{percent}</div><div className="text-xs">Overall</div></div>}
+                      size={100}
+                      strokeColor={
+                        (analysis.analysis.dealArchitecture.salesPerformance.callScoreCard?.overallScore || 0) >= 80 ? '#52c41a' :
+                        (analysis.analysis.dealArchitecture.salesPerformance.callScoreCard?.overallScore || 0) >= 60 ? '#faad14' : '#f5222d'
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 mb-6">
+                    {[
+                      { key: 'rapportBuilding', label: 'Rapport Building' },
+                      { key: 'discoveryDepth', label: 'Discovery Depth' },
+                      { key: 'painIdentification', label: 'Pain Identification' },
+                      { key: 'valuePresentation', label: 'Value Presentation' },
+                      { key: 'objectionHandling', label: 'Objection Handling' },
+                      { key: 'closingStrength', label: 'Closing Strength' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="flex justify-between items-center">
+                        <Text className="text-xs">{label}</Text>
+                        <Progress
+                          percent={((analysis.analysis.dealArchitecture?.salesPerformance?.callScoreCard as any)?.[key] || 0) * 10}
                           size="small"
-                          dataSource={analysis.analysis.dealArchitecture.salesPerformance.missedOpportunities || []}
-                          renderItem={(opp) => (
-                            <List.Item className="py-2">
-                              <div className="w-full">
-                                <Text strong className="text-sm">{opp.topic}</Text>
-                                <div className="text-sm mt-1 p-2  rounded">
-                                  <Text type="secondary">Ask: </Text>
-                                  <Text className="italic">{opp.questionToAsk}</Text>
-                                </div>
-                                <div className="text-xs text-purple-600 mt-1"><StarOutlined className="mr-1" />{opp.whyItMatters}</div>
-                              </div>
-                            </List.Item>
-                          )}
+                          className="w-32"
+                          strokeColor={
+                            ((analysis.analysis.dealArchitecture?.salesPerformance?.callScoreCard as any)?.[key] || 0) >= 8 ? '#52c41a' :
+                            ((analysis.analysis.dealArchitecture?.salesPerformance?.callScoreCard as any)?.[key] || 0) >= 6 ? '#faad14' : '#f5222d'
+                          }
                         />
-                      </Card>
-                    </Col>
-                  </Row>
+                      </div>
+                    ))}
+                  </div>
 
-                  {/* Next Call Preparation */}
-                  <Card size="small" className="mt-4  border-blue-200">
-                    <Title level={5}><CalendarOutlined className="mr-2" />Next Call Preparation</Title>
-                    <Row gutter={16}>
-                      {(analysis.analysis.dealArchitecture.salesPerformance.nextCallPreparation || []).map((item, i) => (
-                        <Col xs={24} md={8} key={i}>
-                          <div className="p-2 rounded flex items-start mb-2">
-                            <Badge count={i + 1} className="mr-2" />
-                            <Text className="text-sm">{item}</Text>
-                          </div>
-                        </Col>
-                      ))}
-                    </Row>
-                  </Card>
-                </Card>
+                  {/* Green Flags */}
+                  <div className="mb-4">
+                    <Text strong className="text-green-600 text-xs block mb-2"><LikeOutlined className="mr-1" /> GREEN FLAGS</Text>
+                    {(analysis.analysis.dealArchitecture.salesPerformance.greenFlags || []).map((flag, i) => (
+                      <div key={i} className="py-2 border-b border-white/5">
+                        <Text strong className="text-sm">{flag.observation}</Text>
+                        {flag.example && <div className="text-xs text-gray-500 italic mt-1">{flag.example}</div>}
+                        <div className="text-xs text-green-600 mt-1">{flag.impact}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Red Flags */}
+                  <div className="mb-4">
+                    <Text strong className="text-red-600 text-xs block mb-2"><AlertOutlined className="mr-1" /> RED FLAGS</Text>
+                    {(analysis.analysis.dealArchitecture.salesPerformance.redFlags || []).map((flag, i) => (
+                      <div key={i} className="py-2 border-b border-white/5">
+                        <div className="flex justify-between">
+                          <Text strong className="text-sm">{flag.observation}</Text>
+                          <Tag color={flag.priority === 'high' ? 'red' : flag.priority === 'medium' ? 'orange' : 'blue'} className="text-xs">{flag.priority}</Tag>
+                        </div>
+                        {flag.example && <div className="text-xs text-gray-500 italic mt-1">{flag.example}</div>}
+                        <div className="text-xs text-blue-500 mt-1">Fix: {flag.howToFix}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Missed Opportunities */}
+                  <div className="mb-4">
+                    <Text strong className="text-yellow-600 text-xs block mb-2"><BulbOutlined className="mr-1" /> MISSED OPPORTUNITIES</Text>
+                    {(analysis.analysis.dealArchitecture.salesPerformance.missedOpportunities || []).map((opp, i) => (
+                      <div key={i} className="py-2 border-b border-white/5">
+                        <Text strong className="text-sm">{opp.topic}</Text>
+                        <div className="text-sm mt-1 pl-3 border-l-2 border-yellow-500 italic">{opp.questionToAsk}</div>
+                        <div className="text-xs text-purple-500 mt-1">{opp.whyItMatters}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Next Call Prep */}
+                  <div className="mt-6">
+                    <Text type="secondary" className="text-xs block mb-2">NEXT CALL PREPARATION</Text>
+                    {(analysis.analysis.dealArchitecture.salesPerformance.nextCallPreparation || []).map((item, i) => (
+                      <div key={i} className="flex items-start gap-2 py-1 text-sm">
+                        <Text type="secondary">{i + 1}.</Text>
+                        <Text>{item}</Text>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
+
+              <Divider />
 
               {/* Deal Grade Summary */}
               {analysis.analysis.dealArchitecture.dealGrade && (
-                <Card className="">
-                  <Row gutter={16}>
-                    <Col xs={24} md={8}>
-                      <div className="text-center">
-                        <Title level={5}>Deal Strengths</Title>
-                        <List
-                          size="small"
-                          dataSource={analysis.analysis.dealArchitecture.dealGrade.dealStrengths || []}
-                          renderItem={(strength) => (
-                            <List.Item className="py-1">
-                              <CheckCircleOutlined className="text-green-500 mr-2" />
-                              <Text className="text-sm">{strength}</Text>
-                            </List.Item>
-                          )}
-                        />
-                      </div>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <div className="text-center">
-                        <Title level={5}>Deal Risks</Title>
-                        <List
-                          size="small"
-                          dataSource={analysis.analysis.dealArchitecture.dealGrade.dealRisks || []}
-                          renderItem={(risk) => (
-                            <List.Item className="py-1">
-                              <WarningOutlined className="text-orange-500 mr-2" />
-                              <Text className="text-sm">{risk}</Text>
-                            </List.Item>
-                          )}
-                        />
-                      </div>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Card size="small" className="">
-                        <Title level={5} className="text-center">Recommended Next Step</Title>
-                        <div className="p-3  rounded text-center">
-                          <Text strong className="text-blue-700">{analysis.analysis.dealArchitecture.dealGrade.recommendedNextStep || 'N/A'}</Text>
-                        </div>
-                        <div className="mt-3 text-center">
-                          <Text type="secondary" className="text-sm">{analysis.analysis.dealArchitecture.dealGrade.gradeReason || ''}</Text>
-                        </div>
-                      </Card>
-                    </Col>
-                  </Row>
-                </Card>
+                <div>
+                  <div className="mb-4">
+                    <Text type="secondary" className="text-xs block mb-2">DEAL STRENGTHS</Text>
+                    {(analysis.analysis.dealArchitecture.dealGrade.dealStrengths || []).map((strength, i) => (
+                      <div key={i} className="flex items-start gap-2 py-1 text-sm"><CheckCircleOutlined className="text-green-500 mt-0.5" /><Text>{strength}</Text></div>
+                    ))}
+                  </div>
+                  <div className="mb-4">
+                    <Text type="secondary" className="text-xs block mb-2">DEAL RISKS</Text>
+                    {(analysis.analysis.dealArchitecture.dealGrade.dealRisks || []).map((risk, i) => (
+                      <div key={i} className="flex items-start gap-2 py-1 text-sm"><WarningOutlined className="text-orange-500 mt-0.5" /><Text>{risk}</Text></div>
+                    ))}
+                  </div>
+                  <div className="p-4 rounded border border-white/10">
+                    <Text type="secondary" className="text-xs block">RECOMMENDED NEXT STEP</Text>
+                    <Text strong className="text-blue-500">{analysis.analysis.dealArchitecture.dealGrade.recommendedNextStep || 'N/A'}</Text>
+                    <Text type="secondary" className="text-sm block mt-1">{analysis.analysis.dealArchitecture.dealGrade.gradeReason || ''}</Text>
+                  </div>
+                </div>
               )}
             </div>
           ) : (
@@ -1613,84 +1262,51 @@ export default function AnalysisDetailPage() {
         </TabPane>
 
         <TabPane tab="Overview" key="overview">
-          <Row gutter={16}>
-            <Col xs={24} lg={12}>
-            <Card title="Report Preview" className="mb-4">
-  <Paragraph ellipsis={{ rows: 3, expandable: true }}>
-    {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
-  </Paragraph>
-  <Button size="small" onClick={() => setActiveTab('detailed-report')}>
-    View Full Report
-  </Button>
-</Card>
-              <Card title="Call Summary" className="mb-4">
-                <Paragraph>
-                  {executiveSummary}
-                </Paragraph>
-              </Card>
+          <div className="space-y-8">
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">REPORT PREVIEW</Text>
+              <Paragraph ellipsis={{ rows: 3, expandable: true }}>
+                {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
+              </Paragraph>
+              <Button size="small" onClick={() => setActiveTab('detailed-report')}>View Full Report</Button>
+            </div>
 
-              <Card title="Next Steps" className="mb-4">
-                <List
-                  dataSource={nextSteps}
-                  renderItem={(step, index) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<CheckCircleOutlined />} />}
-                        title={`Step ${index + 1}`}
-                        description={step}
-                      />
-                    </List.Item>
-                  )}
-                />
-              </Card>
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">CALL SUMMARY</Text>
+              <Paragraph>{executiveSummary}</Paragraph>
+            </div>
 
-              <Card title="Participant Information">
-                <div className="space-y-4">
-                  <div>
-                    <Text strong className="block mb-1">Prospect</Text>
-                    <div className="flex items-center">
-                      <UserOutlined className="mr-2" />
-                      <span>{prospectInfo.name}</span>
-                      {prospectInfo.title && (
-                        <Text type="secondary" className="ml-2">
-                          ({prospectInfo.title})
-                        </Text>
-                      )}
-                    </div>
-                    {prospectInfo.email && (
-                      <div className="mt-1">
-                        <Text type="secondary">{prospectInfo.email}</Text>
-                      </div>
-                    )}
-                  </div>
-
-                  <Divider className="my-3" />
-
-                  <div>
-                    <Text strong className="block mb-1">Company</Text>
-                    <div className="flex items-center">
-                      <BankOutlined className="mr-2" />
-                      <span>{companyInfo.name}</span>
-                    </div>
-                    {companyInfo.industry && (
-                      <div className="mt-1">
-                        <Text type="secondary">{companyInfo.industry}</Text>
-                      </div>
-                    )}
-                    {companyInfo.location && (
-                      <div className="mt-1">
-                        <EnvironmentOutlined className="mr-2" />
-                        <Text type="secondary">{companyInfo.location}</Text>
-                      </div>
-                    )}
-                  </div>
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">NEXT STEPS</Text>
+              {nextSteps.map((step, index) => (
+                <div key={index} className="flex items-start gap-2 py-2 border-b border-white/5 text-sm">
+                  <CheckCircleOutlined className="text-green-500 mt-0.5" />
+                  <Text>{step}</Text>
                 </div>
-              </Card>
-            </Col>
+              ))}
+            </div>
 
-            <Col xs={24} lg={12}>
-              <Card title="Key Moments" className="mb-4">
-                <Timeline>
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">PARTICIPANTS</Text>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <UserOutlined className="mr-2" />
+                  <Text strong>{prospectInfo.name}</Text>
+                  {prospectInfo.title && <Text type="secondary"> ({prospectInfo.title})</Text>}
+                  {prospectInfo.email && <Text type="secondary" className="block ml-5">{prospectInfo.email}</Text>}
+                </div>
+                <div>
+                  <BankOutlined className="mr-2" />
+                  <Text strong>{companyInfo.name}</Text>
+                  {companyInfo.industry && <Text type="secondary"> &middot; {companyInfo.industry}</Text>}
+                  {companyInfo.location && <Text type="secondary" className="block ml-5"><EnvironmentOutlined className="mr-1" />{companyInfo.location}</Text>}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">KEY MOMENTS</Text>
+              <Timeline>
           {(() => {
             // Get key moments from call structure analysis if available
             const structureKeyMoments = analysis?.analysis?.callResults?.callStructureAnalysis?.keyMoments;
@@ -1764,31 +1380,21 @@ export default function AnalysisDetailPage() {
           })()}
         </Timeline>
 
-              </Card>
+            </div>
 
-              <Card title="Improvement Suggestions">
-                <List
-                  dataSource={improvementSuggestions}
-                  renderItem={(suggestion, index) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={
-                          <Badge 
-                            count={index + 1} 
-                            style={{ 
-                              backgroundColor: getPriorityColor(suggestion.priority) 
-                            }} 
-                          />
-                        }
-                        title={suggestion.area}
-                        description={suggestion.suggestion}
-                      />
-                    </List.Item>
-                  )}
-                />
-              </Card>
-            </Col>
-          </Row>
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">IMPROVEMENT SUGGESTIONS</Text>
+              {improvementSuggestions.map((suggestion, index) => (
+                <div key={index} className="py-2 border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <Badge count={index + 1} style={{ backgroundColor: getPriorityColor(suggestion.priority) }} />
+                    <Text strong className="text-sm">{suggestion.area}</Text>
+                  </div>
+                  <Text type="secondary" className="text-sm block mt-1 ml-7">{suggestion.suggestion}</Text>
+                </div>
+              ))}
+            </div>
+          </div>
         </TabPane>
 
         <TabPane tab="Transcript" key="transcript">
@@ -1805,213 +1411,129 @@ export default function AnalysisDetailPage() {
 <TabPane tab="Call Structure" key="call-structure">
   {analysis?.analysis?.callResults?.callStructureAnalysis ? (
     <div className="space-y-6">
-      {/* Opening Section */}
-      <Card 
-        title={
-          <div className="flex items-center justify-between">
-            <span>Opening (First 20%)</span>
-            <Tag color={
-              analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment === 'Strong' ? 'green' :
-              analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment === 'Good' ? 'blue' : 'orange'
-            }>
-              {analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment}
-            </Tag>
-          </div>
-        }
-      >
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <div className="mb-4">
-              <Text strong className="block mb-2">✅ Strengths:</Text>
-              <List
-                size="small"
-                dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.strengths || []}
-                renderItem={(item: string) => <List.Item>{item}</List.Item>}
-              />
-            </div>
-          </Col>
-          <Col xs={24} md={12}>
-            <div className="mb-4">
-              <Text strong className="block mb-2">⚠️ Areas to Improve:</Text>
-              <List
-                size="small"
-                dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.weaknesses || []}
-                renderItem={(item: string) => <List.Item>{item}</List.Item>}
-              />
-            </div>
-          </Col>
-        </Row>
-        <Divider />
-        <div>
-          <Text strong className="block mb-2">💡 Recommendations:</Text>
-          <List
-            size="small"
-            dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.recommendations || []}
-            renderItem={(item: string) => (
-              <List.Item>
-                <CheckCircleOutlined className="mr-2 text-blue-500" />
-                {item}
-              </List.Item>
-            )}
-          />
+      {/* Opening */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <Text strong>Opening (First 20%)</Text>
+          <Tag color={
+            analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment === 'Strong' ? 'green' :
+            analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment === 'Good' ? 'blue' : 'orange'
+          }>{analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.assessment}</Tag>
         </div>
-      </Card>
-
-      {/* Middle Section */}
-      <Card 
-        title={
-          <div className="flex items-center justify-between">
-            <span>Discovery/Middle Section (20-70%)</span>
-            <Tag color={
-              analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment === 'Strong' ? 'green' :
-              analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment === 'Good' ? 'blue' : 'orange'
-            }>
-              {analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment}
-            </Tag>
-          </div>
-        }
-      >
-        <Row gutter={16} className="mb-4">
-          <Col xs={12} sm={6}>
-            <Statistic
-              title="Discovery Quality"
-              value={analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality}
-              valueStyle={{ 
-                color: analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality === 'Excellent' ? '#52c41a' : 
-                       analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality === 'Good' ? '#1890ff' : '#faad14'
-              }}
-            />
-          </Col>
-          <Col xs={12} sm={6}>
-            <Statistic
-              title="Questions Asked"
-              value={analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.questionCount || 0}
-              suffix="questions"
-            />
-          </Col>
-          <Col xs={24} sm={12}>
-            <div>
-              <Text strong className="block mb-2">Topics Covered:</Text>
-              <Space wrap>
-                {(analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.topicsCovered || []).map((topic: string, i: number) => (
-                  <Tag key={i} color="blue">{topic}</Tag>
-                ))}
-              </Space>
-            </div>
-          </Col>
-        </Row>
-        <Divider />
-        <div>
-          <Text strong className="block mb-2">💡 Recommendations:</Text>
-          <List
-            size="small"
-            dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.recommendations || []}
-            renderItem={(item: string) => (
-              <List.Item>
-                <CheckCircleOutlined className="mr-2 text-blue-500" />
-                {item}
-              </List.Item>
-            )}
-          />
+        <div className="mb-3">
+          <Text type="secondary" className="text-xs block mb-1">Strengths</Text>
+          {(analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.strengths || []).map((item: string, i: number) => (
+            <div key={i} className="text-sm py-1">{item}</div>
+          ))}
         </div>
-      </Card>
-
-      {/* Closing Section */}
-      <Card 
-        title={
-          <div className="flex items-center justify-between">
-            <span>Closing (Last 30%)</span>
-            <Tag color={
-              analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment === 'Strong' ? 'green' :
-              analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment === 'Good' ? 'blue' : 'orange'
-            }>
-              {analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment}
-            </Tag>
-          </div>
-        }
-      >
-        <Row gutter={16} className="mb-4">
-          <Col xs={12}>
-            <div className="text-center p-4  rounded">
-              <Text strong className="block mb-2">Next Steps Defined</Text>
-              <div className="text-3xl">
-                {analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.nextStepsDefined ? 
-                  <CheckCircleOutlined className="text-green-500" /> : 
-                  <CloseCircleOutlined className="text-red-500" />
-                }
-              </div>
-            </div>
-          </Col>
-          <Col xs={12}>
-            <Statistic
-              title="Commitment Level"
-              value={analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel || 'Unknown'}
-              valueStyle={{ 
-                color: analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel === 'High' ? '#52c41a' : 
-                       analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel === 'Medium' ? '#1890ff' : '#faad14'
-              }}
-            />
-          </Col>
-        </Row>
-        <Divider />
-        <div>
-          <Text strong className="block mb-2">💡 Recommendations:</Text>
-          <List
-            size="small"
-            dataSource={analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.recommendations || []}
-            renderItem={(item: string) => (
-              <List.Item>
-                <CheckCircleOutlined className="mr-2 text-blue-500" />
-                {item}
-              </List.Item>
-            )}
-          />
+        <div className="mb-3">
+          <Text type="secondary" className="text-xs block mb-1">Areas to Improve</Text>
+          {(analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.weaknesses || []).map((item: string, i: number) => (
+            <div key={i} className="text-sm py-1">{item}</div>
+          ))}
         </div>
-      </Card>
+        <div>
+          <Text type="secondary" className="text-xs block mb-1">Recommendations</Text>
+          {(analysis.analysis.callResults.callStructureAnalysis.callStructure.opening.recommendations || []).map((item: string, i: number) => (
+            <div key={i} className="flex items-start gap-2 text-sm py-1"><CheckCircleOutlined className="text-blue-500 mt-0.5" />{item}</div>
+          ))}
+        </div>
+      </div>
 
-      {/* Key Metrics Overview */}
-      <Card title="Call Quality Metrics">
-        <Row gutter={16}>
+      <Divider />
+
+      {/* Middle */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <Text strong>Discovery / Middle (20-70%)</Text>
+          <Tag color={
+            analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment === 'Strong' ? 'green' :
+            analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment === 'Good' ? 'blue' : 'orange'
+          }>{analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.assessment}</Tag>
+        </div>
+        <div className="flex gap-6 mb-3 text-sm">
+          <div><Text type="secondary">Quality:</Text> <Text strong style={{
+            color: analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality === 'Excellent' ? '#52c41a' :
+                   analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality === 'Good' ? '#1890ff' : '#faad14'
+          }}>{analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.discoveryQuality}</Text></div>
+          <div><Text type="secondary">Questions:</Text> <Text strong>{analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.questionCount || 0}</Text></div>
+        </div>
+        <div className="mb-3">
+          <Text type="secondary" className="text-xs block mb-1">Topics Covered</Text>
+          <Space wrap>
+            {(analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.topicsCovered || []).map((topic: string, i: number) => (
+              <Tag key={i} color="blue">{topic}</Tag>
+            ))}
+          </Space>
+        </div>
+        <div>
+          <Text type="secondary" className="text-xs block mb-1">Recommendations</Text>
+          {(analysis.analysis.callResults.callStructureAnalysis.callStructure.middle.recommendations || []).map((item: string, i: number) => (
+            <div key={i} className="flex items-start gap-2 text-sm py-1"><CheckCircleOutlined className="text-blue-500 mt-0.5" />{item}</div>
+          ))}
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* Closing */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <Text strong>Closing (Last 30%)</Text>
+          <Tag color={
+            analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment === 'Strong' ? 'green' :
+            analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment === 'Good' ? 'blue' : 'orange'
+          }>{analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.assessment}</Tag>
+        </div>
+        <div className="flex gap-6 mb-3 text-sm">
+          <div>
+            <Text type="secondary">Next Steps Defined: </Text>
+            {analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.nextStepsDefined ?
+              <CheckCircleOutlined className="text-green-500" /> :
+              <CloseCircleOutlined className="text-red-500" />}
+          </div>
+          <div>
+            <Text type="secondary">Commitment: </Text>
+            <Text strong style={{
+              color: analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel === 'High' ? '#52c41a' :
+                     analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel === 'Medium' ? '#1890ff' : '#faad14'
+            }}>{analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.commitmentLevel || 'Unknown'}</Text>
+          </div>
+        </div>
+        <div>
+          <Text type="secondary" className="text-xs block mb-1">Recommendations</Text>
+          {(analysis.analysis.callResults.callStructureAnalysis.callStructure.closing.recommendations || []).map((item: string, i: number) => (
+            <div key={i} className="flex items-start gap-2 text-sm py-1"><CheckCircleOutlined className="text-blue-500 mt-0.5" />{item}</div>
+          ))}
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* Metrics */}
+      <div>
+        <Text type="secondary" className="text-xs block mb-3">CALL QUALITY METRICS</Text>
+        <div className="space-y-2">
           {Object.entries(analysis.analysis.callResults.callStructureAnalysis.metrics || {}).map(([key, value]) => {
             if (typeof value === 'number') {
               return (
-                <Col xs={12} sm={8} md={4} key={key}>
-                  <div className="text-center mb-4">
-                    <Progress
-                      type="circle"
-                      percent={value * 10}
-                      format={() => `${value}/10`}
-                      width={80}
-                      strokeColor={value >= 8 ? '#52c41a' : value >= 6 ? '#1890ff' : '#faad14'}
-                    />
-                    <Text className="block mt-2 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </Text>
-                  </div>
-                </Col>
+                <div key={key} className="flex justify-between items-center">
+                  <Text className="text-sm capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</Text>
+                  <Progress percent={value * 10} size="small" className="w-32" strokeColor={value >= 8 ? '#52c41a' : value >= 6 ? '#1890ff' : '#faad14'} format={() => `${value}/10`} />
+                </div>
               );
             } else if (typeof value === 'boolean') {
               return (
-                <Col xs={12} sm={8} md={4} key={key}>
-                  <div className="text-center mb-4">
-                    <div className="text-4xl">
-                      {value ? (
-                        <CheckCircleOutlined className="text-green-500" />
-                      ) : (
-                        <CloseCircleOutlined className="text-red-500" />
-                      )}
-                    </div>
-                    <Text className="block mt-2 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </Text>
-                  </div>
-                </Col>
+                <div key={key} className="flex justify-between items-center">
+                  <Text className="text-sm capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</Text>
+                  {value ? <CheckCircleOutlined className="text-green-500" /> : <CloseCircleOutlined className="text-red-500" />}
+                </div>
               );
             }
             return null;
           })}
-        </Row>
-      </Card>
+        </div>
+      </div>
 
 
 
@@ -2187,116 +1709,66 @@ export default function AnalysisDetailPage() {
 </TabPane>
 
         <TabPane tab="Analysis" key="analysis">
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Card title="Key Insights" className="mb-4">
-                <List
-                  dataSource={analysis?.analysis?.callResults?.analysis?.keyInsights || []}
-                  renderItem={(insight, index) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Badge count={index + 1} />}
-                        description={insight}
-                      />
-                    </List.Item>
-                  )}
-                />
-                {(!analysis?.analysis?.callResults?.analysis?.keyInsights || analysis.analysis.callResults.analysis.keyInsights.length === 0) && (
-                  <Text type="secondary">No key insights available.</Text>
-                )}
-              </Card>
-
-              <Card title="Performance Metrics">
-                <Row gutter={16}>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Talk Time"
-                      value={performanceMetrics.talkTime}
-                      suffix="%"
-                    />
-                  </Col>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Engagement Score"
-                      value={performanceMetrics.engagement}
-                      suffix="/10"
-                    />
-                  </Col>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Clarity Score"
-                      value={performanceMetrics.clarity}
-                      suffix="/10"
-                    />
-                  </Col>
-                  <Col xs={12}>
-                    <Statistic
-                      title="Professionalism"
-                      value={performanceMetrics.professionalism}
-                      suffix="/10"
-                    />
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Card title="Discovery Metrics" className="mb-4">
-                <div className="space-y-3">
-                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.challengesUncovered && (
-                    <div>
-                      <Text strong>Challenges Uncovered:</Text>
-                      <div className="mt-1">
-                        {analysis.analysis.callResults.analysis.discoveryMetrics.challengesUncovered.map((challenge, index) => (
-                          <Tag key={index} color="orange" className="mb-1">{challenge}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.technicalRequirements && (
-                    <div>
-                      <Text strong>Technical Requirements:</Text>
-                      <div className="mt-1">
-                        {analysis.analysis.callResults.analysis.discoveryMetrics.technicalRequirements.map((req, index) => (
-                          <Tag key={index} color="blue" className="mb-1">{req}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.stakeholdersIdentified && (
-                    <div>
-                      <Text strong>Stakeholders:</Text>
-                      <div className="mt-1">
-                        {analysis.analysis.callResults.analysis.discoveryMetrics.stakeholdersIdentified.map((stakeholder, index) => (
-                          <Tag key={index} color="green" className="mb-1">{stakeholder}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+          <div className="space-y-8">
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">KEY INSIGHTS</Text>
+              {(analysis?.analysis?.callResults?.analysis?.keyInsights || []).map((insight, index) => (
+                <div key={index} className="flex items-start gap-2 py-2 border-b border-white/5 text-sm">
+                  <Badge count={index + 1} />
+                  <Text>{insight}</Text>
                 </div>
-              </Card>
+              ))}
+              {(!analysis?.analysis?.callResults?.analysis?.keyInsights || analysis.analysis.callResults.analysis.keyInsights.length === 0) && (
+                <Text type="secondary">No key insights available.</Text>
+              )}
+            </div>
 
-              <Card title="Buying Signals">
-                {buyingSignals.length > 0 ? (
-                  <List
-                    dataSource={buyingSignals}
-                    renderItem={(signal, index) => (
-                      <List.Item>
-                        <List.Item.Meta
-                          avatar={<BulbOutlined style={{ color: '#52c41a' }} />}
-                          description={signal}
-                        />
-                      </List.Item>
-                    )}
-                  />
-                ) : (
-                  <Text type="secondary">No buying signals detected.</Text>
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">PERFORMANCE METRICS</Text>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Text type="secondary" className="text-xs block">Talk Time</Text><Text strong className="text-lg">{performanceMetrics.talkTime}%</Text></div>
+                <div><Text type="secondary" className="text-xs block">Engagement</Text><Text strong className="text-lg">{performanceMetrics.engagement}/10</Text></div>
+                <div><Text type="secondary" className="text-xs block">Clarity</Text><Text strong className="text-lg">{performanceMetrics.clarity}/10</Text></div>
+                <div><Text type="secondary" className="text-xs block">Professionalism</Text><Text strong className="text-lg">{performanceMetrics.professionalism}/10</Text></div>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">DISCOVERY METRICS</Text>
+              <div className="space-y-3">
+                {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.challengesUncovered && (
+                  <div>
+                    <Text type="secondary" className="text-xs">Challenges Uncovered</Text>
+                    <div className="mt-1">{analysis.analysis.callResults.analysis.discoveryMetrics.challengesUncovered.map((challenge, index) => (<Tag key={index} color="orange" className="mb-1">{challenge}</Tag>))}</div>
+                  </div>
                 )}
-              </Card>
-            </Col>
-          </Row>
+                {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.technicalRequirements && (
+                  <div>
+                    <Text type="secondary" className="text-xs">Technical Requirements</Text>
+                    <div className="mt-1">{analysis.analysis.callResults.analysis.discoveryMetrics.technicalRequirements.map((req, index) => (<Tag key={index} color="blue" className="mb-1">{req}</Tag>))}</div>
+                  </div>
+                )}
+                {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.stakeholdersIdentified && (
+                  <div>
+                    <Text type="secondary" className="text-xs">Stakeholders</Text>
+                    <div className="mt-1">{analysis.analysis.callResults.analysis.discoveryMetrics.stakeholdersIdentified.map((stakeholder, index) => (<Tag key={index} color="green" className="mb-1">{stakeholder}</Tag>))}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary" className="text-xs block mb-2">BUYING SIGNALS</Text>
+              {buyingSignals.length > 0 ? buyingSignals.map((signal, index) => (
+                <div key={index} className="flex items-start gap-2 py-2 border-b border-white/5 text-sm">
+                  <BulbOutlined style={{ color: '#52c41a' }} className="mt-0.5" />
+                  <Text>{signal}</Text>
+                </div>
+              )) : (
+                <Text type="secondary">No buying signals detected.</Text>
+              )}
+            </div>
+          </div>
         </TabPane>
 
         <TabPane tab="Competitive Intel" key="competitive">
@@ -2352,21 +1824,9 @@ export default function AnalysisDetailPage() {
       </Tabs>
 
       {/* Action Buttons */}
-      <div className="flex justify-center space-x-4 mt-8">
-        <Button 
-          type="primary" 
-          size="large"
-          onClick={() => go({ to: "/sales-call-analyzer" })}
-        >
-          Back to Dashboard
-        </Button>
-        <Button 
-          size="large"
-          icon={<DownloadOutlined />}
-          onClick={() => handleExport('detailed')}
-        >
-          Download Full Report
-        </Button>
+      <div className="flex justify-center gap-3 mt-10 pb-8">
+        <Button onClick={() => go({ to: "/sales-call-analyzer" })}>Back</Button>
+        <Button icon={<DownloadOutlined />} onClick={() => handleExport('detailed')}>Download Report</Button>
       </div>
     </div>
   );
