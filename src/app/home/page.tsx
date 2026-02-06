@@ -98,15 +98,15 @@ const LogoutDialog: React.FC<LogoutDialogProps> = ({ isOpen, onClose, onConfirm 
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 backdrop-blur-sm font-manrope">
-      <div className="border border-zinc-800 bg-zinc-950 w-80 rounded-lg shadow-2xl overflow-hidden">
-        <div className="bg-black text-white px-3 py-2 flex justify-between items-center border-b border-zinc-800">
+      <div className="border border-black bg-black w-80 rounded-lg shadow-2xl overflow-hidden">
+        <div className="bg-black text-white px-3 py-2 flex justify-between items-center border-b border-black">
           <div className="flex items-center gap-2">
             <Power className="w-4 h-4 text-[#5CC49D]" />
             <span className="font-bold text-xs tracking-widest text-zinc-400">SYSTEM LOGOFF</span>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">×</button>
         </div>
-        <div className="p-6 bg-zinc-950 text-gray-300">
+        <div className="p-6 bg-black text-gray-300">
           <p className="mb-6 text-sm text-zinc-400">Terminate session and return to login?</p>
           <div className="flex justify-end space-x-3">
             <button
@@ -478,6 +478,54 @@ const WorkspaceHomePage = () => {
     </div>
   );
 
+  // ==================== RENDER ====================
+
+// --- PREMIUM HOVER STYLES ---
+const premiumStyles = `
+  .workspace-card-premium {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  /* DARK MODE HOVER */
+  .dark .workspace-card-premium:hover {
+    border-color: rgba(16, 185, 129, 0.6) !important;
+    transform: translateY(-4px);
+    box-shadow: 
+      0 0 0 1px rgba(16, 185, 129, 0.1),
+      0 12px 24px -10px rgba(16, 185, 129, 0.15),
+      0 0 20px -5px rgba(16, 185, 129, 0.1);
+  }
+
+  /* LIGHT MODE HOVER */
+  .light .workspace-card-premium:hover {
+    border-color: #047857 !important;
+    transform: translateY(-4px);
+    box-shadow: 
+      0 10px 25px -5px rgba(4, 120, 87, 0.15), 
+      0 4px 6px -2px rgba(4, 120, 87, 0.05);
+  }
+
+  /* Optional: Subtle sheen effect */
+  .workspace-card-premium::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .workspace-card-premium:hover::after {
+    opacity: 1;
+  }
+`;
+
   // Event handlers
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) return;
@@ -740,15 +788,18 @@ const WorkspaceHomePage = () => {
     );
   }
 
-  return (
-      <ConfigProvider
-      theme={{
-        token: {
-          fontFamily: 'Manrope, sans-serif',
-          colorPrimary: BRAND_GREEN,
-        },
-      }}
-    >
+return (
+  <ConfigProvider
+    theme={{
+      token: {
+        fontFamily: 'Manrope, sans-serif',
+        colorPrimary: BRAND_GREEN,
+      },
+    }}
+  >
+    {/* INJECT THE STYLES HERE */}
+    <style>{premiumStyles}</style>
+    
     <div className="min-h-screen w-full" style={{ 
       backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' ,
       fontFamily: 'Manrope, sans-serif'
@@ -843,7 +894,7 @@ const WorkspaceHomePage = () => {
       </Modal>
 
       {/* Header */}
-      <header className={`${theme === 'dark' ? 'bg-[#181919] border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2`}>
+      <header className={`${theme === 'dark' ? 'bg-black border-black' : 'bg-white border-black'} border-b px-6 py-2`}>
         <div className="flex items-center justify-between h-12">
           {/* Logo */}
           <div className="flex items-center gap-3">
@@ -1114,7 +1165,7 @@ const WorkspaceHomePage = () => {
               className="cursor-pointer border-dashed h-full"
               style={{ 
                 borderStyle: 'dashed', 
-                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                borderColor: theme === 'dark' ? '#000000' : '#ffffff',
                 height: '140px'
               }}
               bodyStyle={{ 
@@ -1136,73 +1187,83 @@ const WorkspaceHomePage = () => {
           </Col>
 
           {/* Existing Workspaces */}
-          {filteredWorkspaces.map((workspace) => (
-            <Col xs={12} sm={12} md={8} lg={6} xl={6} key={workspace.id}>
-              <Card
-                hoverable
-                size="small"
-                className="cursor-pointer h-full"
-                style={{ height: '140px' }}
-                bodyStyle={{ 
-                  padding: '16px', 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column' 
-                }}
-                onClick={() => handleWorkspaceClick(workspace)}
-              >
-                <div className="flex flex-col h-full">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
-                      <FolderOutlined className="text-white text-sm" />
-                    </div>
-                    <ArrowRightOutlined className="text-gray-400 text-xs mt-1" />
-                  </div>
-                  
-                  <div className="flex-1 min-h-0 mb-3">
-                    <Text 
-                      className="text-sm font-semibold block mb-2 leading-tight" 
-                      ellipsis={{ tooltip: workspace.name }}
-                      style={{ lineHeight: '1.2' }}
-                    >
-                      {workspace.name}
-                    </Text>
-                    
-                    {workspace.description && (
-                      <div className="mt-1">
-                        <Text 
-                          type="secondary" 
-                          className="text-xs leading-relaxed block" 
-                          ellipsis={{ tooltip: workspace.description }}
-                          style={{ 
-                            lineHeight: '1.4',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            height: '36px'
-                          }}
-                        >
-                          {workspace.description}
-                        </Text>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-auto pt-4 border-t border-gray-100 mt-1">
-                    <Text type="secondary" className="text-xs">
-                      {workspace.created_at 
-                        ? new Date(workspace.created_at).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric'
-                          })
-                        : 'Recent'}
-                    </Text>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          ))}
+        
+{filteredWorkspaces.map((workspace) => (
+  <Col xs={12} sm={12} md={8} lg={6} xl={6} key={workspace.id}>
+    {/* Wrapper to pass the current theme context to CSS */}
+    <div className={theme === 'dark' ? 'dark h-full' : 'light h-full'}>
+      <Card
+        hoverable
+        size="small"
+        // 1. ADD THE CLASS HERE
+        className="cursor-pointer h-full workspace-card-premium" 
+        style={{ 
+          height: '140px',
+          // 2. Ensure base border colors are set
+          borderColor: theme === 'dark' ? '#27272a' : '#f0f0f0',
+          background: theme === 'dark' ? '#18181b' : '#ffffff' 
+        }}
+        bodyStyle={{ 
+          padding: '16px', 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column' 
+        }}
+        onClick={() => handleWorkspaceClick(workspace)}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
+              <FolderOutlined className="text-white text-sm" />
+            </div>
+            <ArrowRightOutlined className="text-gray-400 text-xs mt-1" />
+          </div>
+          
+          <div className="flex-1 min-h-0 mb-3">
+            <Text 
+              className="text-sm font-semibold block mb-2 leading-tight" 
+              ellipsis={{ tooltip: workspace.name }}
+              style={{ lineHeight: '1.2' }}
+            >
+              {workspace.name}
+            </Text>
+            
+            {workspace.description && (
+              <div className="mt-1">
+                <Text 
+                  type="secondary" 
+                  className="text-xs leading-relaxed block" 
+                  ellipsis={{ tooltip: workspace.description }}
+                  style={{ 
+                    lineHeight: '1.4',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    height: '36px'
+                  }}
+                >
+                  {workspace.description}
+                </Text>
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-auto pt-4 border-t border-gray-100 mt-1">
+            <Text type="secondary" className="text-xs">
+              {workspace.created_at 
+                ? new Date(workspace.created_at).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric'
+                  })
+                : 'Recent'}
+            </Text>
+          </div>
+        </div>
+      </Card>
+    </div>
+  </Col>
+))}
         </Row>
 
         {/* Empty State */}
