@@ -1533,22 +1533,73 @@ private getCallTypeSpecificRequirements(callType: string): string {
   }
 
 private async parseAnalysisResponse(content: string, input: SalesCallInput): Promise<Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'>> {
+  const transcript = input.transcript;
+  const speakers = this.extractSpeakersFromTranscript(transcript);
+
   try {
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      
-      // Validate required structure
-      if (parsed.callResults && parsed.summaryPresentation && parsed.nextStepsStrategy) {
-        return parsed;
+
+      // Accept partial AI data — merge with defaults for any missing pieces
+      if (parsed.callResults || parsed.analysis || parsed.summaryPresentation) {
+        console.log('✅ Partial or full AI response parsed, merging with defaults');
+
+        // The AI might return callResults at top level or nested differently
+        const aiCallResults = parsed.callResults || parsed;
+        const aiAnalysis = aiCallResults.analysis || parsed.analysis || {};
+
+        const result: Omit<GeneratedCallPackage, 'tokensUsed' | 'processingTime'> = {
+          callResults: {
+            callId: aiCallResults.callId || `call_${Date.now()}`,
+            status: 'completed',
+            duration: aiCallResults.duration || Math.max(Math.floor(transcript.split(' ').length * 1.2), 60),
+            participants: aiCallResults.participants?.length > 0
+              ? aiCallResults.participants
+              : speakers,
+            transcript: transcript,
+            analysis: {
+              overallScore: aiAnalysis.overallScore ?? this.calculateOverallScore(transcript, input.callType),
+              sentiment: aiAnalysis.sentiment || this.analyzeSentiment(transcript, aiAnalysis.overallScore || 60),
+              keyInsights: aiAnalysis.keyInsights || [],
+              actionItems: aiAnalysis.actionItems || [],
+              speakerBreakdown: aiAnalysis.speakerBreakdown?.length > 0
+                ? aiAnalysis.speakerBreakdown
+                : this.generateSpeakerBreakdown(speakers, transcript),
+              ...(aiAnalysis.salesMetrics && { salesMetrics: aiAnalysis.salesMetrics }),
+              ...(aiAnalysis.discoveryMetrics && { discoveryMetrics: aiAnalysis.discoveryMetrics }),
+              ...(aiAnalysis.interviewMetrics && { interviewMetrics: aiAnalysis.interviewMetrics }),
+              ...(aiAnalysis.podcastMetrics && { podcastMetrics: aiAnalysis.podcastMetrics }),
+              ...(!aiAnalysis.salesMetrics && !aiAnalysis.discoveryMetrics && !aiAnalysis.interviewMetrics && !aiAnalysis.podcastMetrics && {
+                ...(input.callType === 'sales' && { salesMetrics: this.generateSalesMetrics(transcript) }),
+                ...(input.callType === 'discovery' && { discoveryMetrics: this.generateDiscoveryMetrics(transcript) }),
+                ...(input.callType === 'interview' && { interviewMetrics: this.generateInterviewMetrics(transcript) }),
+              }),
+            },
+            executiveSummary: aiCallResults.executiveSummary || '',
+            detailedReport: aiCallResults.detailedReport || '',
+            followUpEmail: aiCallResults.followUpEmail,
+            proposalTemplate: aiCallResults.proposalTemplate,
+            coachingFeedback: aiCallResults.coachingFeedback || {
+              strengths: [], improvements: [], specificSuggestions: [],
+              communicationTips: [], nextCallPreparation: []
+            },
+            benchmarks: aiCallResults.benchmarks || this.generateBenchmarks(transcript, input.callType),
+          },
+          summaryPresentation: parsed.summaryPresentation || [],
+          nextStepsStrategy: parsed.nextStepsStrategy || this.generateNextStepsStrategy(input, transcript),
+          performanceMetrics: parsed.performanceMetrics || this.calculatePerformanceMetrics(transcript, speakers),
+        };
+
+        return result;
       }
     }
   } catch (error) {
     console.warn('Failed to parse JSON response, generating fallback analysis:', error);
   }
 
-  // ✅ Now properly awaits the async fallback
+  // Last resort: fully AI-powered fallback
   return await this.generateEnhancedFallback(input);
 }
 
@@ -1602,22 +1653,27 @@ private extractSpeakersFromTranscript(transcript: string): CallParticipant[] {
   }));
 }
 
-// Helper: Determine speaker role
+// Helper: Determine speaker role from name and position
 private determineSpeakerRole(speakerName: string, position: number): string {
   const nameLower = speakerName.toLowerCase();
-  
-  // Check for common role indicators
-  if (nameLower.includes('jordan') || nameLower.includes('sarah') || 
-      nameLower.includes('agent') || nameLower.includes('rep') ||
-      nameLower.includes('host') || position === 0) {
+
+  // Check for explicit role indicators in the name
+  if (nameLower.includes('agent') || nameLower.includes('rep') ||
+      nameLower.includes('host') || nameLower.includes('sales') ||
+      nameLower.includes('interviewer') || nameLower.includes('moderator')) {
     return 'host';
   }
-  
-  if (nameLower.includes('linda') || nameLower.includes('prospect') || 
-      nameLower.includes('customer') || nameLower.includes('client')) {
+
+  if (nameLower.includes('prospect') || nameLower.includes('customer') ||
+      nameLower.includes('client') || nameLower.includes('guest') ||
+      nameLower.includes('interviewee')) {
     return 'prospect';
   }
-  
+
+  // First speaker is typically the host/sales rep
+  if (position === 0) return 'host';
+  if (position === 1) return 'prospect';
+
   return 'participant';
 }
 
@@ -1648,31 +1704,78 @@ private estimateSpeakersFromContext(transcript: string): CallParticipant[] {
 
 
   private calculateOverallScore(transcript: string, callType: string): number {
-    let score = 60; // Base score
-    
-    // Positive indicators
-    const positiveWords = ['great', 'excellent', 'perfect', 'love', 'amazing', 'fantastic'];
-    const negativeWords = ['problem', 'issue', 'concern', 'difficult', 'impossible', 'bad'];
-    
-    const positiveCount = positiveWords.reduce((count, word) => 
-      count + (transcript.toLowerCase().match(new RegExp(word, 'g'))?.length || 0), 0);
-    
-    const negativeCount = negativeWords.reduce((count, word) => 
-      count + (transcript.toLowerCase().match(new RegExp(word, 'g'))?.length || 0), 0);
-    
-    score += Math.min(positiveCount * 2, 20);
-    score -= Math.min(negativeCount * 2, 20);
-    
-    // Question quality (discovery)
-    const questionCount = (transcript.match(/\?/g) || []).length;
-    score += Math.min(questionCount, 15);
-    
-    // Engagement indicators
-    if (transcript.includes('tell me more')) score += 5;
-    if (transcript.includes('follow up')) score += 5;
-    if (transcript.includes('next steps')) score += 5;
-    
-    return Math.max(10, Math.min(95, score));
+    const lower = transcript.toLowerCase();
+    const lines = transcript.split('\n').filter(l => l.trim());
+    const wordCount = transcript.split(/\s+/).length;
+
+    // Count actual speaker turns
+    const speakerTurns = lines.filter(l => /^[A-Za-z]+(?:\s+[A-Za-z]+)*:\s*/.test(l)).length;
+
+    // Count questions (open-ended score higher)
+    const allQuestions = (transcript.match(/\?/g) || []).length;
+    const openEndedPatterns = ['how', 'what', 'why', 'tell me', 'describe', 'explain', 'walk me through', 'can you share'];
+    const openEndedCount = openEndedPatterns.reduce((c, p) =>
+      c + (lower.match(new RegExp(`${p}[^.?]*\\?`, 'g'))?.length || 0), 0);
+
+    // Base: start at 50
+    let score = 50;
+
+    // Rapport & engagement (+0 to +15)
+    const rapportSignals = ['thanks for', 'appreciate', 'glad', 'nice to', 'how are you', 'pleasure'];
+    const rapportCount = rapportSignals.filter(s => lower.includes(s)).length;
+    score += Math.min(rapportCount * 3, 10);
+    if (speakerTurns > 10) score += 5; // Good back-and-forth
+
+    // Discovery depth (+0 to +15)
+    if (openEndedCount >= 5) score += 15;
+    else if (openEndedCount >= 3) score += 10;
+    else if (openEndedCount >= 1) score += 5;
+    else if (allQuestions < 3) score -= 10; // Very few questions
+
+    // Pain point identification (+0 to +10)
+    const painPatterns = ['challenge', 'problem', 'struggle', 'difficult', 'pain', 'frustrat', 'issue', 'don\'t convert', 'losing', 'miss'];
+    const painCount = painPatterns.filter(p => lower.includes(p)).length;
+    score += Math.min(painCount * 3, 10);
+
+    // Budget/pricing discussed (+0 to +8)
+    if (lower.includes('budget') || lower.includes('cost') || lower.includes('price') || lower.includes('invest') || /\$[\d,]+/.test(transcript)) {
+      score += 8;
+    }
+
+    // Timeline/urgency (+0 to +8)
+    if (lower.includes('timeline') || lower.includes('start') || lower.includes('when') || lower.includes('deadline') || lower.includes('urgent')) {
+      score += 5;
+    }
+
+    // Next steps defined (+0 to +10)
+    if (lower.includes('next step') || lower.includes('follow up') || lower.includes('send you') || lower.includes('move forward') || lower.includes('schedule')) {
+      score += 10;
+    }
+
+    // Value proposition (+0 to +8)
+    if (lower.includes('help') || lower.includes('solution') || lower.includes('increase') || lower.includes('save') || lower.includes('improve') || lower.includes('automate')) {
+      score += 5;
+    }
+
+    // Prospect engagement / buying signals (+0 to +10)
+    const buyingSignals = ['sounds good', 'interested', 'yes', 'let\'s do', 'move forward', 'sign up', 'send me', 'that would help'];
+    const signalCount = buyingSignals.filter(s => lower.includes(s)).length;
+    score += Math.min(signalCount * 3, 10);
+
+    // Deductions
+    // Monologue detection: if one speaker has very long unbroken text
+    const longMonologues = lines.filter(l => l.split(/\s+/).length > 80).length;
+    score -= Math.min(longMonologues * 5, 15);
+
+    // Very short transcript = limited analysis
+    if (wordCount < 200) score -= 10;
+
+    // Call-type specific adjustments
+    if (callType === 'sales' && !lower.includes('close') && !lower.includes('move forward') && !lower.includes('sign')) {
+      score -= 5; // No closing attempt in sales call
+    }
+
+    return Math.max(15, Math.min(95, score));
   }
 
 
@@ -1799,62 +1902,232 @@ Focus on what should be done in the next 24-48 hours.`;
 
 
   private generateSpeakerBreakdown(speakers: any[], transcript: string): any[] {
-    return speakers.map(speaker => ({
-      speaker: speaker.name,
-      speakingTime: speaker.speakingTime,
-      percentage: speaker.speakingPercentage,
-      keyPoints: [`Key contributions from ${speaker.name}`],
-      toneAnalysis: speaker.role === 'host' ? 'professional' : 'engaged',
-      engagement: Math.floor(Math.random() * 3) + 7 // 7-9 range
-    }));
+    const lines = transcript.split('\n').filter(l => l.trim());
+
+    return speakers.map(speaker => {
+      // Extract actual key points from this speaker's lines
+      const speakerLines = lines
+        .filter(l => l.match(new RegExp(`^${speaker.name}\\s*:`, 'i')))
+        .map(l => l.replace(/^[A-Za-z]+(?:\s+[A-Za-z]+)*:\s*/, '').trim())
+        .filter(l => l.length > 15); // Only meaningful lines
+
+      // Pick the longest/most substantive lines as key points
+      const keyPoints = speakerLines
+        .sort((a, b) => b.length - a.length)
+        .slice(0, 3)
+        .map(p => p.substring(0, 120));
+
+      // Determine tone from content
+      const allText = speakerLines.join(' ').toLowerCase();
+      const questionCount = speakerLines.filter(l => l.includes('?')).length;
+      const toneAnalysis = questionCount > speakerLines.length * 0.5 ? 'inquisitive' :
+                           allText.includes('great') || allText.includes('love') || allText.includes('excited') ? 'enthusiastic' :
+                           allText.includes('concern') || allText.includes('worried') || allText.includes('but') ? 'cautious' :
+                           speaker.role === 'host' ? 'professional' : 'engaged';
+
+      // Calculate engagement based on actual content
+      const engagement = Math.min(10, Math.max(3,
+        4 +
+        (speakerLines.length > 5 ? 2 : speakerLines.length > 2 ? 1 : 0) +
+        (questionCount > 0 ? 1 : 0) +
+        (allText.includes('yes') || allText.includes('agree') || allText.includes('sounds good') ? 2 : 0) +
+        (speaker.speakingPercentage > 30 ? 1 : 0)
+      ));
+
+      return {
+        speaker: speaker.name,
+        speakingTime: speaker.speakingTime,
+        percentage: speaker.speakingPercentage,
+        keyPoints: keyPoints.length > 0 ? keyPoints : [`Participated in the ${speaker.role === 'host' ? 'sales presentation' : 'discussion'}`],
+        toneAnalysis,
+        engagement
+      };
+    });
   }
 
   // Add the remaining private methods for completeness...
   private generateSalesMetrics(transcript: string) {
+  const lower = transcript.toLowerCase();
+
+  // Extract actual pain points mentioned
+  const painPatterns = [
+    { pattern: /(?:challenge|problem|struggle|issue|difficult)[\s\w]{0,60}/gi, label: 'pain' },
+  ];
+  const painPoints: string[] = [];
+  for (const { pattern } of painPatterns) {
+    const matches = transcript.match(pattern);
+    if (matches) painPoints.push(...matches.map(m => m.trim().substring(0, 80)));
+  }
+  // Deduplicate and limit
+  const uniquePains = [...new Set(painPoints)].slice(0, 5);
+
+  // Extract objections
+  const objectionPatterns = ['but', 'however', 'concern', 'worried', 'not sure', 'too expensive', 'complicated'];
+  const objections: string[] = [];
+  const lines = transcript.split('\n');
+  for (const line of lines) {
+    const lineLower = line.toLowerCase();
+    if (objectionPatterns.some(p => lineLower.includes(p)) && !line.match(/^[A-Za-z]+:\s*/)?.[0]?.toLowerCase().includes('alex')) {
+      const clean = line.replace(/^[A-Za-z]+:\s*/, '').trim();
+      if (clean.length > 10 && clean.length < 120) objections.push(clean);
+    }
+  }
+
+  // Extract buying signals
+  const buyingSignalPatterns = ['yes', 'sounds good', 'interested', 'let\'s do', 'move forward', 'sign up', 'send me', 'that would help', 'makes sense'];
+  const signals: string[] = [];
+  for (const line of lines) {
+    const lineLower = line.toLowerCase();
+    if (buyingSignalPatterns.some(p => lineLower.includes(p))) {
+      const clean = line.replace(/^[A-Za-z]+:\s*/, '').trim();
+      if (clean.length > 2 && clean.length < 120) signals.push(clean);
+    }
+  }
+
+  // Extract competitor mentions
+  const competitors: string[] = [];
+  if (lower.includes('competitor') || lower.includes('alternative') || lower.includes('other tool') || lower.includes('currently using')) {
+    const compLines = lines.filter(l => /competitor|alternative|other tool|currently using|compared/i.test(l));
+    competitors.push(...compLines.map(l => l.replace(/^[A-Za-z]+:\s*/, '').trim()).filter(l => l.length > 5).slice(0, 3));
+  }
+
+  // Score rapport based on conversational indicators
+  const rapportIndicators = ['thanks', 'appreciate', 'glad', 'nice', 'how are you', 'good to'];
+  const rapportScore = Math.min(10, 4 + rapportIndicators.filter(r => lower.includes(r)).length * 2);
+
+  // Score value proposition clarity
+  const valueIndicators = ['help', 'increase', 'save', 'improve', 'automate', 'reduce', 'revenue', 'conversion'];
+  const valueScore = Math.min(10, 3 + valueIndicators.filter(v => lower.includes(v)).length);
+
+  // Score urgency
+  const urgencyIndicators = ['today', 'now', 'immediately', 'asap', 'urgent', 'every day without', 'losing'];
+  const urgencyScore = Math.min(10, 2 + urgencyIndicators.filter(u => lower.includes(u)).length * 2);
+
   return {
-    painPointsIdentified: transcript.includes('pain') || transcript.includes('challenge') ? 
-      ['Current process inefficiencies', 'Resource constraints'] : [],
-    budgetDiscussed: transcript.includes('budget') || transcript.includes('cost'),
-    timelineEstablished: transcript.includes('timeline') || transcript.includes('when'),
-    decisionMakerIdentified: transcript.includes('decision') || transcript.includes('approve'),
-    nextStepsDefined: transcript.includes('next step') || transcript.includes('follow up'),
-    objectionsRaised: [],
-    valuePropositionClarity: 7,
-    rapportLevel: 8,
-    urgencyCreated: 6,
-    competitorsMentioned: [],
-    buyingSignals: transcript.includes('interested') ? ['Expressed interest'] : [],
-    riskFactors: []
+    painPointsIdentified: uniquePains.length > 0 ? uniquePains : (lower.includes('challenge') || lower.includes('problem') ? ['Pain points discussed but specifics need follow-up'] : []),
+    budgetDiscussed: lower.includes('budget') || lower.includes('cost') || lower.includes('price') || lower.includes('invest') || /\$[\d,]+/.test(transcript),
+    timelineEstablished: lower.includes('timeline') || lower.includes('when') || lower.includes('start') || lower.includes('today') || lower.includes('this week'),
+    decisionMakerIdentified: lower.includes('decision') || lower.includes('approve') || lower.includes('owner') || lower.includes('ceo') || lower.includes('i decide'),
+    nextStepsDefined: lower.includes('next step') || lower.includes('follow up') || lower.includes('send') || lower.includes('schedule') || lower.includes('move forward'),
+    objectionsRaised: [...new Set(objections)].slice(0, 5),
+    valuePropositionClarity: valueScore,
+    rapportLevel: rapportScore,
+    urgencyCreated: urgencyScore,
+    competitorsMentioned: competitors,
+    buyingSignals: [...new Set(signals)].slice(0, 5),
+    riskFactors: [
+      ...(!lower.includes('budget') && !lower.includes('cost') ? ['Budget not discussed'] : []),
+      ...(!lower.includes('timeline') && !lower.includes('when') ? ['No timeline established'] : []),
+      ...(objections.length > 3 ? ['Multiple objections raised'] : []),
+    ].slice(0, 4)
   };
 }
 
   private generateInterviewMetrics(transcript: string) {
+    const lower = transcript.toLowerCase();
+    const lines = transcript.split('\n').filter(l => l.trim());
     const questionCount = (transcript.match(/\?/g) || []).length;
+
+    // Count follow-up questions (questions after a non-question response)
+    let followUps = 0;
+    let prevWasQuestion = false;
+    for (const line of lines) {
+      const hasQuestion = line.includes('?');
+      if (hasQuestion && !prevWasQuestion) followUps++;
+      prevWasQuestion = hasQuestion;
+    }
+
+    // Extract satisfaction indicators from actual transcript
+    const satisfactionPatterns = ['love', 'great', 'happy', 'satisfied', 'works well', 'helpful', 'useful', 'enjoy'];
+    const satisfactionIndicators = satisfactionPatterns.filter(p => lower.includes(p)).map(p => {
+      const idx = lower.indexOf(p);
+      return transcript.substring(Math.max(0, idx - 20), Math.min(transcript.length, idx + 40)).trim();
+    }).slice(0, 4);
+
+    // Extract feature requests
+    const featurePatterns = ['wish', 'would be nice', 'need', 'want', 'missing', 'add', 'feature', 'if only', 'should have'];
+    const featureRequests = featurePatterns.filter(p => lower.includes(p)).map(p => {
+      const idx = lower.indexOf(p);
+      return transcript.substring(Math.max(0, idx - 10), Math.min(transcript.length, idx + 60)).trim();
+    }).slice(0, 4);
+
+    // Extract pain points
+    const painPatterns = ['difficult', 'hard', 'struggle', 'problem', 'challenge', 'frustrat', 'annoying', 'complicated'];
+    const pains = painPatterns.filter(p => lower.includes(p)).map(p => {
+      const idx = lower.indexOf(p);
+      return transcript.substring(Math.max(0, idx - 10), Math.min(transcript.length, idx + 50)).trim();
+    }).slice(0, 4);
+
     return {
       questionsAsked: questionCount,
-      followUpQuestions: Math.floor(questionCount * 0.3),
-      customerSatisfactionIndicators: ['Positive feedback on current features'],
-      featureRequests: ['Enhanced reporting capabilities'],
-      usabilityFeedback: ['Interface is intuitive'],
-      painPointsUncovered: ['Manual processes'],
-      improvementSuggestions: ['Better integration options'],
+      followUpQuestions: followUps,
+      customerSatisfactionIndicators: satisfactionIndicators.length > 0 ? satisfactionIndicators : [],
+      featureRequests: featureRequests.length > 0 ? featureRequests : [],
+      usabilityFeedback: [],
+      painPointsUncovered: pains.length > 0 ? pains : [],
+      improvementSuggestions: [],
       competitorInsights: [],
-      userJourneyInsights: ['Smooth onboarding experience']
+      userJourneyInsights: []
     };
   }
 
   private generateDiscoveryMetrics(transcript: string) {
+    const lower = transcript.toLowerCase();
+    const lines = transcript.split('\n').filter(l => l.trim());
+
+    // Extract challenges from transcript
+    const challengePatterns = ['challenge', 'problem', 'struggle', 'difficult', 'issue', 'don\'t', 'can\'t', 'slow'];
+    const challenges: string[] = [];
+    for (const line of lines) {
+      if (challengePatterns.some(p => line.toLowerCase().includes(p))) {
+        const clean = line.replace(/^[A-Za-z]+:\s*/, '').trim();
+        if (clean.length > 10 && clean.length < 120) challenges.push(clean);
+      }
+    }
+
+    // Extract stakeholders mentioned
+    const stakeholderPatterns = ['manager', 'director', 'ceo', 'cto', 'vp', 'head of', 'owner', 'team lead', 'boss'];
+    const stakeholders = stakeholderPatterns.filter(p => lower.includes(p)).map(p => {
+      const idx = lower.indexOf(p);
+      return transcript.substring(Math.max(0, idx - 15), Math.min(transcript.length, idx + 25)).trim();
+    }).slice(0, 4);
+
+    // Extract current tools/vendors
+    const vendorPatterns = ['currently using', 'we use', 'our current', 'existing', 'right now we'];
+    const vendors: string[] = [];
+    for (const line of lines) {
+      if (vendorPatterns.some(p => line.toLowerCase().includes(p))) {
+        const clean = line.replace(/^[A-Za-z]+:\s*/, '').trim();
+        if (clean.length > 5) vendors.push(clean.substring(0, 80));
+      }
+    }
+
+    // Extract tech requirements
+    const techPatterns = ['integrate', 'api', 'cloud', 'mobile', 'automat', 'crm', 'software', 'platform', 'tool'];
+    const techReqs = techPatterns.filter(p => lower.includes(p)).map(p => {
+      const idx = lower.indexOf(p);
+      return transcript.substring(Math.max(0, idx - 10), Math.min(transcript.length, idx + 40)).trim();
+    }).slice(0, 4);
+
     return {
-      currentSolutionIdentified: transcript.includes('current') || transcript.includes('using'),
-      challengesUncovered: ['Scalability issues', 'Manual processes'],
-      successCriteriaDefined: transcript.includes('success') || transcript.includes('goal'),
-      stakeholdersIdentified: ['IT Manager', 'Finance Director'],
-      technicalRequirements: ['Cloud-based solution', 'API integration'],
-      implementationTimeline: '3-6 months',
-      budgetRangeDiscussed: transcript.includes('budget'),
-      procurementProcess: 'Standard approval process',
-      currentVendors: ['Legacy system provider'],
-      evaluationCriteria: ['ROI', 'Ease of implementation']
+      currentSolutionIdentified: lower.includes('current') || lower.includes('using') || lower.includes('existing') || lower.includes('right now'),
+      challengesUncovered: [...new Set(challenges)].slice(0, 5),
+      successCriteriaDefined: lower.includes('success') || lower.includes('goal') || lower.includes('want to') || lower.includes('need to'),
+      stakeholdersIdentified: stakeholders.length > 0 ? stakeholders : [],
+      technicalRequirements: techReqs.length > 0 ? techReqs : [],
+      implementationTimeline: lower.includes('asap') || lower.includes('immediately') ? 'Immediate' :
+                              lower.includes('this week') || lower.includes('this month') ? '1-4 weeks' :
+                              lower.includes('quarter') ? '1-3 months' : 'Not discussed',
+      budgetRangeDiscussed: lower.includes('budget') || lower.includes('cost') || lower.includes('price') || /\$[\d,]+/.test(transcript),
+      procurementProcess: lower.includes('approval') || lower.includes('procurement') ? 'Approval process mentioned' : 'Not discussed',
+      currentVendors: [...new Set(vendors)].slice(0, 3),
+      evaluationCriteria: [
+        ...(lower.includes('roi') || lower.includes('return') ? ['ROI'] : []),
+        ...(lower.includes('easy') || lower.includes('simple') ? ['Ease of use'] : []),
+        ...(lower.includes('price') || lower.includes('cost') ? ['Cost'] : []),
+        ...(lower.includes('support') ? ['Support quality'] : []),
+        ...(lower.includes('integrat') ? ['Integration capability'] : []),
+      ].slice(0, 4)
     };
   }
 
@@ -2876,47 +3149,117 @@ private async generateSummaryPresentation(input: SalesCallInput, transcript: str
 }
 
   private generateNextStepsStrategy(input: SalesCallInput, transcript: string) {
+    const lower = transcript.toLowerCase();
+    const prospect = input.prospectName || 'the prospect';
+    const company = input.companyName || 'their company';
+
+    // Build context-aware immediate actions
+    const immediateActions: string[] = [];
+    immediateActions.push(`Send personalized follow-up email to ${prospect} within 24 hours`);
+    if (lower.includes('send') || lower.includes('email') || lower.includes('proposal')) {
+      immediateActions.push(`Prepare and send the materials discussed during the call`);
+    }
+    if (lower.includes('price') || lower.includes('cost') || lower.includes('budget') || /\$[\d,]+/.test(transcript)) {
+      immediateActions.push(`Prepare detailed pricing breakdown based on discussed budget range`);
+    }
+    if (!lower.includes('budget') && !lower.includes('cost') && (input.callType === 'sales' || input.callType === 'discovery')) {
+      immediateActions.push(`Qualify budget on next interaction — was not discussed`);
+    }
+    immediateActions.push(`Update CRM with call notes for ${company}`);
+
+    // Build context-aware short term goals
+    const shortTermGoals: string[] = [];
+    if (input.callType === 'sales') {
+      shortTermGoals.push(`Present tailored proposal to ${prospect} at ${company}`);
+    } else if (input.callType === 'discovery') {
+      shortTermGoals.push(`Schedule demo or deep-dive session with ${prospect}`);
+    } else {
+      shortTermGoals.push(`Schedule follow-up discussion with ${prospect}`);
+    }
+    if (lower.includes('team') || lower.includes('colleague') || lower.includes('boss')) {
+      shortTermGoals.push(`Connect with additional stakeholders mentioned during the call`);
+    }
+    if (lower.includes('concern') || lower.includes('worried') || lower.includes('not sure') || lower.includes('complicated')) {
+      shortTermGoals.push(`Address concerns raised: prepare clarification materials`);
+    }
+    shortTermGoals.push(`Research ${company} further for personalized follow-up`);
+
+    // Build context-aware risk mitigation
+    const riskMitigation: string[] = [];
+    if (!lower.includes('timeline') && !lower.includes('when')) {
+      riskMitigation.push(`Establish timeline — not discussed during this call`);
+    }
+    if (lower.includes('competitor') || lower.includes('alternative') || lower.includes('other')) {
+      riskMitigation.push(`Prepare competitive differentiation — competitors were mentioned`);
+    }
+    if (lower.includes('complicated') || lower.includes('complex') || lower.includes('hard')) {
+      riskMitigation.push(`Simplify messaging — prospect expressed concerns about complexity`);
+    }
+    riskMitigation.push(`Prepare objection handling for common concerns`);
+
     return {
-      immediateActions: [
-        'Send personalized follow-up email within 24 hours',
-        'Update CRM with detailed call notes and insights',
-        'Research additional company background and recent news'
-      ],
-      shortTermGoals: [
-        input.callType === 'sales' ? 'Prepare and present detailed proposal' : 'Schedule follow-up discussion',
-        'Connect with additional stakeholders if mentioned',
-        'Address any concerns or questions raised during the call'
-      ],
+      immediateActions: immediateActions.slice(0, 4),
+      shortTermGoals: shortTermGoals.slice(0, 4),
       longTermStrategy: [
-        'Build strategic partnership approach rather than transactional relationship',
-        'Position as trusted advisor in their industry vertical',
-        'Develop comprehensive account plan with multiple touchpoints'
+        `Build ongoing relationship with ${prospect} at ${company}`,
+        `Position as trusted advisor in ${input.companyIndustry || 'their'} industry`,
+        `Develop account expansion plan with upsell opportunities`
       ],
-      riskMitigation: [
-        'Address any hesitations or concerns proactively',
-        'Prepare competitive differentiation materials',
-        'Have alternative solutions ready for potential objections'
-      ]
+      riskMitigation: riskMitigation.slice(0, 4)
     };
   }
 
 private calculatePerformanceMetrics(transcript: string, speakers: CallParticipant[]) {
+  const lower = transcript.toLowerCase();
   const questionCount = (transcript.match(/\?/g) || []).length;
-  const statementCount = transcript.split('.').length;
-  
-  // Find host speaking percentage
+  const statementCount = Math.max(transcript.split('.').length, 1);
+  const lines = transcript.split('\n').filter(l => l.trim());
+
+  // Find host speaking percentage from actual speaker data
   const hostSpeaker = speakers.find(s => s.role === 'host') || speakers[0];
   const talkTime = hostSpeaker?.speakingPercentage || 40;
-  
+
+  // Estimate interruptions from overlapping speaker turns (consecutive same speaker or very short turns)
+  let interruptionCount = 0;
+  let prevSpeaker = '';
+  for (const line of lines) {
+    const match = line.match(/^([A-Za-z]+(?:\s+[A-Za-z]+)*):\s*/);
+    if (match) {
+      const speaker = match[1];
+      const content = line.replace(/^[A-Za-z]+(?:\s+[A-Za-z]+)*:\s*/, '').trim();
+      if (content.length < 15 && prevSpeaker && speaker !== prevSpeaker) {
+        interruptionCount++;
+      }
+      prevSpeaker = speaker;
+    }
+  }
+
+  // Calculate clarity score from actual transcript
+  const clarityIndicators = ['let me clarify', 'to be clear', 'in other words', 'specifically', 'for example'];
+  const confusionIndicators = ['unclear', 'confused', 'what do you mean', 'i don\'t understand', 'can you repeat', 'sorry'];
+  const clarityBonus = clarityIndicators.filter(c => lower.includes(c)).length;
+  const confusionPenalty = confusionIndicators.filter(c => lower.includes(c)).length;
+  const clarityScore = Math.min(10, Math.max(3, 7 + clarityBonus - confusionPenalty));
+
+  // Calculate professionalism from transcript
+  const professionalIndicators = ['thank', 'appreciate', 'certainly', 'absolutely', 'pleasure', 'professional'];
+  const unprofessionalIndicators = ['um', 'uh', 'like basically', 'whatever', 'idk'];
+  const profBonus = professionalIndicators.filter(p => lower.includes(p)).length;
+  const profPenalty = unprofessionalIndicators.filter(p => lower.includes(p)).length;
+  const professionalismScore = Math.min(10, Math.max(3, 6 + profBonus - profPenalty));
+
+  // Use both field names so frontend works regardless of which it reads
   return {
-    talkTime, // Changed from talkTimePercentage
-    questionToStatementRatio: Math.round((questionCount / Math.max(statementCount, 1)) * 100) / 100,
-    interruptionCount: 2, // Add this missing field
-    responseTime: 2.5, // Changed from averageResponseTime
+    talkTime,
+    talkTimePercentage: talkTime,
+    questionToStatementRatio: Math.round((questionCount / statementCount) * 100) / 100,
+    interruptionCount,
+    responseTime: Math.round((talkTime > 60 ? 3.5 : talkTime > 40 ? 2.5 : 1.5) * 10) / 10,
+    averageResponseTime: Math.round((talkTime > 60 ? 3.5 : talkTime > 40 ? 2.5 : 1.5) * 10) / 10,
     engagementScore: this.calculateEngagementScore(transcript),
-    clarityScore: transcript.includes('unclear') || transcript.includes('confused') ? 6 : 8,
+    clarityScore,
     enthusiasmLevel: this.calculateEnthusiasmLevel(transcript),
-    professionalismScore: 8.5
+    professionalismScore
   };
 }
 
