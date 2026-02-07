@@ -286,7 +286,11 @@ const validateInput = useCallback((input: Partial<SalesCallInput>) => {
   }
 
   if (input.prospectLinkedin && !/^https?:\/\/(www\.)?linkedin\.com\//.test(input.prospectLinkedin)) {
-    errors.push('Invalid LinkedIn URL format');
+    errors.push('Invalid prospect LinkedIn URL format');
+  }
+
+  if (input.companyLinkedin && !/^https?:\/\/(www\.)?linkedin\.com\//.test(input.companyLinkedin)) {
+    errors.push('Invalid company LinkedIn URL format');
   }
 
   return {
