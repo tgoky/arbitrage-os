@@ -247,45 +247,45 @@ export default function SalesCallAnalyzerPage() {
     }
   };
 
-  const getSentimentColor = (sentiment?: string) => {
-    switch (sentiment) {
-      case 'positive': return 'green';
-      case 'negative': return 'red';
-      case 'mixed': return 'orange';
-      default: return BRAND_GREEN; // Changed from blue to brand green
-    }
-  };
-
+const getSentimentColor = (sentiment?: string) => {
+  const normalizedSentiment = sentiment === 'mixed' ? 'neutral' : sentiment;
+  switch (normalizedSentiment) {
+    case 'positive': return 'green';
+    case 'negative': return 'red';
+    default: return BRAND_GREEN; // Both neutral and mixed (converted to neutral) go here
+  }
+};
   const handleBack = () => {
     router.push(`/dashboard/${currentWorkspace?.slug}`);
   };
 
   // Calculate statistics for the dashboard
-  const getStats = () => {
-    const totalCalls = analyses.length;
-    const completedCalls = analyses.filter(a => a.status === 'completed').length;
-    const avgScore = totalCalls > 0 
-      ? Math.round(analyses.reduce((sum, a) => sum + (a.overallScore || 0), 0) / totalCalls) 
-      : 0;
-    
-    const sentimentCounts = {
-      positive: analyses.filter(a => a.sentiment === 'positive').length,
-      negative: analyses.filter(a => a.sentiment === 'negative').length,
-      mixed: analyses.filter(a => a.sentiment === 'mixed').length,
-      neutral: analyses.filter(a => !a.sentiment || a.sentiment === 'neutral').length
-    };
-    
-    const totalDuration = analyses.reduce((sum, a) => sum + a.duration, 0);
-    const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
-    
-    return {
-      totalCalls,
-      completedCalls,
-      avgScore,
-      sentimentCounts,
-      avgDuration
-    };
+const getStats = () => {
+  const totalCalls = analyses.length;
+  const completedCalls = analyses.filter(a => a.status === 'completed').length;
+  const avgScore = totalCalls > 0 
+    ? Math.round(analyses.reduce((sum, a) => sum + (a.overallScore || 0), 0) / totalCalls) 
+    : 0;
+  
+  // CHANGED: Only count positive, negative, neutral
+  const sentimentCounts = {
+    positive: analyses.filter(a => a.sentiment === 'positive').length,
+    negative: analyses.filter(a => a.sentiment === 'negative').length,
+    neutral: analyses.filter(a => !a.sentiment || a.sentiment === 'neutral' || a.sentiment === 'mixed').length
+    // ^^ Note: "mixed" now counts as neutral
   };
+  
+  const totalDuration = analyses.reduce((sum, a) => sum + a.duration, 0);
+  const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+  
+  return {
+    totalCalls,
+    completedCalls,
+    avgScore,
+    sentimentCounts,
+    avgDuration
+  };
+};
 
   const stats = getStats();
 
@@ -362,11 +362,11 @@ export default function SalesCallAnalyzerPage() {
               <Text className="text-xs">{record.overallScore}/100</Text>
             </div>
           )}
-          {record.sentiment && (
-            <Tag color={getSentimentColor(record.sentiment)}>
-              {record.sentiment}
-            </Tag>
-          )}
+         {record.sentiment && (
+  <Tag color={getSentimentColor(record.sentiment)}>
+    {record.sentiment === 'mixed' ? 'neutral' : (record.sentiment || 'neutral')}
+  </Tag>
+)}
         </div>
       )
     },
@@ -504,9 +504,11 @@ export default function SalesCallAnalyzerPage() {
             <Button 
               icon={<ArrowLeftOutlined />} 
               onClick={handleBack}
-              className="mb-6 hover:text-white border-none shadow-none px-0"
-              style={{ background: 'transparent', color: SPACE_COLOR }}
-            >
+               className={`
+              group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
+              bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white
+            `}
+          >
               Back to Dashboard
             </Button>
             
@@ -659,52 +661,45 @@ export default function SalesCallAnalyzerPage() {
               </Row>
               
               <Row gutter={16} className="mt-4">
-                <Col xs={24} md={12} className="mb-4">
-                  <Card 
-                    title={<span style={{ color: TEXT_PRIMARY }}>Sentiment Analysis</span>} 
-                    bordered={false}
-                    className="border border-gray-700 bg-gray-800/50"
-                  >
-                    <div className="flex justify-between mb-2">
-                      <span style={{ color: TEXT_SECONDARY }}>Positive</span>
-                      <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.positive} calls</span>
-                    </div>
-                    <Progress 
-                      percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.positive / stats.totalCalls) * 100) : 0} 
-                      strokeColor="#52c41a"
-                      className="mb-3"
-                    />
-                    
-                    <div className="flex justify-between mb-2">
-                      <span style={{ color: TEXT_SECONDARY }}>Negative</span>
-                      <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.negative} calls</span>
-                    </div>
-                    <Progress 
-                      percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.negative / stats.totalCalls) * 100) : 0} 
-                      strokeColor="#f5222d"
-                      className="mb-3"
-                    />
-                    
-                    <div className="flex justify-between mb-2">
-                      <span style={{ color: TEXT_SECONDARY }}>Mixed</span>
-                      <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.mixed} calls</span>
-                    </div>
-                    <Progress 
-                      percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.mixed / stats.totalCalls) * 100) : 0} 
-                      strokeColor="#fa8c16"
-                      className="mb-3"
-                    />
-                    
-                    <div className="flex justify-between mb-2">
-                      <span style={{ color: TEXT_SECONDARY }}>Neutral</span>
-                      <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.neutral} calls</span>
-                    </div>
-                    <Progress 
-                      percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.neutral / stats.totalCalls) * 100) : 0} 
-                      strokeColor={BRAND_GREEN}
-                    />
-                  </Card>
-                </Col>
+               <Col xs={24} md={12} className="mb-4">
+    <Card 
+      title={<span style={{ color: TEXT_PRIMARY }}>Sentiment Analysis</span>} 
+      bordered={false}
+      className="border border-gray-700 bg-gray-800/50"
+    >
+      {/* POSITIVE */}
+      <div className="flex justify-between mb-2">
+        <span style={{ color: TEXT_SECONDARY }}>Positive</span>
+        <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.positive} calls</span>
+      </div>
+      <Progress 
+        percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.positive / stats.totalCalls) * 100) : 0} 
+        strokeColor="#52c41a" // Green
+        className="mb-4"
+      />
+      
+      {/* NEGATIVE */}
+      <div className="flex justify-between mb-2">
+        <span style={{ color: TEXT_SECONDARY }}>Negative</span>
+        <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.negative} calls</span>
+      </div>
+      <Progress 
+        percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.negative / stats.totalCalls) * 100) : 0} 
+        strokeColor="#f5222d" // Red
+        className="mb-4"
+      />
+      
+      {/* NEUTRAL (includes mixed) */}
+      <div className="flex justify-between mb-2">
+        <span style={{ color: TEXT_SECONDARY }}>Neutral</span>
+        <span style={{ color: TEXT_PRIMARY }}>{stats.sentimentCounts.neutral} calls</span>
+      </div>
+      <Progress 
+        percent={stats.totalCalls > 0 ? Math.round((stats.sentimentCounts.neutral / stats.totalCalls) * 100) : 0} 
+        strokeColor={BRAND_GREEN} // Your brand green
+      />
+    </Card>
+  </Col>
                 
                 <Col xs={24} md={12} className="mb-4">
                   <Card 
@@ -731,7 +726,9 @@ export default function SalesCallAnalyzerPage() {
                               <div>
                                 <div style={{ color: TEXT_SECONDARY }}>{item.participants.join(', ')}</div>
                                 <div className="flex justify-between mt-1">
-                                  <Tag color={getSentimentColor(item.sentiment)}>{item.sentiment || 'neutral'}</Tag>
+                                 <Tag color={getSentimentColor(item.sentiment)}>
+  {item.sentiment === 'mixed' ? 'neutral' : (item.sentiment || 'neutral')}
+</Tag>
                                   <span style={{ color: TEXT_SECONDARY }}>{item.date}</span>
                                 </div>
                               </div>

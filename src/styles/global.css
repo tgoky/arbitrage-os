@@ -769,6 +769,21 @@ body {
 
 /* Add these styles to the end of your existing global.css file */
 
+
+/* Override Ant Design's default purple tab color */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #10B981 !important;
+}
+
+.ant-tabs-ink-bar {
+  background-color: #10B981 !important;
+}
+
+.ant-tabs-tab:hover {
+  color: #10B981 !important;
+}
+
+
 /* Lead Generation Table Styles */
 .ant-table-thead > tr > th {
   font-weight: 600 !important;

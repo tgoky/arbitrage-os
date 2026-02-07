@@ -499,7 +499,11 @@ export default function AnalysisDetailPage() {
     <div className="max-w-4xl mx-auto px-8 py-14" style={{ fontFamily: "'Manrope', sans-serif" }}>
 
       {/* Back */}
-      <button onClick={() => go({ to: "/sales-call-analyzer" })} className="flex items-center gap-1.5 mb-10 text-gray-500 hover:text-gray-300 transition-colors text-base">
+      <button onClick={() => go({ to: "/sales-call-analyzer" })}     className={`
+              group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
+              bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white
+            `}
+          >
         <ArrowLeftOutlined className="text-xs" /> Back
       </button>
 
@@ -518,7 +522,7 @@ export default function AnalysisDetailPage() {
         <div className="flex-1 grid grid-cols-4 gap-4 text-center">
           <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.agent)}%</p><p className="text-xs text-gray-500">You</p></div>
           <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.prospect)}%</p><p className="text-xs text-gray-500">Prospect</p></div>
-          <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.silence)}%</p><p className="text-xs text-gray-500">Silence</p></div>
+          {/* <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.silence)}%</p><p className="text-xs text-gray-500">Silence</p></div> */}
           <div><p className="text-xl font-light text-gray-200">{buyingSignals.length}</p><p className="text-xs text-gray-500">Signals</p></div>
         </div>
       </div>
