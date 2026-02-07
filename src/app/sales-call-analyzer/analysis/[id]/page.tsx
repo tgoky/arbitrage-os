@@ -27,14 +27,14 @@ const { TabPane } = Tabs;
 
 // Minimal pill component - replaces Tag everywhere
 const Pill = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <span className={`inline-block px-2 py-0.5 text-xs rounded-full border border-white/10 text-gray-400 font-manrope ${className}`}>
+  <span className={`inline-block px-2.5 py-0.5 text-sm rounded-full border border-white/10 text-gray-400 font-manrope ${className}`}>
     {children}
   </span>
 );
 
 // Section label
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-manrope mb-3 mt-0">{children}</p>
+  <p className="text-xs uppercase tracking-widest text-gray-500 font-manrope mb-3 mt-0">{children}</p>
 );
 
 // Thin horizontal rule
@@ -467,15 +467,15 @@ export default function AnalysisDetailPage() {
   };
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto px-6 py-12 font-manrope"><Skeleton active paragraph={{ rows: 10 }} /></div>;
+    return <div className="max-w-4xl mx-auto px-8 py-14 font-manrope"><Skeleton active paragraph={{ rows: 10 }} /></div>;
   }
 
   if (!analysis) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-12 text-center font-manrope">
-        <p className="text-lg text-gray-300 mb-2">Analysis not found</p>
-        <p className="text-sm text-gray-500 mb-6">The requested analysis could not be loaded.</p>
-        <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-sm text-gray-400 hover:text-white transition-colors">
+      <div className="max-w-4xl mx-auto px-8 py-14 text-center font-manrope">
+        <p className="text-xl text-gray-300 mb-2">Analysis not found</p>
+        <p className="text-base text-gray-500 mb-6">The requested analysis could not be loaded.</p>
+        <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-base text-gray-400 hover:text-white transition-colors">
           <ArrowLeftOutlined className="mr-1" /> Back
         </button>
       </div>
@@ -496,30 +496,30 @@ export default function AnalysisDetailPage() {
   const callStructure = analysis?.analysis?.callResults?.callStructureAnalysis;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12" style={{ fontFamily: "'Manrope', sans-serif" }}>
+    <div className="max-w-4xl mx-auto px-8 py-14" style={{ fontFamily: "'Manrope', sans-serif" }}>
 
       {/* Back */}
-      <button onClick={() => go({ to: "/sales-call-analyzer" })} className="flex items-center gap-1.5 mb-10 text-gray-500 hover:text-gray-300 transition-colors text-sm">
-        <ArrowLeftOutlined className="text-[10px]" /> Back
+      <button onClick={() => go({ to: "/sales-call-analyzer" })} className="flex items-center gap-1.5 mb-10 text-gray-500 hover:text-gray-300 transition-colors text-base">
+        <ArrowLeftOutlined className="text-xs" /> Back
       </button>
 
       {/* Title */}
-      <h1 className="text-2xl font-semibold text-gray-100 mb-2 leading-tight">{analysis.title}</h1>
-      <p className="text-sm text-gray-500 mb-8">
+      <h1 className="text-3xl font-semibold text-gray-100 mb-2 leading-tight">{analysis.title}</h1>
+      <p className="text-base text-gray-500 mb-8">
         {sentiment} &middot; {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')} &middot; {new Date(analysis.createdAt).toLocaleDateString()}
       </p>
 
       {/* Score strip */}
       <div className="flex items-center gap-8 mb-4">
         <div>
-          <p className="text-4xl font-light text-gray-100">{overallScore}</p>
-          <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-1">Score</p>
+          <p className="text-5xl font-light text-gray-100">{overallScore}</p>
+          <p className="text-xs uppercase tracking-widest text-gray-500 mt-1">Score</p>
         </div>
         <div className="flex-1 grid grid-cols-4 gap-4 text-center">
-          <div><p className="text-lg font-light text-gray-200">{Math.round(talkRatio.agent)}%</p><p className="text-[10px] text-gray-500">You</p></div>
-          <div><p className="text-lg font-light text-gray-200">{Math.round(talkRatio.prospect)}%</p><p className="text-[10px] text-gray-500">Prospect</p></div>
-          <div><p className="text-lg font-light text-gray-200">{Math.round(talkRatio.silence)}%</p><p className="text-[10px] text-gray-500">Silence</p></div>
-          <div><p className="text-lg font-light text-gray-200">{buyingSignals.length}</p><p className="text-[10px] text-gray-500">Signals</p></div>
+          <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.agent)}%</p><p className="text-xs text-gray-500">You</p></div>
+          <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.prospect)}%</p><p className="text-xs text-gray-500">Prospect</p></div>
+          <div><p className="text-xl font-light text-gray-200">{Math.round(talkRatio.silence)}%</p><p className="text-xs text-gray-500">Silence</p></div>
+          <div><p className="text-xl font-light text-gray-200">{buyingSignals.length}</p><p className="text-xs text-gray-500">Signals</p></div>
         </div>
       </div>
 
@@ -530,8 +530,8 @@ export default function AnalysisDetailPage() {
       )}
 
       <div className="flex gap-2 mb-10">
-        <button onClick={() => handleExport()} className="text-xs text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Export</button>
-        <button className="text-xs text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Share</button>
+        <button onClick={() => handleExport()} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Export</button>
+        <button className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Share</button>
       </div>
 
       <Rule />
@@ -545,20 +545,20 @@ export default function AnalysisDetailPage() {
       >
 
         {/* ─── DEAL ARCHITECTURE ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Deal Architecture</span>} key="deal-architecture">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Deal Architecture</span>} key="deal-architecture">
           {deal ? (
             <div className="space-y-12">
               {/* Grade + Brief */}
               <div className="text-center">
-                <p className="text-6xl font-extralight text-gray-100">{deal.dealGrade.grade}</p>
-                <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-1 mb-4">Deal Grade &middot; {deal.dealGrade.winProbability}% win probability</p>
-                <p className="text-base text-gray-300 max-w-2xl mx-auto leading-relaxed">{deal.executiveBrief.oneLineSummary}</p>
+                <p className="text-7xl font-extralight text-gray-100">{deal.dealGrade.grade}</p>
+                <p className="text-xs uppercase tracking-widest text-gray-500 mt-1 mb-4">Deal Grade &middot; {deal.dealGrade.winProbability}% win probability</p>
+                <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">{deal.executiveBrief.oneLineSummary}</p>
               </div>
 
               <div className="space-y-4">
-                <div className="border-b border-white/5 pb-3"><Label>Deal Value</Label><p className="text-lg text-gray-200">{deal.executiveBrief.dealValue}</p></div>
-                <div className="border-b border-white/5 pb-3"><Label>Top Priority</Label><p className="text-sm text-gray-300 leading-relaxed">{deal.executiveBrief.topPriority}</p></div>
-                <div className="border-b border-white/5 pb-3"><Label>Immediate Action</Label><p className="text-sm text-gray-300 leading-relaxed">{deal.executiveBrief.immediateAction}</p></div>
+                <div className="border-b border-white/5 pb-3"><Label>Deal Value</Label><p className="text-xl text-gray-200">{deal.executiveBrief.dealValue}</p></div>
+                <div className="border-b border-white/5 pb-3"><Label>Top Priority</Label><p className="text-base text-gray-300 leading-relaxed">{deal.executiveBrief.topPriority}</p></div>
+                <div className="border-b border-white/5 pb-3"><Label>Immediate Action</Label><p className="text-base text-gray-300 leading-relaxed">{deal.executiveBrief.immediateAction}</p></div>
               </div>
 
               <Rule />
@@ -566,10 +566,10 @@ export default function AnalysisDetailPage() {
               {/* Prospect */}
               {deal.prospectDiagnosis && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-200 mb-6">Prospect Diagnosis</h3>
+                  <h3 className="text-base font-medium text-gray-200 mb-6">Prospect Diagnosis</h3>
 
                   <Label>Business Profile</Label>
-                  <div className="space-y-1.5 text-sm text-gray-400 mb-8 leading-relaxed">
+                  <div className="space-y-1.5 text-base text-gray-400 mb-8 leading-relaxed">
                     <p><span className="text-gray-500">Industry:</span> {deal.prospectDiagnosis.businessProfile?.industry || 'N/A'}</p>
                     <p><span className="text-gray-500">Type:</span> {(deal.prospectDiagnosis.businessProfile?.businessType || '').replace(/_/g, ' ') || 'N/A'}</p>
                     <p><span className="text-gray-500">Team Size:</span> {deal.prospectDiagnosis.businessProfile?.estimatedTeamSize || 'N/A'}</p>
@@ -583,10 +583,10 @@ export default function AnalysisDetailPage() {
                   {deal.prospectDiagnosis.financialQualification && (
                     <>
                       <Label>Financial Qualification</Label>
-                      <p className="text-sm mb-2">
+                      <p className="text-base mb-2">
                         <Pill>{deal.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'Qualified' : deal.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'Needs Validation' : 'Not Qualified'}</Pill>
                       </p>
-                      <div className="space-y-1.5 text-sm text-gray-400 mb-8 leading-relaxed">
+                      <div className="space-y-1.5 text-base text-gray-400 mb-8 leading-relaxed">
                         <p>{deal.prospectDiagnosis.financialQualification.qualificationReason || 'N/A'}</p>
                         {deal.prospectDiagnosis.financialQualification.estimatedBudget && <p><span className="text-gray-500">Budget:</span> {deal.prospectDiagnosis.financialQualification.estimatedBudget}</p>}
                         <p><span className="text-gray-500">Urgency:</span> {(deal.prospectDiagnosis.financialQualification.urgencyLevel || '').replace(/_/g, ' ')}</p>
@@ -599,9 +599,9 @@ export default function AnalysisDetailPage() {
                   <div className="space-y-5 mb-8">
                     {(deal.prospectDiagnosis.bleedingNeckProblems || []).map((prob, i) => (
                       <div key={i}>
-                        <p className="text-sm text-gray-200 mb-1">{i + 1}. {prob.problem} <span className="text-gray-500 text-xs ml-1">{(prob.severity || '').toLowerCase()}</span></p>
-                        <p className="text-xs text-gray-500">{prob.frequency || ''} {prob.estimatedCost ? `/ ${prob.estimatedCost}` : ''}</p>
-                        {prob.quotedEvidence && <p className="text-xs text-gray-500 italic mt-1 pl-3 border-l border-white/10">{prob.quotedEvidence}</p>}
+                        <p className="text-base text-gray-200 mb-1">{i + 1}. {prob.problem} <span className="text-gray-500 text-sm ml-1">{(prob.severity || '').toLowerCase()}</span></p>
+                        <p className="text-sm text-gray-500">{prob.frequency || ''} {prob.estimatedCost ? `/ ${prob.estimatedCost}` : ''}</p>
+                        {prob.quotedEvidence && <p className="text-sm text-gray-500 italic mt-1 pl-3 border-l border-white/10">{prob.quotedEvidence}</p>}
                       </div>
                     ))}
                   </div>
@@ -609,7 +609,7 @@ export default function AnalysisDetailPage() {
                   {(deal.prospectDiagnosis.financialQualification?.buyingSignals || []).length > 0 && (
                     <>
                       <Label>Buying Signals</Label>
-                      <ul className="text-sm text-gray-400 space-y-1 mb-6 leading-relaxed">
+                      <ul className="text-base text-gray-400 space-y-1.5 mb-6 leading-relaxed">
                         {deal.prospectDiagnosis.financialQualification.buyingSignals.map((s, i) => <li key={i}>- {s}</li>)}
                       </ul>
                     </>
@@ -618,7 +618,7 @@ export default function AnalysisDetailPage() {
                   {(deal.prospectDiagnosis.financialQualification?.redFlags || []).length > 0 && (
                     <>
                       <Label>Red Flags</Label>
-                      <ul className="text-sm text-gray-400 space-y-1 mb-6 leading-relaxed">
+                      <ul className="text-base text-gray-400 space-y-1.5 mb-6 leading-relaxed">
                         {deal.prospectDiagnosis.financialQualification.redFlags.map((f, i) => <li key={i}>- {f}</li>)}
                       </ul>
                     </>
@@ -631,27 +631,27 @@ export default function AnalysisDetailPage() {
               {/* Solution Stack */}
               {deal.solutionStack && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-200 mb-8">Solution Stack</h3>
+                  <h3 className="text-base font-medium text-gray-200 mb-8">Solution Stack</h3>
 
                   {[
-                    { phase: deal.solutionStack.phase1QuickWin, label: 'Phase 1 - Quick Win', extra: (p: any) => p.proofOfConcept ? <p className="text-xs text-gray-500 mt-1">Proof of concept: {p.proofOfConcept}</p> : null },
-                    { phase: deal.solutionStack.phase2CoreSystem, label: 'Phase 2 - Core System', extra: (p: any) => p.retainerJustification ? <p className="text-xs text-gray-500 mt-1">Retainer justification: {p.retainerJustification}</p> : null },
-                    { phase: deal.solutionStack.phase3AIWowFactor, label: 'Phase 3 - AI Wow Factor', extra: (p: any) => p.roiProjection ? <p className="text-xs text-gray-500 mt-1">ROI projection: {p.roiProjection}</p> : null },
+                    { phase: deal.solutionStack.phase1QuickWin, label: 'Phase 1 - Quick Win', extra: (p: any) => p.proofOfConcept ? <p className="text-sm text-gray-500 mt-1">Proof of concept: {p.proofOfConcept}</p> : null },
+                    { phase: deal.solutionStack.phase2CoreSystem, label: 'Phase 2 - Core System', extra: (p: any) => p.retainerJustification ? <p className="text-sm text-gray-500 mt-1">Retainer justification: {p.retainerJustification}</p> : null },
+                    { phase: deal.solutionStack.phase3AIWowFactor, label: 'Phase 3 - AI Wow Factor', extra: (p: any) => p.roiProjection ? <p className="text-sm text-gray-500 mt-1">ROI projection: {p.roiProjection}</p> : null },
                   ].map(({ phase, label, extra }) => phase && (
                     <div key={label} className="mb-10">
                       <div className="flex items-baseline gap-2 mb-3">
-                        <p className="text-xs font-medium text-gray-300">{label}</p>
-                        <span className="text-[10px] text-gray-500">{phase.timeline || ''}</span>
+                        <p className="text-sm font-medium text-gray-300">{label}</p>
+                        <span className="text-xs text-gray-500">{phase.timeline || ''}</span>
                       </div>
-                      <p className="text-sm text-gray-400 mb-3">{phase.phaseName}</p>
+                      <p className="text-base text-gray-400 mb-3">{phase.phaseName}</p>
                       {(phase.tools || []).map((tool: any, j: number) => (
                         <div key={j} className="mb-3 pl-4 border-l border-white/5">
-                          <p className="text-sm text-gray-300">{tool.toolName} <span className="text-gray-500 text-xs">{(tool.toolType || '').replace(/_/g, ' ')}</span></p>
-                          <p className="text-xs text-gray-500 leading-relaxed">{tool.description}</p>
-                          <p className="text-[10px] text-gray-600">{tool.estimatedSetupHours || 0}h setup, {tool.setupComplexity || 'n/a'} complexity{tool.monthlyMaintenanceHours ? `, ${tool.monthlyMaintenanceHours}h/mo` : ''}{tool.replacesRole ? ` — replaces ${tool.replacesRole}` : ''}</p>
+                          <p className="text-base text-gray-300">{tool.toolName} <span className="text-gray-500 text-sm">{(tool.toolType || '').replace(/_/g, ' ')}</span></p>
+                          <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
+                          <p className="text-xs text-gray-600">{tool.estimatedSetupHours || 0}h setup, {tool.setupComplexity || 'n/a'} complexity{tool.monthlyMaintenanceHours ? `, ${tool.monthlyMaintenanceHours}h/mo` : ''}{tool.replacesRole ? ` — replaces ${tool.replacesRole}` : ''}</p>
                         </div>
                       ))}
-                      <p className="text-sm text-gray-400 leading-relaxed">Expected outcome: {phase.expectedOutcome || 'N/A'}</p>
+                      <p className="text-base text-gray-400 leading-relaxed">Expected outcome: {phase.expectedOutcome || 'N/A'}</p>
                       {extra(phase)}
                     </div>
                   ))}
@@ -659,7 +659,7 @@ export default function AnalysisDetailPage() {
                   {deal.solutionStack.integrationMap && (
                     <div className="mt-6">
                       <Label>Integrations</Label>
-                      <div className="space-y-2 text-sm text-gray-400">
+                      <div className="space-y-2 text-base text-gray-400">
                         {(deal.solutionStack.integrationMap.requiredIntegrations || []).length > 0 && <p>Required: {deal.solutionStack.integrationMap.requiredIntegrations.join(', ')}</p>}
                         {(deal.solutionStack.integrationMap.niceToHaveIntegrations || []).length > 0 && <p>Nice to have: {deal.solutionStack.integrationMap.niceToHaveIntegrations.join(', ')}</p>}
                         {(deal.solutionStack.integrationMap.potentialBlockers || []).length > 0 && <p>Potential blockers: {deal.solutionStack.integrationMap.potentialBlockers.join(', ')}</p>}
@@ -674,43 +674,43 @@ export default function AnalysisDetailPage() {
               {/* Pricing */}
               {deal.pricingStrategy && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-200 mb-8">Pricing Strategy</h3>
+                  <h3 className="text-base font-medium text-gray-200 mb-8">Pricing Strategy</h3>
 
                   <div className="space-y-6 mb-8">
                     <div className="border-b border-white/5 pb-4">
                       <Label>Setup Fee</Label>
-                      <p className="text-2xl font-light text-gray-200">${(deal.pricingStrategy.setupFee?.recommended || 0).toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">Range: ${(deal.pricingStrategy.setupFee?.minimum || 0).toLocaleString()} - ${(deal.pricingStrategy.setupFee?.maximum || 0).toLocaleString()}</p>
-                      {(deal.pricingStrategy.setupFee?.breakdown || []).map((b, i) => <p key={i} className="text-xs text-gray-500 mt-0.5">{b.item}: ${(b.cost || 0).toLocaleString()}</p>)}
+                      <p className="text-3xl font-light text-gray-200">${(deal.pricingStrategy.setupFee?.recommended || 0).toLocaleString()}</p>
+                      <p className="text-sm text-gray-500">Range: ${(deal.pricingStrategy.setupFee?.minimum || 0).toLocaleString()} - ${(deal.pricingStrategy.setupFee?.maximum || 0).toLocaleString()}</p>
+                      {(deal.pricingStrategy.setupFee?.breakdown || []).map((b, i) => <p key={i} className="text-sm text-gray-500 mt-0.5">{b.item}: ${(b.cost || 0).toLocaleString()}</p>)}
                     </div>
                     <div className="border-b border-white/5 pb-4">
                       <Label>Monthly Retainer</Label>
-                      <p className="text-2xl font-light text-gray-200">${(deal.pricingStrategy.monthlyRetainer?.recommended || 0).toLocaleString()}<span className="text-sm text-gray-500">/mo</span></p>
-                      <p className="text-xs text-gray-500">Range: ${(deal.pricingStrategy.monthlyRetainer?.minimum || 0).toLocaleString()} - ${(deal.pricingStrategy.monthlyRetainer?.maximum || 0).toLocaleString()}</p>
-                      {deal.pricingStrategy.monthlyRetainer?.includedHours && <p className="text-xs text-gray-500">{deal.pricingStrategy.monthlyRetainer.includedHours} hrs included{deal.pricingStrategy.monthlyRetainer.overhourlyRate ? ` / $${deal.pricingStrategy.monthlyRetainer.overhourlyRate}/hr overage` : ''}</p>}
-                      {(deal.pricingStrategy.monthlyRetainer?.breakdown || []).map((b, i) => <p key={i} className="text-xs text-gray-500 mt-0.5">{b.item}: ${(b.monthlyCost || 0).toLocaleString()}/mo</p>)}
+                      <p className="text-3xl font-light text-gray-200">${(deal.pricingStrategy.monthlyRetainer?.recommended || 0).toLocaleString()}<span className="text-base text-gray-500">/mo</span></p>
+                      <p className="text-sm text-gray-500">Range: ${(deal.pricingStrategy.monthlyRetainer?.minimum || 0).toLocaleString()} - ${(deal.pricingStrategy.monthlyRetainer?.maximum || 0).toLocaleString()}</p>
+                      {deal.pricingStrategy.monthlyRetainer?.includedHours && <p className="text-sm text-gray-500">{deal.pricingStrategy.monthlyRetainer.includedHours} hrs included{deal.pricingStrategy.monthlyRetainer.overhourlyRate ? ` / $${deal.pricingStrategy.monthlyRetainer.overhourlyRate}/hr overage` : ''}</p>}
+                      {(deal.pricingStrategy.monthlyRetainer?.breakdown || []).map((b, i) => <p key={i} className="text-sm text-gray-500 mt-0.5">{b.item}: ${(b.monthlyCost || 0).toLocaleString()}/mo</p>)}
                     </div>
                     <div>
                       <Label>Total Deal Value (Year 1)</Label>
-                      <p className="text-2xl font-light text-gray-200">${(deal.pricingStrategy.totalDealValue?.firstYearValue || 0).toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">Lifetime: ${(deal.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 0).toLocaleString()} &middot; Margin: {deal.pricingStrategy.totalDealValue?.profitMarginEstimate || 'N/A'}</p>
+                      <p className="text-3xl font-light text-gray-200">${(deal.pricingStrategy.totalDealValue?.firstYearValue || 0).toLocaleString()}</p>
+                      <p className="text-sm text-gray-500">Lifetime: ${(deal.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 0).toLocaleString()} &middot; Margin: {deal.pricingStrategy.totalDealValue?.profitMarginEstimate || 'N/A'}</p>
                     </div>
                   </div>
 
                   {deal.pricingStrategy.pitchAngle && (
                     <div className="mb-8">
                       <Label>Pitch Angle</Label>
-                      <p className="text-sm text-gray-200 mb-1">{deal.pricingStrategy.pitchAngle.headline}</p>
-                      <p className="text-sm text-gray-400 leading-relaxed mb-1">{deal.pricingStrategy.pitchAngle.valueFraming}</p>
-                      <p className="text-xs text-gray-500">Comparison: {deal.pricingStrategy.pitchAngle.comparisonPoint}</p>
-                      <p className="text-xs text-gray-500">Urgency: {deal.pricingStrategy.pitchAngle.urgencyHook}</p>
+                      <p className="text-base text-gray-200 mb-1">{deal.pricingStrategy.pitchAngle.headline}</p>
+                      <p className="text-base text-gray-400 leading-relaxed mb-1">{deal.pricingStrategy.pitchAngle.valueFraming}</p>
+                      <p className="text-sm text-gray-500">Comparison: {deal.pricingStrategy.pitchAngle.comparisonPoint}</p>
+                      <p className="text-sm text-gray-500">Urgency: {deal.pricingStrategy.pitchAngle.urgencyHook}</p>
                     </div>
                   )}
 
                   {deal.pricingStrategy.contractTerms && (
                     <div className="mb-8">
                       <Label>Contract Terms</Label>
-                      <div className="text-sm text-gray-400 space-y-1 leading-relaxed">
+                      <div className="text-base text-gray-400 space-y-1 leading-relaxed">
                         <p>Recommended term: {(deal.pricingStrategy.contractTerms.recommendedTerm || '').replace(/_/g, ' ')}</p>
                         {deal.pricingStrategy.contractTerms.discountForLongerTerm && <p>Discount: {deal.pricingStrategy.contractTerms.discountForLongerTerm}</p>}
                         <p>Payment: {deal.pricingStrategy.contractTerms.paymentStructure || 'N/A'}</p>
@@ -723,7 +723,7 @@ export default function AnalysisDetailPage() {
                     <div>
                       <Label>Upsell Opportunities</Label>
                       {deal.pricingStrategy.upsellOpportunities.map((u, i) => (
-                        <p key={i} className="text-sm text-gray-400 mb-1">{u.service} <span className="text-gray-500 text-xs">{u.timing} / +${(u.additionalRevenue || 0).toLocaleString()}</span></p>
+                        <p key={i} className="text-base text-gray-400 mb-1">{u.service} <span className="text-gray-500 text-sm">{u.timing} / +${(u.additionalRevenue || 0).toLocaleString()}</span></p>
                       ))}
                     </div>
                   )}
@@ -735,11 +735,11 @@ export default function AnalysisDetailPage() {
               {/* Sales Performance */}
               {deal.salesPerformance && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-200 mb-8">Sales Performance</h3>
+                  <h3 className="text-base font-medium text-gray-200 mb-8">Sales Performance</h3>
 
                   <div className="text-center mb-8">
-                    <p className="text-4xl font-extralight text-gray-100">{deal.salesPerformance.callScoreCard?.overallScore || 0}</p>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-1">Overall Score</p>
+                    <p className="text-5xl font-extralight text-gray-100">{deal.salesPerformance.callScoreCard?.overallScore || 0}</p>
+                    <p className="text-xs uppercase tracking-widest text-gray-500 mt-1">Overall Score</p>
                   </div>
 
                   <div className="space-y-2 mb-8">
@@ -754,8 +754,8 @@ export default function AnalysisDetailPage() {
                       const val = (deal.salesPerformance?.callScoreCard as any)?.[key] || 0;
                       return (
                         <div key={key} className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400">{label}</span>
-                          <span className="text-xs text-gray-300 w-8 text-right">{val}/10</span>
+                          <span className="text-sm text-gray-400">{label}</span>
+                          <span className="text-sm text-gray-300 w-8 text-right">{val}/10</span>
                         </div>
                       );
                     })}
@@ -766,9 +766,9 @@ export default function AnalysisDetailPage() {
                       <Label>Strengths Observed</Label>
                       {deal.salesPerformance.greenFlags.map((f, i) => (
                         <div key={i} className="mb-3">
-                          <p className="text-sm text-gray-300">{f.observation}</p>
-                          {f.example && <p className="text-xs text-gray-500 italic">{f.example}</p>}
-                          <p className="text-xs text-gray-500">{f.impact}</p>
+                          <p className="text-base text-gray-300">{f.observation}</p>
+                          {f.example && <p className="text-sm text-gray-500 italic">{f.example}</p>}
+                          <p className="text-sm text-gray-500">{f.impact}</p>
                         </div>
                       ))}
                     </div>
@@ -779,9 +779,9 @@ export default function AnalysisDetailPage() {
                       <Label>Areas to Improve</Label>
                       {deal.salesPerformance.redFlags.map((f, i) => (
                         <div key={i} className="mb-3">
-                          <p className="text-sm text-gray-300">{f.observation} <span className="text-xs text-gray-500">{f.priority}</span></p>
-                          {f.example && <p className="text-xs text-gray-500 italic">{f.example}</p>}
-                          <p className="text-xs text-gray-500">Fix: {f.howToFix}</p>
+                          <p className="text-base text-gray-300">{f.observation} <span className="text-sm text-gray-500">{f.priority}</span></p>
+                          {f.example && <p className="text-sm text-gray-500 italic">{f.example}</p>}
+                          <p className="text-sm text-gray-500">Fix: {f.howToFix}</p>
                         </div>
                       ))}
                     </div>
@@ -792,9 +792,9 @@ export default function AnalysisDetailPage() {
                       <Label>Missed Opportunities</Label>
                       {deal.salesPerformance.missedOpportunities.map((o, i) => (
                         <div key={i} className="mb-3">
-                          <p className="text-sm text-gray-300">{o.topic}</p>
-                          <p className="text-xs text-gray-500 italic pl-3 border-l border-white/10">{o.questionToAsk}</p>
-                          <p className="text-xs text-gray-500">{o.whyItMatters}</p>
+                          <p className="text-base text-gray-300">{o.topic}</p>
+                          <p className="text-sm text-gray-500 italic pl-3 border-l border-white/10">{o.questionToAsk}</p>
+                          <p className="text-sm text-gray-500">{o.whyItMatters}</p>
                         </div>
                       ))}
                     </div>
@@ -803,7 +803,7 @@ export default function AnalysisDetailPage() {
                   {(deal.salesPerformance.nextCallPreparation || []).length > 0 && (
                     <div>
                       <Label>Next Call Preparation</Label>
-                      <ol className="text-sm text-gray-400 space-y-1 leading-relaxed list-decimal list-inside">
+                      <ol className="text-base text-gray-400 space-y-1.5 leading-relaxed list-decimal list-inside">
                         {deal.salesPerformance.nextCallPreparation.map((item, i) => <li key={i}>{item}</li>)}
                       </ol>
                     </div>
@@ -819,7 +819,7 @@ export default function AnalysisDetailPage() {
                   {(deal.dealGrade.dealStrengths || []).length > 0 && (
                     <div className="mb-6">
                       <Label>Deal Strengths</Label>
-                      <ul className="text-sm text-gray-400 space-y-1 leading-relaxed">
+                      <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">
                         {deal.dealGrade.dealStrengths.map((s, i) => <li key={i}>- {s}</li>)}
                       </ul>
                     </div>
@@ -827,48 +827,42 @@ export default function AnalysisDetailPage() {
                   {(deal.dealGrade.dealRisks || []).length > 0 && (
                     <div className="mb-6">
                       <Label>Deal Risks</Label>
-                      <ul className="text-sm text-gray-400 space-y-1 leading-relaxed">
+                      <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">
                         {deal.dealGrade.dealRisks.map((r, i) => <li key={i}>- {r}</li>)}
                       </ul>
                     </div>
                   )}
                   <div className="border border-white/5 rounded p-4">
                     <Label>Recommended Next Step</Label>
-                    <p className="text-sm text-gray-300 leading-relaxed">{deal.dealGrade.recommendedNextStep || 'N/A'}</p>
-                    <p className="text-xs text-gray-500 mt-1">{deal.dealGrade.gradeReason || ''}</p>
+                    <p className="text-base text-gray-300 leading-relaxed">{deal.dealGrade.recommendedNextStep || 'N/A'}</p>
+                    <p className="text-sm text-gray-500 mt-1">{deal.dealGrade.gradeReason || ''}</p>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 py-8">Deal architecture analysis is not available for this call.</p>
+            <p className="text-base text-gray-500 py-8">Deal architecture analysis is not available for this call.</p>
           )}
         </TabPane>
 
         {/* ─── OVERVIEW ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Overview</span>} key="overview">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Overview</span>} key="overview">
           <div className="space-y-12">
             <div>
-              <Label>Report Preview</Label>
-              <p className="text-sm text-gray-400 leading-relaxed line-clamp-3">{analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}</p>
-              <button onClick={() => setActiveTab('detailed-report')} className="text-xs text-gray-500 mt-2 hover:text-gray-300 transition-colors">View full report</button>
-            </div>
-
-            <div>
               <Label>Call Summary</Label>
-              <p className="text-sm text-gray-400 leading-relaxed">{executiveSummary}</p>
+              <p className="text-base text-gray-400 leading-relaxed">{executiveSummary}</p>
             </div>
 
             <div>
               <Label>Next Steps</Label>
-              <ol className="text-sm text-gray-400 space-y-2 leading-relaxed list-decimal list-inside">
+              <ol className="text-base text-gray-400 space-y-2 leading-relaxed list-decimal list-inside">
                 {nextSteps.map((step, i) => <li key={i}>{step}</li>)}
               </ol>
             </div>
 
             <div>
               <Label>Participants</Label>
-              <div className="text-sm text-gray-400 space-y-1 leading-relaxed">
+              <div className="text-base text-gray-400 space-y-1 leading-relaxed">
                 <p>{analysis?.metadata?.prospectName || 'Not specified'}{analysis?.metadata?.prospectTitle ? `, ${analysis.metadata.prospectTitle}` : ''}{analysis?.metadata?.prospectEmail ? ` — ${analysis.metadata.prospectEmail}` : ''}</p>
                 <p>{analysis?.metadata?.companyName || 'Not specified'}{analysis?.metadata?.companyIndustry ? `, ${analysis.metadata.companyIndustry}` : ''}{analysis?.metadata?.companyLocation ? ` — ${analysis.metadata.companyLocation}` : ''}</p>
               </div>
@@ -882,16 +876,16 @@ export default function AnalysisDetailPage() {
                   if (moments && moments.length > 0) {
                     return moments.map((m: any, i: number) => (
                       <div key={i} className="pl-3 border-l border-white/10">
-                        <p className="text-xs text-gray-500 mb-0.5">{m.timestamp} &middot; {m.type}{m.emotionalTag ? ` &middot; ${m.emotionalTag}` : ''}</p>
-                        <p className="text-sm text-gray-400 leading-relaxed">{m.description}</p>
-                        <p className="text-xs text-gray-500">{m.impact}</p>
+                        <p className="text-sm text-gray-500 mb-0.5">{m.timestamp} &middot; {m.type}{m.emotionalTag ? ` &middot; ${m.emotionalTag}` : ''}</p>
+                        <p className="text-base text-gray-400 leading-relaxed">{m.description}</p>
+                        <p className="text-sm text-gray-500">{m.impact}</p>
                       </div>
                     ));
                   }
                   const insights = analysis?.analysis?.callResults?.analysis?.keyInsights || [];
                   return insights.map((insight: string, i: number) => (
                     <div key={i} className="pl-3 border-l border-white/10">
-                      <p className="text-sm text-gray-400 leading-relaxed">{insight}</p>
+                      <p className="text-base text-gray-400 leading-relaxed">{insight}</p>
                     </div>
                   ));
                 })()}
@@ -901,7 +895,7 @@ export default function AnalysisDetailPage() {
             {improvements.length > 0 && (
               <div>
                 <Label>Improvement Suggestions</Label>
-                <ol className="text-sm text-gray-400 space-y-2 leading-relaxed list-decimal list-inside">
+                <ol className="text-base text-gray-400 space-y-2 leading-relaxed list-decimal list-inside">
                   {improvements.map((s, i) => <li key={i}>{s}</li>)}
                 </ol>
               </div>
@@ -910,28 +904,28 @@ export default function AnalysisDetailPage() {
         </TabPane>
 
         {/* ─── TRANSCRIPT ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Transcript</span>} key="transcript">
-          <div className="whitespace-pre-wrap text-sm text-gray-400 leading-relaxed">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Transcript</span>} key="transcript">
+          <div className="whitespace-pre-wrap text-base text-gray-400 leading-relaxed">
             {analysis?.analysis?.callResults?.transcript || 'No transcript available.'}
           </div>
         </TabPane>
 
         {/* ─── CALL STRUCTURE ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Call Structure</span>} key="call-structure">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Call Structure</span>} key="call-structure">
           {callStructure ? (
             <div className="space-y-12">
               {/* Opening */}
               <div>
                 <div className="flex justify-between items-baseline mb-4">
-                  <h3 className="text-sm font-medium text-gray-200">Opening (First 20%)</h3>
+                  <h3 className="text-base font-medium text-gray-200">Opening (First 20%)</h3>
                   <Pill>{callStructure.callStructure.opening.assessment}</Pill>
                 </div>
                 <Label>Strengths</Label>
-                <ul className="text-sm text-gray-400 space-y-1 leading-relaxed mb-4">{(callStructure.callStructure.opening.strengths || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
+                <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed mb-4">{(callStructure.callStructure.opening.strengths || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
                 <Label>Areas to Improve</Label>
-                <ul className="text-sm text-gray-400 space-y-1 leading-relaxed mb-4">{(callStructure.callStructure.opening.weaknesses || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
+                <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed mb-4">{(callStructure.callStructure.opening.weaknesses || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
                 <Label>Recommendations</Label>
-                <ul className="text-sm text-gray-400 space-y-1 leading-relaxed">{(callStructure.callStructure.opening.recommendations || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
+                <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">{(callStructure.callStructure.opening.recommendations || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
               </div>
 
               <Rule />
@@ -939,13 +933,13 @@ export default function AnalysisDetailPage() {
               {/* Middle */}
               <div>
                 <div className="flex justify-between items-baseline mb-4">
-                  <h3 className="text-sm font-medium text-gray-200">Discovery / Middle (20-70%)</h3>
+                  <h3 className="text-base font-medium text-gray-200">Discovery / Middle (20-70%)</h3>
                   <Pill>{callStructure.callStructure.middle.assessment}</Pill>
                 </div>
-                <p className="text-sm text-gray-400 mb-4">Discovery quality: {callStructure.callStructure.middle.discoveryQuality} &middot; {callStructure.callStructure.middle.questionCount || 0} questions asked</p>
+                <p className="text-base text-gray-400 mb-4">Discovery quality: {callStructure.callStructure.middle.discoveryQuality} &middot; {callStructure.callStructure.middle.questionCount || 0} questions asked</p>
                 <div className="flex flex-wrap gap-1.5 mb-4">{(callStructure.callStructure.middle.topicsCovered || []).map((t, i) => <Pill key={i}>{t}</Pill>)}</div>
                 <Label>Recommendations</Label>
-                <ul className="text-sm text-gray-400 space-y-1 leading-relaxed">{(callStructure.callStructure.middle.recommendations || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
+                <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">{(callStructure.callStructure.middle.recommendations || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
               </div>
 
               <Rule />
@@ -953,14 +947,14 @@ export default function AnalysisDetailPage() {
               {/* Closing */}
               <div>
                 <div className="flex justify-between items-baseline mb-4">
-                  <h3 className="text-sm font-medium text-gray-200">Closing (Last 30%)</h3>
+                  <h3 className="text-base font-medium text-gray-200">Closing (Last 30%)</h3>
                   <Pill>{callStructure.callStructure.closing.assessment}</Pill>
                 </div>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-base text-gray-400 mb-4">
                   Next steps defined: {callStructure.callStructure.closing.nextStepsDefined ? 'Yes' : 'No'} &middot; Commitment: {callStructure.callStructure.closing.commitmentLevel || 'Unknown'}
                 </p>
                 <Label>Recommendations</Label>
-                <ul className="text-sm text-gray-400 space-y-1 leading-relaxed">{(callStructure.callStructure.closing.recommendations || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
+                <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">{(callStructure.callStructure.closing.recommendations || []).map((s, i) => <li key={i}>- {s}</li>)}</ul>
               </div>
 
               <Rule />
@@ -970,7 +964,7 @@ export default function AnalysisDetailPage() {
                 <Label>Call Quality Metrics</Label>
                 <div className="space-y-1.5">
                   {Object.entries(callStructure.metrics || {}).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
+                    <div key={key} className="flex justify-between text-base">
                       <span className="text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                       <span className="text-gray-300">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : `${value}/10`}</span>
                     </div>
@@ -985,9 +979,9 @@ export default function AnalysisDetailPage() {
                   <div className="space-y-4">
                     {callStructure.keyMoments.map((m: any, i: number) => (
                       <div key={i} className="pl-3 border-l border-white/10">
-                        <p className="text-xs text-gray-500">{m.timestamp} &middot; {m.type}{m.emotionalTag ? ` &middot; ${m.emotionalTag}` : ''}</p>
-                        <p className="text-sm text-gray-400 leading-relaxed">{m.description}</p>
-                        <p className="text-xs text-gray-500">Impact: {m.impact}</p>
+                        <p className="text-sm text-gray-500">{m.timestamp} &middot; {m.type}{m.emotionalTag ? ` &middot; ${m.emotionalTag}` : ''}</p>
+                        <p className="text-base text-gray-400 leading-relaxed">{m.description}</p>
+                        <p className="text-sm text-gray-500">Impact: {m.impact}</p>
                       </div>
                     ))}
                   </div>
@@ -1000,69 +994,112 @@ export default function AnalysisDetailPage() {
                   <Label>Missed Opportunities</Label>
                   {callStructure.missedOpportunities.map((o: any, i: number) => (
                     <div key={i} className="mb-4">
-                      <p className="text-sm text-gray-300">{o.area} <span className="text-xs text-gray-500">{o.priority}</span></p>
-                      <p className="text-xs text-gray-400 leading-relaxed">{o.description}</p>
-                      <p className="text-xs text-gray-500">How to fix: {o.howToFix}</p>
+                      <p className="text-base text-gray-300">{o.area} <span className="text-sm text-gray-500">{o.priority}</span></p>
+                      <p className="text-sm text-gray-400 leading-relaxed">{o.description}</p>
+                      <p className="text-sm text-gray-500">How to fix: {o.howToFix}</p>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Competitive Intel */}
+              {(() => {
+                const competitors = analysis?.analysis?.callResults?.analysis?.salesMetrics?.competitorsMentioned ||
+                                    analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.currentVendors || [];
+                const objections = analysis?.analysis?.callResults?.analysis?.salesMetrics?.objectionsRaised || [];
+                if (competitors.length === 0 && objections.length === 0) return null;
+                return (
+                  <>
+                    <Rule />
+                    <div>
+                      <h3 className="text-base font-medium text-gray-200 mb-6">Competitive Intel</h3>
+                      {competitors.length > 0 && (
+                        <div className="mb-8">
+                          <Label>Competitors / Current Vendors</Label>
+                          <ul className="text-base text-gray-400 space-y-2 leading-relaxed">
+                            {competitors.map((c: string, i: number) => <li key={i}>- {c}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {objections.length > 0 && (
+                        <div>
+                          <Label>Objections Raised</Label>
+                          <ul className="text-base text-gray-400 space-y-2 leading-relaxed">
+                            {objections.map((o: string, i: number) => <li key={i}>- {o}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Buying Signals */}
+              {(() => {
+                const signals = analysis?.analysis?.callResults?.analysis?.salesMetrics?.buyingSignals ||
+                                analysis?.analysis?.dealArchitecture?.prospectDiagnosis?.financialQualification?.buyingSignals || [];
+                if (signals.length === 0) return null;
+                return (
+                  <>
+                    <Rule />
+                    <div>
+                      <h3 className="text-base font-medium text-gray-200 mb-6">Buying Signals</h3>
+                      <ul className="text-base text-gray-400 space-y-2 leading-relaxed">
+                        {signals.map((s: string, i: number) => <li key={i}>- {s}</li>)}
+                      </ul>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 py-8">Call structure analysis is not available for this call.</p>
+            <p className="text-base text-gray-500 py-8">Call structure analysis is not available for this call.</p>
           )}
         </TabPane>
 
-        {/* ─── DETAILED REPORT ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Report</span>} key="detailed-report">
-          <div className="whitespace-pre-wrap text-sm text-gray-400 leading-relaxed">
-            {analysis?.analysis?.callResults?.detailedReport || 'No detailed report available.'}
-          </div>
-        </TabPane>
-
         {/* ─── FOLLOW-UP EMAIL ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Follow-up</span>} key="follow-up">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Follow-up</span>} key="follow-up">
           {analysis?.analysis?.callResults?.followUpEmail ? (
-            <div className="whitespace-pre-wrap text-sm text-gray-400 leading-relaxed font-mono">
+            <div className="whitespace-pre-wrap text-base text-gray-400 leading-relaxed font-mono">
               {analysis.analysis.callResults.followUpEmail}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 py-8">No follow-up email template available.</p>
+            <p className="text-base text-gray-500 py-8">No follow-up email template available.</p>
           )}
         </TabPane>
 
         {/* ─── ANALYSIS ─── */}
-        <TabPane tab={<span className="font-manrope text-xs tracking-wide">Analysis</span>} key="analysis">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Analysis</span>} key="analysis">
           <div className="space-y-12">
             <div>
               <Label>Key Insights</Label>
-              <ol className="text-sm text-gray-400 space-y-2 leading-relaxed list-decimal list-inside">
+              <ol className="text-base text-gray-400 space-y-2 leading-relaxed list-decimal list-inside">
                 {(analysis?.analysis?.callResults?.analysis?.keyInsights || []).map((insight, i) => <li key={i}>{insight}</li>)}
               </ol>
-              {(!analysis?.analysis?.callResults?.analysis?.keyInsights || analysis.analysis.callResults.analysis.keyInsights.length === 0) && <p className="text-sm text-gray-500">No key insights available.</p>}
+              {(!analysis?.analysis?.callResults?.analysis?.keyInsights || analysis.analysis.callResults.analysis.keyInsights.length === 0) && <p className="text-base text-gray-500">No key insights available.</p>}
             </div>
 
             <div>
               <Label>Performance Metrics</Label>
               <div className="space-y-1.5">
-                <div className="flex justify-between text-sm"><span className="text-gray-400">Talk Time</span><span className="text-gray-300">{perfMetrics.talkTime}%</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-400">Engagement</span><span className="text-gray-300">{perfMetrics.engagement}/10</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-400">Clarity</span><span className="text-gray-300">{perfMetrics.clarity}/10</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-400">Professionalism</span><span className="text-gray-300">{perfMetrics.professionalism}/10</span></div>
+                <div className="flex justify-between text-base"><span className="text-gray-400">Talk Time</span><span className="text-gray-300">{perfMetrics.talkTime}%</span></div>
+                <div className="flex justify-between text-base"><span className="text-gray-400">Engagement</span><span className="text-gray-300">{perfMetrics.engagement}/10</span></div>
+                <div className="flex justify-between text-base"><span className="text-gray-400">Clarity</span><span className="text-gray-300">{perfMetrics.clarity}/10</span></div>
+                <div className="flex justify-between text-base"><span className="text-gray-400">Professionalism</span><span className="text-gray-300">{perfMetrics.professionalism}/10</span></div>
               </div>
             </div>
 
             <div>
               <Label>Discovery Metrics</Label>
-              <div className="space-y-3 text-sm text-gray-400">
+              <div className="space-y-3 text-base text-gray-400">
                 {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.challengesUncovered && (
-                  <div><p className="text-xs text-gray-500 mb-1">Challenges Uncovered</p><div className="flex flex-wrap gap-1.5">{analysis.analysis.callResults.analysis.discoveryMetrics.challengesUncovered.map((c, i) => <Pill key={i}>{c}</Pill>)}</div></div>
+                  <div><p className="text-sm text-gray-500 mb-1">Challenges Uncovered</p><div className="flex flex-wrap gap-1.5">{analysis.analysis.callResults.analysis.discoveryMetrics.challengesUncovered.map((c, i) => <Pill key={i}>{c}</Pill>)}</div></div>
                 )}
                 {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.technicalRequirements && (
-                  <div><p className="text-xs text-gray-500 mb-1">Technical Requirements</p><div className="flex flex-wrap gap-1.5">{analysis.analysis.callResults.analysis.discoveryMetrics.technicalRequirements.map((r, i) => <Pill key={i}>{r}</Pill>)}</div></div>
+                  <div><p className="text-sm text-gray-500 mb-1">Technical Requirements</p><div className="flex flex-wrap gap-1.5">{analysis.analysis.callResults.analysis.discoveryMetrics.technicalRequirements.map((r, i) => <Pill key={i}>{r}</Pill>)}</div></div>
                 )}
                 {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.stakeholdersIdentified && (
-                  <div><p className="text-xs text-gray-500 mb-1">Stakeholders</p><div className="flex flex-wrap gap-1.5">{analysis.analysis.callResults.analysis.discoveryMetrics.stakeholdersIdentified.map((s, i) => <Pill key={i}>{s}</Pill>)}</div></div>
+                  <div><p className="text-sm text-gray-500 mb-1">Stakeholders</p><div className="flex flex-wrap gap-1.5">{analysis.analysis.callResults.analysis.discoveryMetrics.stakeholdersIdentified.map((s, i) => <Pill key={i}>{s}</Pill>)}</div></div>
                 )}
               </div>
             </div>
@@ -1070,7 +1107,7 @@ export default function AnalysisDetailPage() {
             {buyingSignals.length > 0 && (
               <div>
                 <Label>Buying Signals</Label>
-                <ul className="text-sm text-gray-400 space-y-1 leading-relaxed">
+                <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">
                   {buyingSignals.map((s, i) => <li key={i}>- {s}</li>)}
                 </ul>
               </div>
@@ -1079,7 +1116,7 @@ export default function AnalysisDetailPage() {
             {analysis?.analysis?.callResults?.analysis?.discoveryMetrics?.currentVendors?.length ? (
               <div>
                 <Label>Current Vendors</Label>
-                <ul className="text-sm text-gray-400 space-y-1">
+                <ul className="text-base text-gray-400 space-y-1.5">
                   {analysis.analysis.callResults.analysis.discoveryMetrics.currentVendors.map((v, i) => <li key={i}>- {v}</li>)}
                 </ul>
               </div>
@@ -1092,8 +1129,8 @@ export default function AnalysisDetailPage() {
       {/* Footer */}
       <Rule />
       <div className="flex justify-center gap-3 pb-12">
-        <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-xs text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Back</button>
-        <button onClick={() => handleExport('detailed')} className="text-xs text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Download Report</button>
+        <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Back</button>
+        <button onClick={() => handleExport('detailed')} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Download Report</button>
       </div>
     </div>
   );
