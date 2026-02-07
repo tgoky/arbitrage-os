@@ -131,23 +131,26 @@ export default function ReviewRecordingPage() {
     setCurrentStep(2); // When starting analysis
 
     try {
+      // Strip empty strings to undefined so optional validators don't fail
+      const stripEmpty = (val: string | undefined) => val?.trim() || undefined;
+
       const analysisInput = {
         title: values.title || `${values.callType} call with ${values.companyName || 'prospect'}`,
         callType: values.callType,
         actualDate: values.actualDate ? dayjs(values.actualDate).toDate() : new Date(),
         transcript: values.transcript,
-        prospectName: values.prospectName,
-        prospectTitle: values.prospectTitle,
-        prospectEmail: values.prospectEmail,
-        prospectLinkedin: values.prospectLinkedin,
-        companyName: values.companyName,
-        companyWebsite: values.companyWebsite,
-        companyIndustry: values.companyIndustry,
-        companyHeadcount: values.companyHeadcount,
-        companyRevenue: values.companyRevenue,
-        companyLocation: values.companyLocation,
-        companyLinkedin: values.companyLinkedin,
-        additionalContext: values.additionalContext,
+        prospectName: stripEmpty(values.prospectName),
+        prospectTitle: stripEmpty(values.prospectTitle),
+        prospectEmail: stripEmpty(values.prospectEmail),
+        prospectLinkedin: stripEmpty(values.prospectLinkedin),
+        companyName: stripEmpty(values.companyName),
+        companyWebsite: stripEmpty(values.companyWebsite),
+        companyIndustry: stripEmpty(values.companyIndustry),
+        companyHeadcount: values.companyHeadcount || undefined,
+        companyRevenue: values.companyRevenue || undefined,
+        companyLocation: stripEmpty(values.companyLocation),
+        companyLinkedin: stripEmpty(values.companyLinkedin),
+        additionalContext: stripEmpty(values.additionalContext),
         scheduledDate: undefined,
         specificQuestions: values.specificQuestions ? values.specificQuestions.split('\n').filter(Boolean) : undefined,
         analysisGoals: values.analysisGoals ? values.analysisGoals.split('\n').filter(Boolean) : undefined,

@@ -30,10 +30,12 @@ const salesCallInputSchema = z.object({
   
   prospectEmail: z.string()
     .email('Invalid email format')
+    .or(z.literal(''))
     .optional(),
-  
+
   prospectLinkedin: z.string()
     .url('Invalid LinkedIn URL')
+    .or(z.literal(''))
     .optional(),
   
   // Company Information
@@ -43,6 +45,7 @@ const salesCallInputSchema = z.object({
   
   companyWebsite: z.string()
     .url('Invalid website URL')
+    .or(z.literal(''))
     .optional(),
   
   companyIndustry: z.string()
@@ -61,6 +64,7 @@ const salesCallInputSchema = z.object({
   
   companyLinkedin: z.string()
     .url('Invalid LinkedIn URL')
+    .or(z.literal(''))
     .optional(),
   
   // Additional Context
