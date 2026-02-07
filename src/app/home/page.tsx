@@ -811,7 +811,7 @@ return (
         closable={false}
         centered
         width={400}
-        styles={{ body: { padding: 0, backgroundColor: theme === 'dark' ? SURFACE_CARD : '#ffffff', overflow: 'hidden', borderRadius: '16px', border: `1px solid ${theme === 'dark' ? BORDER_COLOR : '#e5e7eb'}` } }}
+        styles={{ body: { padding: 0, backgroundColor: theme === 'dark' ? '#000000' : '#ffffff', overflow: 'hidden', borderRadius: '16px', border: `1px solid ${theme === 'dark' ? BORDER_COLOR : '#e5e7eb'}` } }}
       >
         <div style={{ padding: '40px', textAlign: 'center' }}>
           <div style={{ marginBottom: '24px', position: 'relative', width: '80px', height: '80px', margin: '0 auto 24px' }}>

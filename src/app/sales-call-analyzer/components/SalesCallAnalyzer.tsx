@@ -61,9 +61,9 @@ const { Search } = Input;
 // --- DARK MODE STYLING CONSTANTS ---
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
-const DARK_BG = '#0f172a'; // Deep space dark background
+const DARK_BG = '#000000'; // Deep space dark background
 const SURFACE_BG = '#000000'; // Card surface background
-const SURFACE_LIGHTER = '#334155'; // Lighter surfaces
+const SURFACE_LIGHTER = '#000000'; // Lighter surfaces
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
 const TEXT_TERTIARY = '#64748b';
@@ -176,7 +176,7 @@ export default function SalesCallAnalyzerPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 py-8 bg-black">
         <Alert
           message="Workspace Required"
           description="The sales call analyzer must be accessed from within a workspace. Please navigate to a workspace first."
@@ -486,9 +486,9 @@ export default function SalesCallAnalyzerPage() {
             colorBorder: BORDER_COLOR,
           },
           Table: {
-            headerBg: SURFACE_LIGHTER,
+            headerBg: '#000000',
             headerColor: TEXT_PRIMARY,
-            rowHoverBg: '#2d3748',
+             rowHoverBg: '#1E1E24',
             colorBgContainer: SURFACE_BG,
             borderColor: BORDER_COLOR,
           },
@@ -524,7 +524,7 @@ export default function SalesCallAnalyzerPage() {
                 <Button 
                   icon={<SettingOutlined />}
                   onClick={() => go({ to: "/sales-call-analyzer/settings" })}
-                  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                  style={{ background: '#000000', borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
                 >
                   Settings
                 </Button>
@@ -614,7 +614,7 @@ export default function SalesCallAnalyzerPage() {
             >
               <Row gutter={16}>
                 <Col xs={24} sm={12} md={6} className="mb-4">
-                  <Card bordered={false} className="border border-gray-700 bg-gray-800/50">
+                  <Card bordered={false} className="border border-gray-700 bg-black">
                     <Statistic
                       title={<span style={{ color: TEXT_SECONDARY }}>Total Calls</span>}
                       value={stats.totalCalls}
@@ -624,7 +624,7 @@ export default function SalesCallAnalyzerPage() {
                   </Card>
                 </Col>
                 <Col xs={24} sm={12} md={6} className="mb-4">
-                  <Card bordered={false} className="border border-gray-700 bg-gray-800/50">
+                  <Card bordered={false} className="border border-gray-700 bg-black">
                     <Statistic
                       title={<span style={{ color: TEXT_SECONDARY }}>Completed Analysis</span>}
                       value={stats.completedCalls}
@@ -635,7 +635,7 @@ export default function SalesCallAnalyzerPage() {
                   </Card>
                 </Col>
                 <Col xs={24} sm={12} md={6} className="mb-4">
-                  <Card bordered={false} className="border border-gray-700 bg-gray-800/50">
+                  <Card bordered={false} className="border border-gray-700 bg-black">
                     <Statistic
                       title={<span style={{ color: TEXT_SECONDARY }}>Average Score</span>}
                       value={stats.avgScore}
@@ -646,7 +646,7 @@ export default function SalesCallAnalyzerPage() {
                   </Card>
                 </Col>
                 <Col xs={24} sm={12} md={6} className="mb-4">
-                  <Card bordered={false} className="border border-gray-700 bg-gray-800/50">
+                  <Card bordered={false} className="border border-gray-700 bg-black">
                     <Statistic
                       title={<span style={{ color: TEXT_SECONDARY }}>Avg. Duration</span>}
                       value={Math.floor(stats.avgDuration / 60)}
