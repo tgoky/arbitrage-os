@@ -524,7 +524,45 @@ const premiumStyles = `
   .workspace-card-premium:hover::after {
     opacity: 1;
   }
+
+  /* Opening Workspace Modal - AGGRESSIVE border removal */
+  .workspace-opening-modal {
+    border: none !important;
+  }
+  
+  .workspace-opening-modal .ant-modal {
+    border: none !important;
+  }
+  
+  .workspace-opening-modal .ant-modal-content {
+    border: none !important;
+    box-shadow: none !important;
+    background: #000000 !important;
+  }
+  
+  .workspace-opening-modal .ant-modal-body {
+    border: none !important;
+    background: #000000 !important;
+  }
+  
+  /* Target every possible wrapper */
+  .workspace-opening-modal .ant-modal-wrap,
+  .workspace-opening-modal > div,
+  .workspace-opening-modal .ant-modal-centered,
+  .workspace-opening-modal .ant-modal-wrap > div {
+    border: none !important;
+  }
+  
+  /* Nuclear option - remove all borders from modal and children */
+  .workspace-opening-modal,
+  .workspace-opening-modal *,
+  .workspace-opening-modal::before,
+  .workspace-opening-modal::after {
+    border-color: #000000 !important;
+    outline: none !important;
+  }
 `;
+
 
   // Event handlers
   const handleCreateWorkspace = async () => {
@@ -687,7 +725,7 @@ const premiumStyles = `
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        backgroundColor: '#000',
+        backgroundColor: '#000000',
         backgroundImage: 'radial-gradient(circle at center, #111 0%, #000 70%)',
         fontFamily: 'Manrope, sans-serif' 
       }}>
@@ -695,7 +733,7 @@ const premiumStyles = `
           width: '380px',
           padding: '40px',
           borderRadius: '16px',
-          backgroundColor: 'rgba(255,255,255,0.02)',
+          backgroundColor: 'rgba(0, 0, 0, 0.02)',
           border: '1px solid rgba(255,255,255,0.05)',
           backdropFilter: 'blur(10px)',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
@@ -802,17 +840,32 @@ return (
     
     <div className="min-h-screen w-full" style={{ 
       backgroundColor: theme === 'dark' ? '#000000' : '#f9fafb' ,
-      fontFamily: 'Manrope, sans-serif'
+      fontFamily: 'Manrope, sans-serif',
+      borderColor: "#000000"
     }}>
       {/* Navigation Loading Modal from Code 1 */}
-      <Modal
-        open={navigating}
-        footer={null}
-        closable={false}
-        centered
-        width={400}
-        styles={{ body: { padding: 0, backgroundColor: theme === 'dark' ? '#000000' : '#ffffff', overflow: 'hidden', borderRadius: '16px', border: `1px solid ${theme === 'dark' ? BORDER_COLOR : '#e5e7eb'}` } }}
-      >
+<Modal
+  open={navigating}
+  footer={null}
+  closable={false}
+  centered
+  width={400}
+  wrapClassName="workspace-opening-modal"
+  styles={{ 
+    body: { 
+      padding: 0, 
+      backgroundColor: '#000000', 
+      overflow: 'hidden', 
+      borderRadius: '16px'
+    },
+    mask: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)'
+    }
+  }}
+  maskStyle={{
+    backgroundColor: 'rgba(0, 0, 0, 0.8)'
+  }}
+>
         <div style={{ padding: '40px', textAlign: 'center' }}>
           <div style={{ marginBottom: '24px', position: 'relative', width: '80px', height: '80px', margin: '0 auto 24px' }}>
              <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', border: `2px solid ${BRAND_GREEN}`, opacity: 0.2 }}></div>
@@ -827,7 +880,7 @@ return (
         </div>
       </Modal>
 
-      {/* Password Modal from Code 1 */}
+      {/* Password Modal from Code 1 */}  open={navigating}
       <Modal
         title={null}
         open={showPasswordModal}
@@ -1014,7 +1067,7 @@ return (
               bodyStyle={{ padding: '16px' }}
               style={{
                 border: `1px solid ${theme === 'dark' ? '#000000' : '#e5e7eb'}`,
-                backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff'
+                backgroundColor: theme === 'dark' ? '#000000' : '#ffffff'
               }}
             >
               <div className="flex items-center justify-between">
@@ -1044,116 +1097,128 @@ return (
           </div>
         )}
 
-        {/* Stats Cards */}
-        <Row gutter={[12, 12]} className="mb-6">
-          <Col xs={24} sm={8}>
-            <Card 
-              size="small" 
-              className="text-center h-full" 
-              bodyStyle={{ padding: '12px 16px' }}
+     {/* Stats Cards */}
+<Row gutter={[12, 12]} className="mb-6">
+  <Col xs={24} sm={8}>
+    <Card 
+      size="small" 
+      className="text-center h-full" 
+      bodyStyle={{ padding: '12px 16px' }}
+      style={{ 
+        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        borderColor: theme === 'dark' ? '#000000' : '#e5e7eb'
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-left">
+          <Text type="secondary" className="text-xs block mb-1">Active Workspaces</Text>
+          <Title level={3} className="mb-0" style={{ marginBottom: 0 }}>{workspaces.length}</Title>
+        </div>
+        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+          <FolderOutlined className="text-green-600 text-sm" />
+        </div>
+      </div>
+    </Card>
+  </Col>
+  
+  <Col xs={24} sm={8}>
+    <Card 
+      size="small" 
+      className="text-center h-full" 
+      bodyStyle={{ padding: '12px 16px' }}
+      style={{ 
+        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        borderColor: theme === 'dark' ? '#000000' : '#e5e7eb'
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-left">
+          <Text type="secondary" className="text-xs block mb-1">Recent Workspace</Text>
+          <Title 
+            level={4} 
+            className="mb-0" 
+            style={{ 
+              marginBottom: 0, 
+              fontSize: '16px',
+              lineHeight: 1.2
+            }}
+            ellipsis={{ tooltip: mostRecentWorkspace?.name }}
+          >
+            {mostRecentWorkspace?.name || "None"}
+          </Title>
+          {mostRecentWorkspace && (
+            <Text 
+              type="secondary" 
+              className="text-xs"
+              title={`Last used: ${new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleString()}`}
             >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <Text type="secondary" className="text-xs block mb-1">Active Workspaces</Text>
-                  <Title level={3} className="mb-0" style={{ marginBottom: 0 }}>{workspaces.length}</Title>
-                </div>
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FolderOutlined className="text-green-600 text-sm" />
-                </div>
-              </div>
-            </Card>
-          </Col>
-          
-          <Col xs={24} sm={8}>
-            <Card 
-              size="small" 
-              className="text-center h-full" 
-              bodyStyle={{ padding: '12px 16px' }}
+              {new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleDateString()}
+            </Text>
+          )}
+        </div>
+        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <HistoryOutlined className="text-blue-600 text-sm" />
+        </div>
+      </div>
+    </Card>
+  </Col>
+  
+  <Col xs={24} sm={8}>
+    <Card 
+      size="small" 
+      className="text-center h-full" 
+      bodyStyle={{ padding: '12px 16px' }}
+      style={{ 
+        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        borderColor: theme === 'dark' ? '#000000' : '#e5e7eb'
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-left">
+          <Text type="secondary" className="text-xs block mb-1">Recent Tool Used</Text>
+          <Title 
+            level={4} 
+            className="mb-0" 
+            style={{ 
+              marginBottom: 0, 
+              fontSize: '16px',
+              lineHeight: 1.2,
+              color: theme === 'dark' ? '#fff' : '#000'
+            }}
+            ellipsis={{ tooltip: metrics.recentToolName }}
+          >
+            {metrics.recentToolName}
+          </Title>
+          {metrics.recentToolTime && (
+            <Text 
+              type="secondary" 
+              className="text-xs"
+              title={new Date(metrics.recentToolTime).toLocaleString()}
             >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <Text type="secondary" className="text-xs block mb-1">Recent Workspace</Text>
-                  <Title 
-                    level={4} 
-                    className="mb-0" 
-                    style={{ 
-                      marginBottom: 0, 
-                      fontSize: '16px',
-                      lineHeight: 1.2
-                    }}
-                    ellipsis={{ tooltip: mostRecentWorkspace?.name }}
-                  >
-                    {mostRecentWorkspace?.name || "None"}
-                  </Title>
-                  {mostRecentWorkspace && (
-                    <Text 
-                      type="secondary" 
-                      className="text-xs"
-                      title={`Last used: ${new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleString()}`}
-                    >
-                      {new Date(mostRecentWorkspace.updated_at || mostRecentWorkspace.created_at || 0).toLocaleDateString()}
-                    </Text>
-                  )}
-                </div>
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <HistoryOutlined className="text-blue-600 text-sm" />
-                </div>
-              </div>
-            </Card>
-          </Col>
-          
-          <Col xs={24} sm={8}>
-            <Card 
-              size="small" 
-              className="text-center h-full" 
-              bodyStyle={{ padding: '12px 16px' }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <Text type="secondary" className="text-xs block mb-1">Recent Tool Used</Text>
-                  <Title 
-                    level={4} 
-                    className="mb-0" 
-                    style={{ 
-                      marginBottom: 0, 
-                      fontSize: '16px',
-                      lineHeight: 1.2,
-                      color: theme === 'dark' ? '#fff' : '#000'
-                    }}
-                    ellipsis={{ tooltip: metrics.recentToolName }}
-                  >
-                    {metrics.recentToolName}
-                  </Title>
-                  {metrics.recentToolTime && (
-                    <Text 
-                      type="secondary" 
-                      className="text-xs"
-                      title={new Date(metrics.recentToolTime).toLocaleString()}
-                    >
-                      {(() => {
-                        const now = new Date();
-                        const itemDate = new Date(metrics.recentToolTime);
-                        const diffMs = now.getTime() - itemDate.getTime();
-                        const diffMins = Math.floor(diffMs / (1000 * 60));
-                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                        
-                        if (diffMins < 1) return 'Just now';
-                        if (diffMins < 60) return `${diffMins}m ago`;
-                        if (diffHours < 24) return `${diffHours}h ago`;
-                        if (diffDays === 1) return 'Yesterday';
-                        return `${diffDays}d ago`;
-                      })()}
-                    </Text>
-                  )}
-                </div>
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <RiseOutlined className="text-purple-600 text-sm" />
-                </div>
-              </div>
-            </Card>
-          </Col>
-        </Row>
+              {(() => {
+                const now = new Date();
+                const itemDate = new Date(metrics.recentToolTime);
+                const diffMs = now.getTime() - itemDate.getTime();
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays === 1) return 'Yesterday';
+                return `${diffDays}d ago`;
+              })()}
+            </Text>
+          )}
+        </div>
+        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+          <RiseOutlined className="text-purple-600 text-sm" />
+        </div>
+      </div>
+    </Card>
+  </Col>
+</Row>
 
         {/* Workspaces Grid */}
         <Row gutter={[16, 16]}>
