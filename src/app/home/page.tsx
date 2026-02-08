@@ -64,7 +64,7 @@ const BRAND_GREEN = '#5CC49D';
 const DARK_BG = '#000000';
 const SURFACE_CARD = '#09090b';
 const SURFACE_ELEVATED = '#000000';
-const BORDER_COLOR = '#27272a';
+const BORDER_COLOR = '#000000';
 const TEXT_SECONDARY = '#a1a1aa';
 const TEXT_PRIMARY = '#ffffff';
 
@@ -1013,7 +1013,7 @@ return (
               className="w-full"
               bodyStyle={{ padding: '16px' }}
               style={{
-                border: `1px solid ${theme === 'dark' ? '#27272a' : '#e5e7eb'}`,
+                border: `1px solid ${theme === 'dark' ? '#000000' : '#e5e7eb'}`,
                 backgroundColor: theme === 'dark' ? '#09090b' : '#ffffff'
               }}
             >
@@ -1201,7 +1201,7 @@ return (
         style={{ 
           height: '140px',
           // 2. Ensure base border colors are set
-          borderColor: theme === 'dark' ? '#27272a' : '#f0f0f0',
+          borderColor: theme === 'dark' ? '#000000' : '#f0f0f0',
           background: theme === 'dark' ? '#000000' : '#ffffff' 
         }}
         bodyStyle={{ 
@@ -1313,7 +1313,7 @@ return (
       </main>
 
       {/* Footer */}
-      <footer className={`${theme === 'dark' ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} border-t mt-auto px-6 py-2`}>
+      <footer className={`${theme === 'dark' ? 'bg-black border-black' : 'bg-white border-black'} border-t mt-auto px-6 py-2`}>
         <div className="flex items-center justify-center">
           <Text type="secondary" className="text-xs">
             <span className="" style={{ color: '#5CC49D' }}>arbitrage</span>OS by{' '}

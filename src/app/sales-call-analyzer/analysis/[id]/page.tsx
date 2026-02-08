@@ -166,9 +166,11 @@ interface AnalysisData {
       riskMitigation?: string[];
     };
     performanceMetrics: {
-      talkTimePercentage: number;
+      talkTimePercentage?: number;
+      talkTime?: number;
       questionToStatementRatio: number;
-      averageResponseTime: number;
+      averageResponseTime?: number;
+      responseTime?: number;
       engagementScore: number;
       clarityScore: number;
       enthusiasmLevel: number;
@@ -427,19 +429,21 @@ export default function AnalysisDetailPage() {
   const getTalkRatio = () => {
     const participants = analysis?.analysis?.callResults?.participants || [];
     if (participants.length > 0) {
-      const agent = participants.find(p =>
-        p.role?.toLowerCase().includes('agent') || p.role?.toLowerCase().includes('host') || p.name?.toLowerCase().includes('sarah')
-      );
-      const prospect = participants.find(p =>
-        p.role?.toLowerCase().includes('customer') || p.role?.toLowerCase().includes('prospect') || p.name?.toLowerCase().includes('james')
-      );
+      // Find agent/host by role — no hardcoded names
+      const agent = participants.find((p: any) =>
+        p.role?.toLowerCase().includes('agent') || p.role?.toLowerCase().includes('host')
+      ) || participants[0]; // First speaker is typically the host
+      const prospect = participants.find((p: any) =>
+        p.role?.toLowerCase().includes('customer') || p.role?.toLowerCase().includes('prospect')
+      ) || participants[1]; // Second speaker is typically the prospect
       if (agent && prospect) {
         return { agent: agent.speakingPercentage || 0, prospect: prospect.speakingPercentage || 0, silence: Math.max(0, 100 - (agent.speakingPercentage || 0) - (prospect.speakingPercentage || 0)) };
       }
     }
+    // Fallback to speaker breakdown — match by role/position, not hardcoded names
     const breakdown = analysis?.analysis?.callResults?.analysis?.speakerBreakdown || [];
-    const a = breakdown.find(s => s.speaker.toLowerCase().includes('sarah'));
-    const p = breakdown.find(s => s.speaker.toLowerCase().includes('james'));
+    const a = breakdown[0]; // First speaker
+    const p = breakdown[1]; // Second speaker
     return { agent: a?.percentage || 0, prospect: p?.percentage || 0, silence: Math.max(0, 100 - (a?.percentage || 0) - (p?.percentage || 0)) };
   };
 
@@ -463,7 +467,7 @@ export default function AnalysisDetailPage() {
 
   const getPerformanceMetrics = () => {
     const m = analysis?.analysis?.performanceMetrics;
-    return { talkTime: m?.talkTimePercentage || 0, engagement: m?.engagementScore || 0, clarity: m?.clarityScore || 0, professionalism: m?.professionalismScore || 0 };
+    return { talkTime: m?.talkTimePercentage || m?.talkTime || 0, engagement: m?.engagementScore || 0, clarity: m?.clarityScore || 0, professionalism: m?.professionalismScore || 0 };
   };
 
   if (loading) {
