@@ -139,7 +139,7 @@ const LeadGenerationDetailPage = () => {
     setError(null);
     
     // Change the endpoint to match your campaign structure
-    const response = await fetch(`/api/lead-generation/campaigns/${generationId}?workspaceId=${currentWorkspace?.id}`, {
+    const response = await fetch(`/api/lead-generation/${generationId}?workspaceId=${currentWorkspace?.id}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -200,7 +200,7 @@ Score: ${lead.score}/100
     setExportLoading(true);
     
     // Update export endpoint as well
-    const response = await fetch(`/api/lead-generation/campaigns/${generationId}/export?format=${format}`, {
+    const response = await fetch(`/api/lead-generation/${generationId}/export?format=${format}`, {
       credentials: 'include'
     });
 
