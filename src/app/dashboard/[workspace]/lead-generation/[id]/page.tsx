@@ -301,43 +301,27 @@ Score: ${lead.score}/100
 
   if (!isWorkspaceReady) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-
-        <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
-  <Spin size="large" tip="Loading workspace..." />
-</ConfigProvider>
-      
+      <div style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+          <Spin size="large" tip="Loading workspace..." />
+        </ConfigProvider>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-
-        <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
-       <Spin size="large" tip="Loading lead details..." />
-</ConfigProvider>
- 
+      <div style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+          <Spin size="large" tip="Loading lead details..." />
+        </ConfigProvider>
       </div>
     );
   }
 
   if (error || !leadDetail) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8" style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh' }}>
         <Alert
           message="Error Loading Lead Generation"
           description={error || "Could not find the requested lead generation"}
@@ -350,8 +334,8 @@ Score: ${lead.score}/100
           }
         />
         <div className="mt-4 text-center">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={() => router.push('/lead-generation')}
           >
             Back to Lead Generation
@@ -496,8 +480,103 @@ Score: ${lead.score}/100
     },
   ];
 
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: '#000000',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8" style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+        .lead-gen-detail .ant-card {
+          background-color: #000000 !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-radius: 12px !important;
+        }
+        .lead-gen-detail .ant-card-head {
+          background-color: #000000 !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
+        }
+        .lead-gen-detail .ant-card-head-title {
+          color: #ffffff !important;
+        }
+        .lead-gen-detail .ant-card-body {
+          background-color: #000000 !important;
+        }
+        .lead-gen-detail .ant-descriptions-header .ant-descriptions-title {
+          color: #ffffff !important;
+        }
+        .lead-gen-detail .ant-descriptions-bordered .ant-descriptions-item-label {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          color: #9DA2B3 !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-descriptions-bordered .ant-descriptions-item-content {
+          background-color: transparent !important;
+          color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-table {
+          background-color: #000000 !important;
+        }
+        .lead-gen-detail .ant-table-thead > tr > th {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          color: #9DA2B3 !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-table-tbody > tr > td {
+          background-color: #000000 !important;
+          color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-table-tbody > tr:hover > td {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+        .lead-gen-detail .ant-collapse {
+          background-color: #000000 !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-collapse-header {
+          color: #ffffff !important;
+        }
+        .lead-gen-detail .ant-collapse-content {
+          background-color: #000000 !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-statistic-title {
+          color: #9DA2B3 !important;
+        }
+        .lead-gen-detail .ant-typography {
+          color: #ffffff !important;
+        }
+        .lead-gen-detail .ant-typography-secondary {
+          color: #9DA2B3 !important;
+        }
+        .lead-gen-detail .ant-divider {
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-gen-detail .ant-pagination-item a {
+          color: #9DA2B3 !important;
+        }
+        .lead-gen-detail .ant-pagination-item-active {
+          border-color: #5CC49D !important;
+        }
+        .lead-gen-detail .ant-pagination-item-active a {
+          color: #5CC49D !important;
+        }
+        .lead-gen-detail .ant-select-selector {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
+        }
+        .lead-gen-detail .ant-badge-status-text {
+          color: #ffffff !important;
+        }
+      `}</style>
+      <div className="lead-gen-detail">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Button 
@@ -917,6 +996,7 @@ Score: ${lead.score}/100
           </div>
         )}
       </Modal>
+      </div>
     </div>
   );
 };
