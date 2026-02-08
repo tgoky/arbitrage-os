@@ -817,11 +817,7 @@ const ColdEmailWriter = () => {
             </Button>
 
             <div className="flex flex-col items-center justify-center mb-8">
-              <div className="bg-gray-800/50 backdrop-blur-sm px-6 py-2 rounded-full border border-gray-700 mb-4">
-                <span className="text-[15px] font-bold tracking-widest uppercase text-gray-100">
-                  <span style={{ color: BRAND_GREEN }}>a</span>rb<span style={{ color: BRAND_GREEN }}>i</span>trageOS
-                </span>
-              </div>
+              
               <Title level={1} style={{ marginBottom: 8, fontSize: '36px', fontWeight: 800, color: TEXT_PRIMARY }}>
                 Cold Email Writer
               </Title>
@@ -832,13 +828,13 @@ const ColdEmailWriter = () => {
 
             {/* Custom Tabs */}
             <div className="flex justify-center mb-10">
-              <div className="bg-gray-800 p-1.5 rounded-xl inline-flex gap-2">
+              <div className="bg-black p-1.5 rounded-xl inline-flex gap-2">
                 <button
                   onClick={() => setActiveTab('compose')}
                   className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
                     activeTab === 'compose' 
-                      ? 'bg-gray-700 text-white shadow-sm ring-1 ring-gray-600' 
-                      : 'text-gray-400 hover:text-gray-300'
+                      ? 'bg-black text-white shadow-sm ring-1 ring-gray-600' 
+                      : 'text-black hover:text-black'
                   }`}
                 >
                   <MailOutlined /> Compose
@@ -847,13 +843,13 @@ const ColdEmailWriter = () => {
                   onClick={() => setActiveTab('saved')}
                   className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
                     activeTab === 'saved' 
-                      ? 'bg-gray-700 text-white shadow-sm ring-1 ring-gray-600' 
-                      : 'text-gray-400 hover:text-gray-300'
+                      ? 'bg-black text-white shadow-sm ring-1 ring-gray-600' 
+                      : 'text-black hover:text-black'
                   }`}
                 >
                   <SolutionOutlined /> Saved Emails
                   {savedEmails.length > 0 && (
-                    <span className="bg-gray-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
+                    <span className="bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
                       {savedEmails.length}
                     </span>
                   )}
@@ -862,8 +858,8 @@ const ColdEmailWriter = () => {
                   onClick={() => setActiveTab('templates')}
                   className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
                     activeTab === 'templates' 
-                      ? 'bg-gray-700 text-white shadow-sm ring-1 ring-gray-600' 
-                      : 'text-gray-400 hover:text-gray-300'
+                      ? 'bg-black text-white shadow-sm ring-1 ring-gray-600' 
+                      : 'text-black hover:text-black'
                   }`}
                 >
                   <ContactsOutlined /> Templates
@@ -1251,7 +1247,7 @@ const ColdEmailWriter = () => {
                         </Form.Item>
                       </div>
 
-                      <Collapse ghost size="small" className="mt-4 bg-gray-900 rounded-lg">
+                      <Collapse ghost size="small" className="mt-4 bg-black rounded-lg">
                         <Panel header={<span className="text-gray-400 font-medium text-sm">Specific Recipient Details (Optional)</span>} key="recipient">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                             <Form.Item name="targetFirstName" label="First Name"><Input placeholder="First name if known" /></Form.Item>
@@ -1602,129 +1598,192 @@ const ColdEmailWriter = () => {
             </div>
           )}
 
-          {/* SAVED TAB */}
-          {activeTab === 'saved' && (
-            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <Title level={4} className="m-0 text-gray-100">Saved Campaigns</Title>
-                <Button 
-                  icon={<ArrowRightOutlined />} 
-                  onClick={fetchSavedEmails} 
-                  loading={savedEmailsLoading}
-                  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
-                >
-                  Refresh List
-                </Button>
+       {activeTab === 'saved' && (
+  <div className="bg-black rounded-2xl shadow-sm border border-gray-700 p-6">
+    <div className="flex justify-between items-center mb-6">
+      <Title level={4} className="m-0 text-gray-100">Saved Campaigns</Title>
+      <Button 
+        icon={<ArrowRightOutlined />} 
+        onClick={fetchSavedEmails} 
+        loading={savedEmailsLoading}
+        style={{ 
+          background: '#000000', // Black background
+          borderColor: '#475569', 
+          color: '#f1f5f9' 
+        }}
+      >
+        Refresh List
+      </Button>
+    </div>
+    
+    {savedEmailsLoading ? (
+      <div className="text-center py-12">
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: '#5CC49D',
+            },
+          }}
+        >
+          <Spin size="large" tip="Loading saved emails..." />
+        </ConfigProvider>
+      </div>
+    ) : savedEmails.length === 0 ? (
+      <div className="text-center py-12">
+        <MailOutlined style={{ fontSize: '48px', color: '#4b5563', marginBottom: '16px' }} />
+        <Title level={4} className="text-gray-300">No Saved Emails Yet</Title>
+        <Text className="text-gray-500">
+          Generate your first email campaign to see it here
+        </Text>
+        <br />
+        <Button 
+          type="primary" 
+          onClick={() => setActiveTab('compose')}
+          className="mt-4"
+          style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
+        >
+          Create Your First Email
+        </Button>
+      </div>
+    ) : (
+      <Table
+        dataSource={savedEmails}
+        loading={savedEmailsLoading}
+        rowKey="id"
+        pagination={{ pageSize: 8 }}
+        className="saved-emails-table" // Add this class
+        columns={[
+          { 
+            title: <span style={{ color: '#f1f5f9' }}>Campaign</span>, 
+            dataIndex: 'title', 
+            key: 'title', 
+            render: (t) => <span className="font-semibold text-gray-200">{t}</span> 
+          },
+          { 
+            title: <span style={{ color: '#f1f5f9' }}>Target</span>, 
+            key: 't', 
+            render: (r) => (
+              <div className="text-sm">
+                <div className="text-gray-200">{r.targetCompany || r.targetFirstName || 'Unknown'}</div>
+                <div className="text-gray-400 text-xs">{r.targetRole}</div>
               </div>
-              
-              {savedEmailsLoading ? (
-                <div className="text-center py-12">
+            )
+          },
+          { 
+            title: <span style={{ color: '#f1f5f9' }}>Method</span>, 
+            dataIndex: 'method', 
+            render: (m) => <Tag className="bg-gray-700 text-gray-200 border-gray-600">{m}</Tag>
+          },
+          { 
+            title: <span style={{ color: '#f1f5f9' }}>Emails</span>, 
+            dataIndex: 'emailCount', 
+            key: 'emailCount',
+            render: (count) => <span className="text-gray-300">{count || 0}</span>
+          },
+          { 
+            title: <span style={{ color: '#f1f5f9' }}>Created</span>, 
+            dataIndex: 'createdAt', 
+            key: 'createdAt',
+            render: (date) => <span className="text-gray-400">{new Date(date).toLocaleDateString()}</span>
+          },
+          { 
+            title: <span style={{ color: '#f1f5f9' }}>Actions</span>, 
+            key: 'action', 
+            render: (r) => (
+              <Space>
+                <Button 
+                  size="small" 
+                  icon={viewLoading === r.id ? <Spin size="small" style={{ color: '#5CC49D' }} /> : <EyeOutlined />} 
+                  onClick={() => handleViewSavedEmail(r.id)}
+                  disabled={viewLoading !== null}
+                  style={{ 
+                    background: '#000000', // Black background
+                    borderColor: '#475569', 
+                    color: '#f1f5f9' 
+                  }}
+                >
+                  View
+                </Button>
+                <Button 
+                  size="small" 
+                  danger 
+                  type="text"
+                  onClick={() => handleDeleteSavedEmail(r.id)}
+                >
+                  Delete
+                </Button>
+              </Space>
+            )
+          }
+        ]}
+      />
+    )}
+  </div>
+)}
 
-                  
 
-                  <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
-   <Spin size="large" tip="Loading saved emails..." />
-</ConfigProvider>
-
-                
-                </div>
-              ) : savedEmails.length === 0 ? (
-                <div className="text-center py-12">
-                  <MailOutlined style={{ fontSize: '48px', color: '#4b5563', marginBottom: '16px' }} />
-                  <Title level={4} className="text-gray-300">No Saved Emails Yet</Title>
-                  <Text className="text-gray-500">
-                    Generate your first email campaign to see it here
-                  </Text>
-                  <br />
-                  <Button 
-                    type="primary" 
-                    onClick={() => setActiveTab('compose')}
-                    className="mt-4"
-                    style={{ background: BRAND_GREEN, borderColor: BRAND_GREEN, color: '#000' }}
-                  >
-                    Create Your First Email
-                  </Button>
-                </div>
-              ) : (
-                <Table
-                  dataSource={savedEmails}
-                  loading={savedEmailsLoading}
-                  rowKey="id"
-                  pagination={{ pageSize: 8 }}
-                  columns={[
-                    { 
-                      title: 'Campaign', 
-                      dataIndex: 'title', 
-                      key: 'title', 
-                      render: (t) => <span className="font-semibold text-gray-200">{t}</span> 
-                    },
-                    { 
-                      title: 'Target', 
-                      key: 't', 
-                      render: (r) => (
-                        <div className="text-sm">
-                          <div className="text-gray-200">{r.targetCompany || r.targetFirstName || 'Unknown'}</div>
-                          <div className="text-gray-400 text-xs">{r.targetRole}</div>
-                        </div>
-                      )
-                    },
-                    { 
-                      title: 'Method', 
-                      dataIndex: 'method', 
-                      render: (m) => <Tag className="bg-gray-700 text-gray-200 border-gray-600">{m}</Tag>
-                    },
-                    { 
-                      title: 'Emails', 
-                      dataIndex: 'emailCount', 
-                      key: 'emailCount',
-                      render: (count) => <span className="text-gray-300">{count || 0}</span>
-                    },
-                    { 
-                      title: 'Created', 
-                      dataIndex: 'createdAt', 
-                      key: 'createdAt',
-                      render: (date) => <span className="text-gray-400">{new Date(date).toLocaleDateString()}</span>
-                    },
-                    { 
-                      title: 'Actions', 
-                      key: 'action', 
-                      render: (r) => (
-                        <Space>
-                       <Button 
-  size="small" 
-  icon={viewLoading === r.id ? <Spin size="small" style={{ color: '#5CC49D' }} /> : <EyeOutlined />} 
-  onClick={() => handleViewSavedEmail(r.id)}
-  disabled={viewLoading !== null}
-  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
->
-  View
-</Button>
-                          <Button 
-                            size="small" 
-                            danger 
-                            type="text"
-                            onClick={() => handleDeleteSavedEmail(r.id)}
-                          >
-                            Delete
-                          </Button>
-                        </Space>
-                      )
-                    }
-                  ]}
-                />
-              )}
-            </div>
-          )}
-
+ <style jsx global>{`
+  /* Custom styling for saved emails table */
+  .saved-emails-table .ant-table {
+    background: #000000 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px;
+  }
+  
+  .saved-emails-table .ant-table-thead > tr > th {
+    background: #000000 !important; /* Black header background */
+    border-bottom: 2px solid #334155 !important;
+    color: #f1f5f9 !important; /* White header text */
+    font-weight: 600;
+    padding: 12px 16px;
+  }
+  
+  .saved-emails-table .ant-table-tbody > tr > td {
+    background: #000000 !important;
+    border-bottom: 1px solid #334155 !important;
+    padding: 12px 16px;
+    color: #94a3b8 !important; /* Gray text for body */
+  }
+  
+  .saved-emails-table .ant-table-tbody > tr:hover > td {
+    background: rgba(92, 196, 157, 0.1) !important; /* Green tint on hover */
+  }
+  
+  .saved-emails-table .ant-table-cell {
+    border-color: #334155 !important;
+  }
+  
+  /* Remove any default Ant Design header styling */
+  .saved-emails-table .ant-table-thead > tr > th::before {
+    display: none !important;
+  }
+  
+  /* Pagination styling */
+  .saved-emails-table .ant-pagination-item {
+    background: #000000 !important;
+    border-color: #334155 !important;
+  }
+  
+  .saved-emails-table .ant-pagination-item a {
+    color: #94a3b8 !important;
+  }
+  
+  .saved-emails-table .ant-pagination-item-active {
+    border-color: #5CC49D !important;
+  }
+  
+  .saved-emails-table .ant-pagination-item-active a {
+    color: #5CC49D !important;
+  }
+  
+  /* Loading spinner */
+  .saved-emails-table .ant-spin-dot-item {
+    background-color: #5CC49D !important;
+  }
+`}</style>
           {/* TEMPLATES TAB */}
           {activeTab === 'templates' && (
-            <div className="bg-gray-800 rounded-2xl shadow-sm border border-gray-700 p-6">
+            <div className="bg-black rounded-2xl shadow-sm border border-gray-700 p-6">
               <div className="flex justify-between items-center mb-6">
                 <Title level={4} className="m-0 text-gray-100">Email Templates</Title>
                 <Button 
@@ -1770,7 +1829,7 @@ const ColdEmailWriter = () => {
           >
             {emailPreviewModal.email && (
               <div className="pt-4">
-                <div className="mb-6 grid grid-cols-3 gap-4 bg-gray-800 p-4 rounded-lg text-sm">
+                <div className="mb-6 grid grid-cols-3 gap-4 bg-black p-4 rounded-lg text-sm">
                   <div><span className="text-gray-400 block">Method</span> <Tag className="bg-gray-700 text-gray-200">{emailPreviewModal.email.metadata?.method}</Tag></div>
                   <div><span className="text-gray-400 block">Target</span> <span className="font-medium text-gray-200">{emailPreviewModal.email.metadata?.targetRole} @ {emailPreviewModal.email.metadata?.targetCompany}</span></div>
                   <div><span className="text-gray-400 block">Generated</span> <span className="font-medium text-gray-200">{new Date(emailPreviewModal.email.createdAt).toLocaleDateString()}</span></div>
@@ -1778,7 +1837,7 @@ const ColdEmailWriter = () => {
                 
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                   {emailPreviewModal.email.emails?.map((e: any, i: number) => (
-                    <div key={i} className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+                    <div key={i} className="border border-gray-700 rounded-lg p-4 bg-black">
                       <div className="flex justify-between mb-2">
                         <span className="font-bold text-gray-200">Email {i+1}: {e.subject}</span>
                         <Button size="small" type="link" onClick={() => copyToClipboard(e.body)} style={{ color: BRAND_GREEN }}>Copy Body</Button>

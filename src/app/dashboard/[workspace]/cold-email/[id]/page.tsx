@@ -273,7 +273,7 @@ const ColdEmailDetailPage = () => {
       </div>
 
       {/* Generation Info */}
-      <Card className="mb-6">
+      <Card className="mb-6 bg-black">
         <Descriptions title="Generation Information" bordered column={1}>
           <Descriptions.Item label="Method">
             <Tag color="blue" icon={<ThunderboltOutlined />}>
@@ -303,6 +303,9 @@ const ColdEmailDetailPage = () => {
 
       {/* Email Variations */}
       <Card 
+      style={{
+        backgroundColor: '#000000'
+      }}
         title={
           <Space>
             <MailOutlined />
@@ -324,6 +327,9 @@ const ColdEmailDetailPage = () => {
                 key={index}
                 type={selectedEmailIndex === index ? 'primary' : 'default'}
                 onClick={() => setSelectedEmailIndex(index)}
+                style={{
+                  backgroundColor: '#5CC49D'
+                }}
               >
                 Variation {index + 1}
               </Button>

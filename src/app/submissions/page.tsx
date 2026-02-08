@@ -342,7 +342,7 @@ const IntegratedWorkDashboard = () => {
       switch (action) {
         case 'view':
           const viewUrls: Record<WorkItemType, string> = {
-            'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`,
+               'offer-creator': `/dashboard/${currentWorkspace.slug}/offer-creator/${item.metadata.deliverableId}`,
             'sales-call': `/dashboard/${currentWorkspace.slug}/sales-call-analyzer/${item.metadata.deliverableId}`,
             'growth-plan': `/dashboard/${currentWorkspace.slug}/growth-plans/${item.metadata.deliverableId}`,
             'pricing-calc': `/dashboard/${currentWorkspace.slug}/pricing-calculator/${item.metadata.deliverableId}`,
