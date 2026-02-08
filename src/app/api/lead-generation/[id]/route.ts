@@ -86,7 +86,7 @@ export async function GET(
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'lead-generation'
+        type: { in: ['lead-generation', 'lead_generation'] }
       },
       include: {
         workspace: {
@@ -243,7 +243,7 @@ export async function DELETE(
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'lead-generation'
+        type: { in: ['lead-generation', 'lead_generation'] }
       }
     });
 
