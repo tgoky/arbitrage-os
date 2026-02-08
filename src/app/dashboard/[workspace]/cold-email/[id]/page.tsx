@@ -237,14 +237,17 @@ const ColdEmailDetailPage = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Button 
-          icon={<ArrowLeftOutlined />} 
-    onClick={handleBack}
-        >
-          Back to Work
-        </Button>
-        
+      <div>
+          <button 
+                    onClick={handleBack}
+                    className={`
+                      group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
+                      bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white
+                    `}
+                  >
+                    <ArrowLeftOutlined className="text-xs transition-transform group-hover:-translate-x-1" />
+                    <span className="text-sm font-medium font-manrope">Back to Dashboard</span>
+                  </button>
         <Space>
           {/* <Button 
             icon={<EditOutlined />} 

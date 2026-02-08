@@ -133,37 +133,39 @@ const LeadGenerationDetailPage = () => {
     }
   }, [isWorkspaceReady, currentWorkspace, generationId]);
 
-  const fetchLeadDetail = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/lead-generation/${generationId}?workspaceId=${currentWorkspace?.id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+ const fetchLeadDetail = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Change the endpoint to match your campaign structure
+    const response = await fetch(`/api/lead-generation/campaigns/${generationId}?workspaceId=${currentWorkspace?.id}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include'
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch lead details: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setLeadDetail(data.data);
-      } else {
-        throw new Error(data.error || 'Failed to load lead details');
-      }
-    } catch (err) {
-      console.error('Error fetching lead detail:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      message.error('Failed to load lead details');
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch lead details: ${response.statusText}`);
     }
-  };
+
+    const data = await response.json();
+    
+    if (data.success) {
+      setLeadDetail(data.data);
+    } else {
+      throw new Error(data.error || 'Failed to load lead details');
+    }
+  } catch (err) {
+    console.error('Error fetching lead detail:', err);
+    setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    message.error('Failed to load lead details');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -191,42 +193,44 @@ Score: ${lead.score}/100
     copyToClipboard(info);
   };
 
-  const exportLeads = async (format: 'csv' | 'json' = 'csv') => {
-    if (!leadDetail) return;
+ const exportLeads = async (format: 'csv' | 'json' = 'csv') => {
+  if (!leadDetail) return;
+  
+  try {
+    setExportLoading(true);
     
-    try {
-      setExportLoading(true);
-      
-      const response = await fetch(`/api/lead-generation/${generationId}/export?format=${format}`, {
-        credentials: 'include'
-      });
+    // Update export endpoint as well
+    const response = await fetch(`/api/lead-generation/campaigns/${generationId}/export?format=${format}`, {
+      credentials: 'include'
+    });
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `leads-${generationId}-${new Date().toISOString().split('T')[0]}.${format}`;
-      anchor.style.display = 'none';
-      
-      document.body.appendChild(anchor);
-      anchor.click();
-      
-      URL.revokeObjectURL(url);
-      document.body.removeChild(anchor);
-      
-      message.success(`Leads exported successfully as ${format.toUpperCase()}!`);
-    } catch (error) {
-      console.error('Export error:', error);
-      message.error('Failed to export leads');
-    } finally {
-      setExportLoading(false);
+    if (!response.ok) {
+      throw new Error('Export failed');
     }
-  };
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `leads-${generationId}-${new Date().toISOString().split('T')[0]}.${format}`;
+    anchor.style.display = 'none';
+    
+    document.body.appendChild(anchor);
+    anchor.click();
+    
+    URL.revokeObjectURL(url);
+    document.body.removeChild(anchor);
+    
+    message.success(`Leads exported successfully as ${format.toUpperCase()}!`);
+  } catch (error) {
+    console.error('Export error:', error);
+    message.error('Failed to export leads');
+  } finally {
+    setExportLoading(false);
+  }
+};
+
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return '#52c41a';
