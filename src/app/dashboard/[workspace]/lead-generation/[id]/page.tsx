@@ -127,6 +127,17 @@ const LeadGenerationDetailPage = () => {
 
   const generationId = params.id as string;
 
+  // --- GOOGLE FONT INJECTION ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   useEffect(() => {
     if (isWorkspaceReady && currentWorkspace) {
       fetchLeadDetail();
@@ -243,19 +254,19 @@ Score: ${lead.score}/100
     const seniority = metadata?.seniority?.toLowerCase() || '';
     
     if (titleLower.includes('ceo') || titleLower.includes('chief executive')) {
-      return { level: 'c-level', badge: 'CEO', color: '#722ed1' };
+      return { level: 'c-level', badge: 'CEO', color: '#5CC49D' };
     }
     if (titleLower.includes('cto') || titleLower.includes('chief technology')) {
-      return { level: 'c-level', badge: 'CTO', color: '#722ed1' };
+      return { level: 'c-level', badge: 'CTO', color: '#5CC49D' };
     }
     if (titleLower.includes('cfo') || titleLower.includes('chief financial')) {
-      return { level: 'c-level', badge: 'CFO', color: '#722ed1' };
+      return { level: 'c-level', badge: 'CFO', color: '#5CC49D' };
     }
     if (titleLower.includes('coo') || titleLower.includes('chief operating')) {
-      return { level: 'c-level', badge: 'COO', color: '#722ed1' };
+      return { level: 'c-level', badge: 'COO', color: '#5CC49D' };
     }
     if (titleLower.includes('chief') && titleLower.includes('officer')) {
-      return { level: 'c-level', badge: 'C-Level', color: '#722ed1' };
+      return { level: 'c-level', badge: 'C-Level', color: '#5CC49D' };
     }
     
     if (titleLower.includes('founder') || titleLower.includes('co-founder')) {
@@ -424,7 +435,7 @@ Score: ${lead.score}/100
           )}
           {record.linkedinUrl && (
             <div className="flex items-center text-xs">
-              <LinkedinOutlined className="mr-1 text-purple-500 flex-shrink-0" />
+              <LinkedinOutlined className="mr-1 text-[#5CC49D] flex-shrink-0" />
               <span className="truncate" title={record.linkedinUrl}>
                 {record.linkedinUrl.replace('https://', '').replace('www.', '')}
               </span>
@@ -489,7 +500,6 @@ Score: ${lead.score}/100
   return (
     <div className="max-w-6xl mx-auto px-4 py-8" style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
         .lead-gen-detail .ant-card {
           background-color: #000000 !important;
           border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -654,7 +664,7 @@ Score: ${lead.score}/100
               title="Countries"
               value={leadDetail.metadata?.qualityMetrics?.countriesRepresented || 0}
               prefix={<GlobalOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+              valueStyle={{ color: '#5CC49D' }}
             />
           </Card>
         </Col>
@@ -848,7 +858,7 @@ Score: ${lead.score}/100
                         <div className="space-y-2">
                           {currentLead.linkedinUrl && (
                             <div className="flex items-center">
-                              <LinkedinOutlined className="mr-2 text-purple-500" />
+                              <LinkedinOutlined className="mr-2 text-[#5CC49D]" />
                               <a href={currentLead.linkedinUrl} target="_blank" rel="noopener noreferrer">
                                 LinkedIn Profile
                               </a>

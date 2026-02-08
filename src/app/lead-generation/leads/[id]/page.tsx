@@ -86,6 +86,17 @@ const LeadDetailPage = () => {
   const { theme } = useTheme();
   const { currentWorkspace, getWorkspaceScopedEndpoint } = useWorkspaceContext();
   
+  // --- GOOGLE FONT INJECTION ---
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   // State
   const [lead, setLead] = useState<Lead | null>(null);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
@@ -229,24 +240,17 @@ const LeadDetailPage = () => {
   if (loading) {
     return (
       <div style={{
-        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        fontFamily: "'Manrope', sans-serif",
+        backgroundColor: '#0B0C10',
         padding: 24,
         minHeight: '100vh',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-
-        <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
-  <Spin size="large" />
-</ConfigProvider>
-      
+        <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+          <Spin size="large" />
+        </ConfigProvider>
       </div>
     );
   }
@@ -254,29 +258,125 @@ const LeadDetailPage = () => {
   if (!lead) {
     return (
       <div style={{
-        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        fontFamily: "'Manrope', sans-serif",
+        backgroundColor: '#0B0C10',
         padding: 24,
         minHeight: '100vh'
       }}>
-        <Button 
-          icon={<ArrowLeftOutlined />} 
+        <Button
+          icon={<ArrowLeftOutlined />}
           onClick={() => router.push('/lead-generation')}
           className="mb-4"
         >
           Back to Leads
         </Button>
-        <Title level={3}>Lead not found</Title>
-        <Text>The requested lead could not be found.</Text>
+        <Title level={3} style={{ color: '#fff' }}>Lead not found</Title>
+        <Text style={{ color: '#9DA2B3' }}>The requested lead could not be found.</Text>
       </div>
     );
   }
 
   return (
     <div style={{
-      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+      fontFamily: "'Manrope', sans-serif",
+      backgroundColor: '#0B0C10',
       padding: 24,
       minHeight: '100vh'
     }}>
+      <style>{`
+        .lead-detail-page .ant-card {
+          background-color: #000000 !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-radius: 12px !important;
+        }
+        .lead-detail-page .ant-card-head {
+          background-color: #000000 !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-card-head-title {
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-card-body {
+          background-color: #000000 !important;
+        }
+        .lead-detail-page .ant-descriptions-bordered .ant-descriptions-item-label {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          color: #9DA2B3 !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-detail-page .ant-descriptions-bordered .ant-descriptions-item-content {
+          background-color: transparent !important;
+          color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-detail-page .ant-tabs-tab {
+          color: #9DA2B3 !important;
+        }
+        .lead-detail-page .ant-tabs-tab-active .ant-tabs-tab-btn {
+          color: #5CC49D !important;
+        }
+        .lead-detail-page .ant-tabs-ink-bar {
+          background: #5CC49D !important;
+        }
+        .lead-detail-page .ant-typography {
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-typography-secondary {
+          color: #9DA2B3 !important;
+        }
+        .lead-detail-page .ant-statistic-title {
+          color: #9DA2B3 !important;
+        }
+        .lead-detail-page .ant-statistic-content {
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-progress-text {
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-divider {
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-detail-page .ant-input, .lead-detail-page .ant-input-affix-wrapper {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-select-selector {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-timeline-item-content {
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-btn-default {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-btn-primary {
+          background-color: #5CC49D !important;
+          border-color: #5CC49D !important;
+        }
+        .lead-detail-page .ant-modal-content {
+          background-color: #000000 !important;
+        }
+        .lead-detail-page .ant-modal-header {
+          background-color: #000000 !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-detail-page .ant-modal-title {
+          color: #ffffff !important;
+        }
+        .lead-detail-page .ant-modal-footer {
+          border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        .lead-detail-page .ant-form-item-label > label {
+          color: #9DA2B3 !important;
+        }
+      `}</style>
+      <div className="lead-detail-page">
       {/* Header */}
       <div className="mb-6">
         <Button 
@@ -661,6 +761,7 @@ const LeadDetailPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+      </div>
     </div>
   );
 };
