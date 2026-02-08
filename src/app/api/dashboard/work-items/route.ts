@@ -153,8 +153,9 @@ async function fetchAllWorkItemsFromDeliverables(userId: string, workspaceId?: s
           'ad_writer',
           'n8n_workflow',
           'signature_offers',
-          'proposal',       
-          'lead_generation' 
+          'proposal',
+          'lead_generation',
+          'lead-generation'
         ]
       }
     };
@@ -272,6 +273,7 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
         break;
 
       case 'lead_generation':
+      case 'lead-generation':
         workItemType = 'lead-generation';
         const leadCount = metadata.leadCount || 0;
         const industries = metadata.criteria?.targetIndustry?.slice(0, 2).join(', ') || 'Multiple';

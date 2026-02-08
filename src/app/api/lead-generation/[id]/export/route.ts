@@ -76,7 +76,7 @@ export async function GET(
       where: {
         id: params.id,
         user_id: user.id,
-        type: 'lead-generation'
+        type: { in: ['lead-generation', 'lead_generation'] }
       }
     });
 

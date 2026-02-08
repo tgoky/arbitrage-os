@@ -523,7 +523,7 @@ export async function GET(req: NextRequest) {
     // Build where clause
     const whereClause: any = {
       user_id: user.id,
-      type: 'lead-generation'
+      type: { in: ['lead-generation', 'lead_generation'] }
     };
 
     if (workspaceId) {
