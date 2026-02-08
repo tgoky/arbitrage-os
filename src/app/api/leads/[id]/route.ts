@@ -61,7 +61,7 @@ async function findLeadInGenerations(userId: string, leadId: string) {
   const generations = await prisma.deliverable.findMany({
     where: {
       user_id: userId,
-      type: 'lead-generation'
+      type: { in: ['lead-generation', 'lead_generation'] }
     },
     include: {
       workspace: {
@@ -149,7 +149,7 @@ export async function GET(
       where: {
         id: result.generation.id,
         user_id: user.id,
-        type: 'lead-generation'
+        type: { in: ['lead-generation', 'lead_generation'] }
       }
     });
 
@@ -214,7 +214,7 @@ export async function PATCH(
       where: {
         id: result.generation.id,
         user_id: user.id,
-        type: 'lead-generation'
+        type: { in: ['lead-generation', 'lead_generation'] }
       }
     });
 
