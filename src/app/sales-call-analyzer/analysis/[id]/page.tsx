@@ -392,7 +392,7 @@ export default function AnalysisDetailPage() {
   const go = useGo();
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('deal-architecture');
 
   const { getAnalysis, exportAnalysis } = useSalesCallAnalyzer();
 
