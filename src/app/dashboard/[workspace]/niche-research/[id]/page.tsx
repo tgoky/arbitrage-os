@@ -452,14 +452,28 @@ if (error || !researchDetail) {
       )}
 
       {/* Export buttons */}
-      <div className="flex gap-2 mb-10">
-        <button onClick={() => downloadResearch("html")} disabled={exportLoading} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors disabled:opacity-50">
-          <DownloadOutlined className="mr-1" /> Export HTML
-        </button>
-        <button onClick={() => downloadResearch("json")} disabled={exportLoading} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors disabled:opacity-50">
-          <DownloadOutlined className="mr-1" /> Export JSON
-        </button>
-      </div>
+    <div className="flex gap-2 mb-10">
+  <button 
+    onClick={() => downloadResearch("html")} 
+    disabled={exportLoading} 
+    className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors disabled:opacity-50"
+    style={{
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    }}
+  >
+    <DownloadOutlined className="mr-1" /> Export HTML
+  </button>
+  <button 
+    onClick={() => downloadResearch("json")} 
+    disabled={exportLoading} 
+    className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors disabled:opacity-50"
+    style={{
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    }}
+  >
+    <DownloadOutlined className="mr-1" /> Export JSON
+  </button>
+</div>
 
       <Rule />
 
@@ -537,14 +551,27 @@ if (error || !researchDetail) {
 
       {/* Footer */}
       <Rule />
-      <div className="flex justify-center gap-3 pb-12">
-        <button onClick={handleBack} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">
-          Back
-        </button>
-        <button onClick={() => downloadResearch("html")} disabled={exportLoading} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors disabled:opacity-50">
-          Download Report
-        </button>
-      </div>
+     <div className="flex justify-center gap-3 pb-12">
+  <button 
+    onClick={handleBack} 
+    className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors"
+    style={{
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    }}
+  >
+    Back
+  </button>
+  <button 
+    onClick={() => downloadResearch("html")} 
+    disabled={exportLoading} 
+    className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors disabled:opacity-50"
+    style={{
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    }}
+  >
+    Download Report
+  </button>
+</div>
     </div>
     </div>
   );
