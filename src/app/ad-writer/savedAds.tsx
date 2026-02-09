@@ -46,9 +46,7 @@ export const SavedAdsHistory = () => {
   }, [fetchAds, isWorkspaceReady, currentWorkspace?.id]);
 
   const showAdDetails = (ad: SavedAd) => {
-    if (currentWorkspace) {
-      router.push(`/dashboard/${currentWorkspace.id}/ad-writer/${ad.id}`);
-    }
+    router.push(`/ad-writer/${ad.id}`);
   };
 
   const handleDeleteAd = (adId: string) => {

@@ -538,7 +538,10 @@ const CompleteProposalTab = ({
   proposalData: ProposalPackage;
   copyToClipboard: (text: string) => void;
 }) => {
-  const generateCompleteProposal = () => {
+
+
+  
+const generateCompleteProposal = () => {
     const sections = [
       "=".repeat(60),
       "PROJECT PROPOSAL",
@@ -546,31 +549,31 @@ const CompleteProposalTab = ({
       "",
       "PROJECT OVERVIEW",
       "-".repeat(30),
-      proposalData.proposal.projectOverview,
+      proposalData?.proposal?.projectOverview || 'Not available',
       "",
       "SCOPE OF WORK", 
       "-".repeat(30),
-      proposalData.proposal.scopeOfWork,
+      proposalData?.proposal?.scopeOfWork || 'Not available',
       "",
       "DELIVERABLES",
       "-".repeat(30),
-      proposalData.proposal.deliverables,
+      proposalData?.proposal?.deliverables || 'Not available',
       "",
       "TIMELINE & MILESTONES",
       "-".repeat(30),
-      proposalData.proposal.timeline,
+      proposalData?.proposal?.timeline || 'Not available',
       "",
       "INVESTMENT & PRICING",
       "-".repeat(30),
-      proposalData.proposal.pricing,
+      proposalData?.proposal?.pricing || 'Not available',
       "",
       "TERMS & CONDITIONS",
       "-".repeat(30),
-      proposalData.proposal.terms,
+      proposalData?.proposal?.terms || 'Not available',
       "",
       "NEXT STEPS",
       "-".repeat(30),
-      proposalData.proposal.nextSteps,
+      proposalData?.proposal?.nextSteps || 'Not available',
       "",
       "=".repeat(60),
       "LEGAL CONTRACTS", 
@@ -578,13 +581,13 @@ const CompleteProposalTab = ({
       "",
       "SERVICE AGREEMENT",
       "-".repeat(30),
-      proposalData.proposal.contractTemplates.serviceAgreement,
+      proposalData?.proposal?.contractTemplates?.serviceAgreement || 'Not available',
       "",
       "=".repeat(60),
       "",
       "STATEMENT OF WORK",
       "-".repeat(30),
-      proposalData.proposal.contractTemplates.statementOfWork,
+      proposalData?.proposal?.contractTemplates?.statementOfWork || 'Not available',
       "",
       "=".repeat(60),
       "END OF PROPOSAL",
@@ -641,13 +644,13 @@ const CompleteProposalTab = ({
         className="mb-4"
       />
 
-      <div className=" p-6 rounded border">
-        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border border-gray-200  p-4 rounded">
+      <div className="p-6 rounded border">
+        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border border-gray-200 p-4 rounded">
           {completeProposalText}
         </div>
       </div>
       
-      <div className="mt-4 p-4  rounded">
+      <div className="mt-4 p-4 rounded">
         <Text strong>Document Statistics:</Text>
         <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
           <div>
@@ -669,12 +672,13 @@ const CompleteProposalTab = ({
 };
 
 // Tab Components
+// Around line 677 in OverviewTab component
 const OverviewTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
   return (
     <div className="space-y-6">
       <Card title="Project Overview" size="small">
         <Paragraph className="whitespace-pre-wrap">
-          {proposalData.proposal.projectOverview}
+          {proposalData?.proposal?.projectOverview || 'No project overview available'}
         </Paragraph>
       </Card>
 
@@ -682,14 +686,14 @@ const OverviewTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
         <Col span={12}>
           <Card title="Scope of Work" size="small">
             <Paragraph className="whitespace-pre-wrap">
-              {proposalData.proposal.scopeOfWork}
+              {proposalData?.proposal?.scopeOfWork || 'No scope of work available'}
             </Paragraph>
           </Card>
         </Col>
         <Col span={12}>
           <Card title="Deliverables" size="small">
             <Paragraph className="whitespace-pre-wrap">
-              {proposalData.proposal.deliverables}
+              {proposalData?.proposal?.deliverables || 'No deliverables available'}
             </Paragraph>
           </Card>
         </Col>
@@ -699,14 +703,14 @@ const OverviewTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
         <Col span={12}>
           <Card title="Pricing & Investment" size="small">
             <Paragraph className="whitespace-pre-wrap">
-              {proposalData.proposal.pricing}
+              {proposalData?.proposal?.pricing || 'No pricing available'}
             </Paragraph>
           </Card>
         </Col>
         <Col span={12}>
           <Card title="Timeline" size="small">
             <Paragraph className="whitespace-pre-wrap">
-              {proposalData.proposal.timeline}
+              {proposalData?.proposal?.timeline || 'No timeline available'}
             </Paragraph>
           </Card>
         </Col>
@@ -714,7 +718,7 @@ const OverviewTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
 
       <Card title="Next Steps" size="small">
         <Paragraph className="whitespace-pre-wrap">
-          {proposalData.proposal.nextSteps}
+          {proposalData?.proposal?.nextSteps || 'No next steps available'}
         </Paragraph>
       </Card>
     </div>
@@ -722,6 +726,20 @@ const OverviewTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
 };
 
 const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
+  // Add safety check
+  if (!proposalData?.analysis) {
+    return (
+      <div className="text-center py-8">
+        <Alert
+          message="No Analysis Available"
+          description="Analysis data is not available for this proposal."
+          type="info"
+          showIcon
+        />
+      </div>
+    );
+  }
+
   const { analysis } = proposalData;
 
   return (
@@ -730,12 +748,12 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
       <Card title="Win Probability Analysis" size="small">
         <div className="mb-4">
           <Progress 
-            percent={analysis.winProbability.score} 
-            status={analysis.winProbability.score >= 70 ? "success" : "active"}
-            strokeColor={analysis.winProbability.score >= 70 ? "#52c41a" : "#1890ff"}
+            percent={analysis?.winProbability?.score || 0} 
+            status={analysis?.winProbability?.score >= 70 ? "success" : "active"}
+            strokeColor={analysis?.winProbability?.score >= 70 ? "#52c41a" : "#1890ff"}
           />
           <Text className="block text-center mt-2">
-            {analysis.winProbability.score}% Probability of Winning
+            {analysis?.winProbability?.score || 0}% Probability of Winning
           </Text>
         </div>
         
@@ -743,7 +761,7 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
         
         <Title level={5}>Key Factors</Title>
         <List
-          dataSource={analysis.winProbability.factors}
+          dataSource={analysis?.winProbability?.factors || []}
           renderItem={(factor) => (
             <List.Item>
               <div className="flex justify-between items-start w-full">
@@ -767,20 +785,20 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
       <Card title="Pricing Analysis" size="small">
         <div className="mb-4">
           <Text strong>Competitiveness: </Text>
-          <Tag color={getCompetitivenessColor(analysis.pricingAnalysis.competitiveness)}>
-            {analysis.pricingAnalysis.competitiveness.toUpperCase()}
+          <Tag color={getCompetitivenessColor(analysis?.pricingAnalysis?.competitiveness || 'low')}>
+            {(analysis?.pricingAnalysis?.competitiveness || 'N/A').toUpperCase()}
           </Tag>
         </div>
         
         <Paragraph>
-          {analysis.pricingAnalysis.valueJustification}
+          {analysis?.pricingAnalysis?.valueJustification || 'No pricing analysis available'}
         </Paragraph>
         
         <Divider />
         
         <Title level={5}>Recommendations</Title>
         <List
-          dataSource={analysis.pricingAnalysis.recommendations}
+          dataSource={analysis?.pricingAnalysis?.recommendations || []}
           renderItem={(rec) => (
             <List.Item>
               <BulbOutlined className="text-yellow-500 mr-2" />
@@ -794,8 +812,8 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
       <Card title="Risk Assessment" size="small">
         <div className="mb-4">
           <Text strong>Overall Risk Level: </Text>
-          <Tag color={getRiskColor(analysis.riskLevel)}>
-            {analysis.riskLevel.toUpperCase()}
+          <Tag color={getRiskColor(analysis?.riskLevel || 'low')}>
+            {(analysis?.riskLevel || 'N/A').toUpperCase()}
           </Tag>
         </div>
         
@@ -803,7 +821,7 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
           <Col span={12}>
             <Title level={5} className="text-green-600">Strengths</Title>
             <List
-              dataSource={analysis.strengthsWeaknesses.strengths}
+              dataSource={analysis?.strengthsWeaknesses?.strengths || []}
               renderItem={(strength) => (
                 <List.Item>
                   <CheckCircleOutlined className="text-green-500 mr-2" />
@@ -815,7 +833,7 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
           <Col span={12}>
             <Title level={5} className="text-orange-600">Areas for Improvement</Title>
             <List
-              dataSource={analysis.strengthsWeaknesses.weaknesses}
+              dataSource={analysis?.strengthsWeaknesses?.weaknesses || []}
               renderItem={(weakness) => (
                 <List.Item>
                   <ExclamationCircleOutlined className="text-orange-500 mr-2" />
@@ -830,6 +848,8 @@ const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
   );
 };
 
+
+
 const DocumentsTab = ({ 
   proposalData, 
   copyToClipboard 
@@ -837,6 +857,20 @@ const DocumentsTab = ({
   proposalData: ProposalPackage;
   copyToClipboard: (text: string) => void;
 }) => {
+  // Add safety check
+  if (!proposalData?.proposal?.contractTemplates) {
+    return (
+      <div className="text-center py-8">
+        <Alert
+          message="No Contract Documents Available"
+          description="Contract templates are not available for this proposal."
+          type="info"
+          showIcon
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card 
@@ -844,14 +878,15 @@ const DocumentsTab = ({
         extra={
           <Button 
             icon={<CopyOutlined />}
-            onClick={() => copyToClipboard(proposalData.proposal.contractTemplates.serviceAgreement)}
+            onClick={() => copyToClipboard(proposalData?.proposal?.contractTemplates?.serviceAgreement || '')}
+            disabled={!proposalData?.proposal?.contractTemplates?.serviceAgreement}
           >
             Copy Agreement
           </Button>
         }
       >
-        <div className=" p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
-          {proposalData.proposal.contractTemplates.serviceAgreement}
+        <div className="p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
+          {proposalData?.proposal?.contractTemplates?.serviceAgreement || 'No service agreement available'}
         </div>
       </Card>
 
@@ -860,19 +895,22 @@ const DocumentsTab = ({
         extra={
           <Button 
             icon={<CopyOutlined />}
-            onClick={() => copyToClipboard(proposalData.proposal.contractTemplates.statementOfWork)}
+            onClick={() => copyToClipboard(proposalData?.proposal?.contractTemplates?.statementOfWork || '')}
+            disabled={!proposalData?.proposal?.contractTemplates?.statementOfWork}
           >
             Copy SOW
           </Button>
         }
       >
         <div className="bg-gray-50 p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
-          {proposalData.proposal.contractTemplates.statementOfWork}
+          {proposalData?.proposal?.contractTemplates?.statementOfWork || 'No statement of work available'}
         </div>
       </Card>
     </div>
   );
 };
+
+
 
 const AlternativesTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
   const alternatives = proposalData.proposal.alternativeOptions || [];
