@@ -16,16 +16,14 @@ import {
   Tooltip,
   Alert,
   Select,
-  Divider,
 } from "antd";
 import {
   EyeOutlined,
   DeleteOutlined,
   ReloadOutlined,
-  CopyOutlined,
   HistoryOutlined,
 } from "@ant-design/icons";
-import { GeneratedAd, FullScript } from "@/types/adWriter";
+import { useRouter } from "next/navigation";
 
 import { ConfigProvider } from "antd";
 
@@ -35,8 +33,7 @@ const { Option } = Select;
 export const SavedAdsHistory = () => {
   const { ads, loading, fetchAds } = useSavedAds();
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedAd, setSelectedAd] = useState<SavedAd | null>(null);
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState<"createdAt" | "title">("createdAt");
   const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("descend");
@@ -49,13 +46,9 @@ export const SavedAdsHistory = () => {
   }, [fetchAds, isWorkspaceReady, currentWorkspace?.id]);
 
   const showAdDetails = (ad: SavedAd) => {
-    setSelectedAd(ad);
-    setIsModalVisible(true);
-  };
-
-  const handleModalClose = () => {
-    setIsModalVisible(false);
-    setSelectedAd(null);
+    if (currentWorkspace) {
+      router.push(`/dashboard/${currentWorkspace.id}/ad-writer/${ad.id}`);
+    }
   };
 
   const handleDeleteAd = (adId: string) => {
@@ -72,9 +65,6 @@ export const SavedAdsHistory = () => {
           if (response.ok) {
             await fetchAds();
             message.success("Ad deleted successfully");
-            if (selectedAd?.id === adId) {
-              handleModalClose();
-            }
             // Adjust page if the last ad on the current page is deleted
             if (ads.length % pageSize === 1 && currentPage > 1) {
               setCurrentPage(currentPage - 1);
@@ -87,14 +77,6 @@ export const SavedAdsHistory = () => {
           message.error("Failed to delete ad");
         }
       },
-    });
-  };
-
-  const handleCopyText = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      message.success("Text copied to clipboard!");
-    }).catch(() => {
-      message.error("Failed to copy text");
     });
   };
 
@@ -238,9 +220,6 @@ export const SavedAdsHistory = () => {
                         <div className="text-sm text-gray-500">
                           <Tag color="blue">{ad.metadata.businessName}</Tag>
                           <Tag color="green">{ad.metadata.offerName}</Tag>
-                          {selectedAd?.id === ad.id && (
-                            <Tag color="gold">Currently Viewing</Tag>
-                          )}
                         </div>
                       </div>
                       <Space>
@@ -248,7 +227,7 @@ export const SavedAdsHistory = () => {
                           <Button
                             key="view"
                             size="small"
-                            type={selectedAd?.id === ad.id ? "primary" : "default"}
+                            type="default"
                             icon={<EyeOutlined />}
                             onClick={() => showAdDetails(ad)}
                           >
@@ -310,282 +289,6 @@ export const SavedAdsHistory = () => {
         )}
       </Card>
 
-      <Modal
-        title={selectedAd?.title || "Ad Details"}
-        open={isModalVisible}
-        onCancel={handleModalClose}
-        footer={[
-          <Button key="close" onClick={handleModalClose}>
-            Close
-          </Button>,
-        ]}
-        width={800}
-      >
-        {selectedAd && (
-          <div style={{ maxHeight: "60vh", overflowY: "auto" }}>
-            {selectedAd.content.ads.map((ad: GeneratedAd, index: number) => (
-              <Card
-                key={index}
-                title={`Platform: ${ad.platform.charAt(0).toUpperCase() + ad.platform.slice(1)}`}
-                style={{ marginBottom: "16px", borderRadius: "8px" , }}
-              >
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  {/* Full Scripts Section - Moved to the top */}
-                  {Array.isArray(ad.fullScripts) && ad.fullScripts.length > 0 && (
-                    <>
-                      <Title level={5}>Full Scripts</Title>
-                      <List<FullScript>
-                        dataSource={ad.fullScripts}
-                        renderItem={(script: FullScript, idx: number) => (
-                          <List.Item
-                            actions={[
-                              <Button
-                                key={`copy-script-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(script.script)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            <div className="w-full">
-                              <Text strong>{script.framework}</Text>
-                              <Card
-                                className="mt-2 bg-yellow-50 border-yellow-200"
-                                bodyStyle={{
-                                  padding: "12px",
-                                  fontFamily: "'Courier New', monospace",
-                                  backgroundColor: "#ffffe0",
-                                  borderLeft: "4px solid #fadb14",
-                                  color: "black",
-                                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                                }}
-                              >
-                                <pre style={{ 
-                                  whiteSpace: "pre-wrap", 
-                                  margin: 0,
-                                  lineHeight: "1.5",
-                                  fontSize: "14px"
-                                }}>
-                                  {script.script}
-                                </pre>
-                              </Card>
-                            </div>
-                          </List.Item>
-                        )}
-                      />
-                      <Divider />
-                    </>
-                  )}
-                  
-                  {/* Other sections follow */}
-                  {Array.isArray(ad.headlines) && ad.headlines.length > 0 && (
-                    <>
-                      <Title level={5}>Headlines</Title>
-                      <List<string>
-                        dataSource={ad.headlines}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-                          
-                            actions={[
-                              <Button
-                                key={`copy-headline-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.descriptions) && ad.descriptions.length > 0 && (
-                    <>
-                      <Title level={5}>Descriptions</Title>
-                      <List<string>
-                        dataSource={ad.descriptions}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-                 
-                            actions={[
-                              <Button
-                                key={`copy-description-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.ctas) && ad.ctas.length > 0 && (
-                    <>
-                      <Title level={5}>Call-to-Actions</Title>
-                      <List<string>
-                        dataSource={ad.ctas}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-
-                            actions={[
-                              <Button
-                                key={`copy-cta-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.hooks) && ad.hooks.length > 0 && (
-                    <>
-                      <Title level={5}>Hooks</Title>
-                      <List<string>
-                        dataSource={ad.hooks}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-                     
-                            actions={[
-                              <Button
-                                key={`copy-hook-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.visualSuggestions) && ad.visualSuggestions.length > 0 && (
-                    <>
-                      <Title level={5}>Visual Suggestions</Title>
-                      <List<string>
-                        dataSource={ad.visualSuggestions}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-     
-                            actions={[
-                              <Button
-                                key={`copy-visual-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.fixes) && ad.fixes.length > 0 && (
-                    <>
-                      <Title level={5}>Fixes</Title>
-                      <List<string>
-                        dataSource={ad.fixes}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-            
-                            actions={[
-                              <Button
-                                key={`copy-fix-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.results) && ad.results.length > 0 && (
-                    <>
-                      <Title level={5}>Results</Title>
-                      <List<string>
-                        dataSource={ad.results}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-                    
-                            actions={[
-                              <Button
-                                key={`copy-result-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                  {Array.isArray(ad.proofs) && ad.proofs.length > 0 && (
-                    <>
-                      <Title level={5}>Proofs</Title>
-                      <List<string>
-                        dataSource={ad.proofs}
-                        renderItem={(item: string, idx: number) => (
-                          <List.Item
-                              style={{}}
-                            actions={[
-                              <Button
-                                key={`copy-proof-${idx}`}
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleCopyText(item)}
-                              >
-                                Copy
-                              </Button>,
-                            ]}
-                          >
-                            {item}
-                          </List.Item>
-                        )}
-                      />
-                    </>
-                  )}
-                </Space>
-              </Card>
-            ))}
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };
