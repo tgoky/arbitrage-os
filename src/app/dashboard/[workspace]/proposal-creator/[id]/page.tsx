@@ -2,115 +2,50 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  FileTextOutlined, 
-  ArrowLeftOutlined, 
-  DownloadOutlined, 
+import {
+  FileTextOutlined,
+  ArrowLeftOutlined,
+  DownloadOutlined,
   CopyOutlined,
-  EditOutlined,
   EyeOutlined,
-  DollarOutlined,
+  SaveOutlined,
   CalendarOutlined,
   TeamOutlined,
-  SafetyCertificateOutlined,
-  ProjectOutlined,
-  BulbOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ThunderboltOutlined
 } from '@ant-design/icons';
-import { 
-  Button, 
-  Card, 
-  Typography, 
-  Divider, 
-  Space, 
-  Tag, 
-  Alert, 
-  Spin, 
+import {
+  Button,
+  Card,
+  Typography,
+  Divider,
+  Space,
+  Tag,
+  Alert,
+  Spin,
   message,
-  Badge,
-  Descriptions,
-  Collapse,
-  List,
-  Modal,
-  Tooltip,
-  Table,
-  Avatar,
-  Progress,
   Row,
   Col,
-  Statistic,
-  Tabs
+  Tabs,
+  ConfigProvider,
+  theme
 } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 
-import { ConfigProvider } from "antd";
+const { Title, Text } = Typography;
 
-const { Title, Text, Paragraph } = Typography;
-const { Panel } = Collapse;
-const { TabPane } = Tabs;
-
-interface ProposalAnalysis {
-  winProbability: {
-    score: number;
-    factors: Array<{
-      factor: string;
-      impact: 'High' | 'Medium' | 'Low';
-      description: string;
-    }>;
-  };
-  pricingAnalysis: {
-    competitiveness: 'low' | 'competitive' | 'premium';
-    valueJustification: string;
-    recommendations: string[];
-  };
-  riskLevel: 'low' | 'medium' | 'high';
-  strengthsWeaknesses: {
-    strengths: string[];
-    weaknesses: string[];
-    improvements: string[];
-  };
-}
-
-interface ProposalPackage {
-  proposal: {
-    projectOverview: string;
-    scopeOfWork: string;
-    pricing: string;
-    timeline: string;
-    deliverables: string;
-    terms: string;
-    nextSteps: string;
-    contractTemplates: {
-      serviceAgreement: string;
-      statementOfWork: string;
-    };
-    alternativeOptions?: Array<{
-      title: string;
-      description: string;
-      pricingAdjustment: number;
-      timelineAdjustment: string;
-      scopeChanges: string[];
-      pros: string[];
-      cons: string[];
-    }>;
-  };
-  analysis: ProposalAnalysis;
-  recommendations: string[];
-  alternativeOptions: any[];
-  riskAssessment: any;
-  competitiveAnalysis: any;
-  tokensUsed: number;
-  generationTime: number;
-  originalInput: any;
-}
+// Color constants - matching proposal generator
+const SPACE_COLOR = '#9DA2B3';
+const BRAND_GREEN = '#5CC49D';
+const SURFACE_BG = '#000000';
+const SURFACE_LIGHTER = '#000000';
+const TEXT_PRIMARY = '#f1f5f9';
+const TEXT_SECONDARY = '#94a3b8';
+const BORDER_COLOR = '#334155';
 
 interface ProposalDetail {
   id: string;
   title: string;
-  proposalData: ProposalPackage;
+  proposalData: any;
   proposalType: string;
   clientName: string;
   status: 'draft' | 'sent' | 'accepted' | 'rejected';
@@ -138,9 +73,20 @@ const ProposalDetailPage = () => {
   const [proposalDetail, setProposalDetail] = useState<ProposalDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeDocTab, setActiveDocTab] = useState<'complete' | 'agreement' | 'sow'>('complete');
 
   const proposalId = params.id as string;
+
+  // Load Manrope font
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
 
   useEffect(() => {
     if (isWorkspaceReady && currentWorkspace) {
@@ -152,7 +98,7 @@ const ProposalDetailPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/proposal-creator/${proposalId}?workspaceId=${currentWorkspace?.id}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +111,7 @@ const ProposalDetailPage = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setProposalDetail(data.data);
       } else {
@@ -180,813 +126,500 @@ const ProposalDetailPage = () => {
     }
   };
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      message.success('Copied to clipboard!');
-    } catch (error) {
+      message.success(`${type} copied to clipboard!`);
+    } catch {
       message.error('Failed to copy to clipboard');
     }
   };
 
   const exportProposal = async (format: 'html' | 'pdf' | 'json' = 'html') => {
-  if (!proposalDetail) return;
-  
-  try {
-    setExportLoading(true);
-    
-    if (format === 'html') {
-      // FIX: Just open the URL in new tab like the generator does
-      const url = `/api/proposal-creator/${proposalId}/export?format=html`;
-      window.open(url, '_blank');
-      message.success('Proposal opened in new tab!');
-      return;
-    }
-    
-    // For other formats, use the existing download logic
-    const response = await fetch(`/api/proposal-creator/${proposalId}/export?format=${format}`, {
-      credentials: 'include'
-    });
+    if (!proposalDetail) return;
 
-    if (!response.ok) {
-      throw new Error('Export failed');
-    }
+    try {
+      setExportLoading(true);
 
-    if (format === 'json') {
-      const data = await response.json();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `proposal-${proposalId}-${new Date().toISOString().split('T')[0]}.json`;
-      anchor.style.display = 'none';
-      
-      document.body.appendChild(anchor);
-      anchor.click();
-      
-      URL.revokeObjectURL(url);
-      document.body.removeChild(anchor);
-    } else if (format === 'pdf') {
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `proposal-${proposalId}-${new Date().toISOString().split('T')[0]}.pdf`;
-      anchor.style.display = 'none';
-      
-      document.body.appendChild(anchor);
-      anchor.click();
-      
-      URL.revokeObjectURL(url);
-      document.body.removeChild(anchor);
-    }
-    
-    message.success(`Proposal exported successfully as ${format.toUpperCase()}!`);
-  } catch (error) {
-    console.error('Export error:', error);
-    message.error('Failed to export proposal');
-  } finally {
-    setExportLoading(false);
-  }
-};
+      if (format === 'html') {
+        const url = `/api/proposal-creator/${proposalId}/export?format=html`;
+        window.open(url, '_blank');
+        message.success('Proposal opened in new tab!');
+        return;
+      }
 
+      const response = await fetch(`/api/proposal-creator/${proposalId}/export?format=${format}`, {
+        credentials: 'include'
+      });
 
-  const getRiskColor = (riskLevel: string) => {
-    switch (riskLevel) {
-      case 'low': return '#52c41a';
-      case 'medium': return '#faad14';
-      case 'high': return '#ff4d4f';
-      default: return '#d9d9d9';
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
 
-  const getCompetitivenessColor = (level: string) => {
-    switch (level) {
-      case 'competitive': return '#52c41a';
-      case 'premium': return '#faad14';
-      case 'low': return '#ff4d4f';
-      default: return '#d9d9d9';
+      if (format === 'json') {
+        const data = await response.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `proposal-${proposalId}-${new Date().toISOString().split('T')[0]}.json`;
+        anchor.style.display = 'none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(anchor);
+      } else if (format === 'pdf') {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `proposal-${proposalId}-${new Date().toISOString().split('T')[0]}.pdf`;
+        anchor.style.display = 'none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(anchor);
+      }
+
+      message.success(`Proposal exported successfully as ${format.toUpperCase()}!`);
+    } catch (err) {
+      console.error('Export error:', err);
+      message.error('Failed to export proposal');
+    } finally {
+      setExportLoading(false);
     }
   };
 
   const handleBack = () => {
-   router.back();
-  };
-
-  const handleEditProposal = () => {
-    if (proposalDetail) {
-      router.push(`/proposal-creator?edit=${proposalId}`);
-    }
+    router.back();
   };
 
   if (!isWorkspaceReady) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-
-        <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
- <Spin size="large" tip="Loading workspace..." />
-</ConfigProvider>
-       
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+          <Spin size="large" tip="Loading workspace..." />
+        </ConfigProvider>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-
-        <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
-    <Spin size="large" tip="Loading proposal details..." />
-</ConfigProvider>
-    
+      <div className="min-h-screen bg-black">
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+          <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+            <Spin size="large" tip="Loading proposal details..." />
+          </ConfigProvider>
+        </div>
       </div>
     );
   }
 
   if (error || !proposalDetail) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <Alert
-          message="Error Loading Proposal"
-          description={error || "Could not find the requested proposal"}
-          type="error"
-          showIcon
-          action={
-            <Button type="primary" onClick={fetchProposalDetail}>
-              Try Again
+      <div className="min-h-screen bg-black">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Alert
+            message="Error Loading Proposal"
+            description={error || "Could not find the requested proposal"}
+            type="error"
+            showIcon
+            action={
+              <Button type="primary" onClick={fetchProposalDetail}>
+                Try Again
+              </Button>
+            }
+          />
+          <div className="mt-4 text-center">
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.back()}
+            >
+              Back to Proposals
             </Button>
-          }
-        />
-        <div className="mt-4 text-center">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
-            onClick={() => router.push('/proposal-creator')}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { proposalData } = proposalDetail;
+
+  // Extract contract data - handle both shapes (contracts vs contractTemplates)
+  const contracts = proposalData?.proposal?.contractTemplates || proposalData?.contracts;
+  const serviceAgreementBase = contracts?.serviceAgreement || '';
+  const statementOfWorkBase = contracts?.statementOfWork || '';
+
+  // Extract original input for signature blocks
+  const originalInput = proposalData?.originalInput || {};
+  const serviceProvider = originalInput?.serviceProvider || {};
+  const clientInfo = originalInput?.clientInfo || {};
+  const effectiveDate = originalInput?.effectiveDate || new Date(proposalDetail.createdAt).toLocaleDateString();
+
+  // Generate HTML with side-by-side signatures (matching ProposalPreview)
+  const generateDocumentHTML = (documentText: string, documentType: 'agreement' | 'sow') => {
+    if (!documentText) return '';
+
+    const title = documentType === 'agreement' ? 'Service Agreement' : 'Statement of Work';
+
+    return `
+      <div style="font-family: 'Times New Roman', Times, serif; line-height: 1.6; white-space: pre-wrap; color: #333;">
+        ${documentText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+      </div>
+
+      <div style="margin-top: 60px;">
+        <p style="font-weight: bold; margin-bottom: 30px; color: #333;">IN WITNESS WHEREOF, the Parties have executed this ${title} as of the Effective Date.</p>
+
+        <div style="display: table; width: 100%; margin-top: 40px;">
+          <div style="display: table-cell; width: 50%; vertical-align: top; padding-right: 20px;">
+            <div><strong style="color: #333;">${(serviceProvider.name || 'SERVICE PROVIDER').toUpperCase()}</strong></div>
+            <div style="font-size: 10pt; margin-top: 5px; color: #666;">${serviceProvider.address || ''}</div>
+            <div style="border-top: 1px solid #000; margin: 40px 0 5px 0; padding-top: 5px;"></div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">By: _________________________</div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">Name: ${serviceProvider.signatoryName || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">Title: ${serviceProvider.signatoryTitle || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">Date: _________________________</div>
+          </div>
+
+          <div style="display: table-cell; width: 50%; vertical-align: top; padding-left: 20px;">
+            <div><strong style="color: #333;">${(clientInfo.legalName || proposalDetail.clientName || 'CLIENT').toUpperCase()}</strong></div>
+            <div style="font-size: 10pt; margin-top: 5px; color: #666;">${clientInfo.address || ''}</div>
+            <div style="border-top: 1px solid #000; margin: 40px 0 5px 0; padding-top: 5px;"></div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">By: _________________________</div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">Name: ${clientInfo.signatoryName || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">Title: ${clientInfo.signatoryTitle || '_________________________'}</div>
+            <div style="font-size: 10pt; margin: 3px 0; color: #333;">Date: _________________________</div>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // Generate HTML versions for display
+  const serviceAgreementHTML = serviceAgreementBase ? generateDocumentHTML(serviceAgreementBase, 'agreement') : null;
+  const statementOfWorkHTML = statementOfWorkBase ? generateDocumentHTML(statementOfWorkBase, 'sow') : null;
+
+  // For copying - add plain text signatures
+  const addSignatureBlocksPlainText = (documentText: string, documentType: 'agreement' | 'sow') => {
+    if (!documentText) return documentText;
+
+    const signatureBlock = `
+
+IN WITNESS WHEREOF, the Parties have executed this ${documentType === 'agreement' ? 'Service Agreement' : 'Statement of Work'} as of the Effective Date.
+
+${(serviceProvider.name || 'SERVICE PROVIDER').toUpperCase()}
+${serviceProvider.address || ''}
+
+By: _________________________
+Name: ${serviceProvider.signatoryName || '_________________________'}
+Title: ${serviceProvider.signatoryTitle || '_________________________'}
+Date: _________________________
+
+
+${(clientInfo.legalName || proposalDetail.clientName || 'CLIENT').toUpperCase()}
+${clientInfo.address || ''}
+
+By: _________________________
+Name: ${clientInfo.signatoryName || '_________________________'}
+Title: ${clientInfo.signatoryTitle || '_________________________'}
+Date: _________________________`;
+
+    return documentText + signatureBlock;
+  };
+
+  const serviceAgreementPlainText = serviceAgreementBase ? addSignatureBlocksPlainText(serviceAgreementBase, 'agreement') : null;
+  const statementOfWorkPlainText = statementOfWorkBase ? addSignatureBlocksPlainText(statementOfWorkBase, 'sow') : null;
+
+  const completeProposalPlainText = serviceAgreementPlainText && statementOfWorkPlainText
+    ? `${serviceAgreementPlainText}\n\n${'='.repeat(80)}\n\n${statementOfWorkPlainText}`
+    : "Contracts not available.";
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        token: {
+          fontFamily: 'Manrope, sans-serif',
+          colorPrimary: BRAND_GREEN,
+          borderRadius: 8,
+          colorTextHeading: TEXT_PRIMARY,
+          colorText: TEXT_SECONDARY,
+          colorBgContainer: SURFACE_BG,
+          colorBgElevated: SURFACE_BG,
+          colorBorder: BORDER_COLOR,
+        },
+        components: {
+          Button: {
+            colorPrimary: BRAND_GREEN,
+            algorithm: true,
+            fontWeight: 600,
+            colorTextLightSolid: '#000000',
+            defaultBorderColor: SPACE_COLOR,
+            defaultColor: TEXT_SECONDARY,
+            defaultBg: SURFACE_BG,
+          },
+          Card: {
+            headerBg: SURFACE_BG,
+            colorBgContainer: SURFACE_BG,
+            colorTextHeading: TEXT_PRIMARY,
+            colorBorder: BORDER_COLOR,
+          },
+          Tabs: {
+            itemSelectedColor: BRAND_GREEN,
+            itemHoverColor: BRAND_GREEN,
+            inkBarColor: BRAND_GREEN,
+          },
+        }
+      }}
+    >
+      <div className="min-h-screen bg-black font-manrope">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          {/* Back Button */}
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={handleBack}
+            className="mb-6 hover:text-white border-none shadow-none px-0"
+            style={{ background: 'transparent', color: SPACE_COLOR }}
           >
             Back to Proposals
           </Button>
-        </div>
-      </div>
-    );
-  }
 
-  const { proposalData, metadata } = proposalDetail;
-
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Button 
-          icon={<ArrowLeftOutlined />} 
-          onClick={handleBack}
-        >
-          Back to Proposals
-        </Button>
-        
-<Space>
-  {/* <Button 
-    icon={<EditOutlined />}
-    onClick={handleEditProposal}
-  >
-    Edit Proposal
-  </Button> */}
-  {/* <Button 
-    icon={<DownloadOutlined />}
-    loading={exportLoading}
-    onClick={() => exportProposal('json')}
-  >
-    Export JSON
-  </Button> */}
-  <Button 
-    type="primary" 
-    icon={<EyeOutlined />}
-    onClick={() => exportProposal('html')}
-    loading={exportLoading}
-  >
-    View Full Proposal
-  </Button>
-  {/* <Button 
-    type="default"
-    icon={<DownloadOutlined />}
-    onClick={() => exportProposal('pdf')}
-    loading={exportLoading}
-  >
-    Download PDF
-  </Button> */}
-</Space>
-
-      </div>
-
-      <div className="text-center mb-8">
-        <Title level={2} className="flex items-center justify-center">
-          <FileTextOutlined className="mr-2" />
-          Proposal Details
-        </Title>
-        <Text type="secondary">
-          Created on {new Date(proposalDetail.createdAt).toLocaleDateString()}
-        </Text>
-      </div>
-
-      {/* Proposal Stats */}
-      <Row gutter={24} className="mb-6">
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Total Value"
-              value={proposalDetail.totalValue}
-              prefix="$"
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Win Probability"
-              value={metadata.winProbability}
-              suffix="%"
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ 
-                color: metadata.winProbability >= 70 ? '#3f8600' : 
-                       metadata.winProbability >= 50 ? '#faad14' : '#cf1322' 
-              }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Project Size"
-              value={metadata.projectSize}
-              prefix={<ProjectOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Complexity"
-              value={metadata.complexity}
-              prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Proposal Info */}
-      <Card className="mb-6">
-        <Descriptions title="Proposal Information" bordered column={1}>
-          <Descriptions.Item label="Proposal Title">
-            {proposalDetail.title}
-          </Descriptions.Item>
-          <Descriptions.Item label="Client">
-            <Space>
-              <TeamOutlined />
-              {proposalDetail.clientName}
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Industry">
-            <Tag color="blue">{metadata.industry}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Proposal Type">
-            <Tag color="green">{proposalDetail.proposalType}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Status">
-            <Badge 
-              status={
-                proposalDetail.status === 'accepted' ? 'success' :
-                proposalDetail.status === 'rejected' ? 'error' :
-                proposalDetail.status === 'sent' ? 'processing' : 'default'
-              } 
-              text={proposalDetail.status.toUpperCase()}
-            />
-          </Descriptions.Item>
-          <Descriptions.Item label="Created">
-            <Space>
-              <CalendarOutlined />
-              {new Date(proposalDetail.createdAt).toLocaleString()}
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Last Updated">
-            <Space>
-              <CalendarOutlined />
-              {new Date(proposalDetail.updatedAt).toLocaleString()}
-            </Space>
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-
-      {/* Proposal Content Tabs */}
-      <Card>
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab}
-          type="card"
-          items={[
-            {
-              key: 'overview',
-              label: 'Executive Overview',
-              children: <OverviewTab proposalData={proposalData} />,
-            },
-            {
-              key: 'analysis',
-              label: 'Analysis',
-              children: <AnalysisTab proposalData={proposalData} />,
-            },
-            {
-              key: 'documents',
-              label: 'Legal Documents',
-              children: <DocumentsTab proposalData={proposalData} copyToClipboard={copyToClipboard} />,
-            },
-             {
-        key: 'complete', // ADD THIS TAB
-        label: 'Complete Proposal',
-        children: <CompleteProposalTab proposalData={proposalData} copyToClipboard={copyToClipboard} />,
-      },
-            {
-              key: 'alternatives',
-              label: 'Alternative Options',
-              children: <AlternativesTab proposalData={proposalData} />,
-            }
-          ]}
-        />
-      </Card>
-    </div>
-  );
-};
-
-// Add this component to your detail page file
-const CompleteProposalTab = ({ 
-  proposalData, 
-  copyToClipboard 
-}: { 
-  proposalData: ProposalPackage;
-  copyToClipboard: (text: string) => void;
-}) => {
-
-
-  
-const generateCompleteProposal = () => {
-    const sections = [
-      "=".repeat(60),
-      "PROJECT PROPOSAL",
-      "=".repeat(60),
-      "",
-      "PROJECT OVERVIEW",
-      "-".repeat(30),
-      proposalData?.proposal?.projectOverview || 'Not available',
-      "",
-      "SCOPE OF WORK", 
-      "-".repeat(30),
-      proposalData?.proposal?.scopeOfWork || 'Not available',
-      "",
-      "DELIVERABLES",
-      "-".repeat(30),
-      proposalData?.proposal?.deliverables || 'Not available',
-      "",
-      "TIMELINE & MILESTONES",
-      "-".repeat(30),
-      proposalData?.proposal?.timeline || 'Not available',
-      "",
-      "INVESTMENT & PRICING",
-      "-".repeat(30),
-      proposalData?.proposal?.pricing || 'Not available',
-      "",
-      "TERMS & CONDITIONS",
-      "-".repeat(30),
-      proposalData?.proposal?.terms || 'Not available',
-      "",
-      "NEXT STEPS",
-      "-".repeat(30),
-      proposalData?.proposal?.nextSteps || 'Not available',
-      "",
-      "=".repeat(60),
-      "LEGAL CONTRACTS", 
-      "=".repeat(60),
-      "",
-      "SERVICE AGREEMENT",
-      "-".repeat(30),
-      proposalData?.proposal?.contractTemplates?.serviceAgreement || 'Not available',
-      "",
-      "=".repeat(60),
-      "",
-      "STATEMENT OF WORK",
-      "-".repeat(30),
-      proposalData?.proposal?.contractTemplates?.statementOfWork || 'Not available',
-      "",
-      "=".repeat(60),
-      "END OF PROPOSAL",
-      "=".repeat(60)
-    ];
-
-    return sections.join("\n");
-  };
-
-  const completeProposalText = generateCompleteProposal();
-
-  return (
-    <Card>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <Title level={4}>Complete Proposal Document</Title>
-          <Text type="secondary">
-            Full proposal including business sections and legal contracts
-          </Text>
-        </div>
-        <Space>
-          <Button 
-            icon={<CopyOutlined />}
-            onClick={() => copyToClipboard(completeProposalText)}
-            type="primary"
-          >
-            Copy Complete Proposal
-          </Button>
-          <Button 
-            icon={<DownloadOutlined />}
-            onClick={() => {
-              const blob = new Blob([completeProposalText], { type: 'text/plain' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `proposal-complete-${Date.now()}.txt`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-              message.success('Complete proposal downloaded as text file!');
-            }}
-          >
-            Download as Text
-          </Button>
-        </Space>
-      </div>
-      
-      <Alert
-        message="Complete Proposal Ready"
-        description="This document contains your full business proposal including executive summary, project details, pricing, terms, service agreement, and statement of work."
-        type="info"
-        showIcon
-        className="mb-4"
-      />
-
-      <div className="p-6 rounded border">
-        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto max-h-[600px] border border-gray-200 p-4 rounded">
-          {completeProposalText}
-        </div>
-      </div>
-      
-      <div className="mt-4 p-4 rounded">
-        <Text strong>Document Statistics:</Text>
-        <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
-          <div>
-            <Text type="secondary">Word Count: </Text>
-            <Text strong>{completeProposalText.split(/\s+/).length.toLocaleString()}</Text>
+          {/* Page Header */}
+          <div className="text-center mb-8">
+            <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Proposal Details</Title>
+            <Text style={{ color: SPACE_COLOR }} className="text-lg">
+              {proposalDetail.title}
+            </Text>
           </div>
-          <div>
-            <Text type="secondary">Character Count: </Text>
-            <Text strong>{completeProposalText.length.toLocaleString()}</Text>
-          </div>
-          <div>
-            <Text type="secondary">Estimated Pages: </Text>
-            <Text strong>{Math.ceil(completeProposalText.split(/\s+/).length / 250)}</Text>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-};
 
-// Tab Components
-// Around line 677 in OverviewTab component
-const OverviewTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
-  return (
-    <div className="space-y-6">
-      <Card title="Project Overview" size="small">
-        <Paragraph className="whitespace-pre-wrap">
-          {proposalData?.proposal?.projectOverview || 'No project overview available'}
-        </Paragraph>
-      </Card>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Card title="Scope of Work" size="small">
-            <Paragraph className="whitespace-pre-wrap">
-              {proposalData?.proposal?.scopeOfWork || 'No scope of work available'}
-            </Paragraph>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="Deliverables" size="small">
-            <Paragraph className="whitespace-pre-wrap">
-              {proposalData?.proposal?.deliverables || 'No deliverables available'}
-            </Paragraph>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Card title="Pricing & Investment" size="small">
-            <Paragraph className="whitespace-pre-wrap">
-              {proposalData?.proposal?.pricing || 'No pricing available'}
-            </Paragraph>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="Timeline" size="small">
-            <Paragraph className="whitespace-pre-wrap">
-              {proposalData?.proposal?.timeline || 'No timeline available'}
-            </Paragraph>
-          </Card>
-        </Col>
-      </Row>
-
-      <Card title="Next Steps" size="small">
-        <Paragraph className="whitespace-pre-wrap">
-          {proposalData?.proposal?.nextSteps || 'No next steps available'}
-        </Paragraph>
-      </Card>
-    </div>
-  );
-};
-
-const AnalysisTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
-  // Add safety check
-  if (!proposalData?.analysis) {
-    return (
-      <div className="text-center py-8">
-        <Alert
-          message="No Analysis Available"
-          description="Analysis data is not available for this proposal."
-          type="info"
-          showIcon
-        />
-      </div>
-    );
-  }
-
-  const { analysis } = proposalData;
-
-  return (
-    <div className="space-y-6">
-      {/* Win Probability */}
-      <Card title="Win Probability Analysis" size="small">
-        <div className="mb-4">
-          <Progress 
-            percent={analysis?.winProbability?.score || 0} 
-            status={analysis?.winProbability?.score >= 70 ? "success" : "active"}
-            strokeColor={analysis?.winProbability?.score >= 70 ? "#52c41a" : "#1890ff"}
-          />
-          <Text className="block text-center mt-2">
-            {analysis?.winProbability?.score || 0}% Probability of Winning
-          </Text>
-        </div>
-        
-        <Divider />
-        
-        <Title level={5}>Key Factors</Title>
-        <List
-          dataSource={analysis?.winProbability?.factors || []}
-          renderItem={(factor) => (
-            <List.Item>
-              <div className="flex justify-between items-start w-full">
-                <div className="flex-1">
-                  <Text strong>{factor.factor}</Text>
-                  <div className="text-sm text-gray-600">{factor.description}</div>
-                </div>
-                <Tag color={
-                  factor.impact === 'High' ? 'red' : 
-                  factor.impact === 'Medium' ? 'orange' : 'green'
-                }>
-                  {factor.impact}
-                </Tag>
+          {/* Header Card with Actions */}
+          <Card style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }} className="mb-6">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <Title level={3} style={{ color: TEXT_PRIMARY }}>Generated Proposal</Title>
+                <Text style={{ color: SPACE_COLOR }}>
+                  Created for {clientInfo.legalName || proposalDetail.clientName} • Effective {effectiveDate}
+                </Text>
               </div>
-            </List.Item>
-          )}
-        />
-      </Card>
+              <Space>
+                <Button
+                  icon={<CopyOutlined />}
+                  onClick={() => copyToClipboard(completeProposalPlainText, 'Complete Proposal')}
+                  style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                >
+                  Copy Complete
+                </Button>
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={() => exportProposal('html')}
+                  loading={exportLoading}
+                  type="primary"
+                  style={{
+                    backgroundColor: BRAND_GREEN,
+                    borderColor: BRAND_GREEN,
+                    color: '#000000',
+                    fontWeight: '500'
+                  }}
+                >
+                  Export & Download Proposal
+                </Button>
+              </Space>
+            </div>
+          </Card>
 
-      {/* Pricing Analysis */}
-      <Card title="Pricing Analysis" size="small">
-        <div className="mb-4">
-          <Text strong>Competitiveness: </Text>
-          <Tag color={getCompetitivenessColor(analysis?.pricingAnalysis?.competitiveness || 'low')}>
-            {(analysis?.pricingAnalysis?.competitiveness || 'N/A').toUpperCase()}
-          </Tag>
-        </div>
-        
-        <Paragraph>
-          {analysis?.pricingAnalysis?.valueJustification || 'No pricing analysis available'}
-        </Paragraph>
-        
-        <Divider />
-        
-        <Title level={5}>Recommendations</Title>
-        <List
-          dataSource={analysis?.pricingAnalysis?.recommendations || []}
-          renderItem={(rec) => (
-            <List.Item>
-              <BulbOutlined className="text-yellow-500 mr-2" />
-              {rec}
-            </List.Item>
-          )}
-        />
-      </Card>
-
-      {/* Risk Assessment */}
-      <Card title="Risk Assessment" size="small">
-        <div className="mb-4">
-          <Text strong>Overall Risk Level: </Text>
-          <Tag color={getRiskColor(analysis?.riskLevel || 'low')}>
-            {(analysis?.riskLevel || 'N/A').toUpperCase()}
-          </Tag>
-        </div>
-        
-        <Row gutter={16}>
-          <Col span={12}>
-            <Title level={5} className="text-green-600">Strengths</Title>
-            <List
-              dataSource={analysis?.strengthsWeaknesses?.strengths || []}
-              renderItem={(strength) => (
-                <List.Item>
-                  <CheckCircleOutlined className="text-green-500 mr-2" />
-                  {strength}
-                </List.Item>
-              )}
+          {/* Document Tabs - Matching ProposalPreview */}
+          <Card style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }} className="mb-6">
+            <Tabs
+              activeKey={activeDocTab}
+              onChange={(key) => setActiveDocTab(key as 'complete' | 'agreement' | 'sow')}
+              type="card"
+              items={[
+                {
+                  key: 'complete',
+                  label: 'Complete Proposal',
+                  children: (
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <Title level={4} style={{ color: TEXT_PRIMARY }}>Complete Proposal Document</Title>
+                        <Button
+                          icon={<CopyOutlined />}
+                          onClick={() => copyToClipboard(completeProposalPlainText, 'Complete Proposal')}
+                          size="small"
+                          style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                        >
+                          Copy Complete
+                        </Button>
+                      </div>
+                      <div
+                        className="border rounded p-6 bg-white"
+                        style={{ maxHeight: '600px', overflowY: 'auto', borderColor: SURFACE_LIGHTER }}
+                      >
+                        {serviceAgreementHTML ? (
+                          <>
+                            <div dangerouslySetInnerHTML={{ __html: serviceAgreementHTML }} />
+                            <div style={{ margin: '40px 0', borderTop: '2px solid #000' }}></div>
+                          </>
+                        ) : null}
+                        {statementOfWorkHTML ? (
+                          <div dangerouslySetInnerHTML={{ __html: statementOfWorkHTML }} />
+                        ) : null}
+                        {!serviceAgreementHTML && !statementOfWorkHTML && (
+                          <div style={{ color: '#999', textAlign: 'center', padding: '40px' }}>
+                            No contract documents available for this proposal.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'agreement',
+                  label: 'Service Agreement',
+                  children: serviceAgreementHTML ? (
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <Title level={4} style={{ color: TEXT_PRIMARY }}>Service Agreement</Title>
+                        <Button
+                          icon={<CopyOutlined />}
+                          onClick={() => copyToClipboard(serviceAgreementPlainText || '', 'Service Agreement')}
+                          size="small"
+                          style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                        >
+                          Copy Agreement
+                        </Button>
+                      </div>
+                      <div
+                        className="border rounded p-6 bg-white"
+                        style={{ maxHeight: '600px', overflowY: 'auto', borderColor: SURFACE_LIGHTER }}
+                        dangerouslySetInnerHTML={{ __html: serviceAgreementHTML }}
+                      />
+                    </div>
+                  ) : (
+                    <Alert
+                      message="Service Agreement Not Available"
+                      description="The service agreement could not be found. Please try regenerating the proposal."
+                      type="warning"
+                      showIcon
+                      style={{ background: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}
+                    />
+                  ),
+                },
+                {
+                  key: 'sow',
+                  label: 'Statement of Work',
+                  children: statementOfWorkHTML ? (
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <Title level={4} style={{ color: TEXT_PRIMARY }}>Statement of Work</Title>
+                        <Button
+                          icon={<CopyOutlined />}
+                          onClick={() => copyToClipboard(statementOfWorkPlainText || '', 'Statement of Work')}
+                          size="small"
+                          style={{ background: SURFACE_LIGHTER, borderColor: BORDER_COLOR, color: TEXT_PRIMARY }}
+                        >
+                          Copy SOW
+                        </Button>
+                      </div>
+                      <div
+                        className="border rounded p-6 bg-white"
+                        style={{ maxHeight: '600px', overflowY: 'auto', borderColor: SURFACE_LIGHTER }}
+                        dangerouslySetInnerHTML={{ __html: statementOfWorkHTML }}
+                      />
+                    </div>
+                  ) : (
+                    <Alert
+                      message="Statement of Work Not Available"
+                      description="The statement of work could not be found. Please try regenerating the proposal."
+                      type="warning"
+                      showIcon
+                      style={{ background: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}
+                    />
+                  ),
+                },
+              ]}
             />
-          </Col>
-          <Col span={12}>
-            <Title level={5} className="text-orange-600">Areas for Improvement</Title>
-            <List
-              dataSource={analysis?.strengthsWeaknesses?.weaknesses || []}
-              renderItem={(weakness) => (
-                <List.Item>
-                  <ExclamationCircleOutlined className="text-orange-500 mr-2" />
-                  {weakness}
-                </List.Item>
-              )}
-            />
-          </Col>
-        </Row>
-      </Card>
-    </div>
-  );
-};
+          </Card>
 
-
-
-const DocumentsTab = ({ 
-  proposalData, 
-  copyToClipboard 
-}: { 
-  proposalData: ProposalPackage;
-  copyToClipboard: (text: string) => void;
-}) => {
-  // Add safety check
-  if (!proposalData?.proposal?.contractTemplates) {
-    return (
-      <div className="text-center py-8">
-        <Alert
-          message="No Contract Documents Available"
-          description="Contract templates are not available for this proposal."
-          type="info"
-          showIcon
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card 
-        title="Service Agreement" 
-        extra={
-          <Button 
-            icon={<CopyOutlined />}
-            onClick={() => copyToClipboard(proposalData?.proposal?.contractTemplates?.serviceAgreement || '')}
-            disabled={!proposalData?.proposal?.contractTemplates?.serviceAgreement}
-          >
-            Copy Agreement
-          </Button>
-        }
-      >
-        <div className="p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
-          {proposalData?.proposal?.contractTemplates?.serviceAgreement || 'No service agreement available'}
+          {/* Proposal Summary - Matching ProposalPreview */}
+          <Card style={{ background: SURFACE_BG, borderColor: BORDER_COLOR }}>
+            <Title level={4} style={{ color: TEXT_PRIMARY }}>Proposal Summary</Title>
+            <Divider style={{ borderColor: BORDER_COLOR }} />
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Text strong style={{ color: TEXT_SECONDARY }}>Client:</Text>
+                <br />
+                <Text style={{ color: TEXT_PRIMARY }}>{clientInfo.legalName || proposalDetail.clientName}</Text>
+              </Col>
+              <Col span={12}>
+                <Text strong style={{ color: TEXT_SECONDARY }}>Service Provider:</Text>
+                <br />
+                <Text style={{ color: TEXT_PRIMARY }}>{serviceProvider.name || 'N/A'}</Text>
+              </Col>
+              <Col span={12}>
+                <Text strong style={{ color: TEXT_SECONDARY }}>Effective Date:</Text>
+                <br />
+                <Text style={{ color: TEXT_PRIMARY }}>{effectiveDate}</Text>
+              </Col>
+              <Col span={12}>
+                <Text strong style={{ color: TEXT_SECONDARY }}>Status:</Text>
+                <br />
+                <Tag color="blue" style={{ background: 'rgba(24, 144, 255, 0.1)', color: '#1890ff' }}>
+                  {proposalDetail.status?.toUpperCase() || 'DRAFT'}
+                </Tag>
+              </Col>
+              <Col span={12}>
+                <Text strong style={{ color: TEXT_SECONDARY }}>Service Agreement:</Text>
+                <br />
+                <Tag color={serviceAgreementHTML ? "green" : "red"}
+                  style={{
+                    background: serviceAgreementHTML ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)',
+                    color: serviceAgreementHTML ? '#52c41a' : '#ff4d4f'
+                  }}
+                >
+                  {serviceAgreementHTML ? "Generated" : "Not Available"}
+                </Tag>
+              </Col>
+              <Col span={12}>
+                <Text strong style={{ color: TEXT_SECONDARY }}>Statement of Work:</Text>
+                <br />
+                <Tag color={statementOfWorkHTML ? "green" : "red"}
+                  style={{
+                    background: statementOfWorkHTML ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)',
+                    color: statementOfWorkHTML ? '#52c41a' : '#ff4d4f'
+                  }}
+                >
+                  {statementOfWorkHTML ? "Generated" : "Not Available"}
+                </Tag>
+              </Col>
+            </Row>
+          </Card>
         </div>
-      </Card>
 
-      <Card 
-        title="Statement of Work" 
-        extra={
-          <Button 
-            icon={<CopyOutlined />}
-            onClick={() => copyToClipboard(proposalData?.proposal?.contractTemplates?.statementOfWork || '')}
-            disabled={!proposalData?.proposal?.contractTemplates?.statementOfWork}
-          >
-            Copy SOW
-          </Button>
-        }
-      >
-        <div className="bg-gray-50 p-4 rounded border font-mono text-sm whitespace-pre-wrap overflow-auto max-h-96">
-          {proposalData?.proposal?.contractTemplates?.statementOfWork || 'No statement of work available'}
-        </div>
-      </Card>
-    </div>
-  );
-};
+        {/* Custom CSS for hover effects - matching proposal generator */}
+        <style jsx global>{`
+          .ant-btn:hover, .ant-btn:focus {
+            border-color: #5CC49D !important;
+            color: #5CC49D !important;
+          }
 
+          .ant-btn-primary:hover, .ant-btn-primary:focus {
+            background: #4cb08d !important;
+            border-color: #4cb08d !important;
+            color: #000 !important;
+          }
 
+          .ant-tabs-tab:hover {
+            color: #5CC49D !important;
+          }
 
-const AlternativesTab = ({ proposalData }: { proposalData: ProposalPackage }) => {
-  const alternatives = proposalData.proposal.alternativeOptions || [];
-
-  if (alternatives.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <Text type="secondary">No alternative options generated for this proposal.</Text>
+          .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: #5CC49D !important;
+          }
+        `}</style>
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {alternatives.map((option, index) => (
-        <Card key={index} size="small" className="mb-4">
-          <Title level={5} className="text-blue-600">{option.title}</Title>
-          <Paragraph className="text-sm">{option.description}</Paragraph>
-          
-          <Row gutter={16} className="mb-3">
-            <Col span={8}>
-              <Text strong>Price Adjustment: </Text>
-              <Tag color={option.pricingAdjustment < 0 ? 'green' : 'orange'}>
-                {option.pricingAdjustment > 0 ? '+' : ''}{(option.pricingAdjustment * 100).toFixed(0)}%
-              </Tag>
-            </Col>
-            <Col span={8}>
-              <Text strong>Timeline: </Text>
-              <Text>{option.timelineAdjustment}</Text>
-            </Col>
-            <Col span={8}>
-              <Text strong>Scope Changes: </Text>
-              <Text>{option.scopeChanges?.length || 0}</Text>
-            </Col>
-          </Row>
-          
-          <Divider />
-          
-          <Row gutter={16}>
-            <Col span={12}>
-              <Title level={5} className="text-green-600">Pros</Title>
-              <ul className="text-sm">
-                {option.pros.map((pro, i) => <li key={i}>• {pro}</li>)}
-              </ul>
-            </Col>
-            <Col span={12}>
-              <Title level={5} className="text-orange-600">Cons</Title>
-              <ul className="text-sm">
-                {option.cons.map((con, i) => <li key={i}>• {con}</li>)}
-              </ul>
-            </Col>
-          </Row>
-        </Card>
-      ))}
-    </div>
+    </ConfigProvider>
   );
-};
-
-// Helper function for risk color
-const getRiskColor = (riskLevel: string) => {
-  switch (riskLevel) {
-    case 'low': return '#52c41a';
-    case 'medium': return '#faad14';
-    case 'high': return '#ff4d4f';
-    default: return '#d9d9d9';
-  }
-};
-
-// Helper function for competitiveness color
-const getCompetitivenessColor = (level: string) => {
-  switch (level) {
-    case 'competitive': return '#52c41a';
-    case 'premium': return '#faad14';
-    case 'low': return '#ff4d4f';
-    default: return '#d9d9d9';
-  }
 };
 
 export default ProposalDetailPage;
