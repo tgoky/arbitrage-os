@@ -48,7 +48,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
 
-import { ConfigProvider } from "antd";
+import { ConfigProvider, theme as antTheme } from "antd";
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -312,47 +312,49 @@ Score: ${lead.score}/100
 
   if (!isWorkspaceReady) {
     return (
-      <div style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+      <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm, token: { fontFamily: 'Manrope, sans-serif', colorPrimary: '#5CC49D' } }}>
+        <div style={{ backgroundColor: '#0B0C10', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Spin size="large" tip="Loading workspace..." />
-        </ConfigProvider>
-      </div>
+        </div>
+      </ConfigProvider>
     );
   }
 
   if (loading) {
     return (
-      <div style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <ConfigProvider theme={{ token: { colorPrimary: '#5CC49D' } }}>
+      <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm, token: { fontFamily: 'Manrope, sans-serif', colorPrimary: '#5CC49D' } }}>
+        <div style={{ backgroundColor: '#0B0C10', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Spin size="large" tip="Loading lead details..." />
-        </ConfigProvider>
-      </div>
+        </div>
+      </ConfigProvider>
     );
   }
 
   if (error || !leadDetail) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8" style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh' }}>
-        <Alert
-          message="Error Loading Lead Generation"
-          description={error || "Could not find the requested lead generation"}
-          type="error"
-          showIcon
-          action={
-            <Button type="primary" onClick={fetchLeadDetail}>
-              Try Again
+      <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm, token: { fontFamily: 'Manrope, sans-serif', colorPrimary: '#5CC49D' } }}>
+        <div className="max-w-6xl mx-auto px-4 py-8" style={{ backgroundColor: '#0B0C10', minHeight: '100vh' }}>
+          <Alert
+            message="Error Loading Lead Generation"
+            description={error || "Could not find the requested lead generation"}
+            type="error"
+            showIcon
+            action={
+              <Button type="primary" onClick={fetchLeadDetail}>
+                Try Again
+              </Button>
+            }
+          />
+          <div className="mt-4 text-center">
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push('/lead-generation')}
+            >
+              Back to Lead Generation
             </Button>
-          }
-        />
-        <div className="mt-4 text-center">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => router.push('/lead-generation')}
-          >
-            Back to Lead Generation
-          </Button>
+          </div>
         </div>
-      </div>
+      </ConfigProvider>
     );
   }
 
@@ -498,95 +500,70 @@ Score: ${lead.score}/100
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8" style={{ fontFamily: "'Manrope', sans-serif", backgroundColor: '#0B0C10', minHeight: '100vh' }}>
-      <style>{`
-        .lead-gen-detail .ant-card {
-          background-color: #000000 !important;
-          border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          border-radius: 12px !important;
+    <ConfigProvider
+      theme={{
+        algorithm: antTheme.darkAlgorithm,
+        token: {
+          fontFamily: 'Manrope, sans-serif',
+          colorPrimary: '#5CC49D',
+          borderRadius: 8,
+          colorTextHeading: '#f1f5f9',
+          colorText: '#94a3b8',
+          colorBgContainer: '#000000',
+          colorBgElevated: '#000000',
+          colorBorder: 'rgba(255, 255, 255, 0.08)',
+        },
+        components: {
+          Card: {
+            headerBg: '#000000',
+            colorBgContainer: '#000000',
+            colorTextHeading: '#ffffff',
+            colorBorder: 'rgba(255, 255, 255, 0.08)',
+          },
+          Table: {
+            headerBg: 'rgba(255, 255, 255, 0.04)',
+            headerColor: '#9DA2B3',
+            rowHoverBg: 'rgba(255, 255, 255, 0.04)',
+            colorBgContainer: '#000000',
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+          },
+          Collapse: {
+            headerBg: '#000000',
+            contentBg: '#000000',
+            colorBorder: 'rgba(255, 255, 255, 0.08)',
+          },
+          Button: {
+            colorPrimary: '#5CC49D',
+            algorithm: true,
+            fontWeight: 600,
+            colorTextLightSolid: '#000000',
+            defaultBorderColor: 'rgba(255, 255, 255, 0.08)',
+            defaultColor: '#ffffff',
+            defaultBg: 'rgba(255, 255, 255, 0.04)',
+          },
+          Descriptions: {
+            colorSplit: 'rgba(255, 255, 255, 0.08)',
+            labelBg: 'rgba(255, 255, 255, 0.04)',
+          },
+          Select: {
+            colorBgContainer: 'rgba(255, 255, 255, 0.04)',
+            selectorBg: 'rgba(255, 255, 255, 0.04)',
+            optionSelectedBg: 'rgba(92, 196, 157, 0.2)',
+          },
+          Pagination: {
+            itemActiveBg: 'rgba(255, 255, 255, 0.04)',
+            colorText: '#9DA2B3',
+            colorPrimary: '#5CC49D',
+          },
+          Modal: {
+            contentBg: '#000000',
+            headerBg: '#000000',
+            titleColor: '#ffffff',
+          },
         }
-        .lead-gen-detail .ant-card-head {
-          background-color: #000000 !important;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-          color: #ffffff !important;
-        }
-        .lead-gen-detail .ant-card-head-title {
-          color: #ffffff !important;
-        }
-        .lead-gen-detail .ant-card-body {
-          background-color: #000000 !important;
-        }
-        .lead-gen-detail .ant-descriptions-header .ant-descriptions-title {
-          color: #ffffff !important;
-        }
-        .lead-gen-detail .ant-descriptions-bordered .ant-descriptions-item-label {
-          background-color: rgba(255, 255, 255, 0.04) !important;
-          color: #9DA2B3 !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-descriptions-bordered .ant-descriptions-item-content {
-          background-color: transparent !important;
-          color: #ffffff !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-table {
-          background-color: #000000 !important;
-        }
-        .lead-gen-detail .ant-table-thead > tr > th {
-          background-color: rgba(255, 255, 255, 0.04) !important;
-          color: #9DA2B3 !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-table-tbody > tr > td {
-          background-color: #000000 !important;
-          color: #ffffff !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-table-tbody > tr:hover > td {
-          background-color: rgba(255, 255, 255, 0.04) !important;
-        }
-        .lead-gen-detail .ant-collapse {
-          background-color: #000000 !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-collapse-header {
-          color: #ffffff !important;
-        }
-        .lead-gen-detail .ant-collapse-content {
-          background-color: #000000 !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-statistic-title {
-          color: #9DA2B3 !important;
-        }
-        .lead-gen-detail .ant-typography {
-          color: #ffffff !important;
-        }
-        .lead-gen-detail .ant-typography-secondary {
-          color: #9DA2B3 !important;
-        }
-        .lead-gen-detail .ant-divider {
-          border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .lead-gen-detail .ant-pagination-item a {
-          color: #9DA2B3 !important;
-        }
-        .lead-gen-detail .ant-pagination-item-active {
-          border-color: #5CC49D !important;
-        }
-        .lead-gen-detail .ant-pagination-item-active a {
-          color: #5CC49D !important;
-        }
-        .lead-gen-detail .ant-select-selector {
-          background-color: rgba(255, 255, 255, 0.04) !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
-          color: #ffffff !important;
-        }
-        .lead-gen-detail .ant-badge-status-text {
-          color: #ffffff !important;
-        }
-      `}</style>
-      <div className="lead-gen-detail">
+      }}
+    >
+    <div className="max-w-6xl mx-auto px-4 py-8" style={{ backgroundColor: '#0B0C10', minHeight: '100vh' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Button 
@@ -1006,8 +983,8 @@ Score: ${lead.score}/100
           </div>
         )}
       </Modal>
-      </div>
     </div>
+    </ConfigProvider>
   );
 };
 
