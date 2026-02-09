@@ -553,7 +553,7 @@ export default function AnalysisDetailPage() {
       >
 
         {/* ─── DEAL ARCHITECTURE ─── */}
-        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Deal Architecture</span>} key="deal-architecture">
+        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Call Architecture</span>} key="deal-architecture">
           {deal ? (
             <div className="space-y-12">
               {/* Grade + Brief */}
@@ -849,12 +849,12 @@ export default function AnalysisDetailPage() {
               )}
             </div>
           ) : (
-            <p className="text-base text-gray-500 py-8">Deal architecture analysis is not available for this call.</p>
+            <p className="text-base text-gray-500 py-8">Call architecture analysis is not available for this call.</p>
           )}
         </TabPane>
 
         {/* ─── OVERVIEW ─── */}
-        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Overview</span>} key="overview">
+        {/* <TabPane tab={<span className="font-manrope text-sm tracking-wide">Overview</span>} key="overview">
           <div className="space-y-12">
             <div>
               <Label>Call Summary</Label>
@@ -909,7 +909,7 @@ export default function AnalysisDetailPage() {
               </div>
             )}
           </div>
-        </TabPane>
+        </TabPane> */}
 
         {/* ─── TRANSCRIPT ─── */}
         <TabPane tab={<span className="font-manrope text-sm tracking-wide">Transcript</span>} key="transcript">
@@ -1077,7 +1077,7 @@ export default function AnalysisDetailPage() {
         </TabPane>
 
         {/* ─── ANALYSIS ─── */}
-        <TabPane tab={<span className="font-manrope text-sm tracking-wide">Analysis</span>} key="analysis">
+        {/* <TabPane tab={<span className="font-manrope text-sm tracking-wide">Analysis</span>} key="analysis">
           <div className="space-y-12">
             <div>
               <Label>Key Insights</Label>
@@ -1130,7 +1130,7 @@ export default function AnalysisDetailPage() {
               </div>
             ) : null}
           </div>
-        </TabPane>
+        </TabPane> */}
 
       </Tabs>
 
