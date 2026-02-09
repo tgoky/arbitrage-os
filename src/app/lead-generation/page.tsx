@@ -522,13 +522,21 @@ const LeadGenerationPage = () => {
 
         return (
           <div className="flex items-center space-x-3">
-            <Avatar 
-              src={`https://i.pravatar.cc/150?u=${record.id}`}
-              size={42}
-              style={{ border: `1px solid ${isDark ? '#333' : '#f0f0f0'}` }}
-            >
-              {record.name.charAt(0)}
-            </Avatar>
+          <div 
+  className="flex items-center justify-center rounded-full"
+  style={{
+    width: '42px',
+    height: '42px',
+    backgroundColor: isDark ? '#333' : '#f0f0f0',
+    border: `1px solid ${isDark ? '#444' : '#e0e0e0'}`,
+    color: isDark ? '#fff' : '#000',
+    fontSize: '16px',
+    fontWeight: 600,
+    fontFamily: FONT_FAMILY
+  }}
+>
+  {record.name.charAt(0).toUpperCase()}
+</div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
                 <span 
@@ -944,12 +952,12 @@ const LeadGenerationPage = () => {
         </div>
 
         {/* Global Coverage Stats */}
-        {globalCoverage && globalCoverage.countries?.length > 0 && (
+        {/* {globalCoverage && globalCoverage.countries?.length > 0 && (
           <GlobalCoverageStats globalCoverage={globalCoverage} isDark={isDark} />
-        )}
+        )} */}
 
         {/* Stats Grid */}
-        <Row gutter={[20, 20]} className="mb-8">
+        {/* <Row gutter={[20, 20]} className="mb-8">
           <Col xs={24} sm={12} lg={6}>
             <StatCard 
               title="Total Leads" 
@@ -985,7 +993,7 @@ const LeadGenerationPage = () => {
               color={BRAND_COLOR} 
             />
           </Col>
-        </Row>
+        </Row> */}
 
         {/* Main Content Area */}
         <Card 
@@ -1083,6 +1091,7 @@ const LeadGenerationPage = () => {
                       <div className="flex-1 text-right">
                          <Space>
                             <Button 
+                            style={{backgroundColor: '#000000'}}
                               icon={<MailOutlined />} 
                               onClick={handleBulkEmail}
                               disabled={filteredLeads.filter(l => l.email).length === 0}
@@ -1090,6 +1099,7 @@ const LeadGenerationPage = () => {
                               Email Batch
                             </Button>
                             <Button 
+                                  style={{backgroundColor: '#000000'}}
                               icon={<DownloadOutlined />} 
                               onClick={handleBulkExport}
                               disabled={filteredLeads.length === 0}
