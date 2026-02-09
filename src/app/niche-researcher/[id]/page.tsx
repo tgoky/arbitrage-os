@@ -45,9 +45,9 @@ const { TabPane } = Tabs;
 // Color constants
 const SPACE_COLOR = '#9DA2B3';
 const BRAND_GREEN = '#5CC49D';
-const DARK_BG = '#0f172a';
-const SURFACE_BG = '#1e293b';
-const SURFACE_LIGHTER = '#334155';
+const DARK_BG = '#000000';
+const SURFACE_BG = '#000000';
+const SURFACE_LIGHTER = '#000000';
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
 const BORDER_COLOR = '#334155';
@@ -1306,7 +1306,7 @@ const NicheResearchDetailPage = () => {
         }
       }}
     >
-      <div className="min-h-screen bg-gray-900 font-manrope">
+      <div className="min-h-screen bg-black font-manrope">
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-6">
