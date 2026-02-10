@@ -206,14 +206,16 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     // This handles the case where the component mounts after auth is already established
     const loadInitial = async () => {
       try {
-        const { data: { session } } = await supabaseBrowserClient.auth.getSession();
-        if (session?.user && loadedForUserRef.current !== session.user.id && !isLoadingRef.current) {
-          console.log('Initial session found, loading workspaces for:', session.user.id);
+        // Use getUser() instead of getSession() - validates against Supabase servers
+        // directly, which is more reliable for new users arriving from magic link callback
+        const { data: { user } } = await supabaseBrowserClient.auth.getUser();
+        if (user && loadedForUserRef.current !== user.id && !isLoadingRef.current) {
+          console.log('Initial user found, loading workspaces for:', user.id);
           isLoadingRef.current = true;
           try {
             await loadWorkspaces();
             // Only mark as loaded AFTER successful completion
-            loadedForUserRef.current = session.user.id;
+            loadedForUserRef.current = user.id;
           } catch (error) {
             console.error('Failed to load workspaces on init:', error);
             // Don't set loadedForUserRef so retry is possible on auth state change
@@ -221,13 +223,13 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           } finally {
             isLoadingRef.current = false;
           }
-        } else if (!session) {
-          // No session yet, set loading to false so UI doesn't hang
+        } else if (!user) {
+          // No user yet, set loading to false so UI doesn't hang
           // Auth state change will trigger loading when user logs in
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error checking initial session:', error);
+        console.error('Error checking initial user:', error);
         setIsLoading(false);
       }
     };
