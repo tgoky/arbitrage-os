@@ -561,15 +561,13 @@ const premiumStyles = `
 
       console.log('Workspace created successfully:', newWorkspace);
 
-      // Refresh workspaces list
-      await refreshWorkspaces();
-
       // Close modal and clear form
       setShowCreateModal(false);
       setNewWorkspaceName("");
       setNewWorkspaceDescription("");
 
       // Navigate to new workspace
+      // Note: createWorkspace already adds to local state, no need to refreshWorkspaces()
       console.log('Navigating to new workspace:', newWorkspace.slug);
       router.push(`/dashboard/${newWorkspace.slug}`);
 
