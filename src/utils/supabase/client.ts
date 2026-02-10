@@ -18,7 +18,7 @@ export const createClient = () => {
             const cookie = cookies.find(c => c.trim().startsWith(`${name}=`))
             if (!cookie) return undefined
             
-            const value = cookie.split('=')[1]
+            const value = cookie.split('=').slice(1).join('=')
             return value ? decodeURIComponent(value) : undefined
           } catch (error) {
             console.warn(`Error reading cookie ${name}:`, error)

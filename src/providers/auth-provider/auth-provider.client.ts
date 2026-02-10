@@ -122,10 +122,13 @@ export const authProviderClient: AuthProvider = {
 
   check: async () => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Use getUser() instead of getSession() for reliable auth validation.
+      // getSession() reads from local cache which may not be populated yet
+      // after a magic link callback that sets cookies server-side.
+      const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error) {
-        console.error('Session check error:', error);
+        console.error('Auth check error:', error);
         return {
           authenticated: false,
           logout: true,
@@ -133,7 +136,7 @@ export const authProviderClient: AuthProvider = {
         };
       }
 
-      if (session?.user) {
+      if (user) {
         return {
           authenticated: true
         };
