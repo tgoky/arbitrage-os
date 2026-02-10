@@ -80,7 +80,7 @@ const menuGroups: MenuGroupConfig[] = [
     label: "Agents",
     icon: <Bot className="h-4 w-4" />,
     items: [
-      "Email_Agent"
+      // "Email_Agent"
     ],
   },
   {
@@ -88,7 +88,7 @@ const menuGroups: MenuGroupConfig[] = [
     label: "Arbitrage AI", // Moved to last place
     icon: <Sparkles className="h-4 w-4" />,
     items: [
-      "Automation"
+      // "Automation"
     ],
   },
 ];
