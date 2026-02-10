@@ -17,6 +17,7 @@ import {
   FolderOpenOutlined,
   FileDoneOutlined
 } from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { useWorkItems, WorkItem } from '../../hooks/useDashboardData';
@@ -39,6 +40,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
 }) => {
   const screens = useBreakpoint();
   const { theme } = useTheme();
+  const router = useRouter();
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
   const {
@@ -88,9 +90,28 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
     return names[type] || type;
   };
 
+  const getToolRoute = (type: WorkItem['type']): string => {
+    const routes: Record<string, string> = {
+      'sales-call': 'sales-call-analyzer',
+      'growth-plan': 'growth-plans',
+      'pricing-calc': 'pricing-calculator',
+      'niche-research': 'niche-research',
+      'cold-email': 'cold-email',
+      'offer-creator': 'offer-creator',
+      'ad-writer': 'ad-writer',
+      'n8n-workflow': 'n8n-builder',
+      'proposal': 'proposal-creator',
+      'lead-generation': 'lead-generation',
+    };
+    return routes[type] || type;
+  };
+
   const handleView = (item: WorkItem) => {
     if (!currentWorkspace) return;
-    window.location.href = `/submissions?type=${item.type}&id=${item.rawData.id}`;
+    const deliverableId = item.metadata?.deliverableId || item.rawData?.id;
+    if (deliverableId) {
+      router.push(`/dashboard/${currentWorkspace.slug}/${getToolRoute(item.type)}/${deliverableId}`);
+    }
   };
 
   const getMainCardStyles = () => ({

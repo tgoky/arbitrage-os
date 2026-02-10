@@ -20,6 +20,7 @@ import {
   UserOutlined,
   FileTextOutlined
 } from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { useWorkItems, WorkItem } from '../../hooks/useDashboardData';
@@ -37,6 +38,7 @@ interface EnhancedActivity {
   id: string;
   type: 'tool-usage' | 'generation' | 'analysis' | 'optimization' | 'export' | 'collaboration';
   toolType: ToolType;
+  deliverableId?: string;
   action: string;
   user: string;
   target?: string;
@@ -66,6 +68,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
 }) => {
   const screens = useBreakpoint();
   const { theme } = useTheme();
+  const router = useRouter();
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
   const {
@@ -154,6 +157,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
         id: `activity-${item.id}`,
         type: 'generation' as const,
         toolType: item.type as ToolType,
+        deliverableId: item.metadata?.deliverableId || item.rawData?.id,
         action,
         user,
         target: item.subtitle || item.title,
@@ -171,6 +175,27 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const activities = useMemo(() => {
     return workItems.map(item => transformWorkItemToActivity(item)).filter(Boolean) as EnhancedActivity[];
   }, [workItems]);
+
+  const getToolRoute = (toolType: ToolType): string => {
+    const routes: Record<string, string> = {
+      'sales-call': 'sales-call-analyzer',
+      'growth-plan': 'growth-plans',
+      'pricing-calc': 'pricing-calculator',
+      'niche-research': 'niche-research',
+      'cold-email': 'cold-email',
+      'offer-creator': 'offer-creator',
+      'ad-writer': 'ad-writer',
+      'n8n-workflow': 'n8n-builder',
+      'proposal': 'proposal-creator',
+      'lead-generation': 'lead-generation',
+    };
+    return routes[toolType] || toolType;
+  };
+
+  const handleActivityClick = (activity: EnhancedActivity) => {
+    if (!currentWorkspace || !activity.deliverableId) return;
+    router.push(`/dashboard/${currentWorkspace.slug}/${getToolRoute(activity.toolType)}/${activity.deliverableId}`);
+  };
 
   // --- Styles & Helpers ---
 
@@ -412,17 +437,18 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   style={{
                     padding: '16px 8px',
                     borderBottom: `1px dashed ${borderColor}`,
-                    transition: 'background-color 0.2s',
-                    cursor: 'default',
-                    // Transparent so black card bg shows through
+                    transition: 'all 0.2s',
+                    cursor: 'pointer',
                     backgroundColor: 'transparent'
                   }}
+                  onClick={() => handleActivityClick(activity)}
                   onMouseEnter={(e) => {
-                    // Subtle hover effect
                     e.currentTarget.style.backgroundColor = isDark ? '#141414' : '#fafafa';
+                    e.currentTarget.style.transform = 'translateX(4px)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
                   }}
                   actions={[
                     <div key="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
