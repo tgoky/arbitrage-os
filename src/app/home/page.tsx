@@ -164,34 +164,16 @@ const WorkspaceHomePage = () => {
   // Logout handler
   const handleLogout = () => setShowLogoutDialog(true);
 
-  // Keep loading until we actually have workspace data OR confirmed empty after load
-  const workspaceLoading = workspaceHookLoading || (!dataReady && !workspaceHookLoading);
+  // Once data has been loaded (regardless of workspace count), mark as ready
+  // Using !dataReady prevents refreshes from re-triggering the loading screen
+  const workspaceLoading = !dataReady;
 
-  // Effect to check if data is ready and retry if needed
+  // Mark data as ready once initial loading completes
   useEffect(() => {
-    // If hook says loading is done
     if (!workspaceHookLoading && !userLoading) {
-      // If we have workspaces, data is ready
-      if (workspaces.length > 0) {
-        setDataReady(true);
-      } else {
-        // No workspaces yet - could be first load or user has none
-        // Try refreshing once to make sure
-        const retryTimeout = setTimeout(async () => {
-          console.log('No workspaces found, attempting refresh...');
-          try {
-            await refreshWorkspaces();
-          } catch (e) {
-            console.error('Refresh failed:', e);
-          }
-          // After retry, mark data as ready regardless (user may have no workspaces)
-          setDataReady(true);
-        }, 500);
-
-        return () => clearTimeout(retryTimeout);
-      }
+      setDataReady(true);
     }
-  }, [workspaceHookLoading, userLoading, workspaces.length, refreshWorkspaces]);
+  }, [workspaceHookLoading, userLoading]);
 
   // Password setup state (ADDED FROM CODE 1)
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
