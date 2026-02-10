@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "../../utils/supabase/server";
 export const authProviderServer: Pick<AuthProvider, "check" | "getIdentity"> = {
   check: async () => {
     const supabase = await createSupabaseServerClient();
-    // Use getUser() instead of getSession() for reliable server-side auth validation
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {

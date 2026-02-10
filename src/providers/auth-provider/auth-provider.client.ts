@@ -122,9 +122,6 @@ export const authProviderClient: AuthProvider = {
 
   check: async () => {
     try {
-      // Use getUser() instead of getSession() for reliable auth validation.
-      // getSession() reads from local cache which may not be populated yet
-      // after a magic link callback that sets cookies server-side.
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error) {

@@ -10,8 +10,8 @@ export default function IndexPage() {
     <Suspense>
       <Authenticated
         key="home-page"
-        fallback={<div />}
-        loading={<div />}
+        loading={<div>Loading...</div>}
+        fallback={<div>Redirecting...</div>}
       >
         <NavigateToResource />
       </Authenticated>
