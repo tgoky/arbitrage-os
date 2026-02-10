@@ -10,8 +10,8 @@ export default function IndexPage() {
     <Suspense>
       <Authenticated
         key="home-page"
-        loading={<div>Loading...</div>}
-        fallback={<div>Redirecting...</div>}
+        loading={<div style={{ minHeight: '100vh', backgroundColor: '#000' }} />}
+        fallback={<div style={{ minHeight: '100vh', backgroundColor: '#000' }} />}
       >
         <NavigateToResource />
       </Authenticated>
