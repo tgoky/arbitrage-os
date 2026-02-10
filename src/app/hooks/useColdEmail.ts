@@ -33,11 +33,10 @@ const handleApiCall = async <T>(
     
     try {
       console.log('🔐 Setting up authentication...');
-      const { createClient } = await import('@/utils/supabase/client');
-      const supabase = createClient();
-      
+      const { supabaseBrowserClient } = await import('@/utils/supabase/client');
+
       console.log('🔐 Getting session...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabaseBrowserClient.auth.getSession();
       
       if (sessionError) {
         console.warn('⚠️ Session error:', sessionError);

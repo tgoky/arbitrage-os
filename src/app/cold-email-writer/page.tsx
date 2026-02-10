@@ -53,7 +53,7 @@ import {
 import { useColdEmail } from '../hooks/useColdEmail';
 import { GeneratedEmail, EmailTemplate, ColdEmailGenerationInput, ColdEmailOptimizationType } from '@/types/coldEmail';
 import LoadingOverlay from './LoadingOverlay';
-import { createClient } from '../../utils/supabase/client'; 
+import { supabaseBrowserClient } from '../../utils/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { AutoComplete } from 'antd';
@@ -156,14 +156,13 @@ const ColdEmailWriter = () => {
   }, [form.getFieldValue('generateFollowUps')]);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabaseBrowserClient.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         console.warn('No active session found');
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabaseBrowserClient.auth.onAuthStateChange((event, session) => {
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
       }

@@ -175,6 +175,16 @@ const WorkspaceHomePage = () => {
     }
   }, [workspaceHookLoading, userLoading]);
 
+  // Silently refresh workspaces in the background when the home page mounts.
+  // This ensures returning users see fresh workspace data without re-triggering
+  // the loading screen (workspaceLoading depends only on dataReady, not isLoading).
+  useEffect(() => {
+    if (dataReady) {
+      refreshWorkspaces().catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataReady]);
+
   // Password setup state (ADDED FROM CODE 1)
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);

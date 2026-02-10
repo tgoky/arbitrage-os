@@ -6,7 +6,7 @@ import { useUserProfile } from '../../app/hooks/useUserProfile';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Upload, X, Save, User, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseBrowserClient as supabase } from '@/utils/supabase/client';
 
 interface UserProfile {
   id: string;
@@ -14,17 +14,6 @@ interface UserProfile {
   name?: string;
   avatar?: string;
 }
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-  },
-});
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
 
