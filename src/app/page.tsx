@@ -32,7 +32,7 @@ const LoadingScreen = () => (
         fontSize: '12px',
         fontFamily: 'JetBrains Mono, monospace',
       }}>
-        Loading
+       
       </span>
     </div>
     
