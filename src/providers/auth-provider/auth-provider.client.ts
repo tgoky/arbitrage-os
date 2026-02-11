@@ -20,41 +20,21 @@ export const authProviderClient: AuthProvider = {
 
       const trimmedEmail = email.trim().toLowerCase();
 
-      // Check if user has a valid invite before sending magic link
-      const inviteCheck = await fetch('/api/auth/check-invite', {
+      // Send magic link via server-side API (uses Resend for branded emails)
+      const response = await fetch('/api/auth/send-magic-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: trimmedEmail }),
       });
 
-      const inviteResult = await inviteCheck.json();
+      const result = await response.json();
 
-      if (!inviteResult.hasValidInvite) {
+      if (!result.success) {
         return {
           success: false,
           error: {
             name: "LoginError",
-            message: inviteResult.error || "You don't have access to this platform. Contact team@growaiagency.io to request access.",
-          },
-        };
-      }
-
-      // Only send magic link if invite exists and is valid
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/')}`,
-          shouldCreateUser: false,
-        },
-      });
-
-      if (error) {
-        console.error("Login error:", error);
-        return {
-          success: false,
-          error: {
-            name: error.name || "LoginError",
-            message: error.message || "Failed to send magic link",
+            message: result.error || "Failed to send magic link",
           },
         };
       }
