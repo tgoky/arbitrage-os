@@ -9,47 +9,42 @@ const LoadingScreen = () => (
   <div style={{
     minHeight: '100vh',
     backgroundColor: '#000',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    fontFamily: 'Manrope, system-ui, sans-serif',
+    position: 'relative',
   }}>
-    <img
-      src="/aoswhite.png"
-      alt="ArbitrageOS"
-      style={{
-        height: '120px',
-        objectFit: 'contain',
-        marginBottom: '32px',
-        opacity: 0.9,
-      }}
-    />
     <div style={{
+      position: 'absolute',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: '8px',
     }}>
       <div style={{
-        width: '16px',
-        height: '16px',
-        border: '2px solid #333',
-        borderTopColor: '#5CC49D',
+        width: '8px',
+        height: '8px',
         borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
+        backgroundColor: '#5CC49D',
+        animation: 'pulse 1s ease-in-out infinite',
       }} />
       <span style={{
         color: '#666',
         fontSize: '12px',
         fontFamily: 'JetBrains Mono, monospace',
-        letterSpacing: '1px',
       }}>
-        Initializing...
+        Loading
       </span>
     </div>
-    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    
+    <style>{`
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+      }
+    `}</style>
   </div>
 );
+
 
 export default function IndexPage() {
   return (
