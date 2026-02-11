@@ -55,10 +55,11 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Load workspaces from database
-  const loadWorkspaces = async () => {
+  // accessToken can be passed directly from onAuthStateChange to avoid re-fetching
+  const loadWorkspaces = async (accessToken?: string) => {
     try {
       setValidationError(null);
-      const data = await workspaceService.getWorkspaces();
+      const data = await workspaceService.getWorkspaces(accessToken);
       console.log('Loaded workspaces:', data);
       setWorkspaces(data);
       
@@ -180,7 +181,9 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
               console.log('Loading workspaces for user:', session.user.id);
               isLoadingRef.current = true;
               try {
-                await loadWorkspaces();
+                // Pass the access token directly to avoid re-fetching session
+                // (calling getSession() inside onAuthStateChange can deadlock)
+                await loadWorkspaces(session.access_token);
                 // Only mark as loaded AFTER successful completion
                 loadedForUserRef.current = session.user.id;
               } catch (error) {
@@ -206,14 +209,15 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     // This handles the case where the component mounts after auth is already established
     const loadInitial = async () => {
       try {
-        // Use getUser() instead of getSession() - validates against Supabase servers
-        // directly, which is more reliable for new users arriving from magic link callback
-        const { data: { user } } = await supabaseBrowserClient.auth.getUser();
+        // Get both user and session so we can pass the access token directly
+        const { data: { session } } = await supabaseBrowserClient.auth.getSession();
+        const user = session?.user;
         if (user && loadedForUserRef.current !== user.id && !isLoadingRef.current) {
           console.log('Initial user found, loading workspaces for:', user.id);
           isLoadingRef.current = true;
           try {
-            await loadWorkspaces();
+            // Pass access token directly to avoid re-fetching session inside fetchWithAuth
+            await loadWorkspaces(session.access_token);
             // Only mark as loaded AFTER successful completion
             loadedForUserRef.current = user.id;
           } catch (error) {
@@ -236,9 +240,20 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
 
     loadInitial();
 
-    // Cleanup subscription on unmount
+    // Safety timeout: if loading hasn't completed after 15 seconds, force it to finish
+    // This prevents the UI from being stuck on a blank/loading screen indefinitely
+    const safetyTimeout = setTimeout(() => {
+      if (isLoadingRef.current) {
+        console.warn('Workspace loading safety timeout reached, forcing loading to complete');
+        isLoadingRef.current = false;
+        setIsLoading(false);
+      }
+    }, 15000);
+
+    // Cleanup subscription and timeout on unmount
     return () => {
       subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
