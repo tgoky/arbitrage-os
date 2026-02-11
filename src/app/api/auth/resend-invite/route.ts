@@ -1,7 +1,7 @@
 // app/api/auth/resend-invite/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/utils/supabase/admin';
 import { EmailService } from '@/services/email.service';
 
 export async function POST(request: NextRequest) {
@@ -15,22 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const invite = await prisma.userInvite.findUnique({
-      where: { id: inviteId }
-    });
+    const invite = await prisma.userInvite.findUnique({ where: { id: inviteId } });
 
     if (!invite) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid invite' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: 'Invalid invite' }, { status: 404 });
     }
 
     if (invite.status === 'accepted') {
-      return NextResponse.json(
-        { success: false, error: 'This invite has already been used' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'This invite has already been used' }, { status: 400 });
     }
 
     if (invite.expires_at && new Date() > invite.expires_at) {
@@ -40,37 +32,31 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Generate magic link using Supabase Admin API (does NOT send email)
+    // Generate magic link via Supabase service role (generates URL only, does NOT send any email)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
     const appUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
 
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    const { data, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: invite.email,
-      options: {
-        redirectTo: `${appUrl}/api/auth/callback?next=/&invite_id=${invite.id}`,
-      },
+      options: { redirectTo: `${appUrl}/api/auth/callback?next=/&invite_id=${invite.id}` },
     });
 
-    if (linkError) {
-      console.error('Supabase generateLink error:', linkError);
+    if (linkError || !data?.properties?.action_link) {
+      console.error('generateLink error:', linkError);
       return NextResponse.json(
-        { success: false, error: 'Failed to generate magic link. Please try again.' },
+        { success: false, error: 'Failed to generate magic link.' },
         { status: 500 }
       );
     }
 
-    const magicLink = linkData.properties.action_link;
-
-    if (!magicLink) {
-      console.error('No action_link returned from generateLink');
-      return NextResponse.json(
-        { success: false, error: 'Failed to generate magic link. Please try again.' },
-        { status: 500 }
-      );
-    }
-
-    // Send branded email via Resend
-    await EmailService.sendMagicLinkEmail(invite.email, magicLink);
+    // Send branded email via Resend (not Supabase)
+    await EmailService.sendMagicLinkEmail(invite.email, data.properties.action_link);
 
     await prisma.userInvite.update({
       where: { id: inviteId },

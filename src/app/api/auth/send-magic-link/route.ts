@@ -1,7 +1,7 @@
 // app/api/auth/send-magic-link/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/utils/supabase/admin';
 import { EmailService } from '@/services/email.service';
 
 export async function POST(request: NextRequest) {
@@ -19,15 +19,10 @@ export async function POST(request: NextRequest) {
 
     // Check if user exists or has a valid invite
     const [invite, existingUser] = await Promise.all([
-      prisma.userInvite.findUnique({
-        where: { email: trimmedEmail }
-      }),
-      prisma.user.findUnique({
-        where: { email: trimmedEmail }
-      })
+      prisma.userInvite.findUnique({ where: { email: trimmedEmail } }),
+      prisma.user.findUnique({ where: { email: trimmedEmail } })
     ]);
 
-    // User must either exist or have a valid invite
     if (!existingUser && !invite) {
       return NextResponse.json({
         success: false,
@@ -35,7 +30,6 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // If they only have an invite, validate it
     if (!existingUser && invite) {
       if (invite.expires_at && new Date() > invite.expires_at) {
         return NextResponse.json({
@@ -43,7 +37,6 @@ export async function POST(request: NextRequest) {
           error: 'Your invite has expired. Contact team@growaiagency.io for a new invitation.'
         }, { status: 403 });
       }
-
       if (invite.status !== 'sent' && invite.status !== 'accepted') {
         return NextResponse.json({
           success: false,
@@ -52,51 +45,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate magic link using Supabase Admin API (does NOT send email)
+    // Generate magic link via Supabase service role (generates URL only, does NOT send any email)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
     const appUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
     const redirectTo = invite && !existingUser
       ? `${appUrl}/api/auth/callback?next=/&invite_id=${invite.id}`
       : `${appUrl}/api/auth/callback?next=/`;
 
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    const { data, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: trimmedEmail,
-      options: {
-        redirectTo,
-      },
+      options: { redirectTo },
     });
 
-    if (linkError) {
-      console.error('Supabase generateLink error:', linkError);
+    if (linkError || !data?.properties?.action_link) {
+      console.error('generateLink error:', linkError);
       return NextResponse.json(
-        { success: false, error: 'Failed to generate sign-in link. Please try again.' },
+        { success: false, error: 'Failed to generate sign-in link.' },
         { status: 500 }
       );
     }
 
-    // The generated link properties contain the hashed_token and verification URL
-    // We need to construct the proper magic link from the returned data
-    const magicLink = linkData.properties.action_link;
-
-    if (!magicLink) {
-      console.error('No action_link returned from generateLink');
-      return NextResponse.json(
-        { success: false, error: 'Failed to generate sign-in link. Please try again.' },
-        { status: 500 }
-      );
-    }
-
-    // Send email via Resend with branded template
+    // Send branded email via Resend (not Supabase)
     if (invite && !existingUser) {
-      // New user with invite - send invite-style email
-      await EmailService.sendInviteEmail(
-        trimmedEmail,
-        magicLink,
-        invite.invited_by
-      );
+      await EmailService.sendInviteEmail(trimmedEmail, data.properties.action_link, invite.invited_by);
     } else {
-      // Existing user - send regular magic link email
-      await EmailService.sendMagicLinkEmail(trimmedEmail, magicLink);
+      await EmailService.sendMagicLinkEmail(trimmedEmail, data.properties.action_link);
     }
 
     return NextResponse.json({ success: true });
