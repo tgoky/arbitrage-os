@@ -52,9 +52,9 @@ class WorkspaceService {
     }
   }
 
-  private async fetchWithAuth(url: string, options: RequestInit = {}) {
-    // Get the current auth token
-    const token = await this.getAuthToken();
+  private async fetchWithAuth(url: string, options: RequestInit = {}, presetToken?: string) {
+    // Use preset token if provided, otherwise fetch from session
+    const token = presetToken || await this.getAuthToken();
     
     // Use Record<string, string> for headers to allow indexing
     const headers: Record<string, string> = {
@@ -86,10 +86,10 @@ class WorkspaceService {
     return response.json();
   }
 
-  async getWorkspaces(): Promise<Workspace[]> {
+  async getWorkspaces(accessToken?: string): Promise<Workspace[]> {
     console.log('🔍 Getting workspaces...');
     try {
-      const workspaces = await this.fetchWithAuth('/api/workspaces');
+      const workspaces = await this.fetchWithAuth('/api/workspaces', {}, accessToken);
       console.log('✅ Found workspaces:', workspaces.length);
       return workspaces;
     } catch (error) {
