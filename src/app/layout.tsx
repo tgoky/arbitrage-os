@@ -55,6 +55,7 @@ export default function RootLayout({
                           show: "/home/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Home",
                           },
                         },
                         {
@@ -65,6 +66,7 @@ export default function RootLayout({
                           show: "/dashboard/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Dashboard",
                           },
                         },
                          {
@@ -75,6 +77,7 @@ export default function RootLayout({
                           show: "/top-50-niches/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Top 50 Niches",
                           },
                         },
                          {
@@ -85,7 +88,8 @@ export default function RootLayout({
                           show: "/niche-researcher/show/:id",
                           meta: {
                             canDelete: true,
-                          }, 
+                            label: "Niche Research Report",
+                          },
                         },
                          {
                           name: "Offer_Creator",
@@ -95,6 +99,7 @@ export default function RootLayout({
                           show: "/offer-creator/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Offer Creator",
                           },
                         },
                          {
@@ -105,6 +110,7 @@ export default function RootLayout({
                           show: "/pricing-calculator/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Pricing Calculator",
                           },
                         },
                          {
@@ -115,6 +121,7 @@ export default function RootLayout({
                           show: "/ad-writer/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Ad Writer",
                           },
                         },
                        
@@ -126,6 +133,7 @@ export default function RootLayout({
                           show: "/cold-email-writer/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Cold Email Writer",
                           },
                         },
                         {
@@ -136,6 +144,7 @@ export default function RootLayout({
                           show: "/sales-call-analyzer/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Sales Call Analyzer",
                           },
                         },
                          
@@ -147,6 +156,7 @@ export default function RootLayout({
                           show: "/growth-plan-creator/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Growth Plan Creator",
                           },
                         },
                        
@@ -158,6 +168,7 @@ export default function RootLayout({
                           show: "/proposal-generator/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Proposal Generator",
                           },
                         },
                           {
@@ -168,6 +179,7 @@ export default function RootLayout({
                           show: "/email-agent/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Email Agent",
                           },
                         },
                        
@@ -206,6 +218,7 @@ export default function RootLayout({
                           show: "/client-profiles/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Client Profiles",
                           },
                         },
                         {
@@ -216,6 +229,7 @@ export default function RootLayout({
                           show: "/submissions/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Submissions",
                           },
                         },
                         {
@@ -226,6 +240,7 @@ export default function RootLayout({
                           show: "/ai-tools/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "AI Tools",
                           },
                         },
                         {
@@ -236,6 +251,7 @@ export default function RootLayout({
                           show: "/tools-playbook/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Playbooks",
                           },
                         },
                         {
@@ -246,6 +262,7 @@ export default function RootLayout({
                           show: "/lead-generation/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Lead Generation",
                           },
                         },
                           {
@@ -256,6 +273,7 @@ export default function RootLayout({
                           show: "/credits/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Credits",
                           },
                         },
                            {
@@ -266,6 +284,7 @@ export default function RootLayout({
                           show: "/profiles/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Profiles",
                           },
                         },
                         {
@@ -276,6 +295,7 @@ export default function RootLayout({
                           show: "/agents-flow/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Agents Flow",
                           },
                         },
                         {
@@ -286,6 +306,7 @@ export default function RootLayout({
                           show: "/work-flow/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Work Flow",
                           },
                         },
                         {
@@ -296,6 +317,7 @@ export default function RootLayout({
                           show: "/automation/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Automation",
                           },
                         },
                         {
@@ -306,6 +328,7 @@ export default function RootLayout({
                           show: "/n8n-builder/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "N8n Builder",
                           },
                         },
                         {
@@ -316,6 +339,7 @@ export default function RootLayout({
                           show: "/n8n-library/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "N8n Library",
                           },
                         },
                         {
@@ -326,6 +350,7 @@ export default function RootLayout({
                           show: "/prompt-directory/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Prompt Directory",
                           },
                         },
                         {
@@ -336,6 +361,7 @@ export default function RootLayout({
                           show: "/hiring-portal/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Hiring Portal",
                           },
                         },
                           {
@@ -346,6 +372,7 @@ export default function RootLayout({
                           show: "/feedback/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Feedback",
                           },
                         },
                            {
@@ -356,6 +383,7 @@ export default function RootLayout({
                           show: "/settings/show/:id",
                           meta: {
                             canDelete: true,
+                            label: "Settings",
                           },
                         },
                       ]}
