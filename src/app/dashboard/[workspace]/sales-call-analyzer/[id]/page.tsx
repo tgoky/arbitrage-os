@@ -584,7 +584,7 @@ const shareToPlatform = (platform: string) => {
 };
 
   return (
-    <div className="max-w-4xl mx-auto px-8 py-14" style={{ fontFamily: "'Manrope', sans-serif" }}>
+    <div className=" mx-auto px-8 py-14" style={{ fontFamily: "'Manrope', sans-serif" }}>
 
       {/* Back */}
       <button onClick={() => go({ to: "/sales-call-analyzer" })}     className={`
