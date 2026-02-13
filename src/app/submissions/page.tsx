@@ -642,7 +642,7 @@ const IntegratedWorkDashboard = () => {
               { key: 'pricing-calc', label: `Pricing (${getTabCount('pricing-calc')})` },
               { key: 'niche-research', label: `Research (${getTabCount('niche-research')})` },
               { key: 'ad-writer', label: `Ad Copy (${getTabCount('ad-writer')})` },
-              { key: 'proposal', label: `Proposals (${getTabCount('proposal')})` },
+              { key: 'proposal', label: `Contract (${getTabCount('proposal')})` },
             ]}
           />
 

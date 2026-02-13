@@ -19,7 +19,7 @@ interface MenuItemProps {
 const itemTourAttributes: Record<string, string> = {
   Ad_Writer: "ad-writer",
   Cold_Email_Writer: "cold-email-writer",
-  Proposal_Generator: "proposal-generator",
+  Proposal_Generator: "contract-generator",
   Lead_Generation: "lead-generation",
   Niche_Research_Report: "niche-research",
   N8n_Builder: "n8n-builder",

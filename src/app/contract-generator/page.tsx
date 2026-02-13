@@ -178,7 +178,7 @@ export default function ProposalGeneratorPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Alert
           message="Workspace Required"
-          description="The proposal generator must be accessed from within a workspace."
+          description="The contratc generator must be accessed from within a workspace."
           type="error"
           showIcon
           action={
@@ -405,7 +405,7 @@ export default function ProposalGeneratorPage() {
           </Button>
 
           <div className="text-center mb-8">
-                    <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Proposal Generator</Title>
+                    <Title level={1} className="m-0 mb-2" style={{ color: TEXT_PRIMARY }}>Contract Generator</Title>
             <Text style={{ color: SPACE_COLOR }} className="text-lg">
               Generate customized service agreements and statements of work
             </Text>
@@ -435,7 +435,7 @@ export default function ProposalGeneratorPage() {
                 label: (
                   <span style={{ color: SPACE_COLOR }}>
                     <EditOutlined />
-                    Proposal Details
+                    Contract Details
                   </span>
                 ),
               },
@@ -444,7 +444,7 @@ export default function ProposalGeneratorPage() {
                 label: (
                   <span style={{ color: SPACE_COLOR }}>
                     <EyeOutlined />
-                    Generated Proposal
+                    Generated Contracts
                   </span>
                 ),
                 disabled: !generatedProposal,
@@ -454,7 +454,7 @@ export default function ProposalGeneratorPage() {
                 label: (
                   <span style={{ color: SPACE_COLOR }}>
                     <HistoryOutlined />
-                    Saved Proposals
+                    Saved Contracts
                   </span>
                 ),
               },

@@ -161,14 +161,14 @@ export default function RootLayout({
                         },
                        
                          {
-                          name: "Proposal_Generator",
-                          list: "/proposal-generator",
-                          create: "/proposal-generator/create",
-                          edit: "/proposal-generator/edit/:id",
-                          show: "/proposal-generator/show/:id",
+                          name: "Contract_Generator",
+                          list: "/contract-generator",
+                          create: "/contract-generator/create",
+                          edit: "/contract-generator/edit/:id",
+                          show: "/contract-generator/show/:id",
                           meta: {
                             canDelete: true,
-                            label: "Proposal Generator",
+                            label: "Contract Generator",
                           },
                         },
                           {

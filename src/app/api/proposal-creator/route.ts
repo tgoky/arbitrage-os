@@ -365,7 +365,7 @@ export async function GET(req: NextRequest) {
     console.error('💥 List API Error:', error);
     return NextResponse.json({ 
       success: false,
-      error: 'Failed to fetch proposals'
+      error: 'Failed to fetch contracts'
     } as ApiResponseOptional<never>, { status: 500 });
   }
 }
