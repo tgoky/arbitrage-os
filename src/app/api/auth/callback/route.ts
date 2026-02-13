@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const token = searchParams.get('token')  // Magic links might use 'token'
-  const type = searchParams.get('type')    // Should be 'magiclink'
+  const token = searchParams.get('token')
+  const type = searchParams.get('type')
   const next = searchParams.get('next') ?? '/'
   const inviteId = searchParams.get('invite_id')
   const error = searchParams.get('error')
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     error 
   });
 
+  // Handle error cases
   if (error) {
     console.error('❌ Auth callback error:', { error, errorDescription })
     return NextResponse.redirect(
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Handle both code and token (magic link might use token)
+  // If we have a code or token, exchange it for a session
   const authCode = code || token
   
   if (authCode) {
@@ -38,13 +39,11 @@ export async function GET(request: NextRequest) {
       console.log('🔄 Exchanging code for session...');
       const supabase = await createSupabaseServerClient()
       
-      // Exchange the code for a session
       const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode)
       
       if (exchangeError) {
         console.error('❌ Code exchange error:', exchangeError)
         
-        // If expired or invalid
         if (exchangeError.message.includes('expired') || exchangeError.message.includes('invalid')) {
           return NextResponse.redirect(
             new URL(`/invite-expired?error=link_expired&invite_id=${inviteId || ''}`, origin)
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ Session created successfully for user:', session.user.id);
 
-      // ALWAYS ensure user exists in database on every login
+      // Ensure user exists in database
       try {
         await prisma.user.upsert({
           where: { id: session.user.id },
@@ -87,7 +86,7 @@ export async function GET(request: NextRequest) {
         console.error('❌ Error ensuring user exists:', userError);
       }
 
-      // Handle invite acceptance if invite_id is present
+      // Handle invite acceptance
       if (inviteId) {
         try {
           const invite = await prisma.userInvite.findUnique({
@@ -95,15 +94,13 @@ export async function GET(request: NextRequest) {
           });
 
           if (invite) {
-            // Check if expired (7 days)
             if (invite.expires_at && new Date() > invite.expires_at) {
-              console.log('❌ Invite expired (7 days passed)');
+              console.log('❌ Invite expired');
               return NextResponse.redirect(
                 new URL(`/invite-expired?error=invite_expired&invite_id=${inviteId}`, origin)
               );
             }
 
-            // Mark invite as accepted
             await prisma.userInvite.update({
               where: { id: inviteId },
               data: {
@@ -112,7 +109,6 @@ export async function GET(request: NextRequest) {
               }
             });
 
-            // Update user with invite info
             await prisma.user.update({
               where: { id: session.user.id },
               data: {
@@ -120,7 +116,7 @@ export async function GET(request: NextRequest) {
               }
             });
 
-            console.log('✅ Invite accepted and user updated with invite info');
+            console.log('✅ Invite accepted');
           }
         } catch (inviteError) {
           console.error('❌ Error processing invite:', inviteError);
@@ -138,8 +134,15 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // If no code/token but we have an inviteId, this might be a direct invite link
+  // Redirect to login page which will handle the fragment-based auth
+  if (inviteId) {
+    console.log('📨 No auth code, but inviteId present - redirecting to login');
+    return NextResponse.redirect(new URL(`/login?invite_id=${inviteId}`, origin));
+  }
+
   console.error('❌ No authentication code provided');
   return NextResponse.redirect(
     new URL('/login?error=Missing authentication code', origin)
-  )
+  );
 }

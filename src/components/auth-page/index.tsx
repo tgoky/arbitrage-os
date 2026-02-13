@@ -6,6 +6,9 @@ import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Za
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { supabaseBrowserClient as supabase } from "@/utils/supabase/client";
+
+
 // Animated Galaxy Background Component
 const GalaxyBackground = () => {
   useEffect(() => {
@@ -354,6 +357,101 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
       document.head.removeChild(style);
     };
   }, []);
+
+
+  // Replace your current invite_id useEffect with this:
+useEffect(() => {
+  // Check for invite_id in URL query params
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteId = urlParams.get('invite_id');
+  const hash = window.location.hash;
+  
+  if (inviteId && !hash) {
+    // Only show this message if there's no hash (no token yet)
+    console.log('Processing invite:', inviteId);
+    setMessage('Please check your email for the magic link to complete sign in.');
+  } else if (inviteId && hash) {
+    console.log('Invite detected with token, processing automatically...');
+  }
+}, []);
+
+
+
+  // In your AuthPage component, add this to handle invite_id from query params
+// Then add this useEffect to handle the access token from URL fragment
+useEffect(() => {
+  // Check if URL contains access_token in fragment
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+    const inviteId = params.get('invite_id');
+    
+    if (hash && hash.includes('access_token')) {
+      // Parse the fragment
+      const fragmentParams = new URLSearchParams(hash.substring(1));
+      const accessToken = fragmentParams.get('access_token');
+      const refreshToken = fragmentParams.get('refresh_token');
+      const type = fragmentParams.get('type');
+      
+      console.log('Found tokens in URL fragment:', { 
+        hasAccessToken: !!accessToken, 
+        type,
+        inviteId 
+      });
+      
+      if (accessToken) {
+        // Set loading state
+        setLoading(true);
+        
+        // Set the session in Supabase client
+        const setSession = async () => {
+          try {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+            
+            if (error) {
+              console.error('Error setting session:', error);
+              setError('Failed to authenticate. Please try again.');
+              setLoading(false);
+            } else {
+              console.log('Session set successfully:', data.session?.user.id);
+              
+              // Clear the URL fragment
+              window.location.hash = '';
+              
+              // If we have an inviteId, accept the invite
+              if (inviteId) {
+                try {
+                  await fetch('/api/auth/accept-invite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inviteId })
+                  });
+                  console.log('Invite accepted successfully');
+                } catch (inviteError) {
+                  console.error('Error accepting invite:', inviteError);
+                }
+              }
+              
+              // Redirect to home
+              router.push('/home');
+            }
+          } catch (error) {
+            console.error('Error in setSession:', error);
+            setError('Authentication failed. Please try again.');
+            setLoading(false);
+          }
+        };
+        
+        setSession();
+      }
+    }
+  }
+}, [router]);
+
+
 
   // Handle password login
   const handlePasswordLogin = async () => {

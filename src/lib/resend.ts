@@ -24,7 +24,7 @@ export function getResendClient(): Resend {
 }
 
 export const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || 'ArbitrageOS <@team@tech.growaiagency.io>';
+  process.env.RESEND_FROM_EMAIL || 'ArbitrageOS <team@tech.growaiagency.io>';
 
 export const APP_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
