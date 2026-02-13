@@ -1,22 +1,28 @@
-// app/api/auth/callback/route.ts
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
-  
   console.log('🔗 Auth callback triggered');
   
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const inviteId = searchParams.get('invite_id')
+  const token = searchParams.get('token')  // Magic links might use 'token'
+  const type = searchParams.get('type')    // Should be 'magiclink'
   const next = searchParams.get('next') ?? '/'
+  const inviteId = searchParams.get('invite_id')
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
 
-  console.log('Callback params:', { code: !!code, inviteId, next, error });
+  console.log('Callback params:', { 
+    code: !!code, 
+    token: !!token,
+    type, 
+    inviteId, 
+    next, 
+    error 
+  });
 
-  // Handle error cases
   if (error) {
     console.error('❌ Auth callback error:', { error, errorDescription })
     return NextResponse.redirect(
@@ -24,18 +30,21 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Handle successful authentication
-  if (code) {
+  // Handle both code and token (magic link might use token)
+  const authCode = code || token
+  
+  if (authCode) {
     try {
       console.log('🔄 Exchanging code for session...');
       const supabase = await createSupabaseServerClient()
       
-      const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      // Exchange the code for a session
+      const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode)
       
       if (exchangeError) {
         console.error('❌ Code exchange error:', exchangeError)
         
-        // If expired, redirect to resend page with invite_id
+        // If expired or invalid
         if (exchangeError.message.includes('expired') || exchangeError.message.includes('invalid')) {
           return NextResponse.redirect(
             new URL(`/invite-expired?error=link_expired&invite_id=${inviteId || ''}`, origin)
@@ -57,14 +66,12 @@ export async function GET(request: NextRequest) {
       console.log('✅ Session created successfully for user:', session.user.id);
 
       // ALWAYS ensure user exists in database on every login
-      // This is critical for workspace queries to work correctly
       try {
         await prisma.user.upsert({
           where: { id: session.user.id },
           update: {
             status: 'active',
             last_login: new Date(),
-            // Update email in case it changed (rare but possible)
             email: session.user.email!,
           },
           create: {
@@ -78,8 +85,6 @@ export async function GET(request: NextRequest) {
         console.log('✅ User record ensured in database');
       } catch (userError) {
         console.error('❌ Error ensuring user exists:', userError);
-        // Don't block login if user creation fails - they can still use the app
-        // and ensureUserExists will be called when creating workspaces
       }
 
       // Handle invite acceptance if invite_id is present
@@ -119,7 +124,6 @@ export async function GET(request: NextRequest) {
           }
         } catch (inviteError) {
           console.error('❌ Error processing invite:', inviteError);
-          // Don't block login if invite processing fails
         }
       }
 
@@ -134,7 +138,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // No code parameter - redirect to error
   console.error('❌ No authentication code provided');
   return NextResponse.redirect(
     new URL('/login?error=Missing authentication code', origin)
