@@ -374,12 +374,12 @@ export default function ReviewRecordingPage() {
                       </Select>
                     </Form.Item>
                   </div>
-                  <Form.Item name="companyLocation">
+                  {/* <Form.Item name="companyLocation">
                     <Input prefix={<EnvironmentOutlined style={{ color: BRAND_GREEN }} />} placeholder="Location" />
-                  </Form.Item>
-                  <Form.Item name="companyLinkedin">
+                  </Form.Item> */}
+                  {/* <Form.Item name="companyLinkedin">
                     <Input prefix={<LinkOutlined style={{ color: BRAND_GREEN }} />} placeholder="LinkedIn Company Page" />
-                  </Form.Item>
+                  </Form.Item> */}
                 </div>
               </Card>
             </div>
@@ -414,24 +414,24 @@ export default function ReviewRecordingPage() {
                   placeholder="Add any specific context about this call, the prospect's situation, or background information..." 
                 />
               </Form.Item>
-
+{/* 
               <Form.Item name="specificQuestions" label={<span style={{ color: TEXT_SECONDARY }}>Specific Questions (one per line)</span>}>
                 <TextArea 
                   rows={3} 
                   placeholder={`What objections did the prospect raise?\nHow well did I handle their concerns?\nWhat follow-up actions should I take?`}
                 />
-              </Form.Item>
+              </Form.Item> */}
 
-              <Form.Item name="analysisGoals" label={<span style={{ color: TEXT_SECONDARY }}>Analysis Goals (one per line)</span>}>
+              {/* <Form.Item name="analysisGoals" label={<span style={{ color: TEXT_SECONDARY }}>Analysis Goals (one per line)</span>}>
                 <TextArea 
                   rows={2} 
                   placeholder={`Improve discovery questioning\nBetter objection handling\nIncrease close rate`}
                 />
-              </Form.Item>
+              </Form.Item> */}
               
-              <Text type="secondary" className="block mt-2" style={{ color: TEXT_SECONDARY }}>
+              {/* <Text type="secondary" className="block mt-2" style={{ color: TEXT_SECONDARY }}>
                 The AI will analyze these specific points and provide targeted insights based on your questions and goals.
-              </Text>
+              </Text> */}
             </Card>
             
             <div className="flex justify-end space-x-4">
