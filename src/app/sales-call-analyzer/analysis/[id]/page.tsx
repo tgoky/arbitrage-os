@@ -431,8 +431,17 @@ export default function AnalysisDetailPage() {
     setShareLoading(true);
     try {
       const result = await shareAnalysis(id as string);
-      await navigator.clipboard.writeText(result.shareUrl);
-      message.success('Share link copied to clipboard');
+      // Try clipboard API first, fall back to legacy approach
+      try {
+        await navigator.clipboard.writeText(result.shareUrl);
+        message.success('Share link copied to clipboard');
+      } catch {
+        // Clipboard API failed (non-HTTPS or denied) — show the link directly
+        message.success({
+          content: `Share link: ${result.shareUrl}`,
+          duration: 8,
+        });
+      }
     } catch (error) {
       message.error('Failed to generate share link');
     } finally {

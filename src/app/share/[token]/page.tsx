@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 
 // ── Public Share Page ──
 // Publicly accessible page that displays a shared sales call analysis.
-// No authentication required. Fetches data via the public /api/share/[token] endpoint.
+// No authentication required. Uses dark theme to match the main app.
 
 interface SharedAnalysis {
   id: string;
@@ -75,6 +75,17 @@ interface SharedAnalysis {
   };
 }
 
+// Pill component - matches main app
+const Pill = ({ children }: { children: React.ReactNode }) => (
+  <span className="inline-block px-2.5 py-0.5 text-sm rounded-full border border-white/10 text-gray-400 font-manrope">{children}</span>
+);
+
+const Label = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-xs uppercase tracking-widest text-gray-500 font-manrope mb-3 mt-0">{children}</p>
+);
+
+const Rule = () => <div className="border-t border-white/5 my-10" />;
+
 export default function SharedAnalysisPage() {
   const { token } = useParams();
   const [data, setData] = useState<SharedAnalysis | null>(null);
@@ -102,25 +113,22 @@ export default function SharedAnalysisPage() {
 
   if (loading) {
     return (
-      <PageShell>
-        <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <div style={{ width: 32, height: 32, border: '3px solid #eee', borderTopColor: '#333', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-          <p style={{ color: '#888', fontSize: 14 }}>Loading shared analysis...</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="max-w-4xl mx-auto px-8 py-14 font-manrope">
+        <div className="text-center py-20">
+          <div className="w-8 h-8 border-2 border-white/10 border-t-white/50 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Loading shared analysis...</p>
         </div>
-      </PageShell>
+      </div>
     );
   }
 
   if (error || !data) {
     return (
-      <PageShell>
-        <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <p style={{ fontSize: 48, margin: '0 0 16px' }}>&#128683;</p>
-          <h2 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 8px', color: '#333' }}>Link Not Found</h2>
-          <p style={{ color: '#888', fontSize: 14, maxWidth: 400, margin: '0 auto' }}>{error || 'This shared analysis link is invalid or has been revoked.'}</p>
-        </div>
-      </PageShell>
+      <div className="max-w-4xl mx-auto px-8 py-14 font-manrope text-center">
+        <p className="text-5xl mb-4">&#128683;</p>
+        <p className="text-xl text-gray-300 mb-2">Link Not Found</p>
+        <p className="text-base text-gray-500 max-w-md mx-auto">{error || 'This shared analysis link is invalid or has been revoked.'}</p>
+      </div>
     );
   }
 
@@ -132,166 +140,226 @@ export default function SharedAnalysisPage() {
   const participants = callResults?.participants || [];
 
   return (
-    <PageShell>
+    <div className="max-w-4xl mx-auto px-8 py-14" style={{ fontFamily: "'Manrope', sans-serif" }}>
+
       {/* Shared banner */}
-      <div style={{ background: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: 8, padding: '12px 20px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ margin: 0, fontSize: 13, color: '#666' }}>Shared Sales Call Analysis</p>
-        <p style={{ margin: 0, fontSize: 12, color: '#999' }}>Shared on {new Date(data.sharedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+      <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-4 py-3 mb-8">
+        <p className="text-xs text-gray-400 m-0">Shared Sales Call Analysis</p>
+        <p className="text-xs text-gray-500 m-0">Shared on {new Date(data.sharedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
       </div>
 
-      {/* Header */}
-      <div style={{ borderBottom: '2px solid #111', paddingBottom: 24, marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{data.title}</h1>
-        <p style={{ color: '#666', fontSize: 14, marginTop: 8 }}>
-          {data.metadata?.sentiment} &middot; {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')} &middot; {new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-          {data.metadata?.companyName && <> &middot; {data.metadata.companyName}</>}
-        </p>
-      </div>
+      {/* Title */}
+      <h1 className="text-3xl font-semibold text-gray-100 mb-2 leading-tight">{data.title}</h1>
+      <p className="text-base text-gray-500 mb-8">
+        {data.metadata?.sentiment} &middot; {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')} &middot; {new Date(data.createdAt).toLocaleDateString()}
+        {data.metadata?.companyName && <> &middot; {data.metadata.companyName}</>}
+      </p>
 
-      {/* Score */}
-      <div style={{ display: 'flex', gap: 40, marginBottom: 32, alignItems: 'flex-start' }}>
-        <div style={{ textAlign: 'center', minWidth: 100 }}>
-          <p style={{ fontSize: 56, fontWeight: 300, margin: 0, lineHeight: 1 }}>{overallScore}</p>
-          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: '#888', marginTop: 4 }}>Score</p>
+      {/* Score strip */}
+      <div className="flex items-center gap-8 mb-4">
+        <div>
+          <p className="text-5xl font-light text-gray-100">{overallScore}</p>
+          <p className="text-xs uppercase tracking-widest text-gray-500 mt-1">Score</p>
         </div>
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        <div className="flex-1 grid grid-cols-3 gap-4 text-center">
           {participants[0] && (
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 22, fontWeight: 300, margin: 0 }}>{Math.round(participants[0].speakingPercentage || 0)}%</p>
-              <p style={{ fontSize: 11, color: '#888' }}>Agent</p>
-            </div>
+            <div><p className="text-xl font-light text-gray-200">{Math.round(participants[0].speakingPercentage || 0)}%</p><p className="text-xs text-gray-500">Agent</p></div>
           )}
           {participants[1] && (
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 22, fontWeight: 300, margin: 0 }}>{Math.round(participants[1].speakingPercentage || 0)}%</p>
-              <p style={{ fontSize: 11, color: '#888' }}>Prospect</p>
-            </div>
+            <div><p className="text-xl font-light text-gray-200">{Math.round(participants[1].speakingPercentage || 0)}%</p><p className="text-xs text-gray-500">Prospect</p></div>
           )}
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: 22, fontWeight: 300, margin: 0 }}>{(callResults?.analysis?.salesMetrics?.buyingSignals || []).length}</p>
-            <p style={{ fontSize: 11, color: '#888' }}>Signals</p>
-          </div>
+          <div><p className="text-xl font-light text-gray-200">{(callResults?.analysis?.salesMetrics?.buyingSignals || []).length}</p><p className="text-xs text-gray-500">Signals</p></div>
         </div>
       </div>
 
       {strengths.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 32 }}>
-          {strengths.slice(0, 4).map((s, i) => (
-            <span key={i} style={{ padding: '4px 12px', fontSize: 13, borderRadius: 20, border: '1px solid #ddd', color: '#555' }}>{s}</span>
-          ))}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {strengths.slice(0, 4).map((s, i) => <Pill key={i}>{s}</Pill>)}
         </div>
       )}
 
+      <Rule />
+
       {/* Deal Architecture */}
-      {deal && (
-        <>
-          {/* Grade */}
-          <div style={{ textAlign: 'center', margin: '40px 0', padding: '32px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee' }}>
-            <p style={{ fontSize: 72, fontWeight: 200, margin: 0, lineHeight: 1 }}>{deal.dealGrade.grade}</p>
-            <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 2, color: '#888', marginTop: 8 }}>Deal Grade &middot; {deal.dealGrade.winProbability}% win probability</p>
-            <p style={{ fontSize: 16, color: '#444', maxWidth: 600, margin: '16px auto 0', lineHeight: 1.6 }}>{deal.executiveBrief.oneLineSummary}</p>
+      {deal ? (
+        <div className="space-y-12">
+          {/* Grade + Brief */}
+          <div className="text-center">
+            <p className="text-7xl font-extralight text-gray-100">{deal.dealGrade.grade}</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500 mt-1 mb-4">Deal Grade &middot; {deal.dealGrade.winProbability}% win probability</p>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">{deal.executiveBrief.oneLineSummary}</p>
           </div>
 
-          {/* Executive Brief */}
-          <SectionTitle>Executive Brief</SectionTitle>
-          <InfoRow label="Deal Value" value={deal.executiveBrief.dealValue} />
-          <InfoRow label="Top Priority" value={deal.executiveBrief.topPriority} />
-          <InfoRow label="Immediate Action" value={deal.executiveBrief.immediateAction} />
+          <div className="space-y-4">
+            <div className="border-b border-white/5 pb-3"><Label>Deal Value</Label><p className="text-xl text-gray-200">{deal.executiveBrief.dealValue}</p></div>
+            <div className="border-b border-white/5 pb-3"><Label>Top Priority</Label><p className="text-base text-gray-300 leading-relaxed">{deal.executiveBrief.topPriority}</p></div>
+            <div className="border-b border-white/5 pb-3"><Label>Immediate Action</Label><p className="text-base text-gray-300 leading-relaxed">{deal.executiveBrief.immediateAction}</p></div>
+          </div>
 
-          <Hr />
+          <Rule />
 
-          {/* Prospect Diagnosis */}
+          {/* Prospect */}
           {deal.prospectDiagnosis && (
-            <>
-              <SectionTitle>Prospect Diagnosis</SectionTitle>
-              <SmallLabel>Business Profile</SmallLabel>
-              <InfoRow label="Industry" value={deal.prospectDiagnosis.businessProfile?.industry || 'N/A'} />
-              <InfoRow label="Type" value={(deal.prospectDiagnosis.businessProfile?.businessType || '').replace(/_/g, ' ') || 'N/A'} />
-              <InfoRow label="Team Size" value={deal.prospectDiagnosis.businessProfile?.estimatedTeamSize || 'N/A'} />
-              <InfoRow label="Revenue" value={deal.prospectDiagnosis.businessProfile?.estimatedRevenue || 'N/A'} />
+            <div>
+              <h3 className="text-base font-medium text-gray-200 mb-6">Prospect Diagnosis</h3>
 
-              {(deal.prospectDiagnosis.bleedingNeckProblems || []).length > 0 && (
+              <Label>Business Profile</Label>
+              <div className="space-y-1.5 text-base text-gray-400 mb-8 leading-relaxed">
+                <p><span className="text-gray-500">Industry:</span> {deal.prospectDiagnosis.businessProfile?.industry || 'N/A'}</p>
+                <p><span className="text-gray-500">Type:</span> {(deal.prospectDiagnosis.businessProfile?.businessType || '').replace(/_/g, ' ') || 'N/A'}</p>
+                <p><span className="text-gray-500">Team Size:</span> {deal.prospectDiagnosis.businessProfile?.estimatedTeamSize || 'N/A'}</p>
+                <p><span className="text-gray-500">Revenue:</span> {deal.prospectDiagnosis.businessProfile?.estimatedRevenue || 'N/A'}</p>
+                {deal.prospectDiagnosis.businessProfile?.location && <p><span className="text-gray-500">Location:</span> {deal.prospectDiagnosis.businessProfile.location}</p>}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {(deal.prospectDiagnosis.businessProfile?.currentTechStack || []).map((t, i) => <Pill key={i}>{t}</Pill>)}
+                </div>
+              </div>
+
+              {deal.prospectDiagnosis.financialQualification && (
                 <>
-                  <SmallLabel>Pain Points</SmallLabel>
-                  {deal.prospectDiagnosis.bleedingNeckProblems.map((p, i) => (
-                    <div key={i} style={{ marginBottom: 12 }}>
-                      <p style={{ margin: 0, fontWeight: 500 }}>{i + 1}. {p.problem} <span style={{ color: '#888', fontWeight: 400, fontSize: 13 }}>({p.severity})</span></p>
-                      <p style={{ margin: '2px 0', color: '#666', fontSize: 14 }}>{p.frequency}{p.estimatedCost ? ` / ${p.estimatedCost}` : ''}</p>
-                      {p.quotedEvidence && <p style={{ margin: '4px 0 0 16px', color: '#888', fontSize: 13, fontStyle: 'italic', borderLeft: '2px solid #ddd', paddingLeft: 12 }}>{p.quotedEvidence}</p>}
-                    </div>
-                  ))}
+                  <Label>Financial Qualification</Label>
+                  <p className="text-base mb-2">
+                    <Pill>{deal.prospectDiagnosis.financialQualification.isQualified === 'yes' ? 'Qualified' : deal.prospectDiagnosis.financialQualification.isQualified === 'maybe' ? 'Needs Validation' : 'Not Qualified'}</Pill>
+                  </p>
+                  <div className="space-y-1.5 text-base text-gray-400 mb-8 leading-relaxed">
+                    <p>{deal.prospectDiagnosis.financialQualification.qualificationReason || 'N/A'}</p>
+                    {deal.prospectDiagnosis.financialQualification.estimatedBudget && <p><span className="text-gray-500">Budget:</span> {deal.prospectDiagnosis.financialQualification.estimatedBudget}</p>}
+                    <p><span className="text-gray-500">Urgency:</span> {(deal.prospectDiagnosis.financialQualification.urgencyLevel || '').replace(/_/g, ' ')}</p>
+                    <p><span className="text-gray-500">Decision Maker Present:</span> {deal.prospectDiagnosis.financialQualification.decisionMakerPresent ? 'Yes' : 'No'}</p>
+                  </div>
                 </>
               )}
+
+              <Label>Pain Points</Label>
+              <div className="space-y-5 mb-8">
+                {(deal.prospectDiagnosis.bleedingNeckProblems || []).map((prob, i) => (
+                  <div key={i}>
+                    <p className="text-base text-gray-200 mb-1">{i + 1}. {prob.problem} <span className="text-gray-500 text-sm ml-1">{(prob.severity || '').toLowerCase()}</span></p>
+                    <p className="text-sm text-gray-500">{prob.frequency || ''} {prob.estimatedCost ? `/ ${prob.estimatedCost}` : ''}</p>
+                    {prob.quotedEvidence && <p className="text-sm text-gray-500 italic mt-1 pl-3 border-l border-white/10">{prob.quotedEvidence}</p>}
+                  </div>
+                ))}
+              </div>
 
               {(deal.prospectDiagnosis.financialQualification?.buyingSignals || []).length > 0 && (
                 <>
-                  <SmallLabel>Buying Signals</SmallLabel>
-                  <Bullets items={deal.prospectDiagnosis.financialQualification.buyingSignals} />
+                  <Label>Buying Signals</Label>
+                  <ul className="text-base text-gray-400 space-y-1.5 mb-6 leading-relaxed">
+                    {deal.prospectDiagnosis.financialQualification.buyingSignals.map((s, i) => <li key={i}>- {s}</li>)}
+                  </ul>
                 </>
               )}
-            </>
+
+              {(deal.prospectDiagnosis.financialQualification?.redFlags || []).length > 0 && (
+                <>
+                  <Label>Red Flags</Label>
+                  <ul className="text-base text-gray-400 space-y-1.5 mb-6 leading-relaxed">
+                    {deal.prospectDiagnosis.financialQualification.redFlags.map((f, i) => <li key={i}>- {f}</li>)}
+                  </ul>
+                </>
+              )}
+            </div>
           )}
 
-          <Hr />
+          <Rule />
 
           {/* Solution Stack */}
           {deal.solutionStack && (
-            <>
-              <SectionTitle>Solution Stack</SectionTitle>
+            <div>
+              <h3 className="text-base font-medium text-gray-200 mb-8">Solution Stack</h3>
               {[
                 { phase: deal.solutionStack.phase1QuickWin, label: 'Phase 1 - Quick Win' },
                 { phase: deal.solutionStack.phase2CoreSystem, label: 'Phase 2 - Core System' },
                 { phase: deal.solutionStack.phase3AIWowFactor, label: 'Phase 3 - AI Wow Factor' },
               ].map(({ phase, label }) => phase && (
-                <div key={label} style={{ marginBottom: 28 }}>
-                  <p style={{ fontWeight: 600, fontSize: 15, margin: '0 0 4px' }}>{label} <span style={{ fontWeight: 400, color: '#888', fontSize: 13 }}>{phase.timeline}</span></p>
-                  <p style={{ color: '#555', margin: '0 0 8px', fontSize: 14 }}>{phase.phaseName}</p>
+                <div key={label} className="mb-10">
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <p className="text-sm font-medium text-gray-300">{label}</p>
+                    <span className="text-xs text-gray-500">{phase.timeline || ''}</span>
+                  </div>
+                  <p className="text-base text-gray-400 mb-3">{phase.phaseName}</p>
                   {(phase.tools || []).map((tool: any, j: number) => (
-                    <div key={j} style={{ marginLeft: 16, marginBottom: 8, borderLeft: '2px solid #eee', paddingLeft: 12 }}>
-                      <p style={{ margin: 0, fontWeight: 500, fontSize: 14 }}>{tool.toolName} <span style={{ fontWeight: 400, color: '#888', fontSize: 12 }}>{(tool.toolType || '').replace(/_/g, ' ')}</span></p>
-                      <p style={{ margin: '2px 0', color: '#666', fontSize: 13 }}>{tool.description}</p>
+                    <div key={j} className="mb-3 pl-4 border-l border-white/5">
+                      <p className="text-base text-gray-300">{tool.toolName} <span className="text-gray-500 text-sm">{(tool.toolType || '').replace(/_/g, ' ')}</span></p>
+                      <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
+                      <p className="text-xs text-gray-600">{tool.estimatedSetupHours || 0}h setup, {tool.setupComplexity || 'n/a'} complexity</p>
                     </div>
                   ))}
-                  <p style={{ color: '#555', fontSize: 14, margin: '8px 0 0' }}>Expected outcome: {phase.expectedOutcome || 'N/A'}</p>
+                  <p className="text-base text-gray-400 leading-relaxed">Expected outcome: {phase.expectedOutcome || 'N/A'}</p>
                 </div>
               ))}
-            </>
+            </div>
           )}
 
-          <Hr />
+          <Rule />
 
           {/* Pricing */}
           {deal.pricingStrategy && (
-            <>
-              <SectionTitle>Pricing Strategy</SectionTitle>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
-                <div style={{ padding: 20, border: '1px solid #eee', borderRadius: 8 }}>
-                  <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: '#888', margin: '0 0 4px' }}>Setup Fee</p>
-                  <p style={{ fontSize: 28, fontWeight: 300, margin: 0 }}>${(deal.pricingStrategy.setupFee?.recommended || 0).toLocaleString()}</p>
+            <div>
+              <h3 className="text-base font-medium text-gray-200 mb-8">Pricing Strategy</h3>
+              <div className="space-y-6 mb-8">
+                <div className="border-b border-white/5 pb-4">
+                  <Label>Setup Fee</Label>
+                  <p className="text-3xl font-light text-gray-200">${(deal.pricingStrategy.setupFee?.recommended || 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">Range: ${(deal.pricingStrategy.setupFee?.minimum || 0).toLocaleString()} - ${(deal.pricingStrategy.setupFee?.maximum || 0).toLocaleString()}</p>
                 </div>
-                <div style={{ padding: 20, border: '1px solid #eee', borderRadius: 8 }}>
-                  <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: '#888', margin: '0 0 4px' }}>Monthly Retainer</p>
-                  <p style={{ fontSize: 28, fontWeight: 300, margin: 0 }}>${(deal.pricingStrategy.monthlyRetainer?.recommended || 0).toLocaleString()}<span style={{ fontSize: 14, color: '#888' }}>/mo</span></p>
+                <div className="border-b border-white/5 pb-4">
+                  <Label>Monthly Retainer</Label>
+                  <p className="text-3xl font-light text-gray-200">${(deal.pricingStrategy.monthlyRetainer?.recommended || 0).toLocaleString()}<span className="text-base text-gray-500">/mo</span></p>
+                  <p className="text-sm text-gray-500">Range: ${(deal.pricingStrategy.monthlyRetainer?.minimum || 0).toLocaleString()} - ${(deal.pricingStrategy.monthlyRetainer?.maximum || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label>Total Deal Value (Year 1)</Label>
+                  <p className="text-3xl font-light text-gray-200">${(deal.pricingStrategy.totalDealValue?.firstYearValue || 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">Lifetime: ${(deal.pricingStrategy.totalDealValue?.lifetimeValueEstimate || 0).toLocaleString()} &middot; Margin: {deal.pricingStrategy.totalDealValue?.profitMarginEstimate || 'N/A'}</p>
                 </div>
               </div>
-              <div style={{ padding: 20, border: '1px solid #eee', borderRadius: 8, marginBottom: 24 }}>
-                <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: '#888', margin: '0 0 4px' }}>Total Year 1 Value</p>
-                <p style={{ fontSize: 32, fontWeight: 300, margin: 0 }}>${(deal.pricingStrategy.totalDealValue?.firstYearValue || 0).toLocaleString()}</p>
-              </div>
-            </>
+
+              {deal.pricingStrategy.pitchAngle && (
+                <div className="mb-8">
+                  <Label>Pitch Angle</Label>
+                  <p className="text-base text-gray-200 mb-1">{deal.pricingStrategy.pitchAngle.headline}</p>
+                  <p className="text-base text-gray-400 leading-relaxed mb-1">{deal.pricingStrategy.pitchAngle.valueFraming}</p>
+                  <p className="text-sm text-gray-500">Comparison: {deal.pricingStrategy.pitchAngle.comparisonPoint}</p>
+                  <p className="text-sm text-gray-500">Urgency: {deal.pricingStrategy.pitchAngle.urgencyHook}</p>
+                </div>
+              )}
+
+              {deal.pricingStrategy.contractTerms && (
+                <div className="mb-8">
+                  <Label>Contract Terms</Label>
+                  <div className="text-base text-gray-400 space-y-1 leading-relaxed">
+                    <p>Recommended term: {(deal.pricingStrategy.contractTerms.recommendedTerm || '').replace(/_/g, ' ')}</p>
+                    {deal.pricingStrategy.contractTerms.discountForLongerTerm && <p>Discount: {deal.pricingStrategy.contractTerms.discountForLongerTerm}</p>}
+                    <p>Payment: {deal.pricingStrategy.contractTerms.paymentStructure || 'N/A'}</p>
+                    {deal.pricingStrategy.contractTerms.guaranteeOffered && <p>Guarantee: {deal.pricingStrategy.contractTerms.guaranteeOffered}</p>}
+                  </div>
+                </div>
+              )}
+
+              {(deal.pricingStrategy.upsellOpportunities || []).length > 0 && (
+                <div>
+                  <Label>Upsell Opportunities</Label>
+                  {deal.pricingStrategy.upsellOpportunities.map((u, i) => (
+                    <p key={i} className="text-base text-gray-400 mb-1">{u.service} <span className="text-gray-500 text-sm">{u.timing} / +${(u.additionalRevenue || 0).toLocaleString()}</span></p>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
-          <Hr />
+          <Rule />
 
           {/* Sales Performance */}
           {deal.salesPerformance && (
-            <>
-              <SectionTitle>Sales Performance</SectionTitle>
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <p style={{ fontSize: 48, fontWeight: 200, margin: 0 }}>{deal.salesPerformance.callScoreCard?.overallScore || 0}</p>
-                <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: '#888' }}>Overall Score</p>
+            <div>
+              <h3 className="text-base font-medium text-gray-200 mb-8">Sales Performance</h3>
+              <div className="text-center mb-8">
+                <p className="text-5xl font-extralight text-gray-100">{deal.salesPerformance.callScoreCard?.overallScore || 0}</p>
+                <p className="text-xs uppercase tracking-widest text-gray-500 mt-1">Overall Score</p>
               </div>
-              <div style={{ marginBottom: 24 }}>
+
+              <div className="space-y-2 mb-8">
                 {[
                   { key: 'rapportBuilding', label: 'Rapport Building' },
                   { key: 'discoveryDepth', label: 'Discovery Depth' },
@@ -299,104 +367,91 @@ export default function SharedAnalysisPage() {
                   { key: 'valuePresentation', label: 'Value Presentation' },
                   { key: 'objectionHandling', label: 'Objection Handling' },
                   { key: 'closingStrength', label: 'Closing Strength' },
-                ].map(({ key, label }) => (
-                  <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f5f5f5' }}>
-                    <span style={{ color: '#555', fontSize: 14 }}>{label}</span>
-                    <span style={{ fontWeight: 500, fontSize: 14 }}>{(deal.salesPerformance?.callScoreCard as any)?.[key] || 0}/10</span>
-                  </div>
-                ))}
+                ].map(({ key, label }) => {
+                  const val = (deal.salesPerformance?.callScoreCard as any)?.[key] || 0;
+                  return (
+                    <div key={key} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">{label}</span>
+                      <span className="text-sm text-gray-300 w-8 text-right">{val}/10</span>
+                    </div>
+                  );
+                })}
               </div>
 
               {(deal.salesPerformance.greenFlags || []).length > 0 && (
-                <>
-                  <SmallLabel>Strengths Observed</SmallLabel>
+                <div className="mb-8">
+                  <Label>Strengths Observed</Label>
                   {deal.salesPerformance.greenFlags.map((f, i) => (
-                    <div key={i} style={{ marginBottom: 10 }}>
-                      <p style={{ margin: 0, fontWeight: 500, fontSize: 14 }}>{f.observation}</p>
-                      {f.example && <p style={{ margin: '2px 0', color: '#888', fontSize: 13, fontStyle: 'italic' }}>{f.example}</p>}
-                      <p style={{ margin: '2px 0', color: '#666', fontSize: 13 }}>{f.impact}</p>
+                    <div key={i} className="mb-3">
+                      <p className="text-base text-gray-300">{f.observation}</p>
+                      {f.example && <p className="text-sm text-gray-500 italic">{f.example}</p>}
+                      <p className="text-sm text-gray-500">{f.impact}</p>
                     </div>
                   ))}
-                </>
+                </div>
               )}
 
               {(deal.salesPerformance.redFlags || []).length > 0 && (
-                <>
-                  <SmallLabel>Areas to Improve</SmallLabel>
+                <div className="mb-8">
+                  <Label>Areas to Improve</Label>
                   {deal.salesPerformance.redFlags.map((f, i) => (
-                    <div key={i} style={{ marginBottom: 10 }}>
-                      <p style={{ margin: 0, fontWeight: 500, fontSize: 14 }}>{f.observation} <span style={{ fontWeight: 400, color: '#888', fontSize: 12 }}>({f.priority})</span></p>
-                      <p style={{ margin: '2px 0', color: '#666', fontSize: 13 }}>Fix: {f.howToFix}</p>
+                    <div key={i} className="mb-3">
+                      <p className="text-base text-gray-300">{f.observation} <span className="text-sm text-gray-500">{f.priority}</span></p>
+                      <p className="text-sm text-gray-500">Fix: {f.howToFix}</p>
                     </div>
                   ))}
-                </>
+                </div>
               )}
-            </>
+
+              {(deal.salesPerformance.nextCallPreparation || []).length > 0 && (
+                <div>
+                  <Label>Next Call Preparation</Label>
+                  <ol className="text-base text-gray-400 space-y-1.5 leading-relaxed list-decimal list-inside">
+                    {deal.salesPerformance.nextCallPreparation.map((item, i) => <li key={i}>{item}</li>)}
+                  </ol>
+                </div>
+              )}
+            </div>
           )}
 
-          <Hr />
+          <Rule />
 
           {/* Deal Summary */}
           {deal.dealGrade && (
-            <>
-              <SectionTitle>Deal Summary</SectionTitle>
+            <div>
               {(deal.dealGrade.dealStrengths || []).length > 0 && (
-                <><SmallLabel>Strengths</SmallLabel><Bullets items={deal.dealGrade.dealStrengths} /></>
+                <div className="mb-6">
+                  <Label>Deal Strengths</Label>
+                  <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">
+                    {deal.dealGrade.dealStrengths.map((s, i) => <li key={i}>- {s}</li>)}
+                  </ul>
+                </div>
               )}
               {(deal.dealGrade.dealRisks || []).length > 0 && (
-                <><SmallLabel>Risks</SmallLabel><Bullets items={deal.dealGrade.dealRisks} /></>
+                <div className="mb-6">
+                  <Label>Deal Risks</Label>
+                  <ul className="text-base text-gray-400 space-y-1.5 leading-relaxed">
+                    {deal.dealGrade.dealRisks.map((r, i) => <li key={i}>- {r}</li>)}
+                  </ul>
+                </div>
               )}
-              <div style={{ padding: 16, border: '1px solid #eee', borderRadius: 8, marginTop: 16 }}>
-                <SmallLabel>Recommended Next Step</SmallLabel>
-                <p style={{ margin: '0 0 4px', fontSize: 14 }}>{deal.dealGrade.recommendedNextStep || 'N/A'}</p>
-                <p style={{ margin: 0, color: '#888', fontSize: 13 }}>{deal.dealGrade.gradeReason}</p>
+              <div className="border border-white/5 rounded p-4">
+                <Label>Recommended Next Step</Label>
+                <p className="text-base text-gray-300 leading-relaxed">{deal.dealGrade.recommendedNextStep || 'N/A'}</p>
+                <p className="text-sm text-gray-500 mt-1">{deal.dealGrade.gradeReason || ''}</p>
               </div>
-            </>
+            </div>
           )}
-        </>
+        </div>
+      ) : (
+        <p className="text-base text-gray-500 py-8">Call architecture analysis is not available for this call.</p>
       )}
 
       {/* Footer */}
-      <div style={{ marginTop: 48, paddingTop: 16, borderTop: '1px solid #eee', textAlign: 'center' }}>
-        <p style={{ color: '#bbb', fontSize: 12 }}>Generated on {new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <Rule />
+      <div className="text-center pb-12">
+        <p className="text-xs text-gray-600">Generated on {new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
-    </PageShell>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 48px', fontFamily: "'Manrope', 'Inter', system-ui, sans-serif", color: '#1a1a1a', lineHeight: 1.6, background: '#fff', minHeight: '100vh' }}>
-      {children}
     </div>
   );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 style={{ fontSize: 18, fontWeight: 600, margin: '32px 0 16px', paddingBottom: 8, borderBottom: '1px solid #eee' }}>{children}</h2>;
-}
-
-function SmallLabel({ children }: { children: React.ReactNode }) {
-  return <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: '#888', margin: '20px 0 8px' }}>{children}</p>;
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'flex', padding: '6px 0', borderBottom: '1px solid #f8f8f8' }}>
-      <span style={{ width: 180, color: '#888', fontSize: 14, flexShrink: 0 }}>{label}</span>
-      <span style={{ color: '#333', fontSize: 14 }}>{value}</span>
-    </div>
-  );
-}
-
-function Bullets({ items }: { items: string[] }) {
-  return (
-    <ul style={{ margin: '0 0 16px', paddingLeft: 20, color: '#555', fontSize: 14 }}>
-      {items.map((item, i) => <li key={i} style={{ marginBottom: 4 }}>{item}</li>)}
-    </ul>
-  );
-}
-
-function Hr() {
-  return <div style={{ borderTop: '1px solid #eee', margin: '32px 0' }} />;
 }

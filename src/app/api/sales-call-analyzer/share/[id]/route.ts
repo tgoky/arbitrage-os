@@ -53,7 +53,7 @@ export async function POST(
       where: {
         id: analysisId,
         user_id: user.id,
-        type: 'sales_call_analysis',
+        type: { in: ['sales_call_analysis', 'sales_call'] },
       },
     });
 
@@ -131,7 +131,7 @@ export async function DELETE(
     const { prisma } = await import('@/lib/prisma');
 
     const deliverable = await prisma.deliverable.findFirst({
-      where: { id: analysisId, user_id: user.id, type: 'sales_call_analysis' },
+      where: { id: analysisId, user_id: user.id, type: { in: ['sales_call_analysis', 'sales_call'] } },
     });
 
     if (!deliverable) {
