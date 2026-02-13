@@ -28,14 +28,11 @@ export async function GET(
     // Prisma JSON filtering: look for shareToken inside metadata
     const deliverable = await prisma.deliverable.findFirst({
       where: {
-        type: 'sales_call_analysis',
+        type: { in: ['sales_call_analysis', 'sales_call'] },
         metadata: {
           path: ['shareToken'],
           equals: token,
         },
-      },
-      include: {
-        workspace: true,
       },
     });
 
@@ -68,8 +65,8 @@ export async function GET(
           companyName: metadata?.companyName,
           prospectName: metadata?.prospectName,
           prospectTitle: metadata?.prospectTitle,
-        //   companyIndustry: metadata?.companyIndustry,
-        //   companyLocation: metadata?.companyLocation,
+          companyIndustry: metadata?.companyIndustry,
+          companyLocation: metadata?.companyLocation,
           generatedAt: metadata?.generatedAt,
           participantCount: metadata?.participantCount,
           questionCount: metadata?.questionCount,
