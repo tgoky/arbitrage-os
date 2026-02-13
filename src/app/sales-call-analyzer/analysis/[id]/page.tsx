@@ -394,7 +394,8 @@ export default function AnalysisDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('deal-architecture');
 
-  const { getAnalysis, exportAnalysis } = useSalesCallAnalyzer();
+  const { getAnalysis, exportAnalysis, shareAnalysis } = useSalesCallAnalyzer();
+  const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
     loadAnalysis();
@@ -419,6 +420,23 @@ export default function AnalysisDetailPage() {
       message.success('Analysis exported successfully');
     } catch (error) {
       message.error('Failed to export analysis');
+    }
+  };
+
+  const handleDownloadView = () => {
+    window.open(`/sales-call-analyzer/report/${id}`, '_blank');
+  };
+
+  const handleShare = async () => {
+    setShareLoading(true);
+    try {
+      const result = await shareAnalysis(id as string);
+      await navigator.clipboard.writeText(result.shareUrl);
+      message.success('Share link copied to clipboard');
+    } catch (error) {
+      message.error('Failed to generate share link');
+    } finally {
+      setShareLoading(false);
     }
   };
 
@@ -538,8 +556,12 @@ export default function AnalysisDetailPage() {
       )}
 
       <div className="flex gap-2 mb-10">
-        <button onClick={() => handleExport()} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Export</button>
-        <button className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Share</button>
+        <button onClick={handleDownloadView} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
+          <DownloadOutlined className="text-xs" /> Download
+        </button>
+        <button onClick={handleShare} disabled={shareLoading} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+          <ShareAltOutlined className="text-xs" /> {shareLoading ? 'Generating...' : 'Share'}
+        </button>
       </div>
 
       <Rule />
@@ -1138,7 +1160,12 @@ export default function AnalysisDetailPage() {
       <Rule />
       <div className="flex justify-center gap-3 pb-12">
         <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Back</button>
-        <button onClick={() => handleExport('detailed')} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Download Report</button>
+        <button onClick={handleDownloadView} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
+          <DownloadOutlined className="text-xs" /> Download Report
+        </button>
+        <button onClick={handleShare} disabled={shareLoading} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+          <ShareAltOutlined className="text-xs" /> {shareLoading ? 'Generating...' : 'Share'}
+        </button>
       </div>
     </div>
   );
