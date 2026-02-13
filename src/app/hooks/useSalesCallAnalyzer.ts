@@ -230,6 +230,44 @@ const analyzeCall = useCallback(async (input: Omit<SalesCallInput, 'userId'>): P
     }
   }, []);
 
+  const shareAnalysis = useCallback(async (analysisId: string): Promise<{ shareUrl: string; shareToken: string }> => {
+    try {
+      const response = await fetch(`/api/sales-call-analyzer/share/${analysisId}`, {
+        method: 'POST',
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create share link');
+      }
+
+      return result.data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Share failed';
+      setError(errorMessage);
+      throw err;
+    }
+  }, []);
+
+  const revokeShare = useCallback(async (analysisId: string): Promise<void> => {
+    try {
+      const response = await fetch(`/api/sales-call-analyzer/share/${analysisId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to revoke share link');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Revoke failed';
+      setError(errorMessage);
+      throw err;
+    }
+  }, []);
+
   const bulkImport = useCallback(async (calls: SalesCallInput[]) => {
     setLoading(true);
     setError(null);
@@ -390,6 +428,10 @@ const validateInput = useCallback((input: Partial<SalesCallInput>) => {
     getAnalytics,
     exportAnalysis,
     bulkImport,
+
+    // Sharing
+    shareAnalysis,
+    revokeShare,
     
     // Utilities
     validateInput,

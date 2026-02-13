@@ -58,6 +58,8 @@ export async function middleware(req: NextRequest) {
     '/api/auth/google/callback',
     '/invite-expired',
      '/api/auth/check-password-status',
+     '/api/share/',
+     '/share/',
   ];
 
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
