@@ -2,303 +2,18 @@
 
 import { useLogin } from "@refinedev/core";
 import { useState, useEffect } from "react";
-import { Mail, CheckCircle, AlertCircle, ArrowLeft, Building2, Users, Shield, Zap, TrendingUp, Target, XCircle, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, ArrowLeft, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
+import { ConfigProvider } from "antd";
 import { supabaseBrowserClient as supabase } from "@/utils/supabase/client";
 
-
-// Animated Galaxy Background Component
-const GalaxyBackground = () => {
-  useEffect(() => {
-    const canvas = document.getElementById('galaxy-canvas') as HTMLCanvasElement;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Star properties
-    const stars: Array<{
-      x: number;
-      y: number;
-      size: number;
-      opacity: number;
-      speed: number;
-      twinkleSpeed: number;
-      twinklePhase: number;
-    }> = [];
-
-    // Create stars
-    const createStars = () => {
-      const numStars = Math.floor((canvas.width * canvas.height) / 8000);
-      stars.length = 0;
-
-      for (let i = 0; i < numStars; i++) {
-        stars.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 2 + 0.5,
-          opacity: Math.random() * 0.8 + 0.2,
-          speed: Math.random() * 0.2 + 0.05,
-          twinkleSpeed: Math.random() * 0.02 + 0.01,
-          twinklePhase: Math.random() * Math.PI * 2
-        });
-      }
-    };
-
-    createStars();
-
-    // Animation loop
-    let animationFrame: number;
-    const animate = () => {
-      // Create galaxy gradient background
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, 0,
-        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
-      );
-      gradient.addColorStop(0, '#000000');
-      gradient.addColorStop(0.3, '#000000');
-      gradient.addColorStop(0.6, '#000000');
-      gradient.addColorStop(1, '#000000');
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw and animate stars
-      stars.forEach((star, index) => {
-        // Update twinkle
-        star.twinklePhase += star.twinkleSpeed;
-        const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
-
-        // Slow drift
-        star.x += star.speed * (Math.sin(index * 0.1) * 0.5);
-        star.y += star.speed * (Math.cos(index * 0.1) * 0.5);
-
-        // Wrap around edges
-        if (star.x < 0) star.x = canvas.width;
-        if (star.x > canvas.width) star.x = 0;
-        if (star.y < 0) star.y = canvas.height;
-        if (star.y > canvas.height) star.y = 0;
-
-        // Draw star with glow
-        const finalOpacity = star.opacity * twinkle;
-
-        // Outer glow
-        ctx.beginPath();
-        const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3);
-        glowGradient.addColorStop(0, `rgba(92, 196, 157, ${finalOpacity * 0.9})`);
-        glowGradient.addColorStop(0.5, `rgba(92, 196, 157, ${finalOpacity * 0.4})`);
-        glowGradient.addColorStop(1, 'rgba(92, 196, 157, 0)');
-        ctx.fillStyle = glowGradient;
-        ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Core star (green)
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(92, 196, 157, ${finalOpacity})`;
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      animationFrame = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      cancelAnimationFrame(animationFrame);
-    };
-  }, []);
-
-  return (
-    <canvas
-      id="galaxy-canvas"
-      className="fixed inset-0 w-full h-full -z-10"
-      style={{ background: 'linear-gradient(135deg, #0b2520 0%, #0f2e2c 50%, #062f23 100%)' }}
-    />
-  );
-};
-
-// 3D Feature Card Component
-const FeatureCard = ({ icon: Icon, title, description, delay = 0, color }: {
-  icon: any;
-  title: string;
-  description: string;
-  delay?: number;
-  color: string;
-}) => {
-  return (
-    <div
-      className={`group p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/20
-        transform transition-all duration-700 hover:scale-105 hover:rotate-y-12
-        hover:shadow-2xl hover:shadow-${color}-500/30 hover:border-${color}-400/50
-        animate-slide-in-left cursor-pointer perspective-1000`}
-      style={{
-        animationDelay: `${delay}ms`,
-        transformStyle: 'preserve-3d',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
-      }}
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl
-                     flex items-center justify-center flex-shrink-0 mt-1
-                     border border-white/20 group-hover:scale-110
-                     transition-all duration-500 group-hover:shadow-lg"
-        >
-          <Icon className={`w-5 h-5 text-${color}-400 group-hover:text-${color}-300 transition-colors duration-300`} />
-        </div>
-        <div className="group-hover:translate-x-2 transition-transform duration-500">
-          <h3 className="font-semibold text-white mb-2 group-hover:text-white/90">{title}</h3>
-          <p className="text-gray-300 text-sm group-hover:text-gray-200">{description}</p>
-        </div>
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl
-        opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-    </div>
-  );
-};
-
-// Animated Title Component
-const AnimatedTitle = () => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  return (
-    <div className="flex items-center justify-center gap-3 mb-8 perspective-1000">
-      <span className="text-3xl font-bold text-white text-center overflow-hidden leading-tight">
-        {mounted && (
-          <>
-            {["a", "r", "b", "i", "t", "r", "a", "g", "e", "O", "S"].map(
-              (char, i) => (
-                <span
-                  key={`arbos-${i}`}
-                  className={`inline-block ${
-                    (char === "a" && i === 0) || char === "i"
-                      ? "animate-glow-pulse text-[#5CC49D]"
-                      : "animate-bounce-in"
-                  }`}
-                  style={{
-                    animationDelay: `${i * 100}ms`,
-                    animationFillMode: "both",
-                  }}
-                >
-                  {char}
-                </span>
-              )
-            )}
-            <span
-              className="inline-block animate-bounce-in"
-              style={{ animationDelay: "1200ms", animationFillMode: "both" }}
-            >
-              &nbsp;b
-            </span>
-            <span
-              className="inline-block animate-bounce-in"
-              style={{ animationDelay: "1300ms", animationFillMode: "both" }}
-            >
-              y&nbsp;
-            </span>
-            {["G", "r", "o", "w", "A", "I"].map((char, i) => (
-              <span
-                key={`grow-${i}`}
-                className="inline-block animate-bounce-in"
-                style={{
-                  animationDelay: `${1400 + i * 100}ms`,
-                  animationFillMode: "both",
-                }}
-              >
-                {char}
-              </span>
-            ))}
-          </>
-        )}
-      </span>
-    </div>
-  );
-};
-
-// Connecting Curves Component
-const ConnectingCurves = () => {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute top-16 left-0 w-full h-40">
-        <div className="absolute top-4 left-12 z-20 animate-fade-in-up" style={{ animationDelay: '2s' }}>
-          <div className="text-sm text-white/70 font-medium tracking-wider">
-            <span className="text-[#5CC49D] animate-glow-pulse" style={{ animationDelay: '2.5s' }}>Automate</span>
-            <span className="text-white/90">&</span>
-            <span className="text-[#5CC49D] ml-1 font-bold">Grow</span>
-          </div>
-        </div>
-
-        <svg className="absolute top-0 left-0 w-full h-32 opacity-30" viewBox="0 0 1200 150" fill="none">
-          <defs>
-            <linearGradient id="topGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#5CC49D" stopOpacity="0.6" />
-              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#5CC49D" stopOpacity="0.6" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M 50 75 Q 300 20 600 75 Q 900 130 1150 75"
-            stroke="url(#topGradient)"
-            strokeWidth="2"
-            fill="none"
-            className="animate-draw-line"
-          />
-          <path
-            d="M 50 75 Q 300 20 600 75 Q 900 130 1150 75"
-            stroke="rgba(92, 196, 157, 0.3)"
-            strokeWidth="8"
-            fill="none"
-            className="animate-draw-line animate-pulse"
-            style={{ animationDelay: '1s' }}
-          />
-        </svg>
-      </div>
-
-      <svg className="absolute bottom-20 left-0 w-full h-32 opacity-30" viewBox="0 0 1200 150" fill="none">
-        <defs>
-          <linearGradient id="bottomGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#5CC49D" stopOpacity="0.6" />
-            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#5CC49D" stopOpacity="0.6" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M 50 75 Q 300 130 600 75 Q 900 20 1150 75"
-          stroke="url(#bottomGradient)"
-          strokeWidth="2"
-          fill="none"
-          className="animate-draw-line"
-          style={{ animationDelay: '0.5s' }}
-        />
-        <path
-          d="M 50 75 Q 300 130 600 75 Q 900 20 1150 75"
-          stroke="rgba(92, 196, 157, 0.3)"
-          strokeWidth="8"
-          fill="none"
-          className="animate-draw-line animate-pulse"
-          style={{ animationDelay: '1.5s' }}
-        />
-      </svg>
-    </div>
-  );
-};
+// --- STYLING CONSTANTS from submissions file ---
+const BRAND_COLOR = '#5CC49D'; // Mint Green
+const STEEL_COLOR = '#9DA2B3';
+const SPACE_BG = '#000000';
+const GLASS_BG = 'rgba(255, 255, 255, 0.03)';
+const GLASS_BORDER = 'rgba(255, 255, 255, 0.08)';
 
 export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const { mutate: login } = useLogin();
@@ -311,149 +26,109 @@ export const AuthPage = ({ type }: { type: "login" | "register" }) => {
   const [emailSent, setEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isNotInvited, setIsNotInvited] = useState(false);
-
-  // Simple toggle - user manually chooses password login
   const [usePasswordLogin, setUsePasswordLogin] = useState(false);
 
+  // Add Manrope font to document
   useEffect(() => {
-    const originalBackground = document.body.style.background;
-    document.body.style.background = 'transparent';
+    // Check if Manrope is already loaded
+    if (!document.querySelector('#manrope-font')) {
+      const link = document.createElement('link');
+      link.id = 'manrope-font';
+      link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
 
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes bounce-in {
-        0% { opacity: 0; transform: translateY(-50px) rotateX(-90deg); }
-        50% { transform: translateY(-10px) rotateX(-45deg); }
-        100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
-      }
-      @keyframes glow-pulse {
-        0%, 100% { text-shadow: 0 0 5px #5CC49D, 0 0 10px #5CC49D, 0 0 15px #5CC49D; transform: scale(1); }
-        50% { text-shadow: 0 0 10px #5CC49D, 0 0 20px #5CC49D, 0 0 30px #5CC49D; transform: scale(1.1); }
-      }
-      @keyframes slide-in-left {
-        0% { opacity: 0; transform: translateX(-100px) rotateY(-30deg); }
-        100% { opacity: 1; transform: translateX(0) rotateY(0deg); }
-      }
-      @keyframes draw-line {
-        0% { stroke-dasharray: 0 1000; }
-        100% { stroke-dasharray: 1000 0; }
-      }
-      @keyframes fade-in-up {
-        0% { opacity: 0; transform: translateY(30px); }
-        100% { opacity: 1; transform: translateY(0); }
-      }
-      .animate-bounce-in { animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
-      .animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
-      .animate-slide-in-left { animation: slide-in-left 0.8s ease-out; }
-      .animate-draw-line { animation: draw-line 2s ease-in-out; }
-      .animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
-      .perspective-1000 { perspective: 1000px; }
-      .rotate-y-12:hover { transform: rotateY(12deg) scale(1.05); }
-    `;
-    document.head.appendChild(style);
+    // Set body background
+    document.body.style.backgroundColor = SPACE_BG;
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
 
     return () => {
-      document.body.style.background = originalBackground;
-      document.head.removeChild(style);
+      document.body.style.backgroundColor = '';
     };
   }, []);
 
-
-  // Replace your current invite_id useEffect with this:
-useEffect(() => {
-  // Check for invite_id in URL query params
-  const urlParams = new URLSearchParams(window.location.search);
-  const inviteId = urlParams.get('invite_id');
-  const hash = window.location.hash;
-  
-  if (inviteId && !hash) {
-    // Only show this message if there's no hash (no token yet)
-    console.log('Processing invite:', inviteId);
-    setMessage('Please check your email for the magic link to complete sign in.');
-  } else if (inviteId && hash) {
-    console.log('Invite detected with token, processing automatically...');
-  }
-}, []);
-
-
-
-  // In your AuthPage component, add this to handle invite_id from query params
-// Then add this useEffect to handle the access token from URL fragment
-useEffect(() => {
-  // Check if URL contains access_token in fragment
-  if (typeof window !== 'undefined') {
+  // Handle invite_id and access token
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteId = urlParams.get('invite_id');
     const hash = window.location.hash;
-    const params = new URLSearchParams(window.location.search);
-    const inviteId = params.get('invite_id');
     
-    if (hash && hash.includes('access_token')) {
-      // Parse the fragment
-      const fragmentParams = new URLSearchParams(hash.substring(1));
-      const accessToken = fragmentParams.get('access_token');
-      const refreshToken = fragmentParams.get('refresh_token');
-      const type = fragmentParams.get('type');
+    if (inviteId && !hash) {
+      console.log('Processing invite:', inviteId);
+      setMessage('Please check your email for the magic link to complete sign in.');
+    } else if (inviteId && hash) {
+      console.log('Invite detected with token, processing automatically...');
+    }
+  }, []);
+
+  // Handle access token from URL fragment
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      const inviteId = params.get('invite_id');
       
-      console.log('Found tokens in URL fragment:', { 
-        hasAccessToken: !!accessToken, 
-        type,
-        inviteId 
-      });
-      
-      if (accessToken) {
-        // Set loading state
-        setLoading(true);
+      if (hash && hash.includes('access_token')) {
+        const fragmentParams = new URLSearchParams(hash.substring(1));
+        const accessToken = fragmentParams.get('access_token');
+        const refreshToken = fragmentParams.get('refresh_token');
+        const type = fragmentParams.get('type');
         
-        // Set the session in Supabase client
-        const setSession = async () => {
-          try {
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-            
-            if (error) {
-              console.error('Error setting session:', error);
-              setError('Failed to authenticate. Please try again.');
-              setLoading(false);
-            } else {
-              console.log('Session set successfully:', data.session?.user.id);
+        console.log('Found tokens in URL fragment:', { 
+          hasAccessToken: !!accessToken, 
+          type,
+          inviteId 
+        });
+        
+        if (accessToken) {
+          setLoading(true);
+          
+          const setSession = async () => {
+            try {
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || '',
+              });
               
-              // Clear the URL fragment
-              window.location.hash = '';
-              
-              // If we have an inviteId, accept the invite
-              if (inviteId) {
-                try {
-                  await fetch('/api/auth/accept-invite', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inviteId })
-                  });
-                  console.log('Invite accepted successfully');
-                } catch (inviteError) {
-                  console.error('Error accepting invite:', inviteError);
+              if (error) {
+                console.error('Error setting session:', error);
+                setError('Failed to authenticate. Please try again.');
+                setLoading(false);
+              } else {
+                console.log('Session set successfully:', data.session?.user.id);
+                
+                window.location.hash = '';
+                
+                if (inviteId) {
+                  try {
+                    await fetch('/api/auth/accept-invite', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ inviteId })
+                    });
+                    console.log('Invite accepted successfully');
+                  } catch (inviteError) {
+                    console.error('Error accepting invite:', inviteError);
+                  }
                 }
+                
+                router.push('/home');
               }
-              
-              // Redirect to home
-              router.push('/home');
+            } catch (error) {
+              console.error('Error in setSession:', error);
+              setError('Authentication failed. Please try again.');
+              setLoading(false);
             }
-          } catch (error) {
-            console.error('Error in setSession:', error);
-            setError('Authentication failed. Please try again.');
-            setLoading(false);
-          }
-        };
-        
-        setSession();
+          };
+          
+          setSession();
+        }
       }
     }
-  }
-}, [router]);
+  }, [router]);
 
-
-
-  // Handle password login
   const handlePasswordLogin = async () => {
     setMessage("");
     setError("");
@@ -495,13 +170,11 @@ useEffect(() => {
     setError("");
     setIsNotInvited(false);
 
-    // If password login mode
     if (usePasswordLogin) {
       handlePasswordLogin();
       return;
     }
 
-    // Magic link login (original flow)
     setLoading(true);
 
     login(
@@ -532,318 +205,524 @@ useEffect(() => {
     );
   };
 
-
+  // Registration page
   if (type === "register") {
     return (
-      <div className="min-h-screen relative flex">
-        <GalaxyBackground />
-        <ConnectingCurves />
+      <ConfigProvider
+        theme={{
+          token: {
+            fontFamily: "'Manrope', sans-serif",
+            colorPrimary: BRAND_COLOR,
+            colorBgBase: SPACE_BG,
+            colorTextBase: '#fff',
+            colorBorder: GLASS_BORDER,
+            borderRadius: 8,
+          },
+        }}
+      >
+        <style jsx global>{`
+          body {
+            background-color: ${SPACE_BG};
+            font-family: 'Manrope', sans-serif;
+            margin: 0;
+            padding: 0;
+          }
+          * {
+            box-sizing: border-box;
+          }
+        `}</style>
 
-        <div className="relative z-10 w-full flex min-h-screen">
-          <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
-            <div className="max-w-md space-y-6">
-              <FeatureCard icon={Building2} title="Workspaces" description="create and manage workspaces" delay={200} color="green" />
-              <FeatureCard icon={Shield} title="Tools" description="Generate and automate with arbitrage tools" delay={400} color="green" />
-              <FeatureCard icon={Users} title="Submissions" description="View all recent deliverables in real time" delay={600} color="green" />
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: SPACE_BG }}>
+          <div className="w-full max-w-md">
+            {/* Logo/Title */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white mb-2 font-manrope tracking-tight">
+                ArbitrageOS
+              </h1>
+              <p className="text-sm" style={{ color: STEEL_COLOR }}>by GrowAI</p>
             </div>
-          </div>
 
-          <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-lg mx-auto lg:max-w-none lg:translate-x-8 xl:translate-x-12">
-            <div className="w-full max-w-sm">
-              <AnimatedTitle />
-              <div className="space-y-6 animate-fade-in-up">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-blue-500/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-400/30">
-                    <Shield className="w-8 h-8 text-blue-300" />
-                  </div>
-                  <h1 className="text-2xl font-semibold text-white mb-2">ArbitrageOS is Invite-Only</h1>
-                  <p className="text-gray-300">Access to our platform is currently by invitation only</p>
+            {/* Main Card */}
+            <div 
+              className="rounded-xl p-8 border"
+              style={{ 
+                background: GLASS_BG, 
+                borderColor: GLASS_BORDER,
+              }}
+            >
+              <div className="text-center mb-6">
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: 'rgba(92, 196, 157, 0.1)' }}
+                >
+                  <Lock className="w-8 h-8" style={{ color: BRAND_COLOR }} />
                 </div>
-
-                <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-gray-300">
-                      <p className="font-medium text-white mb-2">Interested in joining?</p>
-                      <p className="mb-3">Contact our team to request an invitation and learn more about how ArbitrageOS can transform your workflow.</p>
-                      <a href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request" className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 font-medium transition-colors">
-                        team@growaiagency.io
-                        <ArrowLeft className="w-4 h-4 rotate-180" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                  <p className="text-sm text-gray-300"><strong className="text-white">Already invited?</strong> Check your email for your magic link, or sign in below.</p>
-                </div>
-
-                <Link href="/login" className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to sign in
-                </Link>
+                <h2 className="text-xl font-semibold text-white mb-2 font-manrope">
+                  Invite-Only Platform
+                </h2>
+                <p className="text-sm" style={{ color: STEEL_COLOR }}>
+                  Access to ArbitrageOS is currently by invitation only
+                </p>
               </div>
-            </div>
 
-            <div className="mt-12 text-center text-xs text-gray-400 animate-fade-in-up" style={{ animationDelay: '1s' }}>
-              <p>© 2025 ArbitrageOS. All rights reserved.</p>
-            </div>
-          </div>
-
-          <div className="hidden xl:flex xl:flex-1 items-center justify-center p-12 xl:translate-x-20">
-            <div className="max-w-md space-y-6">
-              <FeatureCard icon={TrendingUp} title="Activity Heatmaps" description="Monitor activities and your usage stats." delay={800} color="green" />
-              <FeatureCard icon={Target} title="Milestones" description="Set milestones for yourself and achieve them" delay={1000} color="green" />
-              <FeatureCard icon={Zap} title="Directories" description="Access libraries & directories of various" delay={1200} color="green" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen relative flex">
-      <GalaxyBackground />
-      <ConnectingCurves />
-
-      <div className="relative z-10 w-full flex min-h-screen">
-        <div className="hidden lg:flex lg:flex-1 items-center justify-center p-12 lg:translate-x-4 xl:translate-x-6">
-          <div className="max-w-md space-y-6">
-            <FeatureCard icon={Building2} title="Workspaces" description="create and manage workspaces" delay={200} color="green" />
-            <FeatureCard icon={Shield} title="Tools" description="Generate and automate with arbitrage tools" delay={400} color="green" />
-            <FeatureCard icon={Users} title="Submissions" description="View all recent deliverables in real time" delay={600} color="green" />
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-col justify-center items-center p-8 max-w-lg mx-auto lg:max-w-none lg:translate-x-8 xl:translate-x-12">
-          <div className="w-full max-w-sm">
-            <AnimatedTitle />
-
-            {emailSent ? (
-              <div className="space-y-6 animate-fade-in-up">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-green-500/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 border border-green-400/30 animate-pulse">
-                    <CheckCircle className="w-8 h-8 text-green-300" />
-                  </div>
-                  <h1 className="text-2xl font-semibold text-white mb-2">Check your email</h1>
-                  <p className="text-gray-300">We sent a magic link to <strong className="text-white">{email}</strong></p>
-                </div>
-
-                <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-gray-300 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-gray-300">
-                      <p className="font-medium text-white mb-1">Did not receive the email?</p>
-                      <ul className="space-y-1">
-                        <li>• Check your spam folder</li>
-                        <li>• Make sure you entered the correct email</li>
-                        <li>• Wait a few minutes and try again</li>
-                      </ul>
-                    </div>
+              <div 
+                className="rounded-lg p-5 mb-5 border"
+                style={{ 
+                  background: 'rgba(0, 0, 0, 0.2)', 
+                  borderColor: GLASS_BORDER 
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: BRAND_COLOR }} />
+                  <div>
+                    <p className="font-medium text-white mb-2 text-sm">Interested in joining?</p>
+                    <p className="text-xs mb-3" style={{ color: STEEL_COLOR }}>
+                      Contact our team to request an invitation and learn more about how ArbitrageOS can transform your workflow.
+                    </p>
+                    <a 
+                      href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request" 
+                      className="inline-flex items-center gap-2 text-xs font-medium transition-colors"
+                      style={{ color: BRAND_COLOR }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#7ed9b0'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = BRAND_COLOR}
+                    >
+                      team@growaiagency.io
+                      <ArrowLeft className="w-3 h-3 rotate-180" />
+                    </a>
                   </div>
                 </div>
+              </div>
 
-                <button onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); }} className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
+              <div 
+                className="rounded-lg p-4 mb-6 text-center border"
+                style={{ 
+                  background: 'rgba(0, 0, 0, 0.2)', 
+                  borderColor: GLASS_BORDER 
+                }}
+              >
+                <p className="text-xs" style={{ color: STEEL_COLOR }}>
+                  <span className="text-white">Already invited?</span> Check your email for your magic link, or sign in below.
+                </p>
+              </div>
+
+              <Link href="/login" className="block w-full">
+                <button
+                  className="w-full font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+                  style={{ 
+                    backgroundColor: BRAND_COLOR,
+                    color: '#000',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#7ed9b0';
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = BRAND_COLOR;
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
                   <ArrowLeft className="w-4 h-4" />
                   Back to sign in
                 </button>
-              </div>
-            ) : (
-              <div className="space-y-6 animate-fade-in-up">
-                <div className="text-center">
-                  <h1 className="text-2xl font-semibold text-white mb-2">Sign in to your account</h1>
-                  <p className="text-gray-300">
-                    {usePasswordLogin
-                      ? "Enter your email and password"
-                      : "Enter your email to continue with ArbitrageOS"}
-                  </p>
-                </div>
+              </Link>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email address</label>
-                    <div className="relative group">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
-                        placeholder="you@company.com"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password Field - Only shown when user clicks "Sign in with password" */}
-                  {usePasswordLogin && (
-                    <div className="animate-fade-in-up">
-                      <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                      <div className="relative group">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-hover:text-gray-300 transition-colors" />
-                        <input
-                          id="password"
-                          name="password"
-                          type={showPassword ? "text" : "password"}
-                          required
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={loading}
-                          className="w-full pl-10 pr-12 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder-gray-400"
-                          placeholder="Enter your password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className={`p-4 backdrop-blur-md rounded-lg border animate-fade-in-up ${
-                      isNotInvited
-                        ? 'bg-orange-500/10 border-orange-400/30'
-                        : 'bg-red-500/10 border-red-400/30'
-                    }`}>
-                      <div className="flex items-start gap-3">
-                        <XCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                          isNotInvited ? 'text-orange-300' : 'text-red-300'
-                        }`} />
-                        <div className="flex-1">
-                          <p className={`font-medium mb-2 ${
-                            isNotInvited ? 'text-orange-200' : 'text-red-200'
-                          }`}>
-                            {isNotInvited ? 'Access Required' : 'Authentication Error'}
-                          </p>
-                          <p className={`text-sm ${
-                            isNotInvited ? 'text-orange-300' : 'text-red-300'
-                          }`}>
-                            {error}
-                          </p>
-                          {isNotInvited && (
-                            <div className="mt-3 pt-3 border-t border-orange-400/30">
-                              <a
-                                href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request&body=Hello, I would like to request access to ArbitrageOS.%0D%0A%0D%0AMy email: "
-                                className="inline-flex items-center gap-2 text-sm font-medium text-orange-200 hover:text-orange-100 transition-colors"
-                              >
-                                <Mail className="w-4 h-4" />
-                                Request Access from Team
-                                <ArrowLeft className="w-3 h-3 rotate-180" />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {message && (
-                    <div className="p-4 backdrop-blur-md rounded-lg border animate-fade-in-up bg-green-500/10 border-green-400/30">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-300" />
-                        <p className="text-sm text-green-300">{message}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading || (usePasswordLogin && !password)}
-                    className="w-full bg-green-300 text-black font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:bg-green-200 hover:scale-105 hover:shadow-green-400/40 active:scale-95"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        {usePasswordLogin ? "Signing in..." : "Sending magic link..."}
-                      </>
-                    ) : (
-                      <>
-                        {usePasswordLogin ? (
-                          <>
-                            <Lock className="w-4 h-4" />
-                            Sign in with Password
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="w-4 h-4" />
-                            Continue with Magic Link
-                          </>
-                        )}
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                {/* Toggle between magic link and password */}
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUsePasswordLogin(!usePasswordLogin);
-                      setError("");
-                      setMessage("");
-                      setPassword("");
-                    }}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
-                  >
-                    {usePasswordLogin ? (
-                      <>
-                        <Mail className="w-4 h-4 inline mr-1" />
-                        Use magic link instead
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-4 h-4 inline mr-1" />
-                        Sign in with password
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="border-t border-white/20 pt-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-sm text-gray-300 hover:text-gray-200 transition-colors">
-                      <Shield className="w-4 h-4 text-green-400" />
-                      <span>Secure passwordless authentication</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-300 hover:text-gray-200 transition-colors">
-                      <Users className="w-4 h-4 text-blue-400" />
-                      <span>Professional workspace management</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center text-sm text-gray-300">
-                  New to ArbitrageOS?{" "}
-                  <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors hover:underline">
-                    Request access
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-12 text-center text-xs text-gray-400 animate-fade-in-up" style={{ animationDelay: '1s' }}>
-            <p>© 2025 ArbitrageOS. All rights reserved.</p>
+            {/* Footer */}
+            <div className="mt-8 text-center">
+              <p className="text-xs" style={{ color: '#666' }}>
+                © 2025 ArbitrageOS. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
+      </ConfigProvider>
+    );
+  }
 
-        <div className="hidden xl:flex xl:flex-1 items-center justify-center p-12 xl:translate-x-20">
-          <div className="max-w-md space-y-6">
-            <FeatureCard icon={TrendingUp} title="Activity Heatmaps" description="Monitor activities and your usage stats." delay={800} color="green" />
-            <FeatureCard icon={Target} title="Milestones" description="Set milestones for yourself and achieve them" delay={1000} color="green" />
-            <FeatureCard icon={Zap} title="Directories" description="Access libraries & directories of various" delay={1200} color="green" />
+  // Login page
+// Login page - replace the return section with this:
+return (
+    <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: "'Manrope', sans-serif",
+          colorPrimary: BRAND_COLOR,
+          colorBgBase: SPACE_BG,
+          colorTextBase: '#fff',
+          colorBorder: GLASS_BORDER,
+          borderRadius: 8,
+        },
+      }}
+    >
+      <style jsx global>{`
+        body {
+          background-color: ${SPACE_BG} !important;
+          font-family: 'Manrope', sans-serif !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        * {
+          box-sizing: border-box;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: white;
+          transition: background-color 5000s ease-in-out 0s;
+          box-shadow: inset 0 0 20px 20px transparent;
+        }
+        /* Override any base styles that might affect centering */
+        .auth-container {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-height: 100vh !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .auth-card {
+          margin-left: auto !important;
+          margin-right: auto !important;
+          width: 100% !important;
+        }
+      `}</style>
+
+      <div className="auth-container" style={{ backgroundColor: SPACE_BG }}>
+        <div className="w-full max-w-md px-4 py-8 auth-card">
+          {/* Logo/Title */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2 font-manrope tracking-tight" style={{ margin: 0 }}>
+              arbitrageOS
+            </h1>
+            <p className="text-sm" style={{ color: STEEL_COLOR, margin: 0 }}>by GrowAI</p>
+          </div>
+
+          {emailSent ? (
+            // Email Sent State
+            <div 
+              className="rounded-xl p-8 border"
+              style={{ 
+                background: GLASS_BG, 
+                borderColor: GLASS_BORDER,
+              }}
+            >
+              <div className="text-center mb-6">
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: 'rgba(92, 196, 157, 0.1)' }}
+                >
+                  <CheckCircle className="w-8 h-8" style={{ color: BRAND_COLOR }} />
+                </div>
+                <h2 className="text-xl font-semibold text-white mb-2 font-manrope" style={{ margin: 0 }}>
+                  Check your email
+                </h2>
+                <p className="text-sm" style={{ color: STEEL_COLOR, marginTop: '0.5rem' }}>
+                  We sent a magic link to <span className="text-white font-medium">{email}</span>
+                </p>
+              </div>
+
+              <div 
+                className="rounded-lg p-4 mb-6 border"
+                style={{ 
+                  background: 'rgba(0, 0, 0, 0.2)', 
+                  borderColor: GLASS_BORDER 
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: STEEL_COLOR }} />
+                  <div>
+                    <p className="font-medium text-white mb-2 text-sm">Did not receive the email?</p>
+                    <ul className="space-y-1 text-xs" style={{ color: STEEL_COLOR, listStyle: 'none', padding: 0, margin: 0 }}>
+                      <li>• Check your spam folder</li>
+                      <li>• Make sure you entered the correct email</li>
+                      <li>• Wait a few minutes and try again</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => { setEmailSent(false); setMessage(""); setError(""); setEmail(""); }} 
+                className="w-full font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm border"
+                style={{ 
+                  backgroundColor: 'transparent',
+                  borderColor: GLASS_BORDER,
+                  color: '#fff',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = GLASS_BG;
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = GLASS_BORDER;
+                }}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to sign in
+              </button>
+            </div>
+          ) : (
+            // Login Form
+            <div 
+              className="rounded-xl p-8 border"
+              style={{ 
+                background: GLASS_BG, 
+                borderColor: GLASS_BORDER,
+              }}
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-semibold text-white mb-2 font-manrope" style={{ margin: 0 }}>
+                  Sign in to your account
+                </h2>
+                <p className="text-sm" style={{ color: STEEL_COLOR, marginTop: '0.5rem' }}>
+                  {usePasswordLogin
+                    ? "Enter your email and password"
+                    : "Enter your email to continue"}
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email Field */}
+                <div>
+                  <label htmlFor="email" className="block text-xs font-medium mb-2" style={{ color: STEEL_COLOR }}>
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: STEEL_COLOR }} />
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      className="w-full pl-9 pr-4 py-3 rounded-lg border text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ 
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        borderColor: GLASS_BORDER,
+                        color: '#fff',
+                        outline: 'none',
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = BRAND_COLOR}
+                      onBlur={(e) => e.target.style.borderColor = GLASS_BORDER}
+                      placeholder="you@company.com"
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                {usePasswordLogin && (
+                  <div>
+                    <label htmlFor="password" className="block text-xs font-medium mb-2" style={{ color: STEEL_COLOR }}>
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: STEEL_COLOR }} />
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                        className="w-full pl-9 pr-10 py-3 rounded-lg border text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ 
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          borderColor: GLASS_BORDER,
+                          color: '#ffffff',
+                          outline: 'none',
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = BRAND_COLOR}
+                        onBlur={(e) => e.target.style.borderColor = GLASS_BORDER}
+                        placeholder="Enter your password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors"
+                        style={{ color: STEEL_COLOR, backgroundColor: '#000000', borderColor: '#000000' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = STEEL_COLOR}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <div 
+                    className={`p-4 rounded-lg border ${
+                      isNotInvited ? 'border-orange-500/30' : 'border-red-500/30'
+                    }`}
+                    style={{ 
+                      background: isNotInvited ? 'rgba(255, 140, 0, 0.05)' : 'rgba(255, 0, 0, 0.05)',
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                        isNotInvited ? 'text-orange-500' : 'text-red-500'
+                      }`} />
+                      <div className="flex-1">
+                        <p className={`font-medium mb-1 text-sm ${
+                          isNotInvited ? 'text-orange-400' : 'text-red-400'
+                        }`}>
+                          {isNotInvited ? 'Access Required' : 'Authentication Error'}
+                        </p>
+                        <p className="text-xs" style={{ color: STEEL_COLOR }}>
+                          {error}
+                        </p>
+                        {isNotInvited && (
+                          <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(255, 140, 0, 0.2)' }}>
+                            <a
+                              href="mailto:team@growaiagency.io?subject=ArbitrageOS Access Request&body=Hello, I would like to request access to ArbitrageOS.%0D%0A%0D%0AMy email: "
+                              className="inline-flex items-center gap-2 text-xs font-medium transition-colors"
+                              style={{ color: '#ff8c00' }}
+                              onMouseEnter={(e) => e.currentTarget.style.color = '#ffaa33'}
+                              onMouseLeave={(e) => e.currentTarget.style.color = '#ff8c00'}
+                            >
+                              <Mail className="w-3 h-3" />
+                              Request Access from Team
+                              <ArrowLeft className="w-3 h-3 rotate-180" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {message && (
+                  <div 
+                    className="p-4 rounded-lg border"
+                    style={{ 
+                      background: 'rgba(92, 196, 157, 0.05)',
+                      borderColor: 'rgba(92, 196, 157, 0.3)',
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5" style={{ color: BRAND_COLOR }} />
+                      <p className="text-xs" style={{ color: BRAND_COLOR }}>{message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading || (usePasswordLogin && !password)}
+                  className="w-full font-medium py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                  style={{ 
+                    backgroundColor: BRAND_COLOR,
+                    color: '#000',
+                    border: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading && !(usePasswordLogin && !password)) {
+                      e.currentTarget.style.backgroundColor = '#7ed9b0';
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = BRAND_COLOR;
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      {usePasswordLogin ? "Signing in..." : "Sending magic link..."}
+                    </>
+                  ) : (
+                    <>
+                      {usePasswordLogin ? (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          Sign in with Password
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4" />
+                          Continue with Magic Link
+                        </>
+                      )}
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Toggle Login Method */}
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+           
+                  onClick={() => {
+                    setUsePasswordLogin(!usePasswordLogin);
+                    setError("");
+                    setMessage("");
+                    setPassword("");
+                  }}
+                  className="text-xs transition-colors"
+                  style={{ color: STEEL_COLOR , backgroundColor:'#000000', borderColor: '#000000'}}
+                  onMouseEnter={(e) => e.currentTarget.style.color = BRAND_COLOR}
+                  onMouseLeave={(e) => e.currentTarget.style.color = STEEL_COLOR}
+                >
+                  {usePasswordLogin ? (
+                    <>
+                      <Mail className="w-3 h-3 inline mr-1" />
+                      Use magic link instead
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3 h-3 inline mr-1" />
+                      Sign in with password
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Features List */}
+              <div className="border-t mt-6 pt-6" style={{ borderColor: GLASS_BORDER }}>
+                <div className="space-y-3">
+                
+                 
+                </div>
+              </div>
+
+              {/* Register Link */}
+              <div className="text-center mt-6">
+                {/* <p className="text-xs" style={{ color: STEEL_COLOR }}>
+                  New to ArbitrageOS?{" "}
+                  <Link 
+                    href="/register" 
+                    className="font-medium transition-colors"
+                    style={{ color: BRAND_COLOR }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#7ed9b0'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = BRAND_COLOR}
+                  >
+                    Request access
+                  </Link>
+                </p> */}
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-xs" style={{ color: '#666' }}>
+              © 2026 ArbitrageOS. All rights reserved.
+            </p>
           </div>
         </div>
       </div>
-    </div>
+    </ConfigProvider>
   );
 };
