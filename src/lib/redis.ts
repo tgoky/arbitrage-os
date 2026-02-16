@@ -52,7 +52,7 @@ export const cacheUtils = {
       const cached = await redis.get(key);
       
       if (cached) {
-        console.log(`🚀 Cache HIT: ${key}`);
+        console.log(` Cache HIT: ${key}`);
         return cached as T;
       }
       

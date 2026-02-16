@@ -131,7 +131,7 @@ example:
         - First campaign launched with ≥ 20% open rate
         - Post-launch review scheduled
     section_2_day_1_welcome_email:
-      subject: "Welcome to FlowReach — Let’s Launch Your First Campaign 🚀"
+      subject: "Welcome to FlowReach — Let’s Launch Your First Campaign "
       body: |
         Hi [FirstName],
         Welcome to FlowReach! We’re excited to partner with you to boost your abandoned cart recovery and campaign ROI.

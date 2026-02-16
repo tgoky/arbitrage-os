@@ -289,7 +289,7 @@ export default function OfferCreatorPage() {
         voice: voiceInputs,
       };
 
-      console.log("🚀 Generating signature offers with input:", offerInput);
+      console.log(" Generating signature offers with input:", offerInput);
 
       const result = await generateOffer(offerInput as unknown as OfferCreatorInput);
 

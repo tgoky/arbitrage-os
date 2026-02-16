@@ -38,15 +38,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error(' Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error(' Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -223,7 +223,7 @@ try {
     }
   });
   
-  console.log('✅ Notification created for ad generation:', result.deliverableId);
+  console.log(' Notification created for ad generation:', result.deliverableId);
 } catch (notifError) {
   console.error('Failed to create notification:', notifError);
   // Don't fail the request if notification fails

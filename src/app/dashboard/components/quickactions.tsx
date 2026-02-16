@@ -20,11 +20,11 @@ interface QuickStartActionsProps {
 
 // Brand grayscale colors from the screenshot
 const brandColors = {
-  cloud: '#EDEFF7',    // Lightest - for highlights
-  smoke: '#D3D6E0',    // For borders/lines
-  steel: '#BCBFCC',    // For secondary elements
-  space: '#9DA2B3',    // For text/muted elements
-  graphite: '#6E7180', // For icons/accents
+  cloud: '#EDEFF7',    // Lightest - for text/highlights
+  smoke: '#D3D6E0',    // For secondary text
+  steel: '#BCBFCC',    // For borders/lines
+  space: '#9DA2B3',    // For muted elements
+  graphite: '#6E7180', // For icons
   arsenic: '#40424D',  // For dark surfaces
   phantom: '#1E1E24',  // For darker surfaces
   black: '#000000',    // Pure black background
@@ -65,7 +65,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     return names[type] || type;
   };
 
-  //   UPDATED: Using brand grayscale colors for type colors
+  // ✅ Using brand grayscale colors for type colors
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
       'Sales Call Analysis': brandColors.cloud,     // Lightest
@@ -133,8 +133,19 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
   const isDark = theme === 'dark';
   const fontFamily = "'Manrope', sans-serif";
   
-  //   UPDATED: Using brand colors for chart gradients
+  // Using brand colors for chart fills with transparency
   const chartColors = [
+    'rgba(237, 239, 247, 0.2)', // cloud transparent
+    'rgba(211, 214, 224, 0.2)', // smoke transparent
+    'rgba(188, 191, 204, 0.2)', // steel transparent
+    'rgba(157, 162, 179, 0.2)', // space transparent
+    'rgba(110, 113, 128, 0.2)', // graphite transparent
+    'rgba(64, 66, 77, 0.2)',    // arsenic transparent
+    'rgba(30, 30, 36, 0.2)',    // phantom transparent
+  ];
+  
+  // Border colors for chart elements (solid version of brand colors)
+  const borderColors = [
     brandColors.cloud,
     brandColors.smoke,
     brandColors.steel,
@@ -142,13 +153,11 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     brandColors.graphite,
     brandColors.arsenic,
     brandColors.phantom,
-    brandColors.graphite,
-    brandColors.space
   ];
   
-  //   CHANGED: Pure black background for dark mode using brand color
+  // Pure black background for dark mode
   const backgroundColor = isDark ? brandColors.black : '#ffffff';
-  const borderColor = isDark ? brandColors.phantom : '#f0f0f0'; // Using phantom for borders in dark mode
+  const borderColor = isDark ? brandColors.phantom : '#f0f0f0';
 
   // Card Styles
   const getMainCardStyles = () => ({
@@ -164,7 +173,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     },
   });
 
-  //   ENHANCED: Premium tooltip styling with brand colors
+  // Tooltip styling
   const tooltipStyle = {
     backgroundColor: isDark ? brandColors.phantom : 'rgba(255, 255, 255, 0.95)',
     border: `1px solid ${isDark ? brandColors.graphite : '#f0f0f0'}`,
@@ -181,201 +190,207 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
 
   const axisStyle = {
     fontSize: 11, 
-    fill: isDark ? brandColors.graphite : brandColors.space, // Using graphite/space for axes
+    fill: isDark ? brandColors.graphite : brandColors.space,
     fontFamily: fontFamily,
     fontWeight: 500
   };
 
-  const renderChart = () => {
-    if (!chartData.length) {
-      return (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: 180,
-          color: isDark ? brandColors.graphite : brandColors.space,
-          fontFamily: fontFamily,
-          fontSize: '14px'
-        }}>
-          No data available for visualization
-        </div>
-      );
-    }
-
-    // Define chart content separately to avoid "Element | null" type error in ResponsiveContainer
-    let chartContent: React.ReactElement | null = null;
-
-    switch (chartType) {
-      case 'bar':
-        chartContent = (
-          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              {chartData.map((entry, index) => (
-                <linearGradient key={`grad-${index}`} id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={chartColors[index % chartColors.length]} stopOpacity={0.9}/>
-                  <stop offset="100%" stopColor={chartColors[index % chartColors.length]} stopOpacity={0.5}/>
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              vertical={false} 
-              stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
-              strokeOpacity={0.5} 
-            />
-            <XAxis 
-              dataKey="name" 
-              tick={axisStyle}
-              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
-              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
-              dy={10}
-              interval={0}
-              tickFormatter={(val) => chartData.length > 8 ? val.substring(0, 3) : val}
-            />
-            <YAxis 
-              tick={axisStyle} 
-              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
-              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
-            />
-            <Tooltip 
-              cursor={{ fill: isDark ? `rgba(237, 239, 247, 0.03)` : 'rgba(0,0,0,0.02)' }} // Using cloud with opacity
-              contentStyle={tooltipStyle}
-              itemStyle={{ color: 'inherit' }}
-            />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={`url(#grad-${index})`} />
-              ))}
-            </Bar>
-          </BarChart>
-        );
-        break;
-
-      case 'line':
-        chartContent = (
-          <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              vertical={false} 
-              stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
-              strokeOpacity={0.5} 
-            />
-            <XAxis 
-              dataKey="month" 
-              tick={axisStyle} 
-              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
-              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
-              dy={10} 
-            />
-            <YAxis 
-              tick={axisStyle} 
-              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
-              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
-            />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Line 
-              type="monotone" 
-              dataKey="count" 
-              stroke={brandColors.cloud} 
-              strokeWidth={3}
-              dot={{ fill: isDark ? brandColors.black : '#fff', stroke: brandColors.cloud, strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, fill: brandColors.cloud, stroke: isDark ? brandColors.black : '#fff', strokeWidth: 2 }}
-            />
-          </LineChart>
-        );
-        break;
-
-      case 'area':
-        chartContent = (
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={brandColors.cloud} stopOpacity={0.4}/>
-                <stop offset="95%" stopColor={brandColors.cloud} stopOpacity={0.05}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              vertical={false} 
-              stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
-              strokeOpacity={0.5} 
-            />
-            <XAxis 
-              dataKey="month" 
-              tick={axisStyle} 
-              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
-              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
-              dy={10} 
-            />
-            <YAxis 
-              tick={axisStyle} 
-              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
-              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
-            />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Area 
-              type="monotone" 
-              dataKey="count" 
-              stroke={brandColors.cloud} 
-              fill="url(#colorGradient)" 
-              strokeWidth={3}
-            />
-          </AreaChart>
-        );
-        break;
-
-      case 'pie':
-        chartContent = (
-          <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius={50}
-              outerRadius={75}
-              paddingAngle={4}
-              dataKey="count"
-              label={false}
-              stroke={isDark ? brandColors.black : '#fff'}
-              strokeWidth={2}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-              ))}
-            </Pie>
-            <Tooltip contentStyle={tooltipStyle} />
-            <Legend 
-              layout="vertical" 
-              verticalAlign="middle" 
-              align="right"
-              iconType="circle"
-              formatter={(value) => (
-                <span style={{ 
-                  color: isDark ? brandColors.smoke : brandColors.graphite, 
-                  fontFamily: fontFamily, 
-                  fontSize: 12 
-                }}>
-                  {value}
-                </span>
-              )}
-            />
-          </PieChart>
-        );
-        break;
-        
-      default:
-        chartContent = null;
-    }
-
-    if (!chartContent) return null;
-
+ const renderChart = () => {
+  if (!chartData.length) {
     return (
-      <ResponsiveContainer width="100%" height={180}>
-        {chartContent}
-      </ResponsiveContainer>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: 180,
+        color: isDark ? brandColors.graphite : brandColors.space,
+        fontFamily: fontFamily,
+        fontSize: '14px'
+      }}>
+        No data available for visualization
+      </div>
     );
-  };
+  }
+
+    // Define chart content separately
+  let chartContent: React.ReactElement | null = null;
+
+  switch (chartType) {
+    case 'bar':
+      chartContent = (
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            vertical={false} 
+            stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
+            strokeOpacity={0.5} 
+          />
+          <XAxis 
+            dataKey="name" 
+            tick={axisStyle}
+            axisLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke, strokeWidth: 1 }}
+            tickLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke }}
+            dy={10}
+            interval={0}
+            tickFormatter={(val) => chartData.length > 8 ? val.substring(0, 3) : val}
+          />
+          <YAxis 
+            tick={axisStyle} 
+            axisLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke, strokeWidth: 1 }}
+            tickLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke }}
+          />
+          <Tooltip 
+            cursor={{ fill: isDark ? 'rgba(237, 239, 247, 0.02)' : 'rgba(0,0,0,0.02)' }}
+            contentStyle={tooltipStyle}
+            itemStyle={{ color: 'inherit' }}
+          />
+          <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+            {chartData.map((entry, index) => (
+              <Cell 
+                key={`cell-${index}`} 
+                fill={chartColors[index % chartColors.length]}
+                // ✅ REMOVED: stroke and strokeWidth props
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      );
+      break;
+
+    case 'line':
+      chartContent = (
+        <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            vertical={false} 
+            stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
+            strokeOpacity={0.5} 
+          />
+          <XAxis 
+            dataKey="month" 
+            tick={axisStyle} 
+            axisLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke, strokeWidth: 1 }}
+            tickLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke }}
+            dy={10} 
+          />
+          <YAxis 
+            tick={axisStyle} 
+            axisLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke, strokeWidth: 1 }}
+            tickLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke }}
+          />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Line 
+            type="monotone" 
+            dataKey="count" 
+            stroke={brandColors.cloud}
+            strokeWidth={2.5}
+            dot={{ 
+              fill: brandColors.cloud, // ✅ CHANGED: filled dots instead of outlined
+              stroke: 'transparent', // ✅ REMOVED: stroke
+              r: 4 
+            }}
+            activeDot={{ 
+              r: 6, 
+              fill: brandColors.cloud, // ✅ CHANGED: filled active dot
+              stroke: 'transparent', // ✅ REMOVED: stroke
+            }}
+          />
+        </LineChart>
+      );
+      break;
+
+    case 'area':
+      chartContent = (
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={brandColors.cloud} stopOpacity={0.15}/>
+              <stop offset="95%" stopColor={brandColors.cloud} stopOpacity={0.02}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            vertical={false} 
+            stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
+            strokeOpacity={0.5} 
+          />
+          <XAxis 
+            dataKey="month" 
+            tick={axisStyle} 
+            axisLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke, strokeWidth: 1 }}
+            tickLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke }}
+            dy={10} 
+          />
+          <YAxis 
+            tick={axisStyle} 
+            axisLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke, strokeWidth: 1 }}
+            tickLine={{ stroke: isDark ? brandColors.phantom : brandColors.smoke }}
+          />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Area 
+            type="monotone" 
+            dataKey="count" 
+            stroke={brandColors.cloud}
+            strokeWidth={2.5}
+            fill="url(#colorGradient)"
+          />
+        </AreaChart>
+      );
+      break;
+
+    case 'pie':
+      chartContent = (
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            innerRadius={50}
+            outerRadius={75}
+            paddingAngle={4}
+            dataKey="count"
+            label={false}
+          >
+            {chartData.map((entry, index) => (
+              <Cell 
+                key={`cell-${index}`} 
+                fill={chartColors[index % chartColors.length]}
+                // ✅ REMOVED: stroke and strokeWidth props
+              />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={tooltipStyle} />
+          <Legend 
+            layout="vertical" 
+            verticalAlign="middle" 
+            align="right"
+            iconType="circle"
+            formatter={(value) => (
+              <span style={{ 
+                color: isDark ? brandColors.smoke : brandColors.graphite, 
+                fontFamily: fontFamily, 
+                fontSize: 12 
+              }}>
+                {value}
+              </span>
+            )}
+          />
+        </PieChart>
+      );
+      break;
+      
+    default:
+      chartContent = null;
+  }
+
+  if (!chartContent) return null;
+
+  return (
+    <ResponsiveContainer width="100%" height={180}>
+      {chartContent}
+    </ResponsiveContainer>
+  );
+};
 
   // --- Error State ---
   if (isError) {
@@ -431,7 +446,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              backgroundColor: isDark ? brandColors.phantom : '#e6f7ff',
+              backgroundColor: isDark ? 'rgba(237, 239, 247, 0.1)' : '#e6f7ff',
               padding: '6px',
               borderRadius: '8px',
               display: 'flex',
@@ -460,17 +475,14 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
                 borderRadius: '12px',
                 padding: '4px',
                 backgroundColor: isDark ? brandColors.phantom : '#ffffff',
-                border: `1px solid ${isDark ? brandColors.steel : brandColors.smoke}`,
-                boxShadow: isDark 
-                  ? '0 4px 20px rgba(0,0,0,0.8)' 
-                  : '0 4px 20px rgba(0,0,0,0.1)'
+                border: `1px solid ${isDark ? brandColors.graphite : brandColors.smoke}`,
               }}
               style={{ 
                 width: 130, 
                 fontFamily: fontFamily,
                 backgroundColor: isDark ? brandColors.arsenic : '#f9fafb',
                 borderRadius: '8px',
-                border: `1px solid ${isDark ? brandColors.steel : 'transparent'}`
+                border: `1px solid ${isDark ? 'transparent' : 'transparent'}`
               }}
               suffixIcon={<span style={{ color: isDark ? brandColors.smoke : brandColors.graphite }}>▼</span>}
             >
@@ -486,7 +498,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       style={{ 
         marginBottom: 24, 
         borderRadius: '16px', 
-        border: `1px solid ${isDark ? brandColors.steel : borderColor}`, // Premium steel border in dark mode
+        border: `1px solid ${borderColor}`,
         boxShadow: isDark 
           ? '0 8px 32px rgba(0,0,0,0.8)' 
           : '0 4px 20px rgba(0,0,0,0.03)',
@@ -505,18 +517,18 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
             fontWeight: 600,
             fontFamily: fontFamily,
             fontSize: '13px',
-            backgroundColor: isDark ? brandColors.phantom : 'rgba(82, 196, 26, 0.05)',
+            backgroundColor: 'transparent',
             borderRadius: '8px',
-            border: `1px solid ${isDark ? brandColors.steel : 'transparent'}`,
+            border: `1px solid ${brandColors.phantom}`,
             transition: 'all 0.3s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = isDark ? brandColors.arsenic : 'rgba(82, 196, 26, 0.15)';
-            e.currentTarget.style.borderColor = isDark ? brandColors.cloud : 'transparent';
+            e.currentTarget.style.backgroundColor = brandColors.phantom;
+            e.currentTarget.style.borderColor = brandColors.cloud;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = isDark ? brandColors.phantom : 'rgba(82, 196, 26, 0.05)';
-            e.currentTarget.style.borderColor = isDark ? brandColors.steel : 'transparent';
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.borderColor = brandColors.phantom;
           }}
         >
           Refresh

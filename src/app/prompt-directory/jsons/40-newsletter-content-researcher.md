@@ -70,7 +70,7 @@ example:
       - "https://growthflow.com/lead-sequences"
       - "https://growthflow.com/playbook"
   output: |
-    Subject: Stop Chasing Leads — Let Them Come to You 🚀
+    Subject: Stop Chasing Leads — Let Them Come to You 
     Preview Text: A 3-step follow-up tweak to save 5+ hours a week.
 
     Hi [FirstName],

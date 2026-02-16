@@ -241,7 +241,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
 
       {campaigns.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-4xl mb-4">🚀</div>
+          <div className="text-4xl mb-4"></div>
           <Title level={4}>No campaigns yet</Title>
           <Text type="secondary" className="mb-6 block">
             Create your first campaign to start generating leads

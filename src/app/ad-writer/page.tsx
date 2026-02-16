@@ -1126,7 +1126,7 @@ const AdWriter = () => {
 
                         {ad.proofs && ad.proofs.length > 0 && (
                           <div>
-                            <Title level={5} className="mb-2" style={{ color: TEXT_PRIMARY }}>✅ Proof</Title>
+                            <Title level={5} className="mb-2" style={{ color: TEXT_PRIMARY }}> Proof</Title>
                             <div className="space-y-2">
                               {ad.proofs.map((proof: string, i: number) => (
                                 <Card 

@@ -52,7 +52,7 @@ example:
 
     2. Landing Page Copy
     Headline:
-      "🚀 Book 27% More Demos in 30 Days — Without More SDRs"
+      " Book 27% More Demos in 30 Days — Without More SDRs"
     Subheadline:
       "The 2-Minute Lead Response Playbook gives you the proven workflows and scripts used by the fastest-growing SaaS sales teams."
     Benefits Bullets:
@@ -80,7 +80,7 @@ example:
 
     4. Delivery Email
     Subject:
-      "Your 2-Minute Lead Response Playbook is here 🚀"
+      "Your 2-Minute Lead Response Playbook is here "
     Body:
       "Hey [FirstName],
       Your copy of the 2-Minute Lead Response Playbook is ready to download. Inside, you’ll see exactly how to:

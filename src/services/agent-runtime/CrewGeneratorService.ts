@@ -63,7 +63,7 @@ export class CrewGeneratorService {
     // Step 4: Validate and refine
     const validatedCrew = await this.validateCrew(crew);
 
-    console.log(`✅ Generated crew: ${validatedCrew.name}`);
+    console.log(` Generated crew: ${validatedCrew.name}`);
 
     return validatedCrew;
   }
@@ -436,7 +436,7 @@ YOU MUST RETURN THIS EXACT JSON STRUCTURE:
       if (!agent.color) agent.color = '#5CC49D';
     }
 
-    console.log('✅ Crew validated successfully');
+    console.log(' Crew validated successfully');
 
     return crew;
   }
