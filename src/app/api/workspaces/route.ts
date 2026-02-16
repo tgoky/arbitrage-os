@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     
     console.log('User authenticated:', user.id);
 
-    // ✅ CRITICAL: Ensure user exists in database
+    //   CRITICAL: Ensure user exists in database
     await ensureUserExists(user);
     console.log('User verified in database');
 
@@ -223,11 +223,11 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log(`✅ Created workspace ${workspace.id} for user ${user.id}`);
+    console.log(`  Created workspace ${workspace.id} for user ${user.id}`);
     
     return NextResponse.json(workspace, { status: 201 });
   } catch (error: any) {
-    console.error('❌ DETAILED ERROR creating workspace:');
+    console.error('  DETAILED ERROR creating workspace:');
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error code:', error.code);

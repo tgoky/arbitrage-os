@@ -154,7 +154,7 @@ export const CrewChatBuilder: React.FC<CrewChatBuilderProps> = ({
       const errorMessage = {
         id: `error_${Date.now()}`,
         role: 'assistant',
-        content: `❌ Sorry, I had trouble generating the crew: ${error.message}\n\nPlease try rephrasing your request or be more specific.`,
+        content: `  Sorry, I had trouble generating the crew: ${error.message}\n\nPlease try rephrasing your request or be more specific.`,
         timestamp: new Date()
       };
 

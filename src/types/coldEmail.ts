@@ -12,9 +12,9 @@ export interface ColdEmailGenerationInput {
   // Email Strategy
   method: 'interview' | 'podcast' | 'direct' | 'masterclass' | 'referral' | 'problem';
   tone: 'professional' | 'friendly' | 'casual' | 'formal';
-  emailLength?: 'short' | 'medium' | 'long'; // ✅ Made optional to match validator
-  quality?: 'fast' | 'balanced' | 'high';    // ✅ Made optional to match validator
-  creativity?: 'low' | 'moderate' | 'high';  // ✅ Made optional to match validator
+  emailLength?: 'short' | 'medium' | 'long'; //   Made optional to match validator
+  quality?: 'fast' | 'balanced' | 'high';    //   Made optional to match validator
+  creativity?: 'low' | 'moderate' | 'high';  //   Made optional to match validator
   
   // Target Details
   targetIndustry: string;
@@ -46,10 +46,10 @@ export interface ColdEmailGenerationInput {
   referrerRelationship?: string;
   
   // Generation Settings - Add defaults to match validator
-  variations?: number;        // ✅ Made optional with default
-  generateFollowUps?: boolean; // ✅ Made optional with default
-  followUpCount?: number;     // ✅ Made optional with default
-  saveAsTemplate?: boolean;   // ✅ Made optional with default
+  variations?: number;        //   Made optional with default
+  generateFollowUps?: boolean; //   Made optional with default
+  followUpCount?: number;     //   Made optional with default
+  saveAsTemplate?: boolean;   //   Made optional with default
   
   // System field
   userId: string;
@@ -68,7 +68,7 @@ export interface GeneratedEmail {
     variationIndex?: number;
     dayInterval?: number;
     sequenceNumber?: number;
-    // ✅ Add these optional fields for optimization tracking
+    //   Add these optional fields for optimization tracking
     optimizationType?: ColdEmailOptimizationType;
     optimizedAt?: string;
     appliedFromTemplate?: string;

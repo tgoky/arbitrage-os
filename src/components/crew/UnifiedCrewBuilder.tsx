@@ -597,7 +597,7 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
       }
     } catch (error: any) {
       console.error('Build failed:', error);
-      addThought(`❌ Error: ${error.message}`, 'error');
+      addThought(`  Error: ${error.message}`, 'error');
       setIsBuilding(false);
       message.error('Failed to build crew');
     }
@@ -631,13 +631,13 @@ export const UnifiedCrewBuilder: React.FC<UnifiedCrewBuilderProps> = ({
         break;
       case 'crew_complete':
         setCurrentCrew(data.crew);
-        addThought('✅ Crew creation complete!', 'completed');
+        addThought('  Crew creation complete!', 'completed');
         setIsBuilding(false);
         setPrompt('');
         message.success('Crew built successfully!');
         break;
       case 'error':
-        addThought(`❌ Error: ${data.message}`, 'error');
+        addThought(`  Error: ${data.message}`, 'error');
         setIsBuilding(false);
         message.error('Failed to build crew');
         break;

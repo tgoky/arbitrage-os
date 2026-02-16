@@ -15,7 +15,7 @@ export async function middleware(req: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ Missing Supabase environment variables in middleware');
+    console.error('  Missing Supabase environment variables in middleware');
     return response;
   }
   
@@ -69,7 +69,7 @@ export async function middleware(req: NextRequest) {
 
   // Allow public paths and static files without authentication
   if (isPublicPath || isStaticFile) {
-    console.log('✅ Public path or static file, allowing access');
+    console.log('  Public path or static file, allowing access');
     return response;
   }
 
@@ -77,7 +77,7 @@ export async function middleware(req: NextRequest) {
   // Don't redirect API calls - just return error response
   if (isApiRoute) {
     if (!user) {
-      console.log('❌ API route without auth, returning 401');
+      console.log('  API route without auth, returning 401');
       return NextResponse.json(
         { 
           success: false,
@@ -87,7 +87,7 @@ export async function middleware(req: NextRequest) {
         { status: 401 }
       );
     }
-    console.log('✅ API route with valid auth');
+    console.log('  API route with valid auth');
     return response;
   }
 
@@ -105,7 +105,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // User is authenticated, allow access
-  console.log('✅ Authenticated, allowing access');
+  console.log('  Authenticated, allowing access');
   return response;
 }
 

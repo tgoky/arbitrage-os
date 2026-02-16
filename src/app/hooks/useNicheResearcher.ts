@@ -26,7 +26,7 @@ export function useNicheResearcher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Simplified API call helper (same pattern as working implementations)
+  //   Simplified API call helper (same pattern as working implementations)
   const handleApiCall = async <T>(
     url: string, 
     options: RequestInit,
@@ -63,7 +63,7 @@ export function useNicheResearcher() {
     }
   };
 
-  // ✅ FIXED useNicheResearcher.ts - Update generateNicheReport method:
+  //   FIXED useNicheResearcher.ts - Update generateNicheReport method:
 const generateNicheReport = async (
   input: NicheResearchInput,
   workspaceId: string // Add workspace parameter
@@ -94,12 +94,12 @@ const generateNicheReport = async (
       'Failed to generate niche report'
     );
 
-    console.log('✅ Received response from API:', response);
+    console.log('  Received response from API:', response);
     
     message.success('Niche report generated successfully!');
     return response;
   } catch (err) {
-    console.error('❌ Generate niche report error:', err);
+    console.error('  Generate niche report error:', err);
     const errorMessage = err instanceof Error ? err.message : 'Generation failed';
     setError(errorMessage);
     message.error(errorMessage);
@@ -202,7 +202,7 @@ const generateNicheReport = async (
     }
   };
 
-  // ✅ UPDATED MARKET ANALYSIS TO MATCH NEW STRUCTURE
+  //   UPDATED MARKET ANALYSIS TO MATCH NEW STRUCTURE
   const analyzeMarket = async (options: {
     niche: string;
     skills: string[];
@@ -247,7 +247,7 @@ const generateNicheReport = async (
     }
   };
 
-  // ✅ UPDATED SKILLS SUGGESTIONS TO MATCH NEW API
+  //   UPDATED SKILLS SUGGESTIONS TO MATCH NEW API
   const getSkillsSuggestions = async (options?: {
     category?: string;
     search?: string;
@@ -271,7 +271,7 @@ const generateNicheReport = async (
     }
   };
 
-  // ✅ NEW: VALIDATE SKILLS BASED ON NICHE CONTEXT
+  //   NEW: VALIDATE SKILLS BASED ON NICHE CONTEXT
   const validateSkills = async (options: {
     currentSkills: string[];
     primaryObjective?: string;
@@ -299,7 +299,7 @@ const generateNicheReport = async (
     }
   };
 
-  // ✅ NEW: UPDATE REPORT METADATA (title, tags, etc.)
+  //   NEW: UPDATE REPORT METADATA (title, tags, etc.)
   const updateNicheReport = async (
     reportId: string,
     updates: {
@@ -323,7 +323,7 @@ const generateNicheReport = async (
     }
   };
 
-  // ✅ NEW: QUICK COMPETITIVE ANALYSIS
+  //   NEW: QUICK COMPETITIVE ANALYSIS
   const quickCompetitiveAnalysis = async (options: {
     niche: string;
     skills: string[];
@@ -339,7 +339,7 @@ const generateNicheReport = async (
     });
   };
 
-  // ✅ NEW: QUICK OPPORTUNITY ANALYSIS  
+  //   NEW: QUICK OPPORTUNITY ANALYSIS  
   const quickOpportunityAnalysis = async (options: {
     niche: string;
     skills: string[];
@@ -355,7 +355,7 @@ const generateNicheReport = async (
     });
   };
 
-  // ✅ NEW: NICHE VALIDATION ANALYSIS
+  //   NEW: NICHE VALIDATION ANALYSIS
   const validateNicheIdea = async (options: {
     niche: string;
     skills: string[];

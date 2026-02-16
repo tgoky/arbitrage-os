@@ -15,7 +15,7 @@ import {
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ FIXED: Simplified authentication that works for new users
+//   FIXED: Simplified authentication that works for new users
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -42,15 +42,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -86,22 +86,22 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Growth Plan GET [id] API Route called for ID:', params.id);
+  console.log(' Growth Plan GET [id] API Route called for ID:', params.id);
   
   try {
-    // ✅ USE SIMPLE AUTHENTICATION
+    //   USE SIMPLE AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan GET [id]:', authError);
+      console.error('  Auth failed in growth plan GET [id]:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Growth Plan GET [id] user authenticated successfully:', user.id);
+    console.log('  Growth Plan GET [id] user authenticated successfully:', user.id);
     const userId = user.id;
     const planId = params.id;
 
-    // ✅ LIGHT RATE LIMITING: Prevent abuse
+    //   LIGHT RATE LIMITING: Prevent abuse
     const rateLimitResult = await rateLimit(
       `growth_plan_read:${userId}`,
       200, // 200 reads per hour
@@ -109,7 +109,7 @@ export async function GET(
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan read rate limit exceeded for user:', userId);
+      console.log('  Growth plan read rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
         { status: 429 }
@@ -123,16 +123,16 @@ export async function GET(
       plan = await growthPlanService.getGrowthPlan(userId, planId);
       
       if (!plan) {
-        console.log('❌ Growth plan not found:', planId);
+        console.log('  Growth plan not found:', planId);
         return NextResponse.json(
           { success: false, error: 'Growth plan not found' },
           { status: 404 }
         );
       }
       
-      console.log('✅ Growth plan retrieved successfully:', planId);
+      console.log('  Growth plan retrieved successfully:', planId);
     } catch (serviceError) {
-      console.error('💥 Error fetching growth plan:', serviceError);
+      console.error('  Error fetching growth plan:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -143,7 +143,7 @@ export async function GET(
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId,
@@ -164,11 +164,11 @@ export async function GET(
       data: { plan }
     };
 
-    console.log('✅ Growth plan GET [id] request completed successfully');
+    console.log('  Growth plan GET [id] request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan GET [id] API Error:', error);
+    console.error('  Unexpected Growth Plan GET [id] API Error:', error);
     console.error('Growth plan GET [id] error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       {
@@ -185,22 +185,22 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Growth Plan PUT [id] API Route called for ID:', params.id);
+  console.log(' Growth Plan PUT [id] API Route called for ID:', params.id);
   
   try {
-    // ✅ USE SIMPLE AUTHENTICATION
+    //   USE SIMPLE AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan PUT [id]:', authError);
+      console.error('  Auth failed in growth plan PUT [id]:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Growth Plan PUT [id] user authenticated successfully:', user.id);
+    console.log('  Growth Plan PUT [id] user authenticated successfully:', user.id);
     const userId = user.id;
     const planId = params.id;
 
-    // ✅ MODERATE RATE LIMITING: Updates might trigger AI regeneration
+    //   MODERATE RATE LIMITING: Updates might trigger AI regeneration
     const rateLimitResult = await rateLimit(
       `growth_plan_update:${userId}`,
       20, // 20 updates per hour
@@ -208,7 +208,7 @@ export async function PUT(
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan update rate limit exceeded for user:', userId);
+      console.log('  Growth plan update rate limit exceeded for user:', userId);
       return NextResponse.json(
         { 
           success: false, 
@@ -224,7 +224,7 @@ export async function PUT(
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse growth plan update request body:', parseError);
+      console.error('  Failed to parse growth plan update request body:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -237,7 +237,7 @@ export async function PUT(
     const { updates } = body;
 
     if (!updates || typeof updates !== 'object') {
-      console.error('❌ Growth plan updates object is missing or invalid');
+      console.error('  Growth plan updates object is missing or invalid');
       return NextResponse.json(
         { 
           success: false,
@@ -254,7 +254,7 @@ export async function PUT(
       console.log('🔍 Starting growth plan update validation...');
       const validation = validateGrowthPlanInput(updates, true);
       if (!validation.success) {
-        console.error('❌ GROWTH PLAN UPDATE VALIDATION FAILED:');
+        console.error('  GROWTH PLAN UPDATE VALIDATION FAILED:');
         console.error('Update validation errors:', JSON.stringify(validation.errors, null, 2));
         
         return NextResponse.json(
@@ -270,7 +270,7 @@ export async function PUT(
           { status: 400 }
         );
       }
-      console.log('✅ Growth plan update validation passed');
+      console.log('  Growth plan update validation passed');
     }
 
     console.log('🔄 Updating growth plan:', planId);
@@ -278,9 +278,9 @@ export async function PUT(
     let updatedPlan;
     try {
       updatedPlan = await growthPlanService.updateGrowthPlan(userId, planId, updates);
-      console.log('✅ Growth plan updated successfully:', planId);
+      console.log('  Growth plan updated successfully:', planId);
     } catch (serviceError) {
-      console.error('💥 Error updating growth plan:', serviceError);
+      console.error('  Error updating growth plan:', serviceError);
       
       if (serviceError instanceof Error && serviceError.message === 'Growth plan not found') {
         return NextResponse.json(
@@ -299,7 +299,7 @@ export async function PUT(
       );
     }
     
-    // ✅ LOG USAGE: If AI was used for regeneration
+    //   LOG USAGE: If AI was used for regeneration
     try {
       if (updatedPlan.metadata.updateType === 'full_regeneration') {
         await logUsage({
@@ -313,7 +313,7 @@ export async function PUT(
             fieldsUpdated: Object.keys(updates)
           }
         });
-        console.log('✅ Growth plan regeneration usage logged');
+        console.log('  Growth plan regeneration usage logged');
       } else {
         await logUsage({
           userId,
@@ -326,7 +326,7 @@ export async function PUT(
             fieldsUpdated: Object.keys(updates)
           }
         });
-        console.log('✅ Growth plan update usage logged');
+        console.log('  Growth plan update usage logged');
       }
     } catch (logError) {
       console.error('⚠️ Growth plan update usage logging failed (non-critical):', logError);
@@ -342,11 +342,11 @@ export async function PUT(
       message: 'Growth plan updated successfully'
     };
 
-    console.log('✅ Growth plan PUT [id] request completed successfully');
+    console.log('  Growth plan PUT [id] request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan PUT [id] API Error:', error);
+    console.error('  Unexpected Growth Plan PUT [id] API Error:', error);
     console.error('Growth plan PUT [id] error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(
@@ -364,22 +364,22 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Growth Plan DELETE [id] API Route called for ID:', params.id);
+  console.log(' Growth Plan DELETE [id] API Route called for ID:', params.id);
   
   try {
-    // ✅ USE SIMPLE AUTHENTICATION
+    //   USE SIMPLE AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan DELETE [id]:', authError);
+      console.error('  Auth failed in growth plan DELETE [id]:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Growth Plan DELETE [id] user authenticated successfully:', user.id);
+    console.log('  Growth Plan DELETE [id] user authenticated successfully:', user.id);
     const userId = user.id;
     const planId = params.id;
 
-    // ✅ MODERATE RATE LIMITING: Prevent delete spam
+    //   MODERATE RATE LIMITING: Prevent delete spam
     const rateLimitResult = await rateLimit(
       `growth_plan_delete:${userId}`,
       50, // 50 deletes per hour
@@ -387,7 +387,7 @@ export async function DELETE(
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan delete rate limit exceeded for user:', userId);
+      console.log('  Growth plan delete rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Delete rate limit exceeded' },
         { status: 429 }
@@ -401,16 +401,16 @@ export async function DELETE(
       success = await growthPlanService.deleteGrowthPlan(userId, planId);
       
       if (!success) {
-        console.log('❌ Growth plan not found for deletion:', planId);
+        console.log('  Growth plan not found for deletion:', planId);
         return NextResponse.json(
           { success: false, error: 'Growth plan not found' },
           { status: 404 }
         );
       }
       
-      console.log('✅ Growth plan deleted successfully:', planId);
+      console.log('  Growth plan deleted successfully:', planId);
     } catch (serviceError) {
-      console.error('💥 Error deleting growth plan:', serviceError);
+      console.error('  Error deleting growth plan:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -421,7 +421,7 @@ export async function DELETE(
       );
     }
 
-    // ✅ LOG USAGE: Track deletions
+    //   LOG USAGE: Track deletions
     try {
       await logUsage({
         userId,
@@ -433,7 +433,7 @@ export async function DELETE(
           action: 'delete'
         }
       });
-      console.log('✅ Growth plan deletion usage logged');
+      console.log('  Growth plan deletion usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan deletion usage logging failed (non-critical):', logError);
     }
@@ -443,11 +443,11 @@ export async function DELETE(
       message: 'Growth plan deleted successfully'
     };
 
-    console.log('✅ Growth plan DELETE [id] request completed successfully');
+    console.log('  Growth plan DELETE [id] request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan DELETE [id] API Error:', error);
+    console.error('  Unexpected Growth Plan DELETE [id] API Error:', error);
     console.error('Growth plan DELETE [id] error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       {

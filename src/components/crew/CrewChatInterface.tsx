@@ -285,7 +285,7 @@ export const CrewChatInterface: React.FC<CrewChatInterfaceProps> = ({
           const completeMessage: ChatMessage = {
             id: `sys_${Date.now()}`,
             role: 'system',
-            content: '✅ Execution completed successfully.',
+            content: '  Execution completed successfully.',
             timestamp: new Date()
           };
           setMessages(prev => [...prev, completeMessage]);

@@ -400,14 +400,14 @@ const CampaignCreatePage = () => {
 
     // Validation checks
     if (!values.targetIndustry || !Array.isArray(values.targetIndustry) || values.targetIndustry.length === 0) {
-      console.error('❌ Invalid targetIndustry:', values.targetIndustry);
+      console.error('  Invalid targetIndustry:', values.targetIndustry);
       message.error('Please select at least one target industry');
       setCurrentStep(0);
       return;
     }
 
     if (!values.targetRole || !Array.isArray(values.targetRole) || values.targetRole.length === 0) {
-      console.error('❌ Invalid targetRole:', values.targetRole);
+      console.error('  Invalid targetRole:', values.targetRole);
       message.error('Please select at least one target role');
       setCurrentStep(0);
       return;
@@ -418,7 +418,7 @@ const CampaignCreatePage = () => {
     console.log('💰 Cost calculation:', finalCosts);
     
     if (!finalCosts.canAfford && finalCosts.freeLeadsUsed < leadCount) {
-      console.error('❌ Insufficient credits:', {
+      console.error('  Insufficient credits:', {
         needed: finalCosts.totalCost,
         available: userCredits.credits,
         freeLeadsUsed: finalCosts.freeLeadsUsed
@@ -489,7 +489,7 @@ const CampaignCreatePage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Full API Error Response:', {
+        console.error('  Full API Error Response:', {
           status: response.status,
           statusText: response.statusText,
           data: errorData
@@ -507,7 +507,7 @@ const CampaignCreatePage = () => {
         }
         
         if (response.status === 422 || response.status === 400) {
-          console.error('❌ Validation error details:', errorData);
+          console.error('  Validation error details:', errorData);
           if (errorData.error?.includes('validation') || errorData.code === 'APOLLO_VALIDATION_ERROR') {
             message.error('Search criteria too complex. Try fewer industries or locations.');
           } else if (errorData.code === 'INVALID_TARGET_INDUSTRY') {
@@ -527,7 +527,7 @@ const CampaignCreatePage = () => {
         }
 
         if (response.status === 500) {
-          console.error('❌ Server error - check if Apollo service is working');
+          console.error('  Server error - check if Apollo service is working');
           message.error('Server error. Our team has been notified. Please try again in a few minutes.');
           return;
         }
@@ -538,7 +538,7 @@ const CampaignCreatePage = () => {
       const data = await response.json();
       
       if (data.success) {
-        console.log('✅ Generation successful:', {
+        console.log('  Generation successful:', {
           leadsCount: data.data?.leads?.length || 0,
           hasLeads: !!data.data?.leads,
           leadsArray: Array.isArray(data.data?.leads)
@@ -582,12 +582,12 @@ const CampaignCreatePage = () => {
         
         await loadUserCredits();
       } else {
-        console.error('❌ Success=false in response:', data);
+        console.error('  Success=false in response:', data);
         throw new Error(data.error || 'Lead generation failed');
       }
 
     } catch (error) {
-      console.error('💥 Lead generation error:', error);
+      console.error('  Lead generation error:', error);
       
       if (error instanceof Error) {
         if (error.message.includes('rate limit')) {

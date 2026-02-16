@@ -8,7 +8,7 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { GeneratedNicheReport, NicheReportMetadata } from '@/types/nicheResearcher';
 
-// ✅ SAME IMPROVED AUTH FUNCTION
+//   SAME IMPROVED AUTH FUNCTION
 async function getAuthenticatedUser(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -99,7 +99,7 @@ async function getAuthenticatedUser(request: NextRequest) {
     return { user: null, error: error || new Error('All auth methods failed') };
     
   } catch (error) {
-    console.error('💥 Auth error:', error);
+    console.error('  Auth error:', error);
     return { user: null, error };
   }
 }
@@ -111,7 +111,7 @@ export async function GET(
   try {
     console.log('📥 Export Niche Report called for ID:', params.id);
     
-    // ✅ AUTHENTICATION
+    //   AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser(req);
     
     if (authError || !user) {
@@ -125,7 +125,7 @@ export async function GET(
       );
     }
 
-    // ✅ RATE LIMITING for exports - 10 per hour
+    //   RATE LIMITING for exports - 10 per hour
     const rateLimitResult = await rateLimit(
       `niche_research_export:${user.id}`,
       10,
@@ -147,7 +147,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'html';
 
-    // ✅ USE NEW SERVICE METHOD
+    //   USE NEW SERVICE METHOD
     const nicheService = new NicheResearcherService();
     const report = await nicheService.getNicheReport(user.id, reportId);
 
@@ -161,7 +161,7 @@ export async function GET(
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -189,7 +189,7 @@ export async function GET(
       });
     }
 
-    // ✅ GENERATE HTML FOR EXPORT
+    //   GENERATE HTML FOR EXPORT
     const htmlContent = generateNicheReportHTML(report.report, report.metadata);
     
     return new NextResponse(htmlContent, {
@@ -200,7 +200,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Export Error:', error);
+    console.error('  Export Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -211,7 +211,7 @@ export async function GET(
   }
 }
 
-// ✅ UPDATED HTML GENERATOR FOR NEW STRUCTURE
+//   UPDATED HTML GENERATOR FOR NEW STRUCTURE
 function generateNicheReportHTML(report: GeneratedNicheReport, metadata: NicheReportMetadata): string {
   // Helper functions
   const formatDate = (date: string | Date) => new Date(date).toLocaleDateString();
@@ -498,7 +498,7 @@ function generateNicheReportHTML(report: GeneratedNicheReport, metadata: NicheRe
 
     <!-- Entry Offers -->
     <div class="section">
-        <h2>6. 🚀 Suggested Entry Offers</h2>
+        <h2>6. Suggested Entry Offers</h2>
         ${safeArray(report.entryOffers).map((offer, index) => `
             <div class="entry-offer">
                 <h4>📦 Offer ${index + 1}: ${offer.positioning || 'Unnamed Offer'}</h4>
@@ -521,10 +521,10 @@ function generateNicheReportHTML(report: GeneratedNicheReport, metadata: NicheRe
 
     <!-- Go-to-Market Strategy -->
     <div class="section">
-        <h2>7. 🎯 Go-to-Market Strategy</h2>
+        <h2>7.  Go-to-Market Strategy</h2>
         <div class="grid">
             <div class="card">
-                <h4>🚀 Primary Channel</h4>
+                <h4> Primary Channel</h4>
                 <p style="font-size: 1.2em; color: #667eea; font-weight: bold;">
                     ${safeString(report.gtmStrategy?.primaryChannel)}
                 </p>

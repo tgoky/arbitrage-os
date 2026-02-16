@@ -8,7 +8,7 @@ import { validateSalesCallInput } from '../../../validators/salesCallAnalyzer.va
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ USE SAME ROBUST AUTH AS YOUR MAIN ROUTE
+//   USE SAME ROBUST AUTH AS YOUR MAIN ROUTE
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -35,15 +35,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -53,14 +53,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Analysis GET API Route called for ID:', params.id);
+  console.log(' Analysis GET API Route called for ID:', params.id);
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in analysis GET:', authError);
+      console.error('  Auth failed in analysis GET:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required',
@@ -68,9 +68,9 @@ export async function GET(
       }, { status: 401 });
     }
 
-    console.log('✅ Analysis GET user authenticated:', user.id);
+    console.log('  Analysis GET user authenticated:', user.id);
 
-    // ✅ RATE LIMITING
+    //   RATE LIMITING
     const rateLimitResult = await rateLimit(
       `sales_call_get:${user.id}`,
       100,
@@ -92,14 +92,14 @@ export async function GET(
     const analysis = await analyzerService.getCallAnalysis(user.id, analysisId);
 
     if (!analysis) {
-      console.log('❌ Analysis not found:', analysisId);
+      console.log('  Analysis not found:', analysisId);
       return NextResponse.json({
         success: false,
         error: 'Call analysis not found'
       }, { status: 404 });
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     await logUsage({
       userId: user.id,
       feature: 'sales_call_analyzer_view',
@@ -111,7 +111,7 @@ export async function GET(
       }
     });
 
-    console.log('✅ Analysis fetched successfully');
+    console.log('  Analysis fetched successfully');
     return NextResponse.json({
       success: true,
       data: analysis,
@@ -121,7 +121,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Analysis Fetch Error:', error);
+    console.error('  Analysis Fetch Error:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch call analysis',
@@ -161,7 +161,7 @@ export async function DELETE(
     const analysisId = params.id;
     const analyzerService = new SalesCallAnalyzerService();
     
-    // ✅ USE SERVICE METHOD (consistent with architecture)
+    //   USE SERVICE METHOD (consistent with architecture)
     const deleted = await analyzerService.deleteCallAnalysis(user.id, analysisId);
 
     if (!deleted) {

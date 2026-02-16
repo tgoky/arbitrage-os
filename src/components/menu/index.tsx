@@ -96,7 +96,7 @@ export const Menu: React.FC = () => {
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState<string>("");
   
-  // ✅ UPDATED DEFAULT STATE
+  //   UPDATED DEFAULT STATE
   // "deliverables" and "arbitrage_ai" are OPEN by default.
   // "strategy", "growth", "agents" are CLOSED by default.
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["deliverables", "arbitrage_ai"]);

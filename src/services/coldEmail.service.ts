@@ -30,7 +30,7 @@ export class ColdEmailService {
     });
   }
 
-  // ✅ NEW: Wrapper method that generates AND saves emails
+  //   NEW: Wrapper method that generates AND saves emails
   async generateAndSaveEmails(
     input: ColdEmailGenerationInput, 
     userId: string, 
@@ -53,7 +53,7 @@ export class ColdEmailService {
     };
   }
 
-  // ✅ NEW: Method to save email generation to deliverables table
+  //   NEW: Method to save email generation to deliverables table
   async saveEmailGeneration(
     userId: string, 
     workspaceId: string, 
@@ -102,7 +102,7 @@ export class ColdEmailService {
     }
   }
 
-  // ✅ NEW: Method to get user's email generations
+  //   NEW: Method to get user's email generations
   async getUserEmailGenerations(userId: string, workspaceId?: string) {
     try {
       const { prisma } = await import('@/lib/prisma');
@@ -163,7 +163,7 @@ export class ColdEmailService {
     }
   }
 
-  // ✅ NEW: Method to get specific email generation
+  //   NEW: Method to get specific email generation
 // In services/coldEmail.service.ts
 async getEmailGeneration(userId: string, generationId: string) {
   try {
@@ -203,7 +203,7 @@ async getEmailGeneration(userId: string, generationId: string) {
 }
 
 
-  // ✅ NEW: Method to delete email generation
+  //   NEW: Method to delete email generation
   async deleteEmailGeneration(userId: string, generationId: string): Promise<boolean> {
     try {
       const { prisma } = await import('@/lib/prisma');
@@ -227,7 +227,7 @@ async getEmailGeneration(userId: string, generationId: string) {
   async generateEmails(input: ColdEmailGenerationInput): Promise<ColdEmailResponse> {
     const startTime = Date.now();
     
-    // ✅ Fix: Set defaults for optional fields
+    //   Fix: Set defaults for optional fields
     const processedInput = {
       ...input,
       variations: input.variations || 1,
@@ -260,7 +260,7 @@ async getEmailGeneration(userId: string, generationId: string) {
     // Build comprehensive prompt
     const prompt = this.buildEmailPrompt(processedInput);
     
-    // ✅ Fix: Use correct property name
+    //   Fix: Use correct property name
     const emailPromises = Array.from({ length: processedInput.variations }, (_, i) => 
       this.generateEmailVariation(prompt, processedInput, i + 1)
     );

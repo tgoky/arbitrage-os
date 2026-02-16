@@ -84,7 +84,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const isDark = theme === 'dark';
   const fontFamily = "'Manrope', sans-serif";
   
-  // ✅ CHANGED: Pure black background for dark mode
+  //   CHANGED: Pure black background for dark mode
   const backgroundColor = isDark ? '#000000' : '#ffffff';
   const borderColor = isDark ? '#262626' : '#f0f0f0'; // Subtle border for black bg
 

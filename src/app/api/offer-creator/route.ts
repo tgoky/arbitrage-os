@@ -60,15 +60,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -97,14 +97,14 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
 
 // POST method for generating signature offers
 export async function POST(req: NextRequest) {
-  console.log('🚀 Signature Offer Creator API Route called');
+  console.log(' Signature Offer Creator API Route called');
   
   try {
     // Authentication
       const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       
       const response = NextResponse.json(
         { 
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Get workspace ID
     const body = await req.json();
@@ -156,7 +156,7 @@ if (!hasAccess || !workspace) {
   }, { status: 403 });
 }
 
-console.log('✅ Workspace validated:', workspace.name);
+console.log('  Workspace validated:', workspace.name);
 
 
     const rateLimitResult = await rateLimit(
@@ -165,7 +165,7 @@ console.log('✅ Workspace validated:', workspace.name);
       RATE_LIMITS.OFFER_GENERATION.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -175,7 +175,7 @@ console.log('✅ Workspace validated:', workspace.name);
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     // Debug logging
     console.log('🔍 RECEIVED BODY STRUCTURE:');
@@ -197,7 +197,7 @@ console.log('✅ Workspace validated:', workspace.name);
     console.log('🔍 Starting validation...');
     const validation = validateOfferCreatorInput(inputWithUserId);
     if (!validation.success) {
-      console.error('❌ VALIDATION FAILED:');
+      console.error('  VALIDATION FAILED:');
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
       return NextResponse.json(
         { 
@@ -210,7 +210,7 @@ console.log('✅ Workspace validated:', workspace.name);
     }
 
     if (!validation.data) {
-      console.error('❌ Validation data is null');
+      console.error('  Validation data is null');
       return NextResponse.json(
         { 
           success: false,
@@ -220,7 +220,7 @@ console.log('✅ Workspace validated:', workspace.name);
       );
     }
 
-    console.log('✅ Input validation passed');
+    console.log('  Input validation passed');
 
     // Business rules validation
     console.log('🔍 Validating business rules...');
@@ -239,7 +239,7 @@ console.log('✅ Workspace validated:', workspace.name);
       console.log('⚡ Calling generateOffer method...');
       generatedOffer = await offerService.generateOffer(validation.data);
       
-      console.log('✅ Signature offer generation completed successfully');
+      console.log('  Signature offer generation completed successfully');
       
       // FIXED: Debug the flat structure (no more primaryOffer)
       console.log('📊 Generated offer structure:');
@@ -257,19 +257,19 @@ console.log('✅ Workspace validated:', workspace.name);
       if (!generatedOffer.signatureOffers?.starter?.name ||
           !generatedOffer.signatureOffers?.core?.name ||
           !generatedOffer.signatureOffers?.premium?.name) {
-        console.error('❌ Generated offer missing required offer names');
+        console.error('  Generated offer missing required offer names');
         throw new Error('Generated offer structure is incomplete - missing offer names');
       }
       
       if (!generatedOffer.signatureOffers?.starter?.scope?.length ||
           !generatedOffer.signatureOffers?.core?.scope?.length ||
           !generatedOffer.signatureOffers?.premium?.scope?.length) {
-        console.error('❌ Generated offer missing required scope details');
+        console.error('  Generated offer missing required scope details');
         throw new Error('Generated offer structure is incomplete - missing scope details');
       }
       
     } catch (serviceError) {
-      console.error('💥 Service error during generation:', serviceError);
+      console.error('  Service error during generation:', serviceError);
       console.error('Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       
       return NextResponse.json(
@@ -309,12 +309,12 @@ console.log('✅ Workspace validated:', workspace.name);
       offerId = await offerService.saveOffer(user.id, workspaceId, generatedOffer, validation.data);
       
       saveSuccess = true;
-      console.log('✅ Signature offers AUTO-SAVED with ID:', offerId);
+      console.log('  Signature offers AUTO-SAVED with ID:', offerId);
     } catch (saveError) {
-      console.error('💥 Error auto-saving offers:', saveError);
+      console.error('  Error auto-saving offers:', saveError);
       
       if (saveError instanceof Error) {
-        console.error('💥 Save error details:', {
+        console.error('  Save error details:', {
           message: saveError.message,
           stack: saveError.stack,
           name: saveError.name
@@ -340,10 +340,10 @@ console.log('✅ Workspace validated:', workspace.name);
         
         offerId = await retryOfferService.saveOffer(user.id, workspaceId, simplifiedOffer, validation.data);
         saveSuccess = true;
-        console.log('✅ Offers saved with simplified approach:', offerId);
+        console.log('  Offers saved with simplified approach:', offerId);
       
       } catch (retryError) {
-        console.error('💥 Retry save also failed:', retryError);
+        console.error('  Retry save also failed:', retryError);
         offerId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         saveSuccess = false;
         console.warn('⚠️ Using temporary ID - offers not saved to database');
@@ -366,7 +366,7 @@ console.log('✅ Workspace validated:', workspace.name);
     }
   });
   
-  console.log('✅ Notification created for offer:', offerId);
+  console.log('  Notification created for offer:', offerId);
 } catch (notifError) {
   console.error('Failed to create notification:', notifError);
   // Don't fail the request if notification fails
@@ -396,7 +396,7 @@ console.log('✅ Workspace validated:', workspace.name);
           businessSuggestions: businessValidation.suggestions.length
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
@@ -431,7 +431,7 @@ console.log('✅ Workspace validated:', workspace.name);
     } as ApiResponse<GeneratedOfferPackage>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Creator API Error:', error);
+    console.error('  Unexpected Signature Offer Creator API Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -449,13 +449,13 @@ console.log('✅ Workspace validated:', workspace.name);
 
 // GET method remains the same as it was working correctly
 export async function GET(req: NextRequest) {
-  console.log('🚀 Signature Offers List API Route called');
+  console.log(' Signature Offers List API Route called');
   
   try {
        const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in offers list:', authError);
+      console.error('  Auth failed in offers list:', authError);
       
       const response = NextResponse.json(
         { 
@@ -474,7 +474,7 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting
     const rateLimitResult = await rateLimit(
@@ -509,7 +509,7 @@ export async function GET(req: NextRequest) {
   }, { status: 403 });
 }
 
-console.log('✅ Workspace validated:', workspace.name);
+console.log('  Workspace validated:', workspace.name);
  } // <-- ADD THIS CLOSING BRACE
     
     
@@ -540,10 +540,10 @@ console.log('✅ Workspace validated:', workspace.name);
         });
       }
       
-      console.log('✅ Retrieved', offers.length, 'signature offers');
+      console.log('  Retrieved', offers.length, 'signature offers');
       
     } catch (fetchError) {
-      console.error('💥 Error fetching offers:', fetchError);
+      console.error('  Error fetching offers:', fetchError);
       return NextResponse.json(
         { 
           success: false,
@@ -586,7 +586,7 @@ console.log('✅ Workspace validated:', workspace.name);
     } as ApiResponse<UserOffer[]>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offers Fetch Error:', error);
+    console.error('  Unexpected Signature Offers Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,

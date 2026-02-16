@@ -12,7 +12,7 @@ export async function ensureUserExists(supabaseUser: User) {
     });
 
     if (existingUser) {
-      console.log('✅ User found in database');
+      console.log('  User found in database');
       return existingUser;
     }
 
@@ -30,11 +30,11 @@ export async function ensureUserExists(supabaseUser: User) {
       }
     });
 
-    console.log('✅ User created successfully:', newUser.id);
+    console.log('  User created successfully:', newUser.id);
     return newUser;
     
   } catch (error: any) {
-    console.error('❌ ensureUserExists ERROR:', error);
+    console.error('  ensureUserExists ERROR:', error);
     console.error('Error code:', error.code);
     console.error('Error details:', error.message);
     

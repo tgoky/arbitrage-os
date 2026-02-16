@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ IMPROVED AUTH FUNCTION
+//   IMPROVED AUTH FUNCTION
 
 async function getAuthenticatedUser() {
   try {
@@ -34,15 +34,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -50,14 +50,14 @@ async function getAuthenticatedUser() {
 
 
 export async function GET(req: NextRequest) {
-  console.log('🚀 Skills Suggestions API Route called');
+  console.log(' Skills Suggestions API Route called');
   
   try {
-    // ✅ AUTHENTICATION
+    //   AUTHENTICATION
      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in skills suggestions:', authError);
+      console.error('  Auth failed in skills suggestions:', authError);
       
       return NextResponse.json(
         { 
@@ -69,9 +69,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for skills suggestions - 100 per hour
+    //   RATE LIMITING for skills suggestions - 100 per hour
     const rateLimitResult = await rateLimit(
       `niche_research_skills:${user.id}`,
       100,
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category');
     const searchTerm = searchParams.get('search');
 
-    // ✅ COMPLETE SKILLS DATABASE ALIGNED WITH NEW NICHE RESEARCH
+    //   COMPLETE SKILLS DATABASE ALIGNED WITH NEW NICHE RESEARCH
     const allSkills = {
       'tech-development': [
         'Tech Development',
@@ -250,7 +250,7 @@ export async function GET(req: NextRequest) {
       ]
     };
 
-    // ✅ FILTER BY SEARCH TERM IF PROVIDED
+    //   FILTER BY SEARCH TERM IF PROVIDED
     let filteredSkills = allSkills;
     if (searchTerm && searchTerm.length >= 2) {
       const searchLower = searchTerm.toLowerCase();
@@ -264,7 +264,7 @@ export async function GET(req: NextRequest) {
       ) as typeof allSkills;
     }
 
-    // ✅ RETURN SPECIFIC CATEGORY IF REQUESTED
+    //   RETURN SPECIFIC CATEGORY IF REQUESTED
     if (category && category in filteredSkills) {
       const categorySkills = filteredSkills[category as keyof typeof filteredSkills];
       
@@ -298,7 +298,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // ✅ RETURN ALL CATEGORIES AND SKILLS
+    //   RETURN ALL CATEGORIES AND SKILLS
     const totalSkills = Object.values(filteredSkills).flat().length;
     
     // Log usage for full access
@@ -333,7 +333,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Skills Suggestions Error:', error);
+    console.error('  Skills Suggestions Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -344,12 +344,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ✅ POST ENDPOINT FOR SKILLS VALIDATION/SUGGESTIONS BASED ON INPUT
+//   POST ENDPOINT FOR SKILLS VALIDATION/SUGGESTIONS BASED ON INPUT
 export async function POST(req: NextRequest) {
-  console.log('🚀 Skills Validation/Suggestions POST called');
+  console.log(' Skills Validation/Suggestions POST called');
   
   try {
-    // ✅ AUTHENTICATION
+    //   AUTHENTICATION
    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
@@ -363,7 +363,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ RATE LIMITING
+    //   RATE LIMITING
     const rateLimitResult = await rateLimit(
       `niche_research_skills_validate:${user.id}`,
       50,
@@ -391,7 +391,7 @@ export async function POST(req: NextRequest) {
       suggestComplementary = true 
     } = body;
 
-    // ✅ VALIDATE INPUT
+    //   VALIDATE INPUT
     if (!Array.isArray(currentSkills)) {
       return NextResponse.json(
         { 
@@ -402,7 +402,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ SUGGEST COMPLEMENTARY SKILLS BASED ON NICHE PREFERENCES
+    //   SUGGEST COMPLEMENTARY SKILLS BASED ON NICHE PREFERENCES
     const skillSuggestions = generateSkillSuggestions(
       currentSkills,
       primaryObjective,
@@ -411,7 +411,7 @@ export async function POST(req: NextRequest) {
       budget
     );
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -441,7 +441,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Skills Validation Error:', error);
+    console.error('  Skills Validation Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -452,7 +452,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ INTELLIGENT SKILL SUGGESTION ALGORITHM
+//   INTELLIGENT SKILL SUGGESTION ALGORITHM
 function generateSkillSuggestions(
   currentSkills: string[],
   primaryObjective?: string,
@@ -541,7 +541,7 @@ function generateSkillSuggestions(
     }
   });
 
-  // ✅ FIXED: Remove duplicates and current skills using ES5-compatible approach
+  //   FIXED: Remove duplicates and current skills using ES5-compatible approach
   const uniqueSuggested = suggested.filter((skill, index, arr) => 
     arr.indexOf(skill) === index
   ).filter(skill => 

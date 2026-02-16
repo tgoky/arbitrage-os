@@ -137,12 +137,12 @@ example:
     product_feature_deep_dive:
       feature_coverage_matrix:
         - feature: Outbound orchestration
-          GrowthHub: ✅
-          PipelinePilot: ✅
-          ProspectForge: ✅
+          GrowthHub:  
+          PipelinePilot:  
+          ProspectForge:  
         - feature: Show-rate automation
           GrowthHub: ➖
-          PipelinePilot: ✅
+          PipelinePilot:  
           ProspectForge: ➖
       narrative:
         GrowthHub: "Fast launch; light governance; strong templates; weaker compliance."

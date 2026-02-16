@@ -48,15 +48,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -94,29 +94,29 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Pricing Calculator GET [id] API Route called for ID:', params.id);
+  console.log(' Pricing Calculator GET [id] API Route called for ID:', params.id);
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in pricing calculator GET [id]:', authError);
+      console.error('  Auth failed in pricing calculator GET [id]:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Pricing Calculator GET [id] user authenticated successfully:', user.id);
+    console.log('  Pricing Calculator GET [id] user authenticated successfully:', user.id);
     const userId = user.id;
     const calculationId = params.id;
 
-    // ✅ ADD RATE LIMITING for individual fetches
+    //   ADD RATE LIMITING for individual fetches
     const rateLimitResult = await rateLimit(
       `pricing_get:${userId}`,
       RATE_LIMITS.GET.limit,
       RATE_LIMITS.GET.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Pricing calculator read rate limit exceeded for user:', userId);
+      console.log('  Pricing calculator read rate limit exceeded for user:', userId);
       return NextResponse.json(
         { 
           error: 'Fetch rate limit exceeded.',
@@ -126,7 +126,7 @@ export async function GET(
       );
     }
 
-    // ✅ FETCH FROM DELIVERABLES
+    //   FETCH FROM DELIVERABLES
     const { prisma } = await import('@/lib/prisma');
     const calculation = await prisma.deliverable.findFirst({
       where: {
@@ -146,14 +146,14 @@ export async function GET(
     });
 
     if (!calculation) {
-      console.log('❌ Pricing calculation not found:', calculationId);
+      console.log('  Pricing calculation not found:', calculationId);
       return NextResponse.json(
         { error: 'Pricing calculation not found' },
         { status: 404 }
       );
     }
 
-    // ✅ LOG USAGE for individual view
+    //   LOG USAGE for individual view
     try {
       await logUsage({
         userId: userId,
@@ -166,7 +166,7 @@ export async function GET(
           action: 'view'
         }
       });
-      console.log('✅ Pricing calculator view usage logged');
+      console.log('  Pricing calculator view usage logged');
     } catch (logError) {
       console.error('⚠️ Pricing calculator view usage logging failed (non-critical):', logError);
     }
@@ -188,7 +188,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Pricing Calculator GET [id] API Error:', error);
+    console.error('  Pricing Calculator GET [id] API Error:', error);
     console.error('Pricing calculator GET [id] error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { error: 'Failed to fetch pricing calculation' },
@@ -201,29 +201,29 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Pricing Calculator PUT [id] API Route called for ID:', params.id);
+  console.log(' Pricing Calculator PUT [id] API Route called for ID:', params.id);
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in pricing calculator PUT [id]:', authError);
+      console.error('  Auth failed in pricing calculator PUT [id]:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Pricing Calculator PUT [id] user authenticated successfully:', user.id);
+    console.log('  Pricing Calculator PUT [id] user authenticated successfully:', user.id);
     const userId = user.id;
     const calculationId = params.id;
 
-    // ✅ ADD RATE LIMITING for updates
+    //   ADD RATE LIMITING for updates
     const rateLimitResult = await rateLimit(
       `pricing_update:${userId}`,
       RATE_LIMITS.UPDATE.limit,
       RATE_LIMITS.UPDATE.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Pricing calculator update rate limit exceeded for user:', userId);
+      console.log('  Pricing calculator update rate limit exceeded for user:', userId);
       return NextResponse.json(
         { 
           error: 'Update rate limit exceeded.',
@@ -239,7 +239,7 @@ export async function PUT(
     try {
       body = await req.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse pricing calculator update request body:', parseError);
+      console.error('  Failed to parse pricing calculator update request body:', parseError);
       return NextResponse.json(
         { 
           error: 'Invalid JSON in request body' 
@@ -252,14 +252,14 @@ export async function PUT(
     const validation = validatePricingCalculatorInput(body, true);
     
     if (!validation.success) {
-      console.error('❌ Pricing calculator update validation failed:', validation.errors);
+      console.error('  Pricing calculator update validation failed:', validation.errors);
       return NextResponse.json(
         { error: 'Invalid input', details: validation.errors },
         { status: 400 }
       );
     }
 
-    // ✅ UPDATE DELIVERABLE
+    //   UPDATE DELIVERABLE
     const { prisma } = await import('@/lib/prisma');
     const existingCalculation = await prisma.deliverable.findFirst({
       where: {
@@ -270,7 +270,7 @@ export async function PUT(
     });
 
     if (!existingCalculation) {
-      console.log('❌ Pricing calculation not found:', calculationId);
+      console.log('  Pricing calculation not found:', calculationId);
       return NextResponse.json(
         { error: 'Pricing calculation not found' },
         { status: 404 }
@@ -299,7 +299,7 @@ export async function PUT(
       }
     });
 
-    // ✅ LOG USAGE for update
+    //   LOG USAGE for update
     try {
       await logUsage({
         userId: userId,
@@ -312,7 +312,7 @@ export async function PUT(
           clientName: validation.data?.clientName
         }
       });
-      console.log('✅ Pricing calculator update usage logged');
+      console.log('  Pricing calculator update usage logged');
     } catch (logError) {
       console.error('⚠️ Pricing calculator update usage logging failed (non-critical):', logError);
     }
@@ -330,7 +330,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('💥 Pricing Calculator PUT [id] API Error:', error);
+    console.error('  Pricing Calculator PUT [id] API Error:', error);
     console.error('Pricing calculator PUT [id] error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { error: 'Failed to update pricing calculation' },
@@ -343,29 +343,29 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Pricing Calculator DELETE [id] API Route called for ID:', params.id);
+  console.log(' Pricing Calculator DELETE [id] API Route called for ID:', params.id);
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in pricing calculator DELETE [id]:', authError);
+      console.error('  Auth failed in pricing calculator DELETE [id]:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Pricing Calculator DELETE [id] user authenticated successfully:', user.id);
+    console.log('  Pricing Calculator DELETE [id] user authenticated successfully:', user.id);
     const userId = user.id;
     const calculationId = params.id;
 
-    // ✅ ADD RATE LIMITING for deletions
+    //   ADD RATE LIMITING for deletions
     const rateLimitResult = await rateLimit(
       `pricing_delete:${userId}`,
       RATE_LIMITS.DELETE.limit,
       RATE_LIMITS.DELETE.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Pricing calculator delete rate limit exceeded for user:', userId);
+      console.log('  Pricing calculator delete rate limit exceeded for user:', userId);
       return NextResponse.json(
         { 
           error: 'Delete rate limit exceeded.',
@@ -386,14 +386,14 @@ export async function DELETE(
     });
 
     if (result.count === 0) {
-      console.log('❌ Pricing calculation not found or access denied:', calculationId);
+      console.log('  Pricing calculation not found or access denied:', calculationId);
       return NextResponse.json(
         { error: 'Pricing calculation not found or access denied' },
         { status: 404 }
       );
     }
 
-    // ✅ LOG USAGE for deletion
+    //   LOG USAGE for deletion
     try {
       await logUsage({
         userId: userId,
@@ -405,7 +405,7 @@ export async function DELETE(
           action: 'delete'
         }
       });
-      console.log('✅ Pricing calculator deletion usage logged');
+      console.log('  Pricing calculator deletion usage logged');
     } catch (logError) {
       console.error('⚠️ Pricing calculator deletion usage logging failed (non-critical):', logError);
     }
@@ -419,7 +419,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('💥 Pricing Calculator DELETE [id] API Error:', error);
+    console.error('  Pricing Calculator DELETE [id] API Error:', error);
     console.error('Pricing calculator DELETE [id] error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { error: 'Failed to delete pricing calculation' },

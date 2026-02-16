@@ -92,7 +92,7 @@ const SuccessPage = () => {
         throw new Error(data.error || 'Payment verification failed');
       }
 
-      console.log('✅ Payment verified:', data.data);
+      console.log('  Payment verified:', data.data);
       
       setPurchaseDetails({
         verified: true,

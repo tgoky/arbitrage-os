@@ -31,7 +31,7 @@ export class NicheResearcherService {
   report: MultiNicheReport;  // Changed from GeneratedNicheReport
   reportId: string;
 }> {
-  console.log('🚀 Starting niche report generation for user:', userId);
+  console.log(' Starting niche report generation for user:', userId);
   
   // Generate report using AI
   const report = await this.generateNicheReport(input);
@@ -39,7 +39,7 @@ export class NicheResearcherService {
   // Save to database
   const reportId = await this.saveNicheReport(userId, workspaceId, report, input);
   
-  console.log('✅ Niche report generated and saved with ID:', reportId);
+  console.log('  Niche report generated and saved with ID:', reportId);
   
   return {
     report,

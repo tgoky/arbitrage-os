@@ -20,7 +20,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Enhanced authentication function (matches main route)
+//   Enhanced authentication function (matches main route)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -47,15 +47,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -67,13 +67,13 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Signature Offer Performance Update API called for offer:', params.id);
+    console.log(' Signature Offer Performance Update API called for offer:', params.id);
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
    const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in performance update:', authError);
+      console.error('  Auth failed in performance update:', authError);
       
       const response = NextResponse.json(
         { 
@@ -101,7 +101,7 @@ export async function POST(
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for performance updates
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -111,7 +111,7 @@ export async function POST(
       RATE_LIMITS.PERFORMANCE_UPDATE.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -121,13 +121,13 @@ export async function POST(
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const offerId = params.id;
     
     // Validate offer ID format
     if (!offerId || offerId.length < 10) {
-      console.error('❌ Invalid offer ID:', offerId);
+      console.error('  Invalid offer ID:', offerId);
       return NextResponse.json(
         { 
           success: false,
@@ -154,7 +154,7 @@ export async function POST(
     // Validate performance data using our updated validator
     const validation = validatePerformanceData(performanceDataWithId);
     if (!validation.success) {
-      console.error('❌ Performance data validation failed:', validation.errors);
+      console.error('  Performance data validation failed:', validation.errors);
       return NextResponse.json(
         { 
           success: false,
@@ -182,7 +182,7 @@ export async function POST(
     }
 
     if (!validation.data) {
-      console.error('❌ No valid performance data provided');
+      console.error('  No valid performance data provided');
       return NextResponse.json(
         { 
           success: false,
@@ -192,7 +192,7 @@ export async function POST(
       );
     }
 
-    // ✅ Update offer performance with error handling
+    //   Update offer performance with error handling
     console.log('💾 Updating signature offer performance...');
     try {
       const offerService = new OfferCreatorService();
@@ -208,9 +208,9 @@ export async function POST(
           dateRange: validation.data.dateRange
         }
       );
-      console.log('✅ Performance data updated successfully');
+      console.log('  Performance data updated successfully');
     } catch (updateError) {
-      console.error('💥 Error updating performance:', updateError);
+      console.error('  Error updating performance:', updateError);
       
       if (updateError instanceof Error && updateError.message.includes('not found')) {
         return NextResponse.json(
@@ -239,9 +239,9 @@ export async function POST(
     try {
       const offerService = new OfferCreatorService();
       performanceData = await offerService.getOfferPerformance(user.id, offerId);
-      console.log('✅ Performance insights generated successfully');
+      console.log('  Performance insights generated successfully');
     } catch (fetchError) {
-      console.error('💥 Error fetching performance insights:', fetchError);
+      console.error('  Error fetching performance insights:', fetchError);
       // Return success for the update but without insights
       return NextResponse.json(
         { 
@@ -255,7 +255,7 @@ export async function POST(
       );
     }
 
-    // ✅ Log usage for performance update with enhanced metadata
+    //   Log usage for performance update with enhanced metadata
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -277,7 +277,7 @@ export async function POST(
           dateRange: validation.data.dateRange
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -296,7 +296,7 @@ export async function POST(
     } as ApiResponse<OfferPerformance>);
 
   } catch (error) {
-    console.error('💥 Unexpected Performance Update Error:', error);
+    console.error('  Unexpected Performance Update Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -315,13 +315,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Signature Offer Performance Get API called for offer:', params.id);
+    console.log('Signature Offer Performance Get API called for offer:', params.id);
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
       const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in performance get:', authError);
+      console.error('  Auth failed in performance get:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -332,7 +332,7 @@ export async function GET(
       );
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for performance gets
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -342,7 +342,7 @@ export async function GET(
       RATE_LIMITS.PERFORMANCE_GET.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -352,13 +352,13 @@ export async function GET(
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const offerId = params.id;
     
     // Validate offer ID format
     if (!offerId || offerId.length < 10) {
-      console.error('❌ Invalid offer ID:', offerId);
+      console.error('  Invalid offer ID:', offerId);
       return NextResponse.json(
         { 
           success: false,
@@ -376,18 +376,18 @@ export async function GET(
     console.log('📊 Fetching performance data for offer:', offerId);
     console.log('🔍 Parameters - period:', period, 'insights:', includeInsights);
 
-    // ✅ Get signature offer performance data
+    //   Get signature offer performance data
     let performanceData: OfferPerformance;
     try {
       const offerService = new OfferCreatorService();
       performanceData = await offerService.getOfferPerformance(user.id, offerId);
       
-      console.log('✅ Performance data retrieved successfully');
+      console.log('  Performance data retrieved successfully');
       console.log('📊 Summary - conversions:', performanceData.summary.totalConversions, 
                   'revenue:', performanceData.summary.totalRevenue,
                   'trend:', performanceData.summary.trend);
     } catch (fetchError) {
-      console.error('💥 Error fetching performance data:', fetchError);
+      console.error('  Error fetching performance data:', fetchError);
       
       if (fetchError instanceof Error && fetchError.message === 'Offer not found') {
         return NextResponse.json(
@@ -411,7 +411,7 @@ export async function GET(
     }
 
     if (!performanceData) {
-      console.error('❌ Performance data not found for offer:', offerId);
+      console.error('  Performance data not found for offer:', offerId);
       return NextResponse.json(
         { 
           success: false,
@@ -450,7 +450,7 @@ export async function GET(
       };
     }
 
-    // ✅ Log usage for performance fetch
+    //   Log usage for performance fetch
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -468,7 +468,7 @@ export async function GET(
           trend: filteredData.summary.trend
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -489,7 +489,7 @@ export async function GET(
     } as ApiResponse<OfferPerformance>);
 
   } catch (error) {
-    console.error('💥 Unexpected Performance Fetch Error:', error);
+    console.error('  Unexpected Performance Fetch Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

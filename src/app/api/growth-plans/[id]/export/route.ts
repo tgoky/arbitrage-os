@@ -9,7 +9,7 @@ import { ExportGrowthPlanResponse, GrowthPlanServiceResponse } from '@/types/gro
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ FIXED: Simplified authentication that works for new users
+//   FIXED: Simplified authentication that works for new users
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -36,15 +36,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -79,22 +79,22 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Growth Plan Export API Route called for ID:', params.id);
+  console.log(' Growth Plan Export API Route called for ID:', params.id);
   
   try {
-    // ✅ USE SIMPLE AUTHENTICATION
+    //   USE SIMPLE AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan export:', authError);
+      console.error('  Auth failed in growth plan export:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Growth Plan Export user authenticated successfully:', user.id);
+    console.log('  Growth Plan Export user authenticated successfully:', user.id);
     const userId = user.id;
     const planId = params.id;
 
-    // ✅ STRICT RATE LIMITING: Exports are resource-intensive
+    //   STRICT RATE LIMITING: Exports are resource-intensive
     const rateLimitResult = await rateLimit(
       `growth_plan_export:${userId}`,
       10, // 10 exports per hour
@@ -102,7 +102,7 @@ export async function GET(
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan export rate limit exceeded for user:', userId);
+      console.log('  Growth plan export rate limit exceeded for user:', userId);
       return NextResponse.json(
         {
           success: false,
@@ -125,7 +125,7 @@ export async function GET(
     try {
       content = await growthPlanService.exportGrowthPlan(userId, planId, format);
     } catch (serviceError) {
-      console.error('💥 Error during export:', serviceError);
+      console.error('  Error during export:', serviceError);
       
       if (serviceError instanceof Error && serviceError.message === 'Growth plan not found') {
         return NextResponse.json(
@@ -150,14 +150,14 @@ export async function GET(
       plan = await growthPlanService.getGrowthPlan(userId, planId);
       
       if (!plan) {
-        console.log('❌ Growth plan not found for export:', planId);
+        console.log('  Growth plan not found for export:', planId);
         return NextResponse.json(
           { success: false, error: 'Growth plan not found' },
           { status: 404 }
         );
       }
     } catch (planError) {
-      console.error('💥 Error fetching plan for export filename:', planError);
+      console.error('  Error fetching plan for export filename:', planError);
       return NextResponse.json(
         { 
           success: false,
@@ -178,7 +178,7 @@ export async function GET(
       word: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     };
 
-    // ✅ LOG USAGE: Track exports
+    //   LOG USAGE: Track exports
     try {
       await logUsage({
         userId,
@@ -192,7 +192,7 @@ export async function GET(
           contentLength: content.length
         }
       });
-      console.log('✅ Growth plan export usage logged');
+      console.log('  Growth plan export usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan export usage logging failed (non-critical):', logError);
     }
@@ -206,11 +206,11 @@ export async function GET(
       }
     };
 
-    console.log('✅ Growth plan export completed successfully');
+    console.log('  Growth plan export completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan Export API Error:', error);
+    console.error('  Unexpected Growth Plan Export API Error:', error);
     console.error('Growth plan export error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(

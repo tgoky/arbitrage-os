@@ -14,9 +14,9 @@ const coldEmailInputSchema = z.object({
   // Email Strategy
   method: z.enum(['interview', 'podcast', 'direct', 'masterclass', 'referral', 'problem']),
   tone: z.enum(['professional', 'friendly', 'casual', 'formal']),
- emailLength: z.enum(['short', 'medium', 'long']).default('medium'), // ✅ Add default
-quality: z.enum(['fast', 'balanced', 'high']).default('balanced'),   // ✅ Add default
-creativity: z.enum(['low', 'moderate', 'high']).default('moderate'), // ✅ Add default
+ emailLength: z.enum(['short', 'medium', 'long']).default('medium'), //   Add default
+quality: z.enum(['fast', 'balanced', 'high']).default('balanced'),   //   Add default
+creativity: z.enum(['low', 'moderate', 'high']).default('moderate'), //   Add default
   
   // Target Details
   targetIndustry: z.string().min(1, 'Target industry is required').max(100),

@@ -6,7 +6,7 @@ import { encrypt, decrypt } from '@/lib/encryption.service';
 
 export class EmailConnectionService {
   
-  // ✅ SECURE: Connect Gmail with token encryption
+  //   SECURE: Connect Gmail with token encryption
   async connectGmail(userId: string, workspaceId: string, authCode: string) {
     try {
       const oauth2Client = new OAuth2Client(
@@ -24,14 +24,14 @@ export class EmailConnectionService {
       const profile = await gmail.users.getProfile({ userId: 'me' });
       const emailAddress = profile.data.emailAddress!;
 
-      // ✅ ENCRYPT TOKENS BEFORE STORING
+      //   ENCRYPT TOKENS BEFORE STORING
       console.log('🔐 Encrypting OAuth tokens...');
       const encryptedAccessToken = encrypt(tokens.access_token!);
       const encryptedRefreshToken = tokens.refresh_token 
         ? encrypt(tokens.refresh_token) 
         : null;
 
-      console.log('✅ Tokens encrypted successfully');
+      console.log('  Tokens encrypted successfully');
 
       // Save to database with encrypted tokens
       const emailAccount = await prisma.emailAccount.create({
@@ -40,14 +40,14 @@ export class EmailConnectionService {
           workspace_id: workspaceId,
           provider: 'gmail',
           email: emailAddress,
-          access_token: encryptedAccessToken,      // ✅ Encrypted
-          refresh_token: encryptedRefreshToken,    // ✅ Encrypted
+          access_token: encryptedAccessToken,      //   Encrypted
+          refresh_token: encryptedRefreshToken,    //   Encrypted
           token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
           enabled: true,
         }
       });
 
-      console.log('✅ Email account saved securely:', emailAccount.id);
+      console.log('  Email account saved securely:', emailAccount.id);
 
       // Set up Gmail webhook for inbound emails
       await this.setupGmailWebhook(emailAccount.id, oauth2Client);
@@ -60,7 +60,7 @@ export class EmailConnectionService {
           provider: emailAccount.provider,
           enabled: emailAccount.enabled,
           created_at: emailAccount.created_at
-          // ❌ NEVER return encrypted tokens
+          //   NEVER return encrypted tokens
         }
       };
 
@@ -70,7 +70,7 @@ export class EmailConnectionService {
     }
   }
 
-  // ✅ SECURE: Send email with token decryption
+  //   SECURE: Send email with token decryption
   async sendEmail(
     emailAccountId: string,
     to: string,
@@ -83,9 +83,9 @@ export class EmailConnectionService {
       threadId?: string;
       campaignId?: string;
       leadId?: string;
-       leadName?: string;           // ✅ NEW
-    generationId?: string;       // ✅ NEW
-    generationTitle?: string;    // ✅ NEW
+       leadName?: string;           //   NEW
+    generationId?: string;       //   NEW
+    generationTitle?: string;    //   NEW
      isManualEntry?: boolean;  
     }
   ) {
@@ -115,7 +115,7 @@ export class EmailConnectionService {
         throw new Error('Daily sending limit reached');
       }
 
-      // ✅ DECRYPT TOKENS ONLY IN MEMORY (never log them)
+      //   DECRYPT TOKENS ONLY IN MEMORY (never log them)
       console.log('🔐 Decrypting tokens for sending...');
       
       let accessToken: string;
@@ -127,11 +127,11 @@ export class EmailConnectionService {
           refreshToken = decrypt(emailAccount.refresh_token);
         }
       } catch (decryptError) {
-        console.error('❌ Token decryption failed - tokens may be corrupted');
+        console.error('  Token decryption failed - tokens may be corrupted');
         throw new Error('Email account authentication failed. Please reconnect your account.');
       }
 
-      console.log('✅ Tokens decrypted successfully');
+      console.log('  Tokens decrypted successfully');
 
       // Use tokens (they're only in memory, never stored decrypted)
       const oauth2Client = new OAuth2Client(
@@ -153,9 +153,9 @@ export class EmailConnectionService {
   options?.bcc && options.bcc.length > 0 ? `Bcc: ${options.bcc.join(', ')}` : '',
   `Subject: ${subject}`,
   'MIME-Version: 1.0',
-  'Content-Type: text/plain; charset=utf-8',  // ✅ FIXED
+  'Content-Type: text/plain; charset=utf-8',  //   FIXED
   '',
-  body  // ✅ FIXED - always use body parameter
+  body  //   FIXED - always use body parameter
 ].filter(Boolean);
 
       const message = messageParts.join('\n');
@@ -194,7 +194,7 @@ export class EmailConnectionService {
            lead_id: options?.isManualEntry ? null : options?.leadId, 
           status: 'sent',
           sent_at: new Date(),
-           metadata: {                                                // ✅ ADD THIS
+           metadata: {                                                //   ADD THIS
       leadName: options?.leadName,
       generationId: options?.generationId,
       generationTitle: options?.generationTitle,
@@ -204,7 +204,7 @@ export class EmailConnectionService {
         }
       });
 
-      console.log('✅ Email sent successfully');
+      console.log('  Email sent successfully');
 
       return {
         success: true,
@@ -214,7 +214,7 @@ export class EmailConnectionService {
     } catch (error) {
       console.error('Failed to send email:', error);
       
-      // ❌ NEVER log the actual error if it might contain tokens
+      //   NEVER log the actual error if it might contain tokens
       if (error instanceof Error && error.message.includes('token')) {
         throw new Error('Email authentication failed. Please reconnect your account.');
       }
@@ -223,7 +223,7 @@ export class EmailConnectionService {
     }
   }
 
-  // ✅ SECURE: Refresh expired tokens
+  //   SECURE: Refresh expired tokens
   async refreshAccessToken(emailAccountId: string): Promise<boolean> {
     try {
       const emailAccount = await prisma.emailAccount.findUnique({
@@ -267,7 +267,7 @@ export class EmailConnectionService {
         }
       });
 
-      console.log('✅ Access token refreshed and re-encrypted');
+      console.log('  Access token refreshed and re-encrypted');
       return true;
 
     } catch (error) {
@@ -276,7 +276,7 @@ export class EmailConnectionService {
     }
   }
 
-  // ✅ NEW: Get all workspace email accounts
+  //   NEW: Get all workspace email accounts
   async getWorkspaceEmailAccounts(workspaceId: string) {
     try {
       const accounts = await prisma.emailAccount.findMany({
@@ -291,7 +291,7 @@ export class EmailConnectionService {
           enabled: true,
           daily_limit: true,
           created_at: true,
-          // ❌ Explicitly exclude encrypted fields
+          //   Explicitly exclude encrypted fields
           access_token: false,
           refresh_token: false,
           smtp_password: false
@@ -307,7 +307,7 @@ export class EmailConnectionService {
     }
   }
 
-  // ✅ SECURE: Get single account (never returns decrypted tokens)
+  //   SECURE: Get single account (never returns decrypted tokens)
   async getEmailAccount(accountId: string) {
     const account = await prisma.emailAccount.findUnique({
       where: { id: accountId },
@@ -320,7 +320,7 @@ export class EmailConnectionService {
         created_at: true,
         workspace_id: true,
         user_id: true,
-        // ❌ Explicitly exclude encrypted fields from response
+        //   Explicitly exclude encrypted fields from response
         access_token: false,
         refresh_token: false,
         smtp_password: false
@@ -330,7 +330,7 @@ export class EmailConnectionService {
     return account;
   }
 
-  // ✅ NEW: Fetch inbound emails from Gmail
+  //   NEW: Fetch inbound emails from Gmail
   async fetchInboundEmails(emailAccountId: string, since?: Date) {
     try {
       const emailAccount = await prisma.emailAccount.findUnique({
@@ -438,7 +438,7 @@ export class EmailConnectionService {
     }
   }
 
-  // ✅ SECURE: Disconnect account (securely delete tokens)
+  //   SECURE: Disconnect account (securely delete tokens)
   async disconnectEmailAccount(accountId: string) {
     try {
       // Get account
@@ -468,7 +468,7 @@ export class EmailConnectionService {
         where: { id: accountId }
       });
 
-      console.log('✅ Email account disconnected and tokens revoked');
+      console.log('  Email account disconnected and tokens revoked');
 
     } catch (error) {
       console.error('Failed to disconnect email account:', error);
@@ -488,7 +488,7 @@ export class EmailConnectionService {
         }
       });
 
-      console.log('✅ Gmail webhook setup complete for account:', accountId);
+      console.log('  Gmail webhook setup complete for account:', accountId);
     } catch (error) {
       console.error('Failed to setup Gmail webhook:', error);
       // Don't throw - webhook is optional

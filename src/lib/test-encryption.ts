@@ -11,9 +11,9 @@ try {
   console.log('Decrypted:', decrypted);
 
   if (decrypted === plaintext) {
-    console.log('✅ Encryption & decryption test passed');
+    console.log('  Encryption & decryption test passed');
   } else {
-    console.error('❌ Encryption & decryption test failed');
+    console.error('  Encryption & decryption test failed');
   }
 } catch (error) {
   console.error('Error during test:', error);

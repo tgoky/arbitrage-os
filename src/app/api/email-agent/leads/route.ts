@@ -31,28 +31,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 // GET /api/email-agent/leads - Fetch leads from deliverables
 export async function GET(req: NextRequest) {
-  console.log('🚀 Email Agent Leads API called');
+  console.log('Email Agent Leads API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     console.log('📊 Fetching lead deliverables for workspace:', workspaceId);
 
-    // ✅ Fetch from deliverables (SAME AS LEAD GEN)
+    //   Fetch from deliverables (SAME AS LEAD GEN)
     const deliverables = await prisma.deliverable.findMany({
       where: {
         workspace_id: workspaceId,
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`📊 Found ${deliverables.length} lead generation deliverables`);
 
-    // ✅ Extract all leads from all deliverables (SAME AS LEAD GEN)
+    //   Extract all leads from all deliverables (SAME AS LEAD GEN)
     const allLeads: any[] = [];
     
     deliverables.forEach(deliverable => {
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    console.log(`✅ Extracted ${allLeads.length} total leads from deliverables`);
+    console.log(`  Extracted ${allLeads.length} total leads from deliverables`);
 
     // Group leads by generation for UI display
     const leadsByGeneration = deliverables.map(deliverable => {
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Email Agent Leads API Error:', error);
+    console.error('  Email Agent Leads API Error:', error);
     return NextResponse.json(
       { 
         success: false,

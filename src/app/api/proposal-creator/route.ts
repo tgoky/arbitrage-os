@@ -40,15 +40,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -71,7 +71,7 @@ async function validateWorkspaceAccess(userId: string, workspaceId: string): Pro
 }
 
 export async function POST(req: NextRequest) {
-  console.log('🚀 Proposal Creator API called');
+  console.log(' Proposal Creator API called');
   
   try {
     // Robust authentication
@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
     try {
       proposalId = await proposalService.saveProposal(user.id, workspaceId, generatedProposal, input);
       saveSuccess = true;
-      console.log('✅ Proposal saved with ID:', proposalId);
+      console.log('  Proposal saved with ID:', proposalId);
     } catch (saveError) {
       console.error('⚠️ Error saving:', saveError);
       proposalId = `temp_${Date.now()}`;
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
           // totalAmount: input.pricing.totalAmount
         }
       });
-      console.log('✅ Usage logged');
+      console.log('  Usage logged');
     } catch (logError) {
       console.error('⚠️ Usage logging failed:', logError);
     }
@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
     } as ApiResponse<ProposalPackage>);
 
   } catch (error) {
-    console.error('💥 API Error:', error);
+    console.error('  API Error:', error);
     return NextResponse.json({ 
       success: false,
       error: 'An unexpected error occurred',
@@ -267,7 +267,7 @@ export async function POST(req: NextRequest) {
 
 // GET method for listing proposals
 export async function GET(req: NextRequest) {
-  console.log('🚀 Proposals List API called');
+  console.log(' Proposals List API called');
   
   try {
     // Robust authentication
@@ -333,7 +333,7 @@ export async function GET(req: NextRequest) {
     const proposalService = new ProposalCreatorService();
     const proposals = await proposalService.getUserProposals(user.id, workspaceId || undefined);
     
-    console.log('✅ Retrieved', proposals.length, 'proposals');
+    console.log('  Retrieved', proposals.length, 'proposals');
 
     // Log usage
     try {
@@ -362,7 +362,7 @@ export async function GET(req: NextRequest) {
     } as ApiResponse<SavedProposal[]>);
 
   } catch (error) {
-    console.error('💥 List API Error:', error);
+    console.error('  List API Error:', error);
     return NextResponse.json({ 
       success: false,
       error: 'Failed to fetch contracts'

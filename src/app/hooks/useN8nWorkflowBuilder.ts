@@ -92,14 +92,14 @@ const generateWorkflow = useCallback(async (
   setGenerationError(null);
 
   try {
-    console.log('🚀 Generating n8n workflow...', input);
+    console.log(' Generating n8n workflow...', input);
 
     const response = await makeApiCall<WorkflowGenerationResponse>(API_BASE, {
       method: 'POST',
       body: JSON.stringify(input),
     });
 
-    console.log('✅ Workflow generation successful:', response);
+    console.log('  Workflow generation successful:', response);
 
     // Show success message
     message.success({
@@ -124,7 +124,7 @@ const generateWorkflow = useCallback(async (
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to generate workflow';
-    console.error('❌ Workflow generation failed:', error);
+    console.error('  Workflow generation failed:', error);
     
     setGenerationError(errorMessage);
     message.error({
@@ -156,11 +156,11 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
     
     // Check if response.data is defined, fallback to empty array if not
     const workflowsData = response.data || [];
-    console.log('✅ Workflows loaded:', workflowsData.length);
+    console.log('  Workflows loaded:', workflowsData.length);
     setWorkflows(workflowsData);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to load workflows';
-    console.error('❌ Failed to load workflows:', error);
+    console.error('  Failed to load workflows:', error);
     
     setLoadError(errorMessage);
     message.error({
@@ -181,11 +181,11 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
         `${API_BASE}?workflowId=${workflowId}`
       );
 
-      console.log('✅ Workflow fetched:', response.data);
+      console.log('  Workflow fetched:', response.data);
       return response.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch workflow';
-      console.error('❌ Failed to fetch workflow:', error);
+      console.error('  Failed to fetch workflow:', error);
       
       message.error({
         content: `Failed to fetch workflow: ${errorMessage}`,
@@ -212,7 +212,7 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
         }
       );
 
-      console.log('✅ Workflow updated:', response.data);
+      console.log('  Workflow updated:', response.data);
 
       // Update in local list
       setWorkflows(prev => prev.map(w => 
@@ -234,7 +234,7 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
       return response.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update workflow';
-      console.error('❌ Failed to update workflow:', error);
+      console.error('  Failed to update workflow:', error);
       
       message.error({
         content: `Failed to update workflow: ${errorMessage}`,
@@ -257,7 +257,7 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
         }
       );
 
-      console.log('✅ Workflow deleted:', workflowId);
+      console.log('  Workflow deleted:', workflowId);
 
       // Remove from local list
       setWorkflows(prev => prev.filter(w => w.id !== workflowId));
@@ -275,7 +275,7 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete workflow';
-      console.error('❌ Failed to delete workflow:', error);
+      console.error('  Failed to delete workflow:', error);
       
       message.error({
         content: `Failed to delete workflow: ${errorMessage}`,
@@ -321,11 +321,11 @@ const loadWorkflows = useCallback(async (targetWorkspaceId?: string): Promise<vo
           exportContent = JSON.stringify(workflow.workflowConfig, null, 2);
       }
 
-      console.log('✅ Workflow exported successfully');
+      console.log('  Workflow exported successfully');
       return exportContent;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to export workflow';
-      console.error('❌ Failed to export workflow:', error);
+      console.error('  Failed to export workflow:', error);
       
       message.error({
         content: `Failed to export workflow: ${errorMessage}`,

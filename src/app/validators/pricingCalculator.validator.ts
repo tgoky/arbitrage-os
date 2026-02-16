@@ -19,11 +19,11 @@ annualRevenueIncrease: z.number()
     .min(1, 'ROI multiple must be at least 1')
     .max(20, 'ROI multiple cannot exceed 20'),
 
-  // Enhanced Client Context - ✅ FIXED: Make most fields optional and allow empty strings
+  // Enhanced Client Context -   FIXED: Make most fields optional and allow empty strings
   clientName: z.string()
     .max(100, 'Client name is too long')
     .optional()
-    .or(z.literal('')), // ✅ Allow empty strings
+    .or(z.literal('')), //   Allow empty strings
   
   projectName: z.string()
     .max(100, 'Project name is too long')
@@ -40,13 +40,13 @@ annualRevenueIncrease: z.number()
     .optional()
     .or(z.literal('')),
   
-  // ✅ FIXED: Project duration can be string from form
+  //   FIXED: Project duration can be string from form
   projectDuration: z.union([
     z.number().min(1).max(60),
     z.string().regex(/^\d+$/, 'Must be a number').transform(Number).refine(val => val >= 1 && val <= 60, 'Project duration must be between 1 and 60 months')
   ]).optional(),
 
-  // ✅ FIXED: All enums should be optional
+  //   FIXED: All enums should be optional
   experienceLevel: z.enum(['beginner', 'intermediate', 'expert', 'premium']).optional(),
   competitiveAdvantage: z.enum(['low', 'medium', 'high']).optional(),
   clientUrgency: z.enum(['low', 'medium', 'high']).optional(),
@@ -67,7 +67,7 @@ export function validatePricingCalculatorInput(data: any, partial = false):
   | { success: true; data: any }
   | { success: false; errors: any[] } {
   try {
-    // ✅ CLEAN DATA BEFORE VALIDATION
+    //   CLEAN DATA BEFORE VALIDATION
     const cleanData = { ...data };
     
     // Remove empty strings and convert them to undefined
@@ -80,16 +80,16 @@ export function validatePricingCalculatorInput(data: any, partial = false):
     const schema = partial ? pricingCalculatorSchema.partial() : pricingCalculatorSchema;
     const validated = schema.parse(cleanData);
     
-    console.log('✅ Validation successful:', validated);
+    console.log('  Validation successful:', validated);
     return { success: true, data: validated };
   } catch (error) {
-    console.error('❌ Validation failed:', error);
+    console.error('  Validation failed:', error);
     if (error instanceof z.ZodError) {
       console.error('Validation errors:', error.issues.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
         code: issue.code,
-        // ✅ FIXED: Only include received if it exists
+        //   FIXED: Only include received if it exists
         ...(('received' in issue) && { received: (issue as any).received })
       })));
       return { success: false, errors: error.issues };

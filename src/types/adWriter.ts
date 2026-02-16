@@ -18,7 +18,7 @@ export interface AdGenerationInput {
   platforms: Platform[];
   adType: 'awareness' | 'conversion' | 'lead' | 'traffic';
   tone: 'professional' | 'friendly' | 'urgent' | 'humorous' | 'inspirational';
-  // ✅ NEW: Add ad length control
+  //   NEW: Add ad length control
   adLength: 'short' | 'medium' | 'long';
   caseStudy1?: string;
   credentials?: string;
@@ -57,7 +57,7 @@ export type AdOptimizationType =
   | 'social-proof'
   | 'simplify';
 
-// ✅ NEW: Ad length configurations
+//   NEW: Ad length configurations
 export const AD_LENGTH_CONFIGS = {
   short: {
     label: 'Short Ads',

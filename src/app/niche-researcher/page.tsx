@@ -323,13 +323,13 @@ const NicheResearcher = () => {
       console.log('🔍 Current form values:', values);
       console.log('🔍 Stored form data:', formData);
       
-      // ✅ FIXED: Properly merge all collected data
+      //   FIXED: Properly merge all collected data
       const allFormData = form.getFieldsValue();
       const mergedData = { ...formData, ...allFormData, ...values };
       
       console.log('🔍 Merged data before cleaning:', mergedData);
       
-      // ✅ FIXED: Create properly typed request data
+      //   FIXED: Create properly typed request data
       const requestData: NicheResearchInput = {
         // Required fields
         primaryObjective: mergedData.primaryObjective as 'cashflow' | 'equity-exit' | 'lifestyle' | 'audience-build' | 'saas' | 'agency' | 'ecomm',
@@ -382,12 +382,12 @@ const NicheResearcher = () => {
       
       console.log('🔍 Final typed request data:', requestData);
       
-      // ✅ Check required fields before submitting
+      //   Check required fields before submitting
       const requiredFields: (keyof NicheResearchInput)[] = ['primaryObjective', 'riskAppetite', 'marketType', 'customerSize', 'budget'];
       const missingFields = requiredFields.filter(field => !requestData[field]);
       
       if (missingFields.length > 0) {
-        console.error('❌ Missing required fields:', missingFields);
+        console.error('  Missing required fields:', missingFields);
         notification.error({
           message: 'Missing Required Fields',
           description: `Please fill in: ${missingFields.join(', ')}`,
@@ -399,7 +399,7 @@ const NicheResearcher = () => {
       // Generate multi-niche report
       const result = await generateNicheReport(requestData, currentWorkspace.id);
       
-      // ✅ UPDATED: Set multi-niche report state
+      //   UPDATED: Set multi-niche report state
       setMultiNicheReport(result.report);
       setCurrentReportId(result.reportId);
       setReportGenerated(true);
@@ -429,7 +429,7 @@ const NicheResearcher = () => {
   const nextStep = () => {
     saveCurrentStepData();
     
-    // ✅ FIXED: Only validate current step's required fields
+    //   FIXED: Only validate current step's required fields
     const fieldsToValidate = getRequiredFieldsForStep(currentStep);
     
     if (fieldsToValidate.length > 0) {
@@ -447,7 +447,7 @@ const NicheResearcher = () => {
     }
   };
 
-  // ✅ Add this helper function
+  //   Add this helper function
   const getRequiredFieldsForStep = (step: number): string[] => {
     switch (step) {
       case 0: return ['primaryObjective', 'riskAppetite'];

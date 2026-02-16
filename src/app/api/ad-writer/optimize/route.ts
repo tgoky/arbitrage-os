@@ -9,7 +9,7 @@ import { logUsage } from '@/lib/usage';
 
 export async function POST(req: NextRequest) {
   try {
-    // ✅ Simple authentication (same as pricing calculator)
+    //   Simple authentication (same as pricing calculator)
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
       cookies: () => cookieStore

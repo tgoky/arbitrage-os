@@ -13,7 +13,7 @@ export const runtime = 'nodejs';
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ SIMPLIFIED AUTHENTICATION (from work-items route)
+//   SIMPLIFIED AUTHENTICATION (from work-items route)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -40,28 +40,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 Growth Plan Analytics API Route called');
+  console.log(' Growth Plan Analytics API Route called');
   
   try {
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan analytics:', authError);
+      console.error('  Auth failed in growth plan analytics:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -72,10 +72,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('✅ Growth Plan Analytics user authenticated successfully:', user.id);
+    console.log('  Growth Plan Analytics user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ RATE LIMITING for analytics
+    //   RATE LIMITING for analytics
     const rateLimitResult = await rateLimit(
       `growth_plan_analytics:${userId}`,
       50, // 50 analytics requests per hour
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan analytics rate limit exceeded for user:', userId);
+      console.log('  Growth plan analytics rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Analytics rate limit exceeded' },
         { status: 429 }
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
           finalWorkspaceIdForAnalytics = undefined;
         }
       } catch (dbError) {
-        console.error('💥 Database error resolving default workspace ID for analytics GET:', dbError);
+        console.error('  Database error resolving default workspace ID for analytics GET:', dbError);
         finalWorkspaceIdForAnalytics = undefined;
       }
     } else {
@@ -136,23 +136,23 @@ export async function GET(request: NextRequest) {
     let analytics: GrowthPlanAnalytics;
 
     try {
-      // ✅ NOW USING REAL DATABASE DATA!
+      //   NOW USING REAL DATABASE DATA!
       analytics = await growthPlanService.getGrowthPlanAnalytics(
         userId,
         finalWorkspaceIdForAnalytics,
         timeframe
       );
 
-      console.log('✅ Real analytics fetched successfully:');
+      console.log('  Real analytics fetched successfully:');
       console.log('- Total plans:', analytics.totalPlans);
       console.log('- Plans this period:', analytics.plansThisMonth || 0);
       console.log('- Top industries:', analytics.topIndustries?.map(i => i.industry).join(', '));
       console.log('- Timeframe distribution:', JSON.stringify(analytics.timeframeDistribution));
 
     } catch (serviceError) {
-      console.error('💥 Error fetching real analytics:', serviceError);
+      console.error('  Error fetching real analytics:', serviceError);
       
-      // ✅ Create empty analytics if service fails
+      //   Create empty analytics if service fails
       analytics = {
         totalPlans: 0,
         plansThisMonth: 0,
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ Using empty analytics structure due to service error');
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId,
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
           resultType: analytics.totalPlans > 0 ? 'real_data' : 'empty_state'
         }
       });
-      console.log('✅ Growth plan analytics usage logged');
+      console.log('  Growth plan analytics usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan analytics usage logging failed (non-critical):', logError);
     }
@@ -210,14 +210,14 @@ export async function GET(request: NextRequest) {
         : 'No plans found. Create your first growth plan to see analytics.'
     };
 
-    console.log('✅ Growth plan analytics request completed successfully');
+    console.log('  Growth plan analytics request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan Analytics API Error:', error);
+    console.error('  Unexpected Growth Plan Analytics API Error:', error);
     console.error('Growth plan analytics error stack:', error instanceof Error ? error.stack : 'No stack');
     
-    // ✅ Return empty analytics instead of failing completely
+    //   Return empty analytics instead of failing completely
     const fallbackAnalytics: GrowthPlanAnalytics = {
       totalPlans: 0,
       plansThisMonth: 0,

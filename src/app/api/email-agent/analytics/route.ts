@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-// ✅ ROBUST AUTHENTICATION (same pattern as n8n and lead gen)
+//   ROBUST AUTHENTICATION (same pattern as n8n and lead gen)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -30,28 +30,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 // GET /api/email-agent/analytics - Get email campaign analytics
 export async function GET(req: NextRequest) {
-  console.log('🚀 Email Agent Analytics API called');
+  console.log(' Email Agent Analytics API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required' 
@@ -72,12 +72,12 @@ export async function GET(req: NextRequest) {
     const { EmailCampaignAgent } = await import('@/services/emailCampaignAgent.service');
     const agent = new EmailCampaignAgent();
 
-    // ✅ FIXED: Different endpoints for different analytics
+    //   FIXED: Different endpoints for different analytics
     if (campaignId) {
       // Get specific campaign analytics
       console.log(`📊 Fetching analytics for campaign: ${campaignId}`);
       
-      const analytics = await agent.getCampaignAnalytics(campaignId);  // ✅ Correct: 1 argument
+      const analytics = await agent.getCampaignAnalytics(campaignId);  //   Correct: 1 argument
       
       return NextResponse.json({
         success: true,
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
       // Get workspace-wide analytics
       console.log(`📊 Fetching workspace analytics: ${workspaceId}`);
       
-      const analytics = await agent.getWorkspaceAnalytics(user.id, workspaceId);  // ✅ Correct method
+      const analytics = await agent.getWorkspaceAnalytics(user.id, workspaceId);  //   Correct method
       
       return NextResponse.json({
         success: true,
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('💥 Fetch analytics error:', error);
+    console.error('  Fetch analytics error:', error);
     return NextResponse.json(
       { 
         success: false,

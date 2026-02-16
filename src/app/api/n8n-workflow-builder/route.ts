@@ -9,7 +9,7 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
-// ✅ ROBUST AUTHENTICATION (same pattern as sales call analyzer)
+//   ROBUST AUTHENTICATION (same pattern as sales call analyzer)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -36,15 +36,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -77,20 +77,20 @@ function createAuthErrorResponse() {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 n8n Workflow Builder API Route called');
+  console.log(' n8n Workflow Builder API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in n8n workflow builder:', authError);
+      console.error('  Auth failed in n8n workflow builder:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ n8n Workflow Builder user authenticated successfully:', user.id);
+    console.log('  n8n Workflow Builder user authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for workflow generation
+    //   RATE LIMITING for workflow generation
     console.log('🔍 Checking rate limits for n8n workflow builder user:', user.id);
     const rateLimitResult = await rateLimit(
       `workflow_generation:${user.id}`, 
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     );
     
     if (!rateLimitResult.success) {
-      console.log('❌ n8n workflow generation rate limit exceeded for user:', user.id);
+      console.log('  n8n workflow generation rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ n8n workflow generation rate limit check passed');
+    console.log('  n8n workflow generation rate limit check passed');
 
     // Parse and validate request body
     console.log('📥 Parsing n8n workflow generation request body...');
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse n8n workflow generation request body:', parseError);
+      console.error('  Failed to parse n8n workflow generation request body:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     const validation = validateN8nWorkflowInput(body);
     
     if (!validation.success) {
-      console.error('❌ n8n workflow input validation failed:', validation.errors);
+      console.error('  n8n workflow input validation failed:', validation.errors);
       return NextResponse.json(
         { 
           success: false,
@@ -144,9 +144,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    console.log('✅ n8n workflow input validation passed');
+    console.log('  n8n workflow input validation passed');
 
-    // ✅ GET USER'S WORKSPACE (consistent pattern)
+    //   GET USER'S WORKSPACE (consistent pattern)
     console.log('🔍 Getting/creating workspace for n8n workflow builder user:', user.id);
     let workspace;
     try {
@@ -165,12 +165,12 @@ export async function POST(request: NextRequest) {
             description: 'Default workspace for n8n workflows'
           }
         });
-        console.log('✅ Created n8n workflow builder workspace:', workspace.id);
+        console.log('  Created n8n workflow builder workspace:', workspace.id);
       } else {
-        console.log('✅ Found existing n8n workflow builder workspace:', workspace.id);
+        console.log('  Found existing n8n workflow builder workspace:', workspace.id);
       }
     } catch (dbError) {
-      console.error('💥 Database error getting/creating n8n workflow builder workspace:', dbError);
+      console.error('  Database error getting/creating n8n workflow builder workspace:', dbError);
       return NextResponse.json(
         { 
           success: false,
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE
+    //   SERVICE HANDLES BOTH GENERATION AND STORAGE
     console.log('🤖 Starting n8n workflow generation...');
     let workflowPackage;
     let deliverableId;
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       // Generate the workflow
       console.log('🔍 Generating n8n workflow...');
       workflowPackage = await workflowService.generateWorkflow(workflowInput);
-      console.log('✅ n8n workflow generation completed');
+      console.log('  n8n workflow generation completed');
       
       // Save via service (not API)
       console.log('💾 Saving n8n workflow...');
@@ -203,9 +203,9 @@ export async function POST(request: NextRequest) {
         workflowPackage,
         workflowInput
       );
-      console.log('✅ n8n workflow saved with ID:', deliverableId);
+      console.log('  n8n workflow saved with ID:', deliverableId);
     } catch (serviceError) {
-      console.error('💥 Service error during n8n workflow generation:', serviceError);
+      console.error('  Service error during n8n workflow generation:', serviceError);
       console.error('n8n workflow generation service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       return NextResponse.json(
         { 
@@ -234,12 +234,12 @@ try {
     }
   });
   
-  console.log('✅ Notification created for workflow generation:', deliverableId);
+  console.log('  Notification created for workflow generation:', deliverableId);
 } catch (notifError) {
   console.error('Failed to create notification:', notifError);
 }
 
-    // ✅ LOG USAGE for billing/analytics
+    //   LOG USAGE for billing/analytics
     console.log('📊 Logging n8n workflow generation usage...');
     try {
       await logUsage({
@@ -259,7 +259,7 @@ try {
                              workflowPackage.analysis.complexity === 'moderate' ? 60 : 120
         }
       });
-      console.log('✅ n8n workflow generation usage logged successfully');
+      console.log('  n8n workflow generation usage logged successfully');
     } catch (logError) {
       console.error('⚠️ n8n workflow generation usage logging failed (non-critical):', logError);
     }
@@ -279,7 +279,7 @@ try {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected n8n Workflow Builder API Error:', error);
+    console.error('  Unexpected n8n Workflow Builder API Error:', error);
     console.error('n8n workflow builder error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -293,20 +293,20 @@ try {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 n8n Workflow Builder GET API Route called');
+  console.log(' n8n Workflow Builder GET API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in n8n workflow builder GET:', authError);
+      console.error('  Auth failed in n8n workflow builder GET:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ n8n Workflow Builder GET user authenticated successfully:', user.id);
+    console.log('  n8n Workflow Builder GET user authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for list fetches
+    //   RATE LIMITING for list fetches
     const rateLimitResult = await rateLimit(
       `workflow_list:${user.id}`,
       100, // 100 list fetches per hour
@@ -314,7 +314,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ n8n workflow list rate limit exceeded for user:', user.id);
+      console.log('  n8n workflow list rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -350,7 +350,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        console.log('✅ Retrieved n8n workflow:', workflowId);
+        console.log('  Retrieved n8n workflow:', workflowId);
         return NextResponse.json({
           success: true,
           data: workflow,
@@ -359,7 +359,7 @@ export async function GET(request: NextRequest) {
           }
         });
       } catch (serviceError) {
-        console.error('💥 Error fetching n8n workflow:', serviceError);
+        console.error('  Error fetching n8n workflow:', serviceError);
         return NextResponse.json(
           { 
             success: false,
@@ -374,7 +374,7 @@ export async function GET(request: NextRequest) {
     // Otherwise, fetch user's workflow list
     console.log('📋 Fetching n8n workflows for user:', user.id);
 
-    // ✅ USE SERVICE METHOD (consistent with architecture)
+    //   USE SERVICE METHOD (consistent with architecture)
     let workflows;
     try {
       const workflowService = new N8nWorkflowBuilderService();
@@ -382,9 +382,9 @@ export async function GET(request: NextRequest) {
         user.id,
         workspaceId || undefined
       );
-      console.log('✅ Retrieved', workflows.length, 'n8n workflows');
+      console.log('  Retrieved', workflows.length, 'n8n workflows');
     } catch (serviceError) {
-      console.error('💥 Error fetching n8n workflows:', serviceError);
+      console.error('  Error fetching n8n workflows:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -395,7 +395,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE for list access
+    //   LOG USAGE for list access
     try {
       await logUsage({
         userId: user.id,
@@ -408,12 +408,12 @@ export async function GET(request: NextRequest) {
           action: 'list'
         }
       });
-      console.log('✅ n8n workflow list usage logged successfully');
+      console.log('  n8n workflow list usage logged successfully');
     } catch (logError) {
       console.error('⚠️ n8n workflow list usage logging failed (non-critical):', logError);
     }
 
-    console.log('✅ n8n workflows GET request completed successfully');
+    console.log('  n8n workflows GET request completed successfully');
     return NextResponse.json({
       success: true,
       data: workflows,
@@ -424,7 +424,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected n8n Workflow Builder GET API Error:', error);
+    console.error('  Unexpected n8n Workflow Builder GET API Error:', error);
     console.error('n8n workflow builder GET error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -438,20 +438,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  console.log('🚀 n8n Workflow Builder PUT API Route called');
+  console.log(' n8n Workflow Builder PUT API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in n8n workflow builder PUT:', authError);
+      console.error('  Auth failed in n8n workflow builder PUT:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ n8n Workflow Builder PUT user authenticated successfully:', user.id);
+    console.log('  n8n Workflow Builder PUT user authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for updates
+    //   RATE LIMITING for updates
     const rateLimitResult = await rateLimit(
       `workflow_update:${user.id}`,
       20, // 20 updates per hour
@@ -459,7 +459,7 @@ export async function PUT(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ n8n workflow update rate limit exceeded for user:', user.id);
+      console.log('  n8n workflow update rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -491,7 +491,7 @@ export async function PUT(request: NextRequest) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse n8n workflow update request body:', parseError);
+      console.error('  Failed to parse n8n workflow update request body:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -505,7 +505,7 @@ export async function PUT(request: NextRequest) {
     const validation = validateN8nWorkflowInput(body, true); // partial = true
     
     if (!validation.success) {
-      console.error('❌ n8n workflow update validation failed:', validation.errors);
+      console.error('  n8n workflow update validation failed:', validation.errors);
       return NextResponse.json(
         { 
           success: false,
@@ -526,7 +526,7 @@ export async function PUT(request: NextRequest) {
         validation.data
       );
 
-      // ✅ LOG USAGE for update
+      //   LOG USAGE for update
       try {
         await logUsage({
           userId: user.id,
@@ -539,12 +539,12 @@ export async function PUT(request: NextRequest) {
             fieldsUpdated: Object.keys(validation.data)
           }
         });
-        console.log('✅ n8n workflow update usage logged successfully');
+        console.log('  n8n workflow update usage logged successfully');
       } catch (logError) {
         console.error('⚠️ n8n workflow update usage logging failed (non-critical):', logError);
       }
 
-      console.log('✅ n8n workflow updated successfully:', workflowId);
+      console.log('  n8n workflow updated successfully:', workflowId);
       return NextResponse.json({
         success: true,
         data: updatedWorkflow,
@@ -554,7 +554,7 @@ export async function PUT(request: NextRequest) {
       });
 
     } catch (serviceError) {
-      console.error('💥 Error updating n8n workflow:', serviceError);
+      console.error('  Error updating n8n workflow:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -566,7 +566,7 @@ export async function PUT(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('💥 Unexpected n8n Workflow Builder PUT API Error:', error);
+    console.error('  Unexpected n8n Workflow Builder PUT API Error:', error);
     console.error('n8n workflow builder PUT error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -580,20 +580,20 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  console.log('🚀 n8n Workflow Builder DELETE API Route called');
+  console.log(' n8n Workflow Builder DELETE API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in n8n workflow builder DELETE:', authError);
+      console.error('  Auth failed in n8n workflow builder DELETE:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ n8n Workflow Builder DELETE user authenticated successfully:', user.id);
+    console.log('  n8n Workflow Builder DELETE user authenticated successfully:', user.id);
 
-    // ✅ RATE LIMITING for deletes
+    //   RATE LIMITING for deletes
     const rateLimitResult = await rateLimit(
       `workflow_delete:${user.id}`,
       10, // 10 deletes per hour
@@ -601,7 +601,7 @@ export async function DELETE(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ n8n workflow delete rate limit exceeded for user:', user.id);
+      console.log('  n8n workflow delete rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -644,7 +644,7 @@ export async function DELETE(request: NextRequest) {
         );
       }
 
-      // ✅ LOG USAGE for deletion
+      //   LOG USAGE for deletion
       try {
         await logUsage({
           userId: user.id,
@@ -656,12 +656,12 @@ export async function DELETE(request: NextRequest) {
             action: 'delete'
           }
         });
-        console.log('✅ n8n workflow deletion usage logged successfully');
+        console.log('  n8n workflow deletion usage logged successfully');
       } catch (logError) {
         console.error('⚠️ n8n workflow deletion usage logging failed (non-critical):', logError);
       }
 
-      console.log('✅ n8n workflow deleted successfully:', workflowId);
+      console.log('  n8n workflow deleted successfully:', workflowId);
       return NextResponse.json({
         success: true,
         data: { deleted: true },
@@ -671,7 +671,7 @@ export async function DELETE(request: NextRequest) {
       });
 
     } catch (serviceError) {
-      console.error('💥 Error deleting n8n workflow:', serviceError);
+      console.error('  Error deleting n8n workflow:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -683,7 +683,7 @@ export async function DELETE(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('💥 Unexpected n8n Workflow Builder DELETE API Error:', error);
+    console.error('  Unexpected n8n Workflow Builder DELETE API Error:', error);
     console.error('n8n workflow builder DELETE error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

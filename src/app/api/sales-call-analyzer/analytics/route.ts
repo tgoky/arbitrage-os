@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { SalesCallAnalyzerService } from '@/services/salesCallAnalyzer.service';
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit'; //   Add rate limiting
+import { logUsage } from '@/lib/usage'; //   Add usage logging
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ ADD RATE LIMITING for analytics - 50 per hour
+    //   ADD RATE LIMITING for analytics - 50 per hour
     const rateLimitResult = await rateLimit(
       `sales_call_analytics:${user.id}`,
       50, // 50 analytics fetches per hour
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     const analyzerService = new SalesCallAnalyzerService();
     const analytics = await analyzerService.getCallAnalyticsSummary(user.id, workspaceId || undefined, timeframe);
 
-    // ✅ LOG USAGE for analytics access
+    //   LOG USAGE for analytics access
     await logUsage({
       userId: user.id,
       feature: 'sales_call_analytics',

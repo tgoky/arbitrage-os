@@ -401,7 +401,7 @@ export default function RootLayout({
                       </TutorialProvider>
                 </SidebarProvider>
                 </NotificationProvider>
-              </WorkspaceProvider> {/* ✅ Close WorkspaceProvider */}
+              </WorkspaceProvider> {/*   Close WorkspaceProvider */}
 
             </ThemeProvider>
    

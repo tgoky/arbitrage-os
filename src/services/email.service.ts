@@ -85,11 +85,11 @@ export class EmailService {
         html
       });
 
-      console.log('✅ Purchase confirmation email sent:', result);
+      console.log('  Purchase confirmation email sent:', result);
       return result;
       
     } catch (error) {
-      console.error('❌ Failed to send purchase confirmation email:', error);
+      console.error('  Failed to send purchase confirmation email:', error);
       throw error;
     }
   }
@@ -165,11 +165,11 @@ export class EmailService {
         html
       });
 
-      console.log('✅ Payment failure notification sent:', result);
+      console.log('  Payment failure notification sent:', result);
       return result;
       
     } catch (error) {
-      console.error('❌ Failed to send payment failure notification:', error);
+      console.error('  Failed to send payment failure notification:', error);
       throw error;
     }
   }
@@ -242,11 +242,11 @@ export class EmailService {
         html
       });
 
-      console.log('✅ Admin alert sent:', result);
+      console.log('  Admin alert sent:', result);
       return result;
       
     } catch (error) {
-      console.error('❌ Failed to send admin alert:', error);
+      console.error('  Failed to send admin alert:', error);
       throw error;
     }
   }

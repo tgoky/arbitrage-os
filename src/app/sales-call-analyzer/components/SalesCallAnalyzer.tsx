@@ -103,7 +103,7 @@ export default function SalesCallAnalyzerPage() {
     error
   } = useSalesCallAnalyzer();
 
-  // ✅ Wrap loadAnalyses with useCallback
+  //   Wrap loadAnalyses with useCallback
   const loadAnalyses = useCallback(async () => {
     try {
       const data = await getUserAnalyses();

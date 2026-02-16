@@ -35,22 +35,22 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 
 
-// ✅ UPDATED SCHEMA TO MATCH NEW NICHE RESEARCH STRUCTURE
+//   UPDATED SCHEMA TO MATCH NEW NICHE RESEARCH STRUCTURE
 const marketAnalysisSchema = z.object({
   // Core analysis fields
   niche: z.string().min(3).max(200),
@@ -80,10 +80,10 @@ const marketAnalysisSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  console.log('🚀 Market Analysis API called');
+  console.log(' Market Analysis API called');
   
   try {
-    // ✅ AUTHENTICATION
+    //   AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ RATE LIMITING for market analysis - 20 per hour
+    //   RATE LIMITING for market analysis - 20 per hour
     const rateLimitResult = await rateLimit(
       `niche_market_analysis:${user.id}`,
       20,
@@ -115,14 +115,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ VALIDATE INPUT
+    //   VALIDATE INPUT
     const body = await req.json();
     console.log('🔍 Market analysis input:', body);
     
     const validation = marketAnalysisSchema.safeParse(body);
     
     if (!validation.success) {
-      console.error('❌ Market analysis validation failed:', validation.error.issues);
+      console.error('  Market analysis validation failed:', validation.error.issues);
       return NextResponse.json(
         { 
           success: false,
@@ -134,9 +134,9 @@ export async function POST(req: NextRequest) {
     }
 
     const validatedData = validation.data;
-    console.log('✅ Market analysis validation passed');
+    console.log('  Market analysis validation passed');
 
-    // ✅ PERFORM MARKET ANALYSIS WITH AI
+    //   PERFORM MARKET ANALYSIS WITH AI
     const openRouter = new OpenRouterClient(process.env.OPENROUTER_API_KEY!);
     
     const analysisPrompt = buildMarketAnalysisPrompt(validatedData);
@@ -165,14 +165,14 @@ export async function POST(req: NextRequest) {
       max_tokens: 2000
     });
 
-    // ✅ PARSE AI RESPONSE
+    //   PARSE AI RESPONSE
     let analysis;
     try {
       console.log('🔍 Parsing AI response...');
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysis = JSON.parse(jsonMatch[0]);
-        console.log('✅ AI response parsed successfully');
+        console.log('  AI response parsed successfully');
       } else {
         throw new Error('No JSON found in AI response');
       }
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
       analysis = generateFallbackAnalysis(validatedData);
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Market Analysis Error:', error);
+    console.error('  Market Analysis Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ UPDATED PROMPT BUILDER FOR NEW STRUCTURE
+//   UPDATED PROMPT BUILDER FOR NEW STRUCTURE
 function buildMarketAnalysisPrompt(data: z.infer<typeof marketAnalysisSchema>): string {
   const {
     niche,
@@ -424,7 +424,7 @@ ${excludedIndustries && excludedIndustries.length > 0 ? `Industries to Avoid: ${
   return prompts[analysisType] || prompts.opportunity;
 }
 
-// ✅ UPDATED FALLBACK ANALYSIS FOR NEW STRUCTURE
+//   UPDATED FALLBACK ANALYSIS FOR NEW STRUCTURE
 function generateFallbackAnalysis(data: z.infer<typeof marketAnalysisSchema>) {
   const { niche, analysisType, budget, primaryObjective, marketType } = data;
 

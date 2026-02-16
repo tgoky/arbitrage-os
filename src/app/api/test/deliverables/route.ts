@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // 1. Test database connection
     await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ Database connection works');
+    console.log('  Database connection works');
 
     // 2. Get total deliverable count
     const totalCount = await prisma.deliverable.count();
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Database test error:', error);
+    console.error('  Database test error:', error);
     
     return NextResponse.json({
       success: false,

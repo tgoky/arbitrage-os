@@ -159,7 +159,7 @@ export default function ReviewRecordingPage() {
       const result = await analyzeCall(analysisInput);
       setAnalysisData(result);
       message.success('Analysis completed successfully!');
-      setCurrentStep(3); // ✅ Set step 3 only on success
+      setCurrentStep(3); //   Set step 3 only on success
       
       // Redirect to the analysis page after a brief delay
       setTimeout(() => {
@@ -169,7 +169,7 @@ export default function ReviewRecordingPage() {
     } catch (error) {
       console.error('Analysis error:', error);
       message.error('Failed to analyze call. Please try again.');
-      setCurrentStep(1); // ✅ Go back to review step on error
+      setCurrentStep(1); //   Go back to review step on error
     } finally {
       setIsAnalyzing(false);
     }

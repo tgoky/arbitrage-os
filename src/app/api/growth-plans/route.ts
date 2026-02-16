@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+//   SIMPLIFIED: Authentication function from work-items
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -48,28 +48,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Growth Plan API Route called');
+  console.log(' Growth Plan API Route called');
   
   try {
     // Use simplified authentication
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan:', authError);
+      console.error('  Auth failed in growth plan:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Growth Plan user authenticated successfully:', user.id);
+    console.log('  Growth Plan user authenticated successfully:', user.id);
     const userId = user.id;
 
     // RATE LIMITING: Growth plan generation is expensive!
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan rate limit exceeded for user:', userId);
+      console.log('  Growth plan rate limit exceeded for user:', userId);
       return NextResponse.json(
         { 
           success: false, 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         }
       );
     }
-    console.log('✅ Growth plan rate limit check passed');
+    console.log('  Growth plan rate limit check passed');
 
     // Parse and validate request body
     console.log('📥 Parsing growth plan request body...');
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!input) {
-      console.error('❌ Growth plan input is missing');
+      console.error('  Growth plan input is missing');
       return NextResponse.json(
         { 
           success: false,
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validation = validateGrowthPlanInput(inputWithUserId);
     if (!validation.success) {
-      console.error('❌ GROWTH PLAN VALIDATION FAILED:');
+      console.error('  GROWTH PLAN VALIDATION FAILED:');
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
       
       return NextResponse.json(
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     // Validate business rules
     const businessValidation = validateGrowthPlanBusinessRules(validation.data);
     if (!businessValidation.isValid) {
-      console.error('❌ GROWTH PLAN BUSINESS VALIDATION FAILED:');
+      console.error('  GROWTH PLAN BUSINESS VALIDATION FAILED:');
       console.error('Business validation errors:', businessValidation.errors);
       
       return NextResponse.json(
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Growth plan validation warnings:', businessValidation.warnings);
     }
 
-    console.log('✅ Growth plan input validation passed');
+    console.log('  Growth plan input validation passed');
 
     // GET USER'S WORKSPACE with error handling
     console.log('🔍 Getting/creating workspace for growth plan user:', userId);
@@ -219,12 +219,12 @@ export async function POST(request: NextRequest) {
             description: 'Default workspace for growth plans'
           }
         });
-        console.log('✅ Created growth plan workspace:', workspace.id);
+        console.log('  Created growth plan workspace:', workspace.id);
       } else {
-        console.log('✅ Found existing growth plan workspace:', workspace.id);
+        console.log('  Found existing growth plan workspace:', workspace.id);
       }
     } catch (dbError) {
-      console.error('💥 Database error getting/creating growth plan workspace:', dbError);
+      console.error('  Database error getting/creating growth plan workspace:', dbError);
       return NextResponse.json(
         { 
           success: false,
@@ -240,9 +240,9 @@ export async function POST(request: NextRequest) {
     let plan;
     try {
       plan = await growthPlanService.generateGrowthPlan(inputWithUserId); 
-      console.log('✅ Growth plan generation completed successfully');
+      console.log('  Growth plan generation completed successfully');
     } catch (serviceError) {
-      console.error('💥 Service error during growth plan generation:', serviceError);
+      console.error('  Service error during growth plan generation:', serviceError);
       console.error('Growth plan service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       return NextResponse.json(
         { 
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
       );
     } catch (saveError) {
 
-      console.error('💥 Error saving growth plan:', saveError);
+      console.error('  Error saving growth plan:', saveError);
       return NextResponse.json(
         { 
           success: false,
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
         }
       });
       
-      console.log('✅ Notification created for growth plan:', planId);
+      console.log('  Notification created for growth plan:', planId);
     } catch (notifError) {
       console.error('Failed to create notification:', notifError);
       // Don't fail the request if notification fails
@@ -353,7 +353,7 @@ export async function POST(request: NextRequest) {
           generationTime: plan.generationTime
         }
       });
-      console.log('✅ Growth plan usage logged successfully');
+      console.log('  Growth plan usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Growth plan usage logging failed (non-critical):', logError);
@@ -386,7 +386,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan API Error:', error);
+    console.error('  Unexpected Growth Plan API Error:', error);
     console.error('Growth plan error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       {
@@ -401,14 +401,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 Growth Plan GET API Route called');
+  console.log(' Growth Plan GET API Route called');
   
   try {
     // Use simplified authentication
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan GET:', authError);
+      console.error('  Auth failed in growth plan GET:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -419,7 +419,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('✅ Growth Plan GET user authenticated successfully:', user.id);
+    console.log('  Growth Plan GET user authenticated successfully:', user.id);
     const userId = user.id;
 
     // LIGHT RATE LIMITING: Prevent API abuse on reads
@@ -493,7 +493,7 @@ export async function GET(request: NextRequest) {
           // but that's usually done in POST.
         }
       } catch (dbError) {
-        console.error('💥 Database error resolving default workspace ID for GET:', dbError);
+        console.error('  Database error resolving default workspace ID for GET:', dbError);
         return NextResponse.json(
           {
             success: false,
@@ -521,9 +521,9 @@ export async function GET(request: NextRequest) {
         userId,
         finalWorkspaceIdForFetch
       );
-      console.log('✅ Retrieved', plans.length, 'growth plans');
+      console.log('  Retrieved', plans.length, 'growth plans');
     } catch (serviceError) {
-      console.error('💥 Error fetching growth plans:', serviceError);
+      console.error('  Error fetching growth plans:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -574,11 +574,11 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log('✅ Growth plan list request completed successfully');
+    console.log('  Growth plan list request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan GET API Error:', error);
+    console.error('  Unexpected Growth Plan GET API Error:', error);
     console.error('Growth plan GET error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       {

@@ -7,7 +7,7 @@ export class PricingCalculatorService {
   
   constructor() {
     if (!process.env.OPENROUTER_API_KEY) {
-      console.error('❌ OPENROUTER_API_KEY is not set');
+      console.error('  OPENROUTER_API_KEY is not set');
       throw new Error('OpenRouter API key is required');
     }
     
@@ -21,7 +21,7 @@ export class PricingCalculatorService {
     try {
       // Calculate core pricing results
       const baseCalculations = this.calculateBasePricing(input);
-      console.log('✅ Base calculations completed:', {
+      console.log('  Base calculations completed:', {
         recommendedRetainer: baseCalculations.recommendedRetainer,
         hourlyRate: baseCalculations.baseHourlyRate,
         roiPercentage: baseCalculations.roiPercentage
@@ -29,7 +29,7 @@ export class PricingCalculatorService {
       
       // Build AI enhancement prompt
       const prompt = this.buildPricingStrategyPrompt(input, baseCalculations);
-      console.log('✅ AI prompt built, length:', prompt.length);
+      console.log('  AI prompt built, length:', prompt.length);
       
       // Generate enhanced strategy with AI - with retry logic
       let response;
@@ -58,7 +58,7 @@ IMPORTANT: Always respond with valid JSON. Ensure all numeric values are properl
             max_tokens: 3000,
           });
           
-          console.log('✅ AI response received, tokens used:', response.usage?.total_tokens);
+          console.log('  AI response received, tokens used:', response.usage?.total_tokens);
           break;
           
         } catch (aiError: any) {
@@ -66,7 +66,7 @@ IMPORTANT: Always respond with valid JSON. Ensure all numeric values are properl
           console.warn(`⚠️ AI generation attempt ${attempts} failed:`, aiError?.message);
           
           if (attempts >= maxAttempts) {
-            console.error('❌ All AI generation attempts failed');
+            console.error('  All AI generation attempts failed');
             // Fall back to basic package instead of throwing
             console.log('🔄 Falling back to basic pricing package...');
             break;
@@ -82,7 +82,7 @@ IMPORTANT: Always respond with valid JSON. Ensure all numeric values are properl
       if (response) {
         try {
           enhancedResults = this.parseAIResponse(response.content, input, baseCalculations);
-          console.log('✅ AI response parsed successfully');
+          console.log('  AI response parsed successfully');
         } catch (parseError: any) {
           console.warn('⚠️ Failed to parse AI response, using fallback:', parseError?.message);
           enhancedResults = this.generateFallbackPackage(input, baseCalculations);
@@ -98,11 +98,11 @@ IMPORTANT: Always respond with valid JSON. Ensure all numeric values are properl
         generationTime: Date.now() - startTime
       };
 
-      console.log('✅ Pricing package generation completed in', pricingPackage.generationTime, 'ms');
+      console.log('  Pricing package generation completed in', pricingPackage.generationTime, 'ms');
       return pricingPackage;
       
     } catch (error: any) {
-      console.error('❌ Error in generatePricingPackage:', error?.message, error?.stack);
+      console.error('  Error in generatePricingPackage:', error?.message, error?.stack);
       
       // Generate fallback package even on complete failure
       try {
@@ -115,7 +115,7 @@ IMPORTANT: Always respond with valid JSON. Ensure all numeric values are properl
           generationTime: Date.now() - startTime
         };
       } catch (fallbackError: any) {
-        console.error('❌ Even fallback generation failed:', fallbackError?.message);
+        console.error('  Even fallback generation failed:', fallbackError?.message);
         throw new Error('Failed to generate pricing package: ' + error?.message);
       }
     }
@@ -483,14 +483,14 @@ private calculateImpliedRate(input: PricingCalculatorInput): number {
       if (this.validateParsedResponse(parsed)) {
         // Ensure all numeric values are properly set
         const validated = this.sanitizeParsedResponse(parsed, baseCalc);
-        console.log('✅ AI response parsed and validated successfully');
+        console.log('  AI response parsed and validated successfully');
         return validated;
       } else {
         console.warn('⚠️ Parsed response failed validation, using fallback');
         throw new Error('Parsed response failed validation');
       }
     } catch (error: any) {
-      console.error('❌ Failed to parse JSON response:', error?.message);
+      console.error('  Failed to parse JSON response:', error?.message);
       throw error;
     }
   }
@@ -845,10 +845,10 @@ totalClientImpact: input.annualClientSavings + input.annualRevenueIncrease,
         }
       });
 
-      console.log('✅ Pricing calculation saved with ID:', deliverable.id);
+      console.log('  Pricing calculation saved with ID:', deliverable.id);
       return deliverable.id;
     } catch (error: any) {
-      console.error('❌ Error saving pricing calculation:', error?.message);
+      console.error('  Error saving pricing calculation:', error?.message);
       throw new Error('Failed to save pricing calculation: ' + error?.message);
     }
   }
@@ -882,7 +882,7 @@ totalClientImpact: input.annualClientSavings + input.annualRevenueIncrease,
         workspace: deliverable.workspace
       };
     } catch (error: any) {
-      console.error('❌ Error retrieving pricing calculation:', error?.message);
+      console.error('  Error retrieving pricing calculation:', error?.message);
       throw new Error('Failed to retrieve pricing calculation: ' + error?.message);
     }
   }
@@ -929,7 +929,7 @@ totalClientImpact: input.annualClientSavings + input.annualRevenueIncrease,
   workspace: calc.workspace
 }));
     } catch (error: any) {
-      console.error('❌ Error fetching user pricing calculations:', error?.message);
+      console.error('  Error fetching user pricing calculations:', error?.message);
       return [];
     }
   }
@@ -977,7 +977,7 @@ totalClientImpact: input.annualClientSavings + input.annualRevenueIncrease,
         tokensUsed: 0
       };
     } catch (error: any) {
-      console.error('❌ Error comparing pricing scenarios:', error?.message);
+      console.error('  Error comparing pricing scenarios:', error?.message);
       throw new Error('Failed to compare pricing scenarios: ' + error?.message);
     }
   }

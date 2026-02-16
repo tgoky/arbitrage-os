@@ -309,7 +309,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       description
     });
     
-    console.log('✅ Workspace created in service:', newWorkspace);
+    console.log('  Workspace created in service:', newWorkspace);
     
     // Update local state - add to beginning of array
     setWorkspaces(prev => [newWorkspace, ...prev]);
@@ -319,7 +319,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     
     return newWorkspace;
   } catch (error: any) {
-    console.error('❌ Error creating workspace:', error);
+    console.error('  Error creating workspace:', error);
     setValidationError(error.message || 'Failed to create workspace');
     throw error;
   }
@@ -350,7 +350,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ✅ FIXED: Simplified switchWorkspace without race conditions
+  //   FIXED: Simplified switchWorkspace without race conditions
   const switchWorkspace = useCallback(async (slug: string) => {
     // Don't block if switching is in progress, just ignore duplicate requests
     if (isSwitching) {
@@ -419,10 +419,10 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       console.log('🔄 Navigating to:', newPath);
       router.push(newPath);
       
-      console.log('✅ Workspace switch completed successfully');
+      console.log('  Workspace switch completed successfully');
       
     } catch (error) {
-      console.error('❌ Error during workspace switch:', error);
+      console.error('  Error during workspace switch:', error);
       setValidationError('Failed to switch workspace');
     } finally {
       // Always clear switching state after a short delay

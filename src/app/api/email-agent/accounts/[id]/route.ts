@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { EmailConnectionService } from '@/services/emailConnection.service';
 
-// ✅ ROBUST AUTHENTICATION
+//   ROBUST AUTHENTICATION
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -31,15 +31,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -49,13 +49,13 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Email Agent Disconnect Account API called');
+  console.log(' Email Agent Disconnect Account API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required' 
@@ -64,11 +64,11 @@ export async function DELETE(
 
     console.log(`🗑️ Disconnecting email account: ${params.id}`);
 
-    // ✅ Use EmailConnectionService.disconnectEmailAccount (matches your existing code)
+    //   Use EmailConnectionService.disconnectEmailAccount (matches your existing code)
     const emailService = new EmailConnectionService();
     await emailService.disconnectEmailAccount(params.id);
 
-    console.log(`✅ Gmail account disconnected: ${params.id}`);
+    console.log(`  Gmail account disconnected: ${params.id}`);
 
     return NextResponse.json({
       success: true,
@@ -76,7 +76,7 @@ export async function DELETE(
     });
 
   } catch (error: any) {
-    console.error('💥 Disconnect email account error:', error);
+    console.error('  Disconnect email account error:', error);
     return NextResponse.json(
       { 
         success: false,

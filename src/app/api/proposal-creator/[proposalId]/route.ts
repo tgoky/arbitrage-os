@@ -47,15 +47,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -68,7 +68,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { proposalId: string } }
 ) {
-  console.log('🚀 Get Proposal API Route called for ID:', params.proposalId);
+  console.log(' Get Proposal API Route called for ID:', params.proposalId);
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -117,7 +117,7 @@ export async function GET(
         );
       }
       
-      console.log('✅ Proposal found');
+      console.log('  Proposal found');
 
       // Usage logging
       try {
@@ -166,7 +166,7 @@ return NextResponse.json({
 });
 
     } catch (serviceError) {
-      console.error('💥 Error fetching proposal:', serviceError);
+      console.error('  Error fetching proposal:', serviceError);
       
       return NextResponse.json(
         { 
@@ -178,7 +178,7 @@ return NextResponse.json({
     }
 
   } catch (error) {
-    console.error('💥 Unexpected Get Proposal Error:', error);
+    console.error('  Unexpected Get Proposal Error:', error);
     
     return NextResponse.json(
       { 
@@ -195,7 +195,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { proposalId: string } }
 ) {
-  console.log('🚀 Delete Proposal API Route called for ID:', params.proposalId);
+  console.log(' Delete Proposal API Route called for ID:', params.proposalId);
   
   try {
        const { user, error: authError } = await getAuthenticatedUser();
@@ -244,7 +244,7 @@ export async function DELETE(
         );
       }
       
-      console.log('✅ Proposal deleted successfully');
+      console.log('  Proposal deleted successfully');
 
       // Usage logging
       try {
@@ -270,7 +270,7 @@ export async function DELETE(
       });
 
     } catch (deleteError) {
-      console.error('💥 Error deleting proposal:', deleteError);
+      console.error('  Error deleting proposal:', deleteError);
       
       return NextResponse.json(
         { 
@@ -282,7 +282,7 @@ export async function DELETE(
     }
 
   } catch (error) {
-    console.error('💥 Unexpected Delete Proposal Error:', error);
+    console.error('  Unexpected Delete Proposal Error:', error);
     
     return NextResponse.json(
       { 

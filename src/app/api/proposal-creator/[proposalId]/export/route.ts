@@ -33,15 +33,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -53,14 +53,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { proposalId: string } }
 ) {
-  console.log('🚀 Export API Route called for ID:', params.proposalId);
+  console.log(' Export API Route called for ID:', params.proposalId);
 
   try {
       const { user, error: authError } = await getAuthenticatedUser();
       
 
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       
       const response = NextResponse.json(
         {
@@ -87,7 +87,7 @@ export async function GET(
       return response;
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
 
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'html';
@@ -124,7 +124,7 @@ export async function GET(
         contentLength = 0; // For now, since we only have string formats
       }
 
-      console.log('✅ Export completed:', {
+      console.log('  Export completed:', {
         format: exportResult.format,
         filename: exportResult.filename,
         contentLength,
@@ -163,7 +163,7 @@ export async function GET(
       );
 
     } catch (exportError) {
-      console.error('💥 Export error:', exportError);
+      console.error('  Export error:', exportError);
 
       return NextResponse.json(
         {
@@ -186,7 +186,7 @@ export async function GET(
       );
     }
   } catch (error) {
-    console.error('💥 Unexpected Export Error:', error);
+    console.error('  Unexpected Export Error:', error);
 
     return NextResponse.json(
       {

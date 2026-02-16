@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     // Verify cron secret to prevent unauthorized access
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      console.warn('❌ Unauthorized cron attempt');
+      console.warn('  Unauthorized cron attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -107,16 +107,16 @@ export async function GET(req: NextRequest) {
           }
           
         } catch (error: any) {
-          console.error(`❌ Failed to process campaign ${campaign.id}:`, error.message);
+          console.error(`  Failed to process campaign ${campaign.id}:`, error.message);
           results.errors.push(`Campaign ${campaign.name}: ${error.message}`);
         }
       }
 
-      console.log(`✅ Campaigns processed: ${results.campaignsProcessed}`);
-      console.log(`✅ Emails sent: ${results.emailsSent}`);
+      console.log(`  Campaigns processed: ${results.campaignsProcessed}`);
+      console.log(`  Emails sent: ${results.emailsSent}`);
 
     } catch (error: any) {
-      console.error('❌ Campaign processing error:', error);
+      console.error('  Campaign processing error:', error);
       results.errors.push(`Campaign processing: ${error.message}`);
     }
 
@@ -154,20 +154,20 @@ export async function GET(req: NextRequest) {
     data: { last_sync_at: new Date() }
   });
 
-  console.log(`  ✅ Processed ${newEmails.length} emails`);
+  console.log(`    Processed ${newEmails.length} emails`);
 }
 
         } catch (error: any) {
-          console.error(`❌ Failed to process inbound for ${account.email}:`, error.message);
+          console.error(`  Failed to process inbound for ${account.email}:`, error.message);
           results.errors.push(`Inbound ${account.email}: ${error.message}`);
         }
       }
 
-      console.log(`✅ Total inbound emails fetched: ${results.inboundEmailsFetched}`);
-      console.log(`✅ Total inbound emails processed: ${results.inboundEmailsProcessed}`);
+      console.log(`  Total inbound emails fetched: ${results.inboundEmailsFetched}`);
+      console.log(`  Total inbound emails processed: ${results.inboundEmailsProcessed}`);
 
     } catch (error: any) {
-      console.error('❌ Inbound email processing error:', error);
+      console.error('  Inbound email processing error:', error);
       results.errors.push(`Inbound processing: ${error.message}`);
     }
 
@@ -195,15 +195,15 @@ console.log(`  ⚠️  Follow-up scheduling not yet implemented for: ${campaign.
 
           results.followupsSent++;
         } catch (error: any) {
-          console.error(`❌ Failed to schedule followups for ${campaign.id}:`, error.message);
+          console.error(`  Failed to schedule followups for ${campaign.id}:`, error.message);
           results.errors.push(`Follow-up ${campaign.name}: ${error.message}`);
         }
       }
 
-      console.log(`✅ Follow-ups processed: ${results.followupsSent}`);
+      console.log(`  Follow-ups processed: ${results.followupsSent}`);
 
     } catch (error: any) {
-      console.error('❌ Follow-up scheduling error:', error);
+      console.error('  Follow-up scheduling error:', error);
       results.errors.push(`Follow-up scheduling: ${error.message}`);
     }
 
@@ -253,15 +253,15 @@ console.log(`  ⚠️  Follow-up scheduling not yet implemented for: ${campaign.
             results.autoRepliesSent++;
           }
         } catch (error: any) {
-          console.error(`❌ Failed to auto-reply to ${email.from}:`, error.message);
+          console.error(`  Failed to auto-reply to ${email.from}:`, error.message);
           results.errors.push(`Auto-reply ${email.from}: ${error.message}`);
         }
       }
 
-      console.log(`✅ Auto-replies sent: ${results.autoRepliesSent}`);
+      console.log(`  Auto-replies sent: ${results.autoRepliesSent}`);
 
     } catch (error: any) {
-      console.error('❌ Auto-reply processing error:', error);
+      console.error('  Auto-reply processing error:', error);
       results.errors.push(`Auto-reply processing: ${error.message}`);
     }
 
@@ -286,7 +286,7 @@ console.log(`  ⚠️  Follow-up scheduling not yet implemented for: ${campaign.
       console.log(`Archived ${archivedCount.count} old emails`);
 
     } catch (error: any) {
-      console.error('❌ Cleanup error:', error);
+      console.error('  Cleanup error:', error);
       results.errors.push(`Cleanup: ${error.message}`);
     }
 
@@ -322,9 +322,9 @@ console.log(`  ⚠️  Follow-up scheduling not yet implemented for: ${campaign.
   } catch (error: any) {
     const duration = Date.now() - startTime;
     
-    console.error('\n💥 ========================================');
-    console.error('💥 CRON JOB CRITICAL ERROR');
-    console.error('💥 ========================================');
+    console.error('\n  ========================================');
+    console.error('  CRON JOB CRITICAL ERROR');
+    console.error('  ========================================');
     console.error(error);
 
     return NextResponse.json(

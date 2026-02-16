@@ -84,15 +84,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -185,14 +185,14 @@ function validateGlobalCriteria(criteria: any): { isValid: boolean; error?: stri
 
 // POST /api/lead-generation - Generate leads with enhanced global search
 export async function POST(req: NextRequest) {
-  console.log('🚀 Global Lead Generation API Route called');
+  console.log(' Global Lead Generation API Route called');
   
   try {
     // Authentication
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in lead generation:', authError);
+      console.error('  Auth failed in lead generation:', authError);
       
       const response = NextResponse.json(
         { 
@@ -220,12 +220,12 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting - 10 lead generations per hour
     const rateLimitResult = await rateLimit(user.id, 10, 3600);
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -325,7 +325,7 @@ export async function POST(req: NextRequest) {
       campaignName
     );
 
-    console.log('✅ Global lead generation completed:', {
+    console.log('  Global lead generation completed:', {
       leadsFound: response.leads.length,
       creditsUsed: response.tokensUsed,
       deliverableId: response.deliverableId,
@@ -359,7 +359,7 @@ export async function POST(req: NextRequest) {
           }
         });
         
-        console.log('✅ Notification created for lead generation:', response.deliverableId);
+        console.log('  Notification created for lead generation:', response.deliverableId);
       } else {
         console.warn('Workspace not found for notification:', workspaceId);
       }
@@ -423,7 +423,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Global Lead Generation API Error:', error);
+    console.error('  Global Lead Generation API Error:', error);
     
     if (error instanceof Error) {
       // Handle specific global search errors
@@ -479,13 +479,13 @@ export async function POST(req: NextRequest) {
 
 // GET /api/lead-generation - Get user's lead generations with proper format for detail page
 export async function GET(req: NextRequest) {
-  console.log('🚀 Global Lead Generation GET API Route called');
+  console.log(' Global Lead Generation GET API Route called');
   
   try {
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in lead generation GET:', authError);
+      console.error('  Auth failed in lead generation GET:', authError);
       
       const response = NextResponse.json(
         { 
@@ -646,7 +646,7 @@ const formattedGenerations = generations.map(gen => {
     });
 
   } catch (error) {
-    console.error('💥 Global Lead Generations Fetch Error:', error);
+    console.error('  Global Lead Generations Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,

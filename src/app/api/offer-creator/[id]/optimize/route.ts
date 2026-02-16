@@ -16,7 +16,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Enhanced authentication function (matches main route)
+//   Enhanced authentication function (matches main route)
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
@@ -44,15 +44,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -63,13 +63,13 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Signature Offer Optimize API Route called for offer:', params.id);
+    console.log(' Signature Offer Optimize API Route called for offer:', params.id);
 
-    // ✅ Enhanced authentication (matches main route)
+    //   Enhanced authentication (matches main route)
  const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in optimization:', authError);
+      console.error('  Auth failed in optimization:', authError);
       
       const response = NextResponse.json(
         { 
@@ -97,7 +97,7 @@ export async function POST(
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for optimization requests
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -107,7 +107,7 @@ export async function POST(
       RATE_LIMITS.OPTIMIZATION.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -117,13 +117,13 @@ export async function POST(
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const offerId = params.id;
     
     // Validate offer ID format
     if (!offerId || offerId.length < 10) {
-      console.error('❌ Invalid offer ID:', offerId);
+      console.error('  Invalid offer ID:', offerId);
       return NextResponse.json(
         { 
           success: false,
@@ -144,7 +144,7 @@ export async function POST(
     // Validate optimization request
     const validation = validateOptimizationRequest(body);
     if (!validation.success) {
-      console.error('❌ Validation failed:', validation.errors);
+      console.error('  Validation failed:', validation.errors);
       return NextResponse.json(
         { 
           success: false,
@@ -160,7 +160,7 @@ export async function POST(
     }
 
     if (!validation.data) {
-      console.error('❌ No valid optimization data provided');
+      console.error('  No valid optimization data provided');
       return NextResponse.json(
         { 
           success: false,
@@ -170,7 +170,7 @@ export async function POST(
       );
     }
 
-    // ✅ Perform optimization with enhanced error handling
+    //   Perform optimization with enhanced error handling
     console.log('🤖 Starting signature offer optimization...');
     let optimizationResult: OptimizationResult;
     try {
@@ -181,10 +181,10 @@ export async function POST(
         validation.data.type as OptimizationType
       );
       
-      console.log('✅ Optimization completed successfully');
+      console.log('  Optimization completed successfully');
       console.log('📊 Generated', optimizationResult.optimizedVersions.length, 'optimization versions');
     } catch (serviceError) {
-      console.error('💥 Service error during optimization:', serviceError);
+      console.error('  Service error during optimization:', serviceError);
       
       if (serviceError instanceof Error && serviceError.message === 'Offer not found') {
         return NextResponse.json(
@@ -208,7 +208,7 @@ export async function POST(
     }
 
     if (!optimizationResult) {
-      console.error('❌ Optimization returned null result');
+      console.error('  Optimization returned null result');
       return NextResponse.json(
         { 
           success: false,
@@ -219,7 +219,7 @@ export async function POST(
       );
     }
 
-    // ✅ Log usage for optimization with enhanced metadata
+    //   Log usage for optimization with enhanced metadata
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -239,7 +239,7 @@ export async function POST(
             : null
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -259,7 +259,7 @@ export async function POST(
     } as ApiResponse<OptimizationResult>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Optimization Error:', error);
+    console.error('  Unexpected Signature Offer Optimization Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -278,13 +278,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Get Optimization History API Route called for offer:', params.id);
+    console.log(' Get Optimization History API Route called for offer:', params.id);
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
      const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in optimization history:', authError);
+      console.error('  Auth failed in optimization history:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -295,7 +295,7 @@ export async function GET(
       );
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     const offerId = params.id;
     
@@ -320,7 +320,7 @@ export async function GET(
       const metadata = offer.metadata as any || {};
       const optimizationHistory = metadata.optimizationHistory || [];
 
-      console.log('✅ Retrieved optimization history with', optimizationHistory.length, 'entries');
+      console.log('  Retrieved optimization history with', optimizationHistory.length, 'entries');
 
       return NextResponse.json({
         success: true,
@@ -337,7 +337,7 @@ export async function GET(
       } as ApiResponse<any>);
 
     } catch (fetchError) {
-      console.error('💥 Error fetching optimization history:', fetchError);
+      console.error('  Error fetching optimization history:', fetchError);
       return NextResponse.json(
         { 
           success: false,
@@ -349,7 +349,7 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('💥 Unexpected Optimization History Error:', error);
+    console.error('  Unexpected Optimization History Error:', error);
     return NextResponse.json(
       { 
         success: false,

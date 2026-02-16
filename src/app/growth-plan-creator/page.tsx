@@ -357,7 +357,7 @@ export default function GrowthPlanCreatorPage() {
   // --- ACTION HANDLERS ---
   const onFinish = async (values: any) => {
     try {
-      console.log('🚀 Starting plan generation...');
+      console.log(' Starting plan generation...');
       
       const inputData: Omit<GrowthPlanInput, 'userId'> = {
         email: values.email?.trim() || 'user@example.com',
@@ -404,7 +404,7 @@ export default function GrowthPlanCreatorPage() {
         }, 500);
       }
     } catch (error) {
-      console.error('💥 Generation error:', error);
+      console.error('  Generation error:', error);
     }
   };
 

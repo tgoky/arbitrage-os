@@ -32,15 +32,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -51,13 +51,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Lead Generation Export API called for ID:', params.id);
+  console.log('Lead Generation Export API called for ID:', params.id);
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -155,7 +155,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Lead Generation Export Error:', error);
+    console.error('  Lead Generation Export Error:', error);
     return NextResponse.json(
       { 
         success: false,

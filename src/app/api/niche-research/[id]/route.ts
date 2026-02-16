@@ -6,7 +6,7 @@ import { NicheResearcherService } from '@/services/nicheResearcher.service';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ SIMPLIFIED AUTHENTICATION (from work-items route)
+//   SIMPLIFIED AUTHENTICATION (from work-items route)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -33,15 +33,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -51,9 +51,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Individual Niche Report GET called for ID:', params.id);
+    console.log(' Individual Niche Report GET called for ID:', params.id);
     
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
@@ -67,7 +67,7 @@ export async function GET(
       );
     }
 
-    // ✅ RATE LIMITING for individual report fetches
+    //   RATE LIMITING for individual report fetches
     const rateLimitResult = await rateLimit(
       `niche_research_get:${user.id}`,
       50,
@@ -87,7 +87,7 @@ export async function GET(
 
     const reportId = params.id;
     
-    // ✅ USE SERVICE METHOD
+    //   USE SERVICE METHOD
     const nicheService = new NicheResearcherService();
     const report = await nicheService.getNicheReport(user.id, reportId);
 
@@ -101,7 +101,7 @@ export async function GET(
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -127,7 +127,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Individual Report Fetch Error:', error);
+    console.error('  Individual Report Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -145,7 +145,7 @@ export async function DELETE(
   try {
     console.log('🗑️ Deleting Niche Report ID:', params.id);
     
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
@@ -159,7 +159,7 @@ export async function DELETE(
       );
     }
 
-    // ✅ RATE LIMITING for deletions
+    //   RATE LIMITING for deletions
     const rateLimitResult = await rateLimit(
       `niche_research_delete:${user.id}`,
       20,
@@ -179,7 +179,7 @@ export async function DELETE(
 
     const reportId = params.id;
     
-    // ✅ USE SERVICE METHOD
+    //   USE SERVICE METHOD
     const nicheService = new NicheResearcherService();
     const success = await nicheService.deleteNicheReport(user.id, reportId);
 
@@ -193,7 +193,7 @@ export async function DELETE(
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -218,7 +218,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('💥 Report Delete Error:', error);
+    console.error('  Report Delete Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -236,7 +236,7 @@ export async function PUT(
   try {
     console.log('✏️ Updating Niche Report ID:', params.id);
     
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
@@ -250,7 +250,7 @@ export async function PUT(
       );
     }
 
-    // ✅ RATE LIMITING for updates
+    //   RATE LIMITING for updates
     const rateLimitResult = await rateLimit(
       `niche_research_update:${user.id}`,
       30,
@@ -295,7 +295,7 @@ export async function PUT(
       );
     }
     
-    // ✅ USE SERVICE METHOD
+    //   USE SERVICE METHOD
     const nicheService = new NicheResearcherService();
     const updatedReport = await nicheService.updateNicheReport(user.id, reportId, updates);
 
@@ -309,7 +309,7 @@ export async function PUT(
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -336,7 +336,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('💥 Report Update Error:', error);
+    console.error('  Report Update Error:', error);
     return NextResponse.json(
       { 
         success: false,

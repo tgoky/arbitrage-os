@@ -2010,7 +2010,7 @@ example:
 
     2. Landing Page Copy
     Headline:
-      "🚀 Book 27% More Demos in 30 Days — Without More SDRs"
+      " Book 27% More Demos in 30 Days — Without More SDRs"
     Subheadline:
       "The 2-Minute Lead Response Playbook gives you the proven workflows and scripts used by the fastest-growing SaaS sales teams."
     Benefits Bullets:
@@ -2038,7 +2038,7 @@ example:
 
     4. Delivery Email
     Subject:
-      "Your 2-Minute Lead Response Playbook is here 🚀"
+      "Your 2-Minute Lead Response Playbook is here "
     Body:
       "Hey [FirstName],
       Your copy of the 2-Minute Lead Response Playbook is ready to download. Inside, you’ll see exactly how to:
@@ -3767,7 +3767,7 @@ example:
         - First campaign launched with ≥ 20% open rate
         - Post-launch review scheduled
     section_2_day_1_welcome_email:
-      subject: "Welcome to FlowReach — Let’s Launch Your First Campaign 🚀"
+      subject: "Welcome to FlowReach — Let’s Launch Your First Campaign "
       body: |
         Hi [FirstName],
         Welcome to FlowReach! We’re excited to partner with you to boost your abandoned cart recovery and campaign ROI.
@@ -3921,12 +3921,12 @@ example:
     product_feature_deep_dive:
       feature_coverage_matrix:
         - feature: Outbound orchestration
-          GrowthHub: ✅
-          PipelinePilot: ✅
-          ProspectForge: ✅
+          GrowthHub:  
+          PipelinePilot:  
+          ProspectForge:  
         - feature: Show-rate automation
           GrowthHub: ➖
-          PipelinePilot: ✅
+          PipelinePilot:  
           ProspectForge: ➖
       narrative:
         GrowthHub: "Fast launch; light governance; strong templates; weaker compliance."
@@ -4419,7 +4419,7 @@ example:
       - "https://growthflow.com/lead-sequences"
       - "https://growthflow.com/playbook"
   output: |
-    Subject: Stop Chasing Leads — Let Them Come to You 🚀
+    Subject: Stop Chasing Leads — Let Them Come to You 
     Preview Text: A 3-step follow-up tweak to save 5+ hours a week.
 
     Hi [FirstName],

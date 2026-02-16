@@ -32,28 +32,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 
 export async function GET(req: NextRequest) {
-  console.log('🚀 User Credits GET API called');
+  console.log(' User Credits GET API called');
   
   try {
  const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in user credits:', authError);
+      console.error('  Auth failed in user credits:', authError);
       
       const response = NextResponse.json(
         { 
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 User Credits API Error:', error);
+    console.error('  User Credits API Error:', error);
     return NextResponse.json(
       { 
         success: false,

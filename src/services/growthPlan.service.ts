@@ -72,7 +72,7 @@ async generateGrowthPlan(input: GrowthPlanInput): Promise<GeneratedGrowthPlan> {
   
   if (cached) {
     try {
-      // ✅ FIX: Handle both string and object returns from Redis
+      //   FIX: Handle both string and object returns from Redis
       if (typeof cached === 'string') {
         return JSON.parse(cached);
       } else if (typeof cached === 'object' && cached !== null) {
@@ -346,7 +346,7 @@ private getExpertiseContext(expertise: string[]): string {
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       
-      // ✅ Validate required structure
+      //   Validate required structure
       if (!this.validateParsedPlan(parsed)) {
         throw new Error('Invalid plan structure');
       }
@@ -966,7 +966,7 @@ private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: 
   try {
     const { prisma } = await import('@/lib/prisma');
     
-    // ✅ 1. Validate user owns the plan (single query)
+    //   1. Validate user owns the plan (single query)
     const existingPlan = await prisma.deliverable.findFirst({
       where: {
         id: planId,
@@ -979,7 +979,7 @@ private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: 
       throw new Error('Growth plan not found');
     }
 
-    // ✅ 2. Parse existing data safely
+    //   2. Parse existing data safely
     let existingContent;
     try {
       existingContent = JSON.parse(existingPlan.content);
@@ -989,10 +989,10 @@ private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: 
 
     const currentMetadata = existingPlan.metadata as any || {};
     
-    // ✅ 3. Sanitize and validate updates
+    //   3. Sanitize and validate updates
     const sanitizedUpdates = this.sanitizeUpdates(updates);
     
-    // ✅ 4. SMART UPDATE: Only regenerate if strategy changes or explicitly requested
+    //   4. SMART UPDATE: Only regenerate if strategy changes or explicitly requested
     const needsRegeneration = options.regenerateStrategy || 
       this.hasStrategyChanges(sanitizedUpdates);
     
@@ -1008,12 +1008,12 @@ private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: 
       tokensUsed = newPlan.tokensUsed;
       generationTime = newPlan.generationTime;
     } else {
-      // ✅ Fast update: Just update metadata without AI regeneration
+      //   Fast update: Just update metadata without AI regeneration
       tokensUsed = currentMetadata.tokensUsed || 0;
       generationTime = 0; // No generation time for metadata-only updates
     }
 
-    // ✅ 5. Smart metadata merging (preserve important fields)
+    //   5. Smart metadata merging (preserve important fields)
     const updatedMetadata = {
       ...currentMetadata,
       ...sanitizedUpdates,
@@ -1023,7 +1023,7 @@ private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: 
       updateType: needsRegeneration ? 'full_regeneration' : 'metadata_only'
     };
 
-    // ✅ 6. Single database update
+    //   6. Single database update
     const updated = await prisma.deliverable.update({
       where: { id: planId },
       data: {
@@ -1036,7 +1036,7 @@ private getPhaseResources(expertise: string[], phaseIndex: number, totalBudget: 
       }
     });
 
-    // ✅ 7. Return properly typed result
+    //   7. Return properly typed result
     return {
       id: updated.id,
       title: updated.title,
@@ -1150,7 +1150,7 @@ async getGrowthPlanAnalytics(
     
     console.log('📊 Starting analytics calculation for user:', userId, 'timeframe:', timeframe);
     
-    // ✅ Calculate date filter based on timeframe
+    //   Calculate date filter based on timeframe
     const now = new Date();
     const dateFilter = new Date();
     
@@ -1168,7 +1168,7 @@ async getGrowthPlanAnalytics(
 
     console.log('📅 Date filter:', dateFilter.toISOString(), 'to', now.toISOString());
 
-    // ✅ Build where clause
+    //   Build where clause
     const whereClause: any = {
       user_id: userId,
       type: 'growth_plan'
@@ -1180,7 +1180,7 @@ async getGrowthPlanAnalytics(
 
     console.log('🔍 Query where clause:', JSON.stringify(whereClause, null, 2));
 
-    // ✅ Get all plans for this user (for total count)
+    //   Get all plans for this user (for total count)
     const allPlans = await prisma.deliverable.findMany({
       where: whereClause,
       select: {
@@ -1192,7 +1192,7 @@ async getGrowthPlanAnalytics(
 
     console.log('📈 Found', allPlans.length, 'total growth plans');
 
-    // ✅ Get plans within timeframe (for period-specific stats)
+    //   Get plans within timeframe (for period-specific stats)
     const recentPlans = await prisma.deliverable.findMany({
       where: {
         ...whereClause,
@@ -1209,7 +1209,7 @@ async getGrowthPlanAnalytics(
 
     console.log('📅 Found', recentPlans.length, 'plans in', timeframe, 'period');
 
-    // ✅ Calculate industry distribution
+    //   Calculate industry distribution
     const industryCount: Record<string, number> = {};
     allPlans.forEach(plan => {
       const industry = this.getMetadataField(plan.metadata, 'industry') || 'Unknown';
@@ -1218,7 +1218,7 @@ async getGrowthPlanAnalytics(
 
     console.log('🏭 Industry distribution:', industryCount);
 
-    // ✅ Calculate timeframe distribution
+    //   Calculate timeframe distribution
     const timeframeCount: Record<string, number> = { '3m': 0, '6m': 0, '12m': 0 };
     allPlans.forEach(plan => {
       const planTimeframe = this.getMetadataField(plan.metadata, 'timeframe') || '6m';
@@ -1229,7 +1229,7 @@ async getGrowthPlanAnalytics(
 
     console.log('⏰ Timeframe distribution:', timeframeCount);
 
-    // ✅ Calculate average metrics
+    //   Calculate average metrics
     let totalTokens = 0;
     let totalGenerationTime = 0;
     let validMetricsCount = 0;
@@ -1254,13 +1254,13 @@ async getGrowthPlanAnalytics(
     console.log('📊 Average tokens per plan:', averageTokens);
     console.log('⏱️ Average generation time:', averageGenerationTime, 'ms');
 
-    // ✅ Create plans by date for charting
+    //   Create plans by date for charting
     const plansByDate = this.createPlansByDateData(recentPlans, timeframe);
 
-    // ✅ Generate insights
+    //   Generate insights
     const insights = this.generateAnalyticsInsights(allPlans, recentPlans, timeframe);
 
-    // ✅ Create top industries array
+    //   Create top industries array
     const topIndustries = Object.entries(industryCount)
       .map(([industry, count]) => ({
         industry,
@@ -1272,14 +1272,14 @@ async getGrowthPlanAnalytics(
 
     console.log('🏆 Top industries:', topIndustries);
 
-    // ✅ Build final analytics response
+    //   Build final analytics response
     const analytics: GrowthPlanAnalytics = {
       totalPlans: allPlans.length,
       plansThisMonth: recentPlans.length, // Plans in current timeframe
-      industryDistribution: industryCount, // ✅ ADD: Required property
+      industryDistribution: industryCount, //   ADD: Required property
       topIndustries,
       timeframeDistribution: timeframeCount,
-      timeframe, // ✅ ADD: Required property from parameter
+      timeframe, //   ADD: Required property from parameter
       averageMetrics: {
         tokensPerPlan: averageTokens,
         generationTime: averageGenerationTime
@@ -1288,7 +1288,7 @@ async getGrowthPlanAnalytics(
       insights
     };
 
-    console.log('✅ Analytics calculation completed:');
+    console.log('  Analytics calculation completed:');
     console.log('- Total plans:', analytics.totalPlans);
     console.log('- Recent plans:', analytics.plansThisMonth);
     console.log('- Top industry:', topIndustries[0]?.industry || 'None');
@@ -1297,13 +1297,13 @@ async getGrowthPlanAnalytics(
     return analytics;
 
   } catch (error) {
-    console.error('💥 Error calculating growth plan analytics:', error);
+    console.error('  Error calculating growth plan analytics:', error);
     console.error('Analytics error stack:', error instanceof Error ? error.stack : 'No stack');
     throw error;
   }
 }
 
-// ✅ Helper method to create plans by date data for charts
+//   Helper method to create plans by date data for charts
 private createPlansByDateData(plans: any[], timeframe: string): Array<{
   date: string;
   count: number;
@@ -1341,7 +1341,7 @@ private createPlansByDateData(plans: any[], timeframe: string): Array<{
 
 
 
-// ✅ Helper method to generate insights
+//   Helper method to generate insights
 private generateAnalyticsInsights(
   allPlans: any[], 
   recentPlans: any[], 
@@ -1369,7 +1369,7 @@ private generateAnalyticsInsights(
     insights.push(`No plans created in the last ${timeframeName}`);
   }
   
-  // ✅ FIXED: Industry insights with proper typing
+  //   FIXED: Industry insights with proper typing
   const industries: Record<string, number> = {};
   allPlans.forEach(plan => {
     const industry = this.getMetadataField(plan.metadata, 'industry');
@@ -1386,7 +1386,7 @@ private generateAnalyticsInsights(
     insights.push(`Most plans are for ${industryName} industry (${count} plan${count === 1 ? '' : 's'})`);
   }
   
-  // ✅ FIXED: Timeframe insights with proper typing
+  //   FIXED: Timeframe insights with proper typing
   const timeframes: Record<string, number> = {};
   allPlans.forEach(plan => {
     const tf = this.getMetadataField(plan.metadata, 'timeframe');
@@ -1405,7 +1405,7 @@ private generateAnalyticsInsights(
     insights.push(`${timeframeName} plans are most common (${count} plan${count === 1 ? '' : 's'})`);
   }
   
-  // ✅ FIXED: Performance insights with proper typing
+  //   FIXED: Performance insights with proper typing
   const tokensUsed: number[] = [];
   allPlans.forEach(plan => {
     const tokens = this.getMetadataField(plan.metadata, 'tokensUsed');

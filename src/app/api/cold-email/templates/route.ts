@@ -20,7 +20,7 @@ const templateSchema = z.object({
   isPublic: z.boolean().default(false)
 });
 
-// ✅ Robust authentication function (same as main route)
+// Robust authentication function (same as main route)
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
@@ -48,15 +48,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error(' Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error(' Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -66,13 +66,13 @@ async function getAuthenticatedUser() {
 // GET - Fetch user's templates
 export async function GET(req: NextRequest) {
   try {
-    console.log('🚀 Templates GET API Route called');
+    console.log('Templates GET API Route called');
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
       const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in templates GET:', authError);
+      console.error('  Auth failed in templates GET:', authError);
       
       const response = NextResponse.json(
         { 
@@ -92,9 +92,9 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting for template fetching - 100 requests per minute
+    //   Add rate limiting for template fetching - 100 requests per minute
     const rateLimitResult = await rateLimit(user.id, 100, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
       workspaceId 
     });
 
-    // ✅ Log template fetch usage
+    //   Log template fetch usage
     await logUsage({
       userId: user.id,
       feature: 'template_fetch',
@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('💥 Template Fetch Error:', error);
+    console.error('  Template Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -176,13 +176,13 @@ export async function GET(req: NextRequest) {
 // POST - Create a new template
 export async function POST(req: NextRequest) {
   try {
-    console.log('🚀 Templates POST API Route called');
+    console.log(' Templates POST API Route called');
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
       const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in templates POST:', authError);
+      console.error('  Auth failed in templates POST:', authError);
       
       const response = NextResponse.json(
         { 
@@ -202,9 +202,9 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting for template creation - 10 templates per minute
+    //   Add rate limiting for template creation - 10 templates per minute
     const rateLimitResult = await rateLimit(user.id, 10, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
     const coldEmailService = new ColdEmailService();
   const template = await coldEmailService.createTemplate(user.id, workspaceId, validation.data);
 
-    // ✅ Log template creation usage
+    //   Log template creation usage
     await logUsage({
       userId: user.id,
       feature: 'template_create',
@@ -286,7 +286,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('💥 Template Creation Error:', error);
+    console.error('  Template Creation Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -300,13 +300,13 @@ export async function POST(req: NextRequest) {
 // PUT - Update an existing template
 export async function PUT(req: NextRequest) {
   try {
-    console.log('🚀 Templates PUT API Route called');
+    console.log(' Templates PUT API Route called');
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in templates PUT:', authError);
+      console.error('  Auth failed in templates PUT:', authError);
       
       const response = NextResponse.json(
         { 
@@ -326,9 +326,9 @@ export async function PUT(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting for template updates - 20 updates per minute
+    //   Add rate limiting for template updates - 20 updates per minute
     const rateLimitResult = await rateLimit(user.id, 20, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -382,7 +382,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // ✅ Log template update usage
+    //   Log template update usage
     await logUsage({
       userId: user.id,
       feature: 'template_update',
@@ -403,7 +403,7 @@ export async function PUT(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Template Update Error:', error);
+    console.error('  Template Update Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -417,13 +417,13 @@ export async function PUT(req: NextRequest) {
 // DELETE - Delete a template
 export async function DELETE(req: NextRequest) {
   try {
-    console.log('🚀 Templates DELETE API Route called');
+    console.log(' Templates DELETE API Route called');
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in templates DELETE:', authError);
+      console.error('  Auth failed in templates DELETE:', authError);
       
       const response = NextResponse.json(
         { 
@@ -443,9 +443,9 @@ export async function DELETE(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting for template deletion - 10 deletions per minute
+    //   Add rate limiting for template deletion - 10 deletions per minute
     const rateLimitResult = await rateLimit(user.id, 10, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -484,7 +484,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // ✅ Log template deletion usage
+    //   Log template deletion usage
     await logUsage({
       userId: user.id,
       feature: 'template_delete',
@@ -504,7 +504,7 @@ export async function DELETE(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Template Delete Error:', error);
+    console.error('  Template Delete Error:', error);
     return NextResponse.json(
       { 
         success: false,

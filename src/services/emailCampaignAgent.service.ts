@@ -7,8 +7,8 @@ interface CampaignConfig {
   name: string;
   description?: string;
   emailAccountId: string;
-  leads: any[];  // ✅ Full lead objects from deliverables
-  leadGenerationMap: { [leadId: string]: string };  // ✅ Track source generation
+  leads: any[];  //   Full lead objects from deliverables
+  leadGenerationMap: { [leadId: string]: string };  //   Track source generation
   scheduleType: 'immediate' | 'scheduled' | 'drip';
   startDate?: Date;
   endDate?: Date;
@@ -66,16 +66,16 @@ export class EmailCampaignAgent {
         throw new Error('Email account is disabled. Please reconnect your email account.');
       }
 
-      console.log(`✅ Email account validated: ${emailAccount.email}`);
+      console.log(`  Email account validated: ${emailAccount.email}`);
 
       // Validate we have leads
       if (!config.leads || config.leads.length === 0) {
         throw new Error('No leads provided for campaign');
       }
 
-      console.log(`✅ Campaign will target ${config.leads.length} leads`);
+      console.log(`  Campaign will target ${config.leads.length} leads`);
 
-      // ✅ Create campaign with ALL lead data in metadata (NO separate leads table)
+      //   Create campaign with ALL lead data in metadata (NO separate leads table)
       const campaign = await prisma.emailCampaign.create({
         data: {
           name: config.name,
@@ -98,11 +98,11 @@ export class EmailCampaignAgent {
           emails_opened: 0,
           emails_replied: 0,
           
-          // ✅ Store ALL lead data in metadata (single source of truth for campaign)
+          //   Store ALL lead data in metadata (single source of truth for campaign)
           metadata: {
             emailTemplate: config.emailTemplate,
-            leads: config.leads,  // ✅ Full lead objects with all fields
-            leadGenerationMap: config.leadGenerationMap,  // ✅ Track source deliverable
+            leads: config.leads,  //   Full lead objects with all fields
+            leadGenerationMap: config.leadGenerationMap,  //   Track source deliverable
             totalLeads: config.leads.length,
             createdAt: new Date().toISOString(),
             scheduleConfig: {
@@ -121,17 +121,17 @@ export class EmailCampaignAgent {
         }
       });
 
-      console.log(`✅ Campaign created: ${campaign.id} with ${config.leads.length} leads in metadata`);
+      console.log(`  Campaign created: ${campaign.id} with ${config.leads.length} leads in metadata`);
 
       // If immediate send, trigger campaign processing in background
      if (config.scheduleType === 'immediate') {
-  console.log('🚀 Starting SYNCHRONOUS campaign processing for debugging...');
+  console.log(' Starting SYNCHRONOUS campaign processing for debugging...');
   
   try {
     const result = await this.processCampaign(campaign.id);
-    console.log('✅ Campaign processed:', result);
+    console.log('  Campaign processed:', result);
   } catch (error) {
-    console.error('❌ CAMPAIGN PROCESSING FAILED:');
+    console.error('  CAMPAIGN PROCESSING FAILED:');
     console.error(error);
     throw error; // This will show in API response
   }
@@ -151,18 +151,18 @@ export class EmailCampaignAgent {
       };
 
     } catch (error) {
-      console.error('❌ Create campaign error:', error);
+      console.error('  Create campaign error:', error);
       throw error;
     }
   }
 
   /**
    * Process campaign - send emails to leads from metadata
-   * ✅ NO database queries for leads - everything from metadata
+   *   NO database queries for leads - everything from metadata
    */
   async processCampaign(campaignId: string) {
     const startTime = Date.now();
-    console.log('🚀 Processing campaign:', campaignId);
+    console.log('Processing campaign:', campaignId);
     
     try {
       // Fetch campaign with email account
@@ -182,7 +182,7 @@ export class EmailCampaignAgent {
         return;
       }
 
-      // ✅ Get leads from campaign metadata (NOT from database)
+      //   Get leads from campaign metadata (NOT from database)
       const campaignMetadata = campaign.metadata as any;
       const leads = campaignMetadata.leads || [];
       const emailTemplate = campaignMetadata.emailTemplate;
@@ -240,22 +240,22 @@ export class EmailCampaignAgent {
   {
     html: personalizedEmail.htmlBody,
     campaignId: campaign.id,
-    leadId: lead.isManualEntry ? undefined : lead.id, // ✅ Don't pass leadId for manual
+    leadId: lead.isManualEntry ? undefined : lead.id, //   Don't pass leadId for manual
     leadName: lead.name,
     generationId: lead.generationId,
     generationTitle: lead.generationTitle,
-    isManualEntry: lead.isManualEntry || false // ✅ ADD THIS FLAG
+    isManualEntry: lead.isManualEntry || false //   ADD THIS FLAG
   }
 );
 
-          // ✅ Update lead status in metadata (in-memory)
+          //   Update lead status in metadata (in-memory)
           lead.emailCampaignStatus = 'sent';
           lead.lastEmailSent = new Date().toISOString();
           lead.emailsSent = (lead.emailsSent || 0) + 1;
           lead.lastContacted = new Date().toISOString();
 
           sentCount++;
-          console.log(`✅ Sent email ${sentCount}/${leads.length} to ${lead.email}`);
+          console.log(`  Sent email ${sentCount}/${leads.length} to ${lead.email}`);
 
           // Rate limiting: 2 seconds between emails to avoid spam filters
           if (i < leads.length - 1) {
@@ -263,9 +263,9 @@ export class EmailCampaignAgent {
           }
 
         } catch (error) {
-          console.error(`❌ Failed to send to ${lead.email}:`, error);
+          console.error(`  Failed to send to ${lead.email}:`, error);
           
-          // ✅ Update lead status in metadata (in-memory)
+          //   Update lead status in metadata (in-memory)
           lead.emailCampaignStatus = 'failed';
           lead.lastError = error instanceof Error ? error.message : 'Unknown error';
           lead.lastAttempt = new Date().toISOString();
@@ -278,13 +278,13 @@ export class EmailCampaignAgent {
         }
       }
 
-      // ✅ Save ALL updated leads back to campaign metadata
+      //   Save ALL updated leads back to campaign metadata
       await prisma.emailCampaign.update({
         where: { id: campaignId },
         data: {
           metadata: {
             ...campaignMetadata,
-            leads,  // ✅ Updated with email statuses
+            leads,  //   Updated with email statuses
             lastProcessed: new Date().toISOString(),
             processingTime: Date.now() - startTime,
             stats: {
@@ -300,7 +300,7 @@ export class EmailCampaignAgent {
         }
       });
 
-      console.log(`✅ Campaign processing complete: ${sentCount} sent, ${errorCount} errors in ${Date.now() - startTime}ms`);
+      console.log(`  Campaign processing complete: ${sentCount} sent, ${errorCount} errors in ${Date.now() - startTime}ms`);
 
       return {
         success: true,
@@ -311,7 +311,7 @@ export class EmailCampaignAgent {
       };
 
     } catch (error) {
-      console.error('❌ Process campaign error:', error);
+      console.error('  Process campaign error:', error);
       
       // Mark campaign as failed
       await prisma.emailCampaign.update({
@@ -338,15 +338,15 @@ private async generatePersonalizedEmail(
   template: any
 ): Promise<PersonalizedEmail> {
   
-  // ✅ Extract workspace name from subject line
+  //   Extract workspace name from subject line
   const workspaceName = template?.subject?.includes('from') 
     ? template.subject.split('from')[1]?.trim() 
     : 'our team';
   
-  // ✅ Extract value proposition (the actual message content)
+  //   Extract value proposition (the actual message content)
   const valueProposition = template?.body || template?.valueProposition || '';
   
-  // ✅ Validate we have a value proposition
+  //   Validate we have a value proposition
   if (!valueProposition || valueProposition.length < 10) {
     console.warn('⚠️ No value proposition provided, using generic message');
   }
@@ -357,14 +357,14 @@ private async generatePersonalizedEmail(
   try {
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      console.log('✅ Using cached email for:', lead.email);
+      console.log('  Using cached email for:', lead.email);
       return typeof cached === 'string' ? JSON.parse(cached) : cached as PersonalizedEmail;
     }
   } catch (cacheError) {
     console.warn('⚠️ Cache read error:', cacheError);
   }
 
-  // ✅ IMPROVED PROMPT - Explicit about body requirement
+  //   IMPROVED PROMPT - Explicit about body requirement
   const prompt = `You are writing a B2B cold email for business development.
 
 RECIPIENT PROFILE:
@@ -479,7 +479,7 @@ REMEMBER:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ OpenRouter API error:', response.status, errorText);
+      console.error('  OpenRouter API error:', response.status, errorText);
       throw new Error(`AI email generation failed: ${response.status}`);
     }
 
@@ -494,9 +494,9 @@ REMEMBER:
       // Parse JSON response
       generatedEmail = JSON.parse(content);
       
-      // ✅ ROBUST VALIDATION - Check structure
+      //   ROBUST VALIDATION - Check structure
       if (!generatedEmail.subject || !generatedEmail.body) {
-        console.error('❌ Invalid email structure from AI:', {
+        console.error('  Invalid email structure from AI:', {
           hasSubject: !!generatedEmail.subject,
           hasBody: !!generatedEmail.body,
           subjectLength: generatedEmail.subject?.length || 0,
@@ -505,12 +505,12 @@ REMEMBER:
         throw new Error('AI returned incomplete email - missing subject or body');
       }
 
-      // ✅ VALIDATE BODY CONTENT
+      //   VALIDATE BODY CONTENT
       const bodyText = generatedEmail.body.trim();
       
       // Check minimum length
       if (bodyText.length < 50) {
-        console.error('❌ Email body too short:', {
+        console.error('  Email body too short:', {
           length: bodyText.length,
           content: bodyText
         });
@@ -519,7 +519,7 @@ REMEMBER:
 
       // Check body isn't just the subject
       if (bodyText === generatedEmail.subject || bodyText === generatedEmail.subject.trim()) {
-        console.error('❌ Body is same as subject');
+        console.error('  Body is same as subject');
         throw new Error('AI generated subject but no body content');
       }
 
@@ -536,7 +536,7 @@ REMEMBER:
         generatedEmail.body = `${generatedEmail.body}\n\nBest regards,\n${workspaceName}`;
       }
 
-      console.log('✅ Generated and validated personalized email:', {
+      console.log('  Generated and validated personalized email:', {
         subject: generatedEmail.subject,
         subjectLength: generatedEmail.subject.length,
         bodyLength: generatedEmail.body.length,
@@ -546,7 +546,7 @@ REMEMBER:
         hasSignature: generatedEmail.body.toLowerCase().includes('best regards')
       });
 
-      // ✅ Create HTML version with proper formatting
+      //   Create HTML version with proper formatting
       if (!generatedEmail.htmlBody) {
         generatedEmail.htmlBody = generatedEmail.body
           .split('\n\n')
@@ -556,7 +556,7 @@ REMEMBER:
 
     } catch (parseError: unknown) {
   const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
-  console.error('❌ Failed to parse or validate AI response:', parseError);
+  console.error('  Failed to parse or validate AI response:', parseError);
   console.error('Full AI response:', data.choices[0]?.message?.content);
   
   // Re-throw to trigger fallback
@@ -574,9 +574,9 @@ REMEMBER:
     return generatedEmail;
 
   } catch (error) {
-    console.error('❌ AI generation failed completely, using guaranteed fallback:', error);
+    console.error('  AI generation failed completely, using guaranteed fallback:', error);
     
-    // ✅ GUARANTEED FALLBACK - Never fails
+    //   GUARANTEED FALLBACK - Never fails
     const firstName = lead.first_name || lead.name?.split(' ')[0] || 'there';
     const company = lead.company || 'your company';
     const title = lead.title || lead.job_title || 'there';
@@ -602,7 +602,7 @@ ${workspaceName}`;
 <br>
 <p><strong>Best regards,</strong><br>${workspaceName}</p>`;
 
-    console.log('✅ Using fallback email:', {
+    console.log('  Using fallback email:', {
       subject: `Quick question about ${company}`,
       bodyLength: fallbackBody.length,
       bodyPreview: fallbackBody.substring(0, 100) + '...'
@@ -657,7 +657,7 @@ ${workspaceName}`;
 
       for (const email of inboundEmails) {
         try {
-          // ✅ Find campaign that has this lead (search in metadata)
+          //   Find campaign that has this lead (search in metadata)
           const campaigns = await prisma.emailCampaign.findMany({
             where: {
               workspace_id: workspaceId,
@@ -691,12 +691,12 @@ ${workspaceName}`;
             continue;
           }
 
-          console.log(`✅ Matched email from ${email.from} to campaign ${matchedCampaign.name}`);
+          console.log(`  Matched email from ${email.from} to campaign ${matchedCampaign.name}`);
 
           // Analyze sentiment using AI
           const { sentiment, summary } = await this.analyzeSentiment(email.body);
           
-          // ✅ Update lead in campaign metadata
+          //   Update lead in campaign metadata
           const campaignMetadata = matchedCampaign.metadata as any;
           const leads = campaignMetadata.leads || [];
           const leadIndex = leads.findIndex((l: any) => l.email === email.from);
@@ -738,7 +738,7 @@ ${workspaceName}`;
           }
 
           processedCount++;
-          console.log(`✅ Processed email from ${email.from} - Sentiment: ${sentiment}`);
+          console.log(`  Processed email from ${email.from} - Sentiment: ${sentiment}`);
 
         } catch (error) {
           console.error(`Failed to process email ${email.id}:`, error);
@@ -756,7 +756,7 @@ ${workspaceName}`;
         }
       }
 
-      console.log(`✅ Processed ${processedCount}/${inboundEmails.length} inbound emails`);
+      console.log(`  Processed ${processedCount}/${inboundEmails.length} inbound emails`);
 
       return {
         success: true,
@@ -913,7 +913,7 @@ The response should:
           }
         );
 
-        console.log(`✅ Sent auto-reply to ${lead.email}`);
+        console.log(`  Sent auto-reply to ${lead.email}`);
       }
 
     } catch (error) {
@@ -1098,7 +1098,7 @@ async getWorkspaceAnalytics(userId: string, workspaceId: string) {
       totalReplied += campaign.sentEmails.filter((e: any) => e.replied_at).length;
     });
 
-    // ✅ Calculate top performing campaigns
+    //   Calculate top performing campaigns
     const campaignPerformance = campaigns
       .filter(c => c.sentEmails.length > 0) // Only campaigns with sent emails
       .map(campaign => {
@@ -1120,13 +1120,13 @@ async getWorkspaceAnalytics(userId: string, workspaceId: string) {
       totalCampaigns,
       activeCampaigns,
       totalLeads,
-      emailsSent: totalSent,  // ✅ FIXED: Changed from totalSent
-      emailsOpened: totalOpened,  // ✅ FIXED: Changed from totalOpened
-      emailsReplied: totalReplied,  // ✅ FIXED: Changed from totalReplied
+      emailsSent: totalSent,  //   FIXED: Changed from totalSent
+      emailsOpened: totalOpened,  //   FIXED: Changed from totalOpened
+      emailsReplied: totalReplied,  //   FIXED: Changed from totalReplied
       averageOpenRate: totalSent > 0 ? Math.round((totalOpened / totalSent) * 1000) / 10 : 0,
       averageReplyRate: totalSent > 0 ? Math.round((totalReplied / totalSent) * 1000) / 10 : 0,
-      topPerformingCampaigns: campaignPerformance,  // ✅ NEW: Added top campaigns
-      sentimentDistribution: {  // ✅ NEW: Added to match interface
+      topPerformingCampaigns: campaignPerformance,  //   NEW: Added top campaigns
+      sentimentDistribution: {  //   NEW: Added to match interface
         interested: 0,
         neutral: 0,
         negative: 0,

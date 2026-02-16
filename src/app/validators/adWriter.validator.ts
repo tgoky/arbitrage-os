@@ -28,7 +28,7 @@ const adWriterSchema = z.object({
 
 
   
-  // ✅ UPDATED: Platforms are now optional
+  //   UPDATED: Platforms are now optional
   activePlatforms: z.array(z.string()).optional().default([]),
   adType: z.enum(['awareness', 'conversion', 'lead', 'traffic']),
   tone: z.enum(['professional', 'friendly', 'urgent', 'humorous', 'inspirational']),

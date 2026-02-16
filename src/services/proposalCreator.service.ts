@@ -85,7 +85,7 @@ export class ProposalCreatorService {
         return await this.generateContractsFromAI(input);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`❌ Attempt ${attempt} failed:`, lastError.message);
+        console.error(`  Attempt ${attempt} failed:`, lastError.message);
         
         if (attempt < this.MAX_RETRIES) {
           const delay = 2000 * attempt;
@@ -99,7 +99,7 @@ export class ProposalCreatorService {
   }
 
   private async generateContractsFromAI(input: ProposalInput): Promise<ContractTemplates & { metadata?: any }> {
-    console.log('🚀 Starting AI generation...');
+    console.log(' Starting AI generation...');
     
     const prompt = this.buildContractPrompt(input);
     console.log('📄 Prompt built');
@@ -126,7 +126,7 @@ export class ProposalCreatorService {
         })
       ]);
 
-      console.log('✅ AI response received');
+      console.log('  AI response received');
       console.log('📏 Response length:', response.content.length);
       
       const contracts = this.parseContractsResponse(response.content);
@@ -141,7 +141,7 @@ export class ProposalCreatorService {
       };
       
     } catch (error) {
-      console.error('❌ AI generation failed:', error);
+      console.error('  AI generation failed:', error);
       throw error;
     }
   }
@@ -335,7 +335,7 @@ Generate complete, professional legal text for both documents now. Include all t
       };
       
     } catch (error) {
-      console.error('❌ Contract parsing failed:', error);
+      console.error('  Contract parsing failed:', error);
       throw new ProposalGenerationError(
         'Failed to parse AI response into valid contracts',
         error instanceof Error ? error : new Error(String(error))

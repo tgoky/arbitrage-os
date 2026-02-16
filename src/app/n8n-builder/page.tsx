@@ -317,10 +317,10 @@ const N8nWorkflowCreator = () => {
         setActiveStep(3);
         console.log('🔍 Set activeStep to 3');
       } else {
-        console.error('❌ No result returned from generateWorkflow');
+        console.error('  No result returned from generateWorkflow');
       }
     } catch (error) {
-      console.error('❌ Error generating workflow:', error);
+      console.error('  Error generating workflow:', error);
     }
   };
 

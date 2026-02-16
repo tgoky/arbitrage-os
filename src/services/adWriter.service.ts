@@ -57,7 +57,7 @@ export class AdWriterService {
       ? input.platforms 
       : ['generic'];
     
-    console.log('🚀 Starting script generation for platforms:', platforms);
+    console.log(' Starting script generation for platforms:', platforms);
     console.log('📏 Ad length:', input.adLength);
     
     const adsPromises = platforms.map(platform => 
@@ -73,7 +73,7 @@ export class AdWriterService {
       generationTime: Date.now() - startTime
     };
 
-    console.log('✅ Generated ad content:', {
+    console.log('  Generated ad content:', {
       platforms: response.ads.map(ad => ad.platform),
       tokensUsed,
       generationTime: response.generationTime
@@ -104,7 +104,7 @@ export class AdWriterService {
     const proofs = uniqueResults.map(result => result.proof);
     const ctas = uniqueResults.map(result => result.cta);
     
-    // ✅ FIXED: Generate natural full scripts separately
+    //   FIXED: Generate natural full scripts separately
     const fullScriptPromises = allFrameworks.map((framework, index) => 
       this.generateNaturalFullScript(framework, platform, input, index)
     );
@@ -120,7 +120,7 @@ export class AdWriterService {
     const totalTokens = uniqueResults.reduce((sum, result) => sum + result.tokensUsed, 0) +
                       fullScriptResults.reduce((sum, result) => sum + result.tokensUsed, 0);
     
-    console.log(`✅ Generated ${platform} content with ${allFrameworks.length} frameworks`);
+    console.log(`  Generated ${platform} content with ${allFrameworks.length} frameworks`);
     
     return {
       ad: {
@@ -139,7 +139,7 @@ export class AdWriterService {
     };
   }
 
-  // ✅ NEW: Generate natural, flowing full scripts instead of template insertions
+  //   NEW: Generate natural, flowing full scripts instead of template insertions
   private async generateNaturalFullScript(
     framework: string,
     platform: Platform,
@@ -178,7 +178,7 @@ export class AdWriterService {
         tokensUsed: response.usage.total_tokens
       };
     } catch (error) {
-      console.error(`❌ Full script generation failed for ${framework} variation ${variationIndex}:`, error);
+      console.error(`  Full script generation failed for ${framework} variation ${variationIndex}:`, error);
       return {
         script: this.getFallbackFullScript(input, framework),
         tokensUsed: 0
@@ -186,7 +186,7 @@ export class AdWriterService {
     }
   }
 
-  // ✅ NEW: System prompt specifically for natural full scripts
+  //   NEW: System prompt specifically for natural full scripts
   private buildFullScriptSystemPrompt(adLength: string, framework: string): string {
     const lengthConfig = AD_LENGTH_CONFIGS[adLength as keyof typeof AD_LENGTH_CONFIGS];
     
@@ -220,7 +220,7 @@ AVOID:
 OUTPUT: Return ONLY the complete, natural-flowing ad script with no extra formatting, labels, or sections.`;
   }
 
-  // ✅ NEW: Build prompt for natural full script generation
+  //   NEW: Build prompt for natural full script generation
   private buildFullScriptPrompt(
     framework: string, 
     platform: Platform, 
@@ -263,12 +263,12 @@ NATURALNESS REQUIREMENTS:
 - Sound like a real person talking to another real person
 
 EXAMPLE OF WHAT NOT TO DO:
-❌ "Struggling with want additional passive income without a ton of additional time investment"
-❌ "I know how you feel about want additional passive income without a ton of additional time investment..."
+  "Struggling with want additional passive income without a ton of additional time investment"
+  "I know how you feel about want additional passive income without a ton of additional time investment..."
 
 EXAMPLE OF WHAT TO DO INSTEAD:
-✅ "You're putting in long hours but your bank account isn't reflecting the effort..."
-✅ "I used to think the only way to earn more was to work more hours..."
+  "You're putting in long hours but your bank account isn't reflecting the effort..."
+  "I used to think the only way to earn more was to work more hours..."
 `;
 
     return `
@@ -290,7 +290,7 @@ Write the complete ad script now - make it flow naturally from start to finish:
 `;
   }
 
-  // ✅ NEW: Detailed framework instructions for natural flow
+  //   NEW: Detailed framework instructions for natural flow
   private getDetailedFrameworkInstructions(framework: string): string {
     const instructions: Record<string, string> = {
       'Challenge → Remedy': `
@@ -325,7 +325,7 @@ Flow: Flawed system (what's wrong) → Why it fails (explanation) → The fix (y
     return instructions[framework] || 'Create a compelling narrative that flows naturally from problem to solution to action.';
   }
 
-  // ✅ NEW: Fallback for natural full scripts
+  //   NEW: Fallback for natural full scripts
   private getFallbackFullScript(input: AdGenerationInput, framework: string): string {
     const lengthConfig = AD_LENGTH_CONFIGS[input.adLength as keyof typeof AD_LENGTH_CONFIGS];
     
@@ -394,7 +394,7 @@ ${input.urgency ? `${input.urgency} - ` : ''}${input.cta} and let's get you the 
         tokensUsed: response.usage.total_tokens
       };
     } catch (error) {
-      console.error(`❌ AI call failed for ${framework} variation ${variationIndex}:`, error);
+      console.error(`  AI call failed for ${framework} variation ${variationIndex}:`, error);
       return this.getFallbackContent(input, framework, variationIndex);
     }
   }
@@ -654,7 +654,7 @@ ${uniquenessConstraints}
         platforms: input.platforms,
         adType: input.adType,
         tone: input.tone,
-        adLength: input.adLength, // ✅ Save ad length
+        adLength: input.adLength, //   Save ad length
         caseStudy1: input.caseStudy1,
         credentials: input.credentials,
         cta: input.cta,
@@ -672,7 +672,7 @@ ${uniquenessConstraints}
         platforms: input.platforms,
         adType: input.adType,
         tone: input.tone,
-        adLength: input.adLength, // ✅ Save ad length in metadata
+        adLength: input.adLength, //   Save ad length in metadata
         adCount: adResponse.ads.length,
         tokensUsed: adResponse.tokensUsed,
         generationTime: adResponse.generationTime,
@@ -692,7 +692,7 @@ ${uniquenessConstraints}
             'ad-campaign',
             input.adType,
             input.tone,
-            input.adLength, // ✅ Add length as tag
+            input.adLength, //   Add length as tag
             ...input.platforms,
             input.businessName.toLowerCase().replace(/\s+/g, '-')
           ].filter(Boolean)

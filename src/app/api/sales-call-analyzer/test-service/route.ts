@@ -7,7 +7,7 @@ export async function POST() {
   
   try {
     const service = new SalesCallAnalyzerService();
-    console.log('✅ Service instantiated');
+    console.log('  Service instantiated');
     
     const testInput = {
       title: 'Test Discovery Call',
@@ -21,7 +21,7 @@ export async function POST() {
     
     const result = await service.analyzeCall(testInput);
     
-    console.log('✅ Analysis completed');
+    console.log('  Analysis completed');
     console.log('📊 Result keys:', Object.keys(result));
     
     return NextResponse.json({
@@ -34,7 +34,7 @@ export async function POST() {
     });
     
   } catch (error) {
-    console.error('💥 Service test failed:', error);
+    console.error('  Service test failed:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

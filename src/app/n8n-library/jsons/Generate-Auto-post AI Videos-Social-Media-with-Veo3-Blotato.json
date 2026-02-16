@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "# ✅ STEP 1 — Generate Script & Prompt with AI",
+        "content": "#   STEP 1 — Generate Script & Prompt with AI",
         "height": 500,
         "width": 1200
       },
@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "content": "# ✅ STEP 2 — Create Video Using Veo3\n\n",
+        "content": "#   STEP 2 — Create Video Using Veo3\n\n",
         "height": 280,
         "width": 1200,
         "color": 3
@@ -454,7 +454,7 @@
     },
     {
       "parameters": {
-        "content": "# ✅ STEP 3 — Publish Video to Social Media\n",
+        "content": "#   STEP 3 — Publish Video to Social Media\n",
         "height": 760,
         "width": 1200,
         "color": 4

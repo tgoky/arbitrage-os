@@ -161,7 +161,7 @@ export class CreditsService {
     if (costInfo.totalCost > userCredits.credits) {
       const error = `Insufficient credits. Need ${costInfo.totalCost} credits for ${costInfo.paidLeads} paid leads, have ${userCredits.credits}. ` +
         `Free leads available: ${userCredits.freeLeadsAvailable}`;
-      console.error('❌ Credit deduction failed:', error);
+      console.error('  Credit deduction failed:', error);
       throw new Error(error);
     }
 
@@ -223,7 +223,7 @@ export class CreditsService {
         remainingFreeLeads: Math.max(0, CreditsService.FREE_LEADS_LIMIT - updatedCredits.free_leads_used)
       };
 
-      console.log('✅ Credits deducted successfully:', deductionResult);
+      console.log('  Credits deducted successfully:', deductionResult);
       return deductionResult;
     });
 
@@ -280,7 +280,7 @@ export class CreditsService {
         }
       });
 
-      console.log('✅ Credits added successfully:', {
+      console.log('  Credits added successfully:', {
         newBalance: updatedCredits.credits,
         totalPurchased: updatedCredits.total_purchased,
         freeLeadsRemaining: CreditsService.FREE_LEADS_LIMIT - updatedCredits.free_leads_used

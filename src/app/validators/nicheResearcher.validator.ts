@@ -61,7 +61,7 @@ export function validateNicheResearchInput(data: any):
     // Custom validation: targetArea required for local/regional
     if ((validated.geographicFocus === 'local' || validated.geographicFocus === 'regional') 
         && !validated.targetArea?.trim()) {
-      console.error('❌ Target area required for local/regional focus');
+      console.error('  Target area required for local/regional focus');
       return {
         success: false,
         errors: [{
@@ -72,14 +72,14 @@ export function validateNicheResearchInput(data: any):
       };
     }
     
-    console.log('✅ Validation successful');
+    console.log('  Validation successful');
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('❌ Zod validation errors:', error.issues);
+      console.error('  Zod validation errors:', error.issues);
       return { success: false, errors: error.issues };
     }
-    console.error('❌ Unknown validation error:', error);
+    console.error('  Unknown validation error:', error);
     return { success: false, errors: [{ message: 'Validation failed' }] };
   }
 }

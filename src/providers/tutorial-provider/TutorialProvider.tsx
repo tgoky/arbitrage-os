@@ -369,7 +369,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
       <button
         type="button"
         onClick={(e) => {
-          e.stopPropagation(); // ✅ Prevent event bubbling
+          e.stopPropagation(); //   Prevent event bubbling
           e.preventDefault();
           setIsOpen(false);
           localStorage.setItem('tutorial-completed', 'true');
@@ -384,7 +384,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
           padding: '8px 4px',
           transition: 'color 0.2s',
           fontFamily: THEME.fonts.main,
-          pointerEvents: 'auto', // ✅ CRITICAL FIX
+          pointerEvents: 'auto', //   CRITICAL FIX
         }}
         onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.textPrimary}
         onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.textSecondary}
@@ -392,12 +392,12 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
         Skip Tour
       </button>
 
-      <div style={{ display: 'flex', gap: '12px', pointerEvents: 'auto' }}> {/* ✅ CRITICAL FIX */}
+      <div style={{ display: 'flex', gap: '12px', pointerEvents: 'auto' }}> {/*   CRITICAL FIX */}
         {/* Previous Button */}
         <button
           type="button"
           onClick={(e) => {
-            e.stopPropagation(); // ✅ Prevent event bubbling
+            e.stopPropagation(); //   Prevent event bubbling
             e.preventDefault();
             setCurrentStep(Math.max(currentStep - 1, 0));
           }}
@@ -414,7 +414,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
             color: currentStep === 0 ? 'rgba(255,255,255,0.1)' : THEME.colors.textPrimary,
             cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
-            pointerEvents: 'auto', // ✅ CRITICAL FIX
+            pointerEvents: 'auto', //   CRITICAL FIX
           }}
           onMouseEnter={(e) => {
             if (currentStep !== 0) {
@@ -432,7 +432,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
         <button
           type="button"
           onClick={(e) => {
-            e.stopPropagation(); // ✅ Prevent event bubbling
+            e.stopPropagation(); //   Prevent event bubbling
             e.preventDefault();
             if (isLast) {
               setIsOpen(false);
@@ -457,7 +457,7 @@ function CustomNavigation({ steps, currentStep, setIsOpen, setCurrentStep }: any
             transition: 'all 0.2s ease',
             fontFamily: THEME.fonts.main,
             boxShadow: isLast ? THEME.shadows.button : 'none',
-            pointerEvents: 'auto', // ✅ CRITICAL FIX
+            pointerEvents: 'auto', //   CRITICAL FIX
           }}
           onMouseEnter={(e) => {
             if (!isLast) {
@@ -504,17 +504,17 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       padding: '4px',
       zIndex: 10000,
       fontFamily: THEME.fonts.main,
-      pointerEvents: 'auto', // ✅ CRITICAL FIX
+      pointerEvents: 'auto', //   CRITICAL FIX
     }),
     maskArea: (base: any) => ({ 
       ...base, 
       rx: 16,
-      pointerEvents: 'none', // ✅ Disable clicks on highlighted element
+      pointerEvents: 'none', //   Disable clicks on highlighted element
     }),
     maskWrapper: (base: any) => ({ 
       ...base, 
       color: 'rgba(0, 0, 0, 0.7)',
-      pointerEvents: 'none', // ✅ Let clicks pass through mask
+      pointerEvents: 'none', //   Let clicks pass through mask
     }),
     controls: (base: any) => ({ 
       ...base, 
@@ -531,7 +531,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       backgroundColor: 'rgba(255,255,255,0.03)',
       borderRadius: '50%',
       transition: 'all 0.2s',
-      pointerEvents: 'auto', // ✅ CRITICAL FIX
+      pointerEvents: 'auto', //   CRITICAL FIX
     }),
   };
 
@@ -544,7 +544,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       : stepContent;
 
     return (
-      <div style={{ padding: '24px 24px 8px 24px', pointerEvents: 'auto' }}> {/* ✅ CRITICAL FIX */}
+      <div style={{ padding: '24px 24px 8px 24px', pointerEvents: 'auto' }}> {/*   CRITICAL FIX */}
         {renderedContent}
         <CustomNavigation
           steps={steps}
@@ -564,7 +564,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
       showCloseButton={true}
       showNavigation={false}
       showDots={false}
-      disableInteraction={false} // ✅ CHANGED: Allow interaction with popover
+      disableInteraction={false} //   CHANGED: Allow interaction with popover
       className="arbitrage-tour-popover"
       maskClassName="arbitrage-tour-mask"
       ContentComponent={ContentWrapper}

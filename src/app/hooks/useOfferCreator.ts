@@ -61,7 +61,7 @@ export const useOfferCreator = () => {
 
      
     try {
-      console.log('🚀 Sending signature offer generation request...', input);
+      console.log(' Sending signature offer generation request...', input);
 
       // Validate required sections
       if (!input.founder || !input.market || !input.business || !input.pricing || !input.voice) {
@@ -116,7 +116,7 @@ export const useOfferCreator = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
+        console.error('  API Error:', errorData);
 
         if (errorData.details && Array.isArray(errorData.details)) {
           const errorMessages = errorData.details.map((detail: any) => 
@@ -146,7 +146,7 @@ export const useOfferCreator = () => {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('💥 Generation error:', err);
+      console.error('  Generation error:', err);
       setError(errorMessage);
       message.error(errorMessage);
       return null;

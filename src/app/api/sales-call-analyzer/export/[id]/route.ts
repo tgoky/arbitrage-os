@@ -1,7 +1,7 @@
 // app/api/sales-call-analyzer/export/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { createServerClient } from '@supabase/ssr'; // ✅ Import for method 2
+import { createServerClient } from '@supabase/ssr'; //   Import for method 2
 import { cookies } from 'next/headers';
 import { SalesCallAnalyzerService } from '../../../../../services/salesCallAnalyzer.service';
 import { rateLimit } from '@/lib/rateLimit';
@@ -33,15 +33,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -81,19 +81,19 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // ✅ USE THE ROBUST AUTHENTICATION FUNCTION HERE
+    //   USE THE ROBUST AUTHENTICATION FUNCTION HERE
    const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in sales call export:', authError);
+      console.error('  Auth failed in sales call export:', authError);
       // Use the robust error response
       return createAuthErrorResponse();
       // Or the simple one if you prefer: return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('✅ Export user authenticated successfully:', user.id); // Add log
+    console.log('  Export user authenticated successfully:', user.id); // Add log
 
-    // ✅ ADD RATE LIMITING for exports - 20 per hour
+    //   ADD RATE LIMITING for exports - 20 per hour
     const rateLimitResult = await rateLimit(
       `sales_call_export:${user.id}`,
       20, // 20 exports per hour
@@ -119,7 +119,7 @@ export async function GET(
     const analyzerService = new SalesCallAnalyzerService();
     const exportContent = await analyzerService.exportCallAnalysis(user.id, analysisId, format);
 
-    // ✅ LOG USAGE for export
+    //   LOG USAGE for export
     await logUsage({
       userId: user.id,
       feature: 'sales_call_export',
@@ -134,7 +134,7 @@ export async function GET(
 
     const filename = `call-analysis-${format}-${analysisId}.md`;
 
-    console.log(`✅ Export completed successfully for ${filename}`); // Add log
+    console.log(`  Export completed successfully for ${filename}`); // Add log
 
     return new NextResponse(exportContent, {
       headers: {

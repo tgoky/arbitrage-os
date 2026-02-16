@@ -14,7 +14,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Signature offer templates data - comprehensive collection
+//   Signature offer templates data - comprehensive collection
 const SIGNATURE_OFFER_TEMPLATES = {
   'B2B SaaS': {
     starter: {
@@ -357,15 +357,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -420,13 +420,13 @@ function getAllTemplates() {
 // GET method for retrieving signature offer templates
 export async function GET(req: NextRequest) {
   try {
-    console.log('🚀 Signature Offer Templates API called');
+    console.log(' Signature Offer Templates API called');
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
     const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in templates:', authError);
+      console.error('  Auth failed in templates:', authError);
       
       const response = NextResponse.json(
         { 
@@ -454,7 +454,7 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for templates
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -464,7 +464,7 @@ export async function GET(req: NextRequest) {
       RATE_LIMITS.TEMPLATES.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -474,7 +474,7 @@ export async function GET(req: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const { searchParams } = new URL(req.url);
     const industry = searchParams.get('industry');
@@ -517,7 +517,7 @@ export async function GET(req: NextRequest) {
       }));
     }
 
-    // ✅ Log usage for templates with enhanced metadata
+    //   Log usage for templates with enhanced metadata
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -533,7 +533,7 @@ export async function GET(req: NextRequest) {
           filterType: industry && tier ? 'specific' : industry ? 'industry' : tier ? 'tier' : 'all'
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -565,7 +565,7 @@ export async function GET(req: NextRequest) {
     } as ApiResponse<any>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Templates Error:', error);
+    console.error('  Unexpected Signature Offer Templates Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

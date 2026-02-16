@@ -82,7 +82,7 @@ export async function GET(
     // Authenticate user
     const { user, error: authError } = await getAuthenticatedUser();
     if (authError || !user) {
-      console.error('❌ Auth failed in deliverable detail:', authError);
+      console.error('  Auth failed in deliverable detail:', authError);
       
       return NextResponse.json(
         { 
@@ -94,7 +94,7 @@ export async function GET(
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     console.log('🏢 Workspace requested:', workspaceId);
 
     // Validate workspace access if workspaceId provided
@@ -141,7 +141,7 @@ export async function GET(
     });
 
     if (!deliverable) {
-      console.log('❌ Deliverable not found:', params.id);
+      console.log('  Deliverable not found:', params.id);
       return NextResponse.json(
         { 
           success: false,
@@ -152,7 +152,7 @@ export async function GET(
       );
     }
 
-    console.log('✅ Deliverable found:', deliverable.title);
+    console.log('  Deliverable found:', deliverable.title);
 
     // Parse content safely
     let parsedContent;
@@ -193,7 +193,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Error in deliverable detail processing:', error);
+    console.error('  Error in deliverable detail processing:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error',
@@ -216,7 +216,7 @@ export async function DELETE(
     // Authenticate user
     const { user, error: authError } = await getAuthenticatedUser();
     if (authError || !user) {
-      console.error('❌ Auth failed in deliverable delete:', authError);
+      console.error('  Auth failed in deliverable delete:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -227,7 +227,7 @@ export async function DELETE(
       );
     }
 
-    console.log('✅ User authenticated for delete:', user.id);
+    console.log('  User authenticated for delete:', user.id);
 
     // Validate workspace access if workspaceId provided
     if (workspaceId) {
@@ -263,7 +263,7 @@ export async function DELETE(
     });
 
     if (!existingDeliverable) {
-      console.log('❌ Deliverable not found for delete:', params.id);
+      console.log('  Deliverable not found for delete:', params.id);
       return NextResponse.json(
         { 
           success: false,
@@ -281,7 +281,7 @@ export async function DELETE(
       }
     });
 
-    console.log('✅ Deliverable deleted successfully:', params.id);
+    console.log('  Deliverable deleted successfully:', params.id);
 
     return NextResponse.json({
       success: true,
@@ -289,7 +289,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('💥 Error in deliverable delete processing:', error);
+    console.error('  Error in deliverable delete processing:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error',

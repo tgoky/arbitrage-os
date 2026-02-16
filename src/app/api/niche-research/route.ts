@@ -9,7 +9,7 @@ import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
-// ✅ SIMPLIFIED AUTHENTICATION (from work-items route)
+//   SIMPLIFIED AUTHENTICATION (from work-items route)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -36,28 +36,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 export async function POST(req: NextRequest) {
-  console.log('🚀 Niche Research API Route called');
+  console.log(' Niche Research API Route called');
   
   try {
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in niche research:', authError);
+      console.error('  Auth failed in niche research:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -68,13 +68,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ PARSE REQUEST BODY FIRST
+    //   PARSE REQUEST BODY FIRST
     const body = await req.json();
     console.log('📥 Parsing request body...');
     
-    // ✅ GET WORKSPACE ID FROM BOTH SOURCES
+    //   GET WORKSPACE ID FROM BOTH SOURCES
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId') || body.workspaceId;
 
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // ✅ VALIDATE WORKSPACE ACCESS
+    //   VALIDATE WORKSPACE ACCESS
     const workspace = await prisma.workspace.findFirst({
       where: {
         id: workspaceId,
@@ -102,13 +102,13 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    console.log('✅ Using workspace:', workspace.id);
+    console.log('  Using workspace:', workspace.id);
 
-    // ✅ RATE LIMITING - 20 reports per day
+    //   RATE LIMITING - 20 reports per day
     console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(`niche_research:${user.id}`, 20, 86400); 
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     console.log('🔍 RECEIVED NICHE RESEARCH INPUT:', JSON.stringify(body, null, 2));
     console.log('🔍 INPUT KEYS:', Object.keys(body));
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
     const validation = validateNicheResearchInput(body);
         
     if (!validation.success) {
-      console.error('❌ VALIDATION FAILED:');
+      console.error('  VALIDATION FAILED:');
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
       
       return NextResponse.json(
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!validation.data) {
-      console.error('❌ Validation data is null');
+      console.error('  Validation data is null');
       return NextResponse.json(
         { 
           success: false,
@@ -166,9 +166,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('✅ Input validation passed');
+    console.log('  Input validation passed');
 
-    // ✅ GENERATE NICHE REPORT
+    //   GENERATE NICHE REPORT
     console.log('🤖 Starting niche research generation...');
     let result;
     try {
@@ -187,21 +187,21 @@ export async function POST(req: NextRequest) {
         skillsCount: researchInput.skills?.length || 0
       });
 
-      // ✅ USE VALIDATED WORKSPACE ID
+      //   USE VALIDATED WORKSPACE ID
       result = await nicheService.generateAndSaveNicheReport(
         researchInput, 
         user.id, 
         workspace.id // Use validated workspace
       );
 
-      console.log('✅ Report generated and saved:', {
+      console.log('  Report generated and saved:', {
         reportId: result.reportId,
         tokensUsed: result.report.tokensUsed,
         nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
       });
       
     } catch (serviceError) {
-      console.error('💥 Service error during generation:', serviceError);
+      console.error('  Service error during generation:', serviceError);
       console.error('Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       return NextResponse.json(
         { 
@@ -230,13 +230,13 @@ export async function POST(req: NextRequest) {
         }
       });
       
-      console.log('✅ Notification created for niche research:', result.reportId);
+      console.log('  Notification created for niche research:', result.reportId);
     } catch (notifError) {
       console.error('Failed to create notification:', notifError);
       // Don't fail the request if notification fails
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
           nicheName: result.report.niches[result.report.recommendedNiche]?.nicheOverview?.name
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected Niche Research API Error:', error);
+    console.error('  Unexpected Niche Research API Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -289,14 +289,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  console.log('🚀 Niche Research GET API Route called');
+  console.log(' Niche Research GET API Route called');
   
   try {
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in niche research GET:', authError);
+      console.error('  Auth failed in niche research GET:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -328,7 +328,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // ✅ VALIDATE WORKSPACE ACCESS if workspaceId provided
+    //   VALIDATE WORKSPACE ACCESS if workspaceId provided
     if (workspaceId) {
       const hasAccess = await prisma.workspace.findFirst({
         where: {
@@ -346,11 +346,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ✅ USE SERVICE METHOD WITH WORKSPACE FILTERING
+    //   USE SERVICE METHOD WITH WORKSPACE FILTERING
     const nicheService = new NicheResearcherService();
     const reports = await nicheService.getUserNicheReports(user.id, workspaceId || undefined);
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId: user.id,
@@ -376,7 +376,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Niche Reports Fetch Error:', error);
+    console.error('  Niche Reports Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,

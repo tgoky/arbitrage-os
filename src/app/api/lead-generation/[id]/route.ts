@@ -32,15 +32,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -54,13 +54,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Lead Generation Detail API called for ID:', params.id);
+  console.log(' Lead Generation Detail API called for ID:', params.id);
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       
       const response = NextResponse.json(
         { 
@@ -79,7 +79,7 @@ export async function GET(
       return response;
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
 
     // Get the specific lead generation
     const generation = await prisma.deliverable.findFirst({
@@ -128,7 +128,7 @@ export async function GET(
     const leads = parsedContent.leads || [];
     const metadata = generation.metadata as any;
 
-    console.log('✅ Found generation with', leads.length, 'leads');
+    console.log('  Found generation with', leads.length, 'leads');
 
     // FIX: Calculate accurate metrics from the actual leads
     const emailCount = leads.filter((lead: any) => 
@@ -203,7 +203,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Lead Generation Detail API Error:', error);
+    console.error('  Lead Generation Detail API Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -221,13 +221,13 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Lead Generation Delete API called for ID:', params.id);
+  console.log('Lead Generation Delete API called for ID:', params.id);
   
   try {
      const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -258,7 +258,7 @@ export async function DELETE(
       );
     }
 
-    console.log('✅ Deleted lead generation:', params.id);
+    console.log('  Deleted lead generation:', params.id);
 
     return NextResponse.json({
       success: true,
@@ -266,7 +266,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('💥 Lead Generation Delete Error:', error);
+    console.error('  Lead Generation Delete Error:', error);
     return NextResponse.json(
       { 
         success: false,

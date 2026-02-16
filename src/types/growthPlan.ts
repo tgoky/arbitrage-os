@@ -253,20 +253,20 @@ export interface GrowthPlanSuggestions {
 // Analytics types
 export interface GrowthPlanAnalytics {
   totalPlans: number;
-  plansThisMonth?: number;  // ✅ ADD: Plans in current timeframe
+  plansThisMonth?: number;  //   ADD: Plans in current timeframe
   industryDistribution: Record<string, number>;
   timeframeDistribution: Record<string, number>;
   timeframe: 'week' | 'month' | 'quarter';
   topIndustries: Array<{
     industry: string;
-    count: number;          // ✅ CHANGE: from 'plans' to 'count' to match service
-    percentage: number;     // ✅ ADD: Percentage of total
+    count: number;          //  CHANGE: from 'plans' to 'count' to match service
+    percentage: number;     //  ADD: Percentage of total
   }>;
-  averageMetrics?: {        // ✅ ADD: Average performance metrics
+  averageMetrics?: {        //  ADD: Average performance metrics
     tokensPerPlan: number;
     generationTime: number;
   };
-  plansByDate?: Array<{     // ✅ ADD: Data for charts
+  plansByDate?: Array<{     //  ADD: Data for charts
     date: string;
     count: number;
     cumulative: number;
@@ -276,7 +276,7 @@ export interface GrowthPlanAnalytics {
 
 
 // Service response types
-// ✅ Update service response to be more flexible
+//   Update service response to be more flexible
 export interface GrowthPlanServiceResponse<T = any> {
   success: boolean;
   data?: T;
@@ -285,11 +285,11 @@ export interface GrowthPlanServiceResponse<T = any> {
   meta?: {
     saved?: boolean;        // Indicates if plan was saved to DB
     temporary?: boolean;    // Indicates if this is a temporary generation
-    workspace?: string;     // ✅ ADD: Workspace name or ID
-    planId?: string;        // ✅ ADD: Plan ID for reference
-    tokensUsed?: number;    // ✅ ADD: Token usage info
-    generationTime?: number; // ✅ ADD: Generation time info
-    [key: string]: any;     // ✅ ADD: Allow additional meta fields
+    workspace?: string;     //   ADD: Workspace name or ID
+    planId?: string;        //   ADD: Plan ID for reference
+    tokensUsed?: number;    //   ADD: Token usage info
+    generationTime?: number; //   ADD: Generation time info
+    [key: string]: any;     //   ADD: Allow additional meta fields
   };
 }
 

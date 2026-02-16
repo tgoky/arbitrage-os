@@ -132,8 +132,8 @@ const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
         throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      console.log('✅ Checkout session created:', data.data.sessionId);
-      console.log('✅ Checkout URL:', data.data.url);
+      console.log('  Checkout session created:', data.data.sessionId);
+      console.log('  Checkout URL:', data.data.url);
 
       // Direct redirect to Stripe checkout URL instead of using Stripe JS
       if (data.data.url) {

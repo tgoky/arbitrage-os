@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
 
-// ✅ COPY THE SAME AUTHENTICATION FUNCTION FROM NICHE RESEARCHER
+//  COPY THE SAME AUTHENTICATION FUNCTION FROM NICHE RESEARCHER
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -31,15 +31,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error(' Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error(' Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -72,7 +72,7 @@ export async function GET(
 
     const content = JSON.parse(execution.content);
 
-    // ✅ SAFELY ACCESS METADATA.STATUS WITH PROPER TYPE GUARD
+    //   SAFELY ACCESS METADATA.STATUS WITH PROPER TYPE GUARD
     let statusValue = 'completed'; // Default fallback
     
     if (execution.metadata && typeof execution.metadata === 'object' && execution.metadata !== null) {

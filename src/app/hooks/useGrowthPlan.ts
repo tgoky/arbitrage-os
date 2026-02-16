@@ -26,7 +26,7 @@ interface UseGrowthPlanOptions {
 }
 
 export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
-  // ✅ FIXED: Mounted state tracking
+  //   FIXED: Mounted state tracking
     const { currentWorkspace } = useWorkspaceContext();
   const isMountedRef = useRef(true);
 
@@ -63,7 +63,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     }
   }, [abortController]);
 
-  // ✅ FIXED: fetchPlan DECLARED BEFORE generateGrowthPlan
+  //   FIXED: fetchPlan DECLARED BEFORE generateGrowthPlan
   const fetchPlan = useCallback(async (planId: string): Promise<SavedGrowthPlan | null> => {
     setLoading(true);
     setError(null);
@@ -96,7 +96,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     }
   }, []);
 
-  // ✅ FIXED: fetchPlans with isMounted checks
+  //   FIXED: fetchPlans with isMounted checks
   const fetchPlans = useCallback(async (filters?: {
     industry?: string;
     timeframe?: string;
@@ -146,7 +146,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     }
   }, [currentWorkspace?.id]); 
 
-  // ✅ FIXED: generateGrowthPlan with proper isMounted calls
+  //   FIXED: generateGrowthPlan with proper isMounted calls
   const generateGrowthPlan = useCallback(async (input: Omit<GrowthPlanInput, 'userId'>): Promise<GeneratedGrowthPlan | null> => {
         if (!currentWorkspace) {
       throw new Error('No workspace selected. Please access the growth plan creator from within a workspace.');
@@ -174,7 +174,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
     };
 
 
-      console.log('🚀 Generating growth plan with data:', {
+      console.log(' Generating growth plan with data:', {
         clientCompany: input.clientCompany,
         industry: input.industry,
         timeframe: input.timeframe
@@ -204,33 +204,33 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
       if (result.success && result.data && isMounted()) {
         const { planId, plan } = result.data;
         
-        // ✅ SUCCESS: Plan was generated and saved to database
+        //   SUCCESS: Plan was generated and saved to database
         notification.success({
           message: 'Growth Plan Created!',
           description: `Your growth plan for ${input.clientCompany} has been saved successfully.`,
           placement: 'topRight',
         });
         
-        console.log('✅ Plan created successfully:', {
+        console.log('  Plan created successfully:', {
           planId,
           saved: !!planId,
           tokensUsed: plan.tokensUsed
         });
 
-        // ✅ FIXED: Call isMounted as function
+        //   FIXED: Call isMounted as function
         if (planId && isMounted()) {
           console.log('🔄 Fetching full saved plan...');
           try {
             const savedPlan = await fetchPlan(planId);
             if (savedPlan && isMounted()) {
-              console.log('✅ Full plan loaded, setting as current');
+              console.log('  Full plan loaded, setting as current');
               setCurrentPlan(savedPlan);
             }
           } catch (fetchError) {
             console.warn('⚠️ Could not fetch saved plan, creating temporary:', fetchError);
             
             if (isMounted()) {
-              // ✅ Fallback: Create temporary plan object for viewing
+              //   Fallback: Create temporary plan object for viewing
               const tempPlan: SavedGrowthPlan = {
                 id: planId,
                 title: `Growth Plan - ${input.clientCompany}`,
@@ -261,7 +261,7 @@ export function useGrowthPlan(options: UseGrowthPlanOptions = {}) {
           console.warn('⚠️ No planId returned, plan may not have been saved');
         }
         
-        // ✅ Refresh the plans list
+        //   Refresh the plans list
         await fetchPlans();
         
         return plan;
@@ -538,7 +538,7 @@ console.log("Growth Plan API Response Body:", result); // <-- Add this
       }
 
       if (result.success && result.data && isMounted()) {
-        console.log('✅ Real analytics loaded successfully:');
+        console.log('  Real analytics loaded successfully:');
         console.log('- Total plans:', result.data.totalPlans);
         console.log('- Recent plans:', result.data.plansThisMonth);
         console.log('- Top industries:', result.data.topIndustries?.length);
@@ -708,7 +708,7 @@ console.log("Growth Plan API Response Body:", result); // <-- Add this
     }
   }, [options.autoFetch, fetchPlans]);
 
-  // ✅ FIXED: Analytics loading without dependencies issues
+  //   FIXED: Analytics loading without dependencies issues
   useEffect(() => {
     if (options.autoFetch) {
       fetchAnalytics('month').catch(error => {

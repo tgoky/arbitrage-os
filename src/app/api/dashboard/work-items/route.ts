@@ -15,7 +15,7 @@ interface WorkItem {
   rawData: any;
 }
 
-// ✅ FIXED: Simplified authentication that works for new users
+//   FIXED: Simplified authentication that works for new users
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -42,15 +42,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in work-items:', authError);
+      console.error('  Auth failed in work-items:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     console.log('🏢 Workspace requested:', workspaceId);
 
     // Validate workspace access if workspaceId provided
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Error in work-items processing:', error);
+    console.error('  Error in work-items processing:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error',

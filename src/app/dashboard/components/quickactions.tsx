@@ -18,6 +18,18 @@ interface QuickStartActionsProps {
   workspaceId?: string;
 }
 
+// Brand grayscale colors from the screenshot
+const brandColors = {
+  cloud: '#EDEFF7',    // Lightest - for highlights
+  smoke: '#D3D6E0',    // For borders/lines
+  steel: '#BCBFCC',    // For secondary elements
+  space: '#9DA2B3',    // For text/muted elements
+  graphite: '#6E7180', // For icons/accents
+  arsenic: '#40424D',  // For dark surfaces
+  phantom: '#1E1E24',  // For darker surfaces
+  black: '#000000',    // Pure black background
+};
+
 const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) => {
   const screens = useBreakpoint();
   const { theme } = useTheme();
@@ -53,20 +65,21 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     return names[type] || type;
   };
 
+  //   UPDATED: Using brand grayscale colors for type colors
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      'Sales Call Analysis': '#722ed1',
-      'Growth Plan': '#1890ff',
-      'Pricing Calculator': '#52c41a',
-      'Niche Research': '#fa8c16',
-      'Cold Email': '#eb2f96',
-      'Offer Creator': '#13c2c2',
-      'Ad Copy Writer': '#faad14',
-      'n8n Workflow': '#fa541c',
-      'Proposal': '#9254de',
-      'Lead Generation': '#52c41a'
+      'Sales Call Analysis': brandColors.cloud,     // Lightest
+      'Growth Plan': brandColors.smoke,             // Light
+      'Pricing Calculator': brandColors.steel,      // Medium-light
+      'Niche Research': brandColors.space,          // Medium
+      'Cold Email': brandColors.graphite,           // Medium-dark
+      'Offer Creator': brandColors.arsenic,         // Dark
+      'Ad Copy Writer': brandColors.phantom,        // Darker
+      'n8n Workflow': brandColors.graphite,         // Using graphite as accent
+      'Proposal': brandColors.space,                // Using space
+      'Lead Generation': brandColors.steel           // Using steel
     };
-    return colors[type] || '#666';
+    return colors[type] || brandColors.graphite;
   };
 
   // --- Data Processing ---
@@ -101,7 +114,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       .map(([month, count]) => ({
         month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
         count,
-        color: '#1890ff'
+        color: brandColors.cloud // Using cloud for line color
       }));
 
     return chartType === 'line' || chartType === 'area' ? lineData : barData;
@@ -119,11 +132,23 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
   // --- Premium Styling Constants ---
   const isDark = theme === 'dark';
   const fontFamily = "'Manrope', sans-serif";
-  const chartColors = ['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#eb2f96', '#13c2c2', '#faad14', '#fa541c', '#9254de'];
   
-  // ✅ CHANGED: Pure black background for dark mode
-  const backgroundColor = isDark ? '#000000' : '#ffffff';
-  const borderColor = isDark ? '#262626' : '#f0f0f0';
+  //   UPDATED: Using brand colors for chart gradients
+  const chartColors = [
+    brandColors.cloud,
+    brandColors.smoke,
+    brandColors.steel,
+    brandColors.space,
+    brandColors.graphite,
+    brandColors.arsenic,
+    brandColors.phantom,
+    brandColors.graphite,
+    brandColors.space
+  ];
+  
+  //   CHANGED: Pure black background for dark mode using brand color
+  const backgroundColor = isDark ? brandColors.black : '#ffffff';
+  const borderColor = isDark ? brandColors.phantom : '#f0f0f0'; // Using phantom for borders in dark mode
 
   // Card Styles
   const getMainCardStyles = () => ({
@@ -139,13 +164,15 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
     },
   });
 
-  // Tooltip Styles
+  //   ENHANCED: Premium tooltip styling with brand colors
   const tooltipStyle = {
-    backgroundColor: isDark ? '#141414' : 'rgba(255, 255, 255, 0.95)',
-    border: `1px solid ${isDark ? '#333' : '#f0f0f0'}`,
+    backgroundColor: isDark ? brandColors.phantom : 'rgba(255, 255, 255, 0.95)',
+    border: `1px solid ${isDark ? brandColors.graphite : '#f0f0f0'}`,
     borderRadius: '12px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-    color: isDark ? '#f9fafb' : '#1f2937',
+    boxShadow: isDark 
+      ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+      : '0 8px 32px rgba(0, 0, 0, 0.12)',
+    color: isDark ? brandColors.cloud : '#1f2937',
     padding: '8px 12px',
     fontFamily: fontFamily,
     fontSize: '12px',
@@ -154,7 +181,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
 
   const axisStyle = {
     fontSize: 11, 
-    fill: isDark ? '#6b7280' : '#6b7280', // Muted text for axes
+    fill: isDark ? brandColors.graphite : brandColors.space, // Using graphite/space for axes
     fontFamily: fontFamily,
     fontWeight: 500
   };
@@ -167,7 +194,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
           alignItems: 'center', 
           justifyContent: 'center', 
           height: 180,
-          color: isDark ? '#4b5563' : '#9ca3af',
+          color: isDark ? brandColors.graphite : brandColors.space,
           fontFamily: fontFamily,
           fontSize: '14px'
         }}>
@@ -191,19 +218,28 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
                 </linearGradient>
               ))}
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0f0f0'} strokeOpacity={0.5} />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              vertical={false} 
+              stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
+              strokeOpacity={0.5} 
+            />
             <XAxis 
               dataKey="name" 
               tick={axisStyle}
-              axisLine={false}
-              tickLine={false}
+              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
+              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
               dy={10}
               interval={0}
               tickFormatter={(val) => chartData.length > 8 ? val.substring(0, 3) : val}
             />
-            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis 
+              tick={axisStyle} 
+              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
+              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
+            />
             <Tooltip 
-              cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}
+              cursor={{ fill: isDark ? `rgba(237, 239, 247, 0.03)` : 'rgba(0,0,0,0.02)' }} // Using cloud with opacity
               contentStyle={tooltipStyle}
               itemStyle={{ color: 'inherit' }}
             />
@@ -219,17 +255,32 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       case 'line':
         chartContent = (
           <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0f0f0'} strokeOpacity={0.5} />
-            <XAxis dataKey="month" tick={axisStyle} axisLine={false} tickLine={false} dy={10} />
-            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              vertical={false} 
+              stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
+              strokeOpacity={0.5} 
+            />
+            <XAxis 
+              dataKey="month" 
+              tick={axisStyle} 
+              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
+              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
+              dy={10} 
+            />
+            <YAxis 
+              tick={axisStyle} 
+              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
+              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
+            />
             <Tooltip contentStyle={tooltipStyle} />
             <Line 
               type="monotone" 
               dataKey="count" 
-              stroke="#1890ff" 
+              stroke={brandColors.cloud} 
               strokeWidth={3}
-              dot={{ fill: isDark ? '#000' : '#fff', stroke: '#1890ff', strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, fill: '#1890ff', stroke: isDark ? '#000' : '#fff', strokeWidth: 2 }}
+              dot={{ fill: isDark ? brandColors.black : '#fff', stroke: brandColors.cloud, strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, fill: brandColors.cloud, stroke: isDark ? brandColors.black : '#fff', strokeWidth: 2 }}
             />
           </LineChart>
         );
@@ -240,18 +291,33 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#1890ff" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#1890ff" stopOpacity={0.05}/>
+                <stop offset="5%" stopColor={brandColors.cloud} stopOpacity={0.4}/>
+                <stop offset="95%" stopColor={brandColors.cloud} stopOpacity={0.05}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0f0f0'} strokeOpacity={0.5} />
-            <XAxis dataKey="month" tick={axisStyle} axisLine={false} tickLine={false} dy={10} />
-            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              vertical={false} 
+              stroke={isDark ? brandColors.phantom : '#f0f0f0'} 
+              strokeOpacity={0.5} 
+            />
+            <XAxis 
+              dataKey="month" 
+              tick={axisStyle} 
+              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
+              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
+              dy={10} 
+            />
+            <YAxis 
+              tick={axisStyle} 
+              axisLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke, strokeWidth: 1 }}
+              tickLine={{ stroke: isDark ? brandColors.steel : brandColors.smoke }}
+            />
             <Tooltip contentStyle={tooltipStyle} />
             <Area 
               type="monotone" 
               dataKey="count" 
-              stroke="#1890ff" 
+              stroke={brandColors.cloud} 
               fill="url(#colorGradient)" 
               strokeWidth={3}
             />
@@ -271,7 +337,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
               paddingAngle={4}
               dataKey="count"
               label={false}
-              stroke={isDark ? '#000' : '#fff'}
+              stroke={isDark ? brandColors.black : '#fff'}
               strokeWidth={2}
             >
               {chartData.map((entry, index) => (
@@ -284,7 +350,15 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
               verticalAlign="middle" 
               align="right"
               iconType="circle"
-              formatter={(value) => <span style={{ color: isDark ? '#9ca3af' : '#4b5563', fontFamily: fontFamily, fontSize: 12 }}>{value}</span>}
+              formatter={(value) => (
+                <span style={{ 
+                  color: isDark ? brandColors.smoke : brandColors.graphite, 
+                  fontFamily: fontFamily, 
+                  fontSize: 12 
+                }}>
+                  {value}
+                </span>
+              )}
             />
           </PieChart>
         );
@@ -357,18 +431,18 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              backgroundColor: isDark ? 'rgba(82, 196, 26, 0.2)' : '#e6f7ff',
+              backgroundColor: isDark ? brandColors.phantom : '#e6f7ff',
               padding: '6px',
               borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-               <CalendarOutlined style={{ color: '#52c41a', fontSize: '16px' }} /> 
+               <CalendarOutlined style={{ color: brandColors.cloud, fontSize: '16px' }} /> 
             </div>
             <Text strong style={{ 
               fontSize: '14px', 
-              color: isDark ? '#f3f4f6' : '#111827', 
+              color: isDark ? brandColors.cloud : brandColors.arsenic, 
               letterSpacing: '-0.01em',
               fontFamily: fontFamily 
             }}>
@@ -385,22 +459,25 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
                 fontFamily: fontFamily, 
                 borderRadius: '12px',
                 padding: '4px',
-                backgroundColor: isDark ? '#1f1f1f' : '#ffffff', // Slightly lighter than black for dropdown
-                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.1)'
+                backgroundColor: isDark ? brandColors.phantom : '#ffffff',
+                border: `1px solid ${isDark ? brandColors.steel : brandColors.smoke}`,
+                boxShadow: isDark 
+                  ? '0 4px 20px rgba(0,0,0,0.8)' 
+                  : '0 4px 20px rgba(0,0,0,0.1)'
               }}
               style={{ 
                 width: 130, 
                 fontFamily: fontFamily,
-                backgroundColor: isDark ? '#141414' : '#f9fafb', // Input bg
+                backgroundColor: isDark ? brandColors.arsenic : '#f9fafb',
                 borderRadius: '8px',
-                border: `1px solid ${isDark ? '#333' : 'transparent'}`
+                border: `1px solid ${isDark ? brandColors.steel : 'transparent'}`
               }}
-              suffixIcon={<span style={{ color: isDark ? '#9ca3af' : '#6b7280' }}>▼</span>}
+              suffixIcon={<span style={{ color: isDark ? brandColors.smoke : brandColors.graphite }}>▼</span>}
             >
-              <Option value="bar"><Space style={{ color: isDark ? '#d1d5db' : 'inherit' }}><BarChartOutlined /> Bar</Space></Option>
-              <Option value="line"><Space style={{ color: isDark ? '#d1d5db' : 'inherit' }}><LineChartOutlined /> Line</Space></Option>
-              <Option value="area"><Space style={{ color: isDark ? '#d1d5db' : 'inherit' }}><AreaChartOutlined /> Area</Space></Option>
-              <Option value="pie"><Space style={{ color: isDark ? '#d1d5db' : 'inherit' }}><PieChartOutlined /> Pie</Space></Option>
+              <Option value="bar"><Space style={{ color: isDark ? brandColors.cloud : 'inherit' }}><BarChartOutlined /> Bar</Space></Option>
+              <Option value="line"><Space style={{ color: isDark ? brandColors.cloud : 'inherit' }}><LineChartOutlined /> Line</Space></Option>
+              <Option value="area"><Space style={{ color: isDark ? brandColors.cloud : 'inherit' }}><AreaChartOutlined /> Area</Space></Option>
+              <Option value="pie"><Space style={{ color: isDark ? brandColors.cloud : 'inherit' }}><PieChartOutlined /> Pie</Space></Option>
             </Select>
           </Space>
         </div>
@@ -409,8 +486,10 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       style={{ 
         marginBottom: 24, 
         borderRadius: '16px', 
-        border: `1px solid ${borderColor}`,
-        boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.8)' : '0 4px 20px rgba(0,0,0,0.03)',
+        border: `1px solid ${isDark ? brandColors.steel : borderColor}`, // Premium steel border in dark mode
+        boxShadow: isDark 
+          ? '0 8px 32px rgba(0,0,0,0.8)' 
+          : '0 4px 20px rgba(0,0,0,0.03)',
         fontFamily: fontFamily,
         overflow: 'hidden',
         backgroundColor: backgroundColor
@@ -422,20 +501,22 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
           loading={isFetching}
           onClick={handleRefresh}
           style={{ 
-            color: '#52c41a', 
+            color: brandColors.cloud, 
             fontWeight: 600,
             fontFamily: fontFamily,
             fontSize: '13px',
-            backgroundColor: isDark ? 'rgba(82, 196, 26, 0.1)' : 'rgba(82, 196, 26, 0.05)',
+            backgroundColor: isDark ? brandColors.phantom : 'rgba(82, 196, 26, 0.05)',
             borderRadius: '8px',
-            border: '1px solid transparent',
+            border: `1px solid ${isDark ? brandColors.steel : 'transparent'}`,
             transition: 'all 0.3s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = isDark ? 'rgba(82, 196, 26, 0.2)' : 'rgba(82, 196, 26, 0.15)';
+            e.currentTarget.style.backgroundColor = isDark ? brandColors.arsenic : 'rgba(82, 196, 26, 0.15)';
+            e.currentTarget.style.borderColor = isDark ? brandColors.cloud : 'transparent';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = isDark ? 'rgba(82, 196, 26, 0.1)' : 'rgba(82, 196, 26, 0.05)';
+            e.currentTarget.style.backgroundColor = isDark ? brandColors.phantom : 'rgba(82, 196, 26, 0.05)';
+            e.currentTarget.style.borderColor = isDark ? brandColors.steel : 'transparent';
           }}
         >
           Refresh
@@ -451,19 +532,20 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
           flexDirection: 'column',
           gap: 16
         }}>
-
           <ConfigProvider
-  theme={{
-    token: {
-      colorPrimary: '#5CC49D',
-    },
-  }}
->
-      <Spin size="large" />
-</ConfigProvider>
-
-    
-          <Text style={{ color: isDark ? '#6b7280' : '#9ca3af', fontFamily: fontFamily, fontSize: '13px' }}>
+            theme={{
+              token: {
+                colorPrimary: brandColors.cloud,
+              },
+            }}
+          >
+            <Spin size="large" />
+          </ConfigProvider>
+          <Text style={{ 
+            color: isDark ? brandColors.graphite : brandColors.space, 
+            fontFamily: fontFamily, 
+            fontSize: '13px' 
+          }}>
             Gathering data...
           </Text>
         </div>

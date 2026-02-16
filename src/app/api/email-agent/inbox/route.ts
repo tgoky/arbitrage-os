@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 
-// ✅ ROBUST AUTHENTICATION (same pattern as n8n and lead gen)
+//   ROBUST AUTHENTICATION (same pattern as n8n and lead gen)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -31,28 +31,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 // GET /api/email-agent/inbox - Fetch inbound emails
 export async function GET(req: NextRequest) {
-  console.log('🚀 Email Agent Inbox API called');
+  console.log(' Email Agent Inbox API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required' 
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    console.log(`✅ Found ${inboundEmails.length} inbound emails`);
+    console.log(`  Found ${inboundEmails.length} inbound emails`);
 
     return NextResponse.json({
       success: true,
@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Fetch inbox error:', error);
+    console.error('  Fetch inbox error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -133,13 +133,13 @@ export async function GET(req: NextRequest) {
 
 // POST /api/email-agent/inbox/process - Manually trigger inbound email processing
 export async function POST(req: NextRequest) {
-  console.log('🚀 Email Agent Process Inbox API called');
+  console.log(' Email Agent Process Inbox API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required' 
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
     
     const result = await agent.processInboundEmails(emailAccountId, workspaceId);
 
-    console.log(`✅ Processed ${result.processed} inbound emails`);
+    console.log(`  Processed ${result.processed} inbound emails`);
 
     return NextResponse.json({
       success: true,
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Process inbox error:', error);
+    console.error('  Process inbox error:', error);
     return NextResponse.json(
       { 
         success: false,

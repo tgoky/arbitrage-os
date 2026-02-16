@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { EmailConnectionService } from '@/services/emailConnection.service';
 
-// ✅ ROBUST AUTHENTICATION (same pattern as n8n and lead gen)
+//   ROBUST AUTHENTICATION (same pattern as n8n and lead gen)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -31,28 +31,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 // GET /api/email-agent/accounts - List connected Gmail accounts
 export async function GET(req: NextRequest) {
-  console.log('🚀 Email Agent Accounts API called');
+  console.log(' Email Agent Accounts API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required' 
@@ -71,11 +71,11 @@ export async function GET(req: NextRequest) {
 
     console.log(`📧 Fetching email accounts for workspace: ${workspaceId}`);
 
-    // ✅ Use EmailConnectionService (matches your existing code)
+    //   Use EmailConnectionService (matches your existing code)
     const emailService = new EmailConnectionService();
     const accounts = await emailService.getWorkspaceEmailAccounts(workspaceId);
 
-    console.log(`✅ Found ${accounts.length} email accounts`);
+    console.log(`  Found ${accounts.length} email accounts`);
 
     return NextResponse.json({
       success: true,
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Fetch accounts error:', error);
+    console.error('  Fetch accounts error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -100,13 +100,13 @@ export async function GET(req: NextRequest) {
 
 // POST /api/email-agent/accounts - Connect Gmail via OAuth (callback handler)
 export async function POST(req: NextRequest) {
-  console.log('🚀 Email Agent Connect Gmail API called');
+  console.log(' Email Agent Connect Gmail API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json({ 
         success: false,
         error: 'Authentication required' 
@@ -125,11 +125,11 @@ export async function POST(req: NextRequest) {
 
     console.log(`📧 Connecting Gmail account for workspace: ${workspaceId}`);
 
-    // ✅ Use EmailConnectionService.connectGmail (matches your existing code)
+    //   Use EmailConnectionService.connectGmail (matches your existing code)
     const emailService = new EmailConnectionService();
     const result = await emailService.connectGmail(user.id, workspaceId, authCode);
 
-    console.log(`✅ Gmail account connected: ${result.account.email}`);
+    console.log(`  Gmail account connected: ${result.account.email}`);
 
     return NextResponse.json({
       success: true,
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Connect Gmail error:', error);
+    console.error('  Connect Gmail error:', error);
     return NextResponse.json(
       { 
         success: false,

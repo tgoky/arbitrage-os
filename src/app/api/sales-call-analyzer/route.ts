@@ -36,15 +36,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -97,7 +97,7 @@ function createAuthErrorResponse() {
 // app/api/sales-call-analyzer/route.ts - ADD DETAILED LOGGING
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Sales Call Analyzer API Route called');
+  console.log(' Sales Call Analyzer API Route called');
   console.log('📍 Request URL:', request.url);
   console.log('📍 Request method:', request.method);
   
@@ -106,11 +106,11 @@ export async function POST(request: NextRequest) {
       const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
 
     // Parse body
     let body;
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       console.log('📦 Body call type:', body.callType);
       console.log('📦 Body transcript length:', body.transcript?.length);
     } catch (parseError) {
-      console.error('❌ JSON parse error:', parseError);
+      console.error('  JSON parse error:', parseError);
       return NextResponse.json({
         success: false,
         error: 'Invalid JSON in request body',
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     console.log('🏢 Final workspace ID:', workspaceId);
     
     if (!workspaceId) {
-      console.error('❌ No workspace ID provided');
+      console.error('  No workspace ID provided');
       return NextResponse.json({ 
         error: 'Workspace ID required. Please ensure you are accessing this from within a workspace.',
         code: 'WORKSPACE_ID_REQUIRED',
@@ -158,13 +158,13 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Validating workspace access...');
     const hasAccess = await validateWorkspaceAccess(user.id, workspaceId);
     if (!hasAccess) {
-      console.error('❌ Workspace access denied');
+      console.error('  Workspace access denied');
       return NextResponse.json({ 
         error: 'Workspace not found or access denied.',
         code: 'WORKSPACE_ACCESS_DENIED'
       }, { status: 403 });
     }
-    console.log('✅ Workspace access validated');
+    console.log('  Workspace access validated');
 
     // Rate limiting
     console.log('🔍 Checking rate limits...');
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     );
     
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded');
+      console.log('  Rate limit exceeded');
       return NextResponse.json({
         success: false,
         error: 'Too many analysis requests. Please try again later.',
@@ -185,21 +185,21 @@ export async function POST(request: NextRequest) {
         }
       }, { status: 429 });
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     // Validate input
     console.log('🔍 Validating input...');
     const validation = validateSalesCallInput(body);
     
     if (!validation.success) {
-      console.error('❌ Input validation failed:', validation.errors);
+      console.error('  Input validation failed:', validation.errors);
       return NextResponse.json({
         success: false,
         error: 'Invalid input', 
         data: validation.errors 
       }, { status: 400 });
     }
-    console.log('✅ Input validation passed');
+    console.log('  Input validation passed');
 
     // Get workspace
     console.log('🔍 Fetching workspace from database...');
@@ -214,16 +214,16 @@ export async function POST(request: NextRequest) {
       });
 
       if (!workspace) {
-        console.error('❌ Workspace not found in database');
+        console.error('  Workspace not found in database');
         return NextResponse.json({ 
           error: 'Workspace not found.',
           code: 'WORKSPACE_NOT_FOUND'
         }, { status: 404 });
       }
-      console.log('✅ Workspace found:', workspace.name);
+      console.log('  Workspace found:', workspace.name);
     } catch (dbError) {
-      console.error('💥 Database error getting workspace:', dbError);
-      console.error('💥 DB Error stack:', dbError instanceof Error ? dbError.stack : 'No stack');
+      console.error('  Database error getting workspace:', dbError);
+      console.error('  DB Error stack:', dbError instanceof Error ? dbError.stack : 'No stack');
       return NextResponse.json({
         success: false,
         error: 'Database error. Please try again.',
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
       // Analyze
       console.log('🔍 Calling analyzerService.analyzeCall...');
       analysisPackage = await analyzerService.analyzeCall(analysisInput);
-      console.log('✅ Analysis completed');
+      console.log('  Analysis completed');
       console.log('📊 Tokens used:', analysisPackage.tokensUsed);
       console.log('⏱️ Processing time:', analysisPackage.processingTime, 'ms');
       
@@ -259,13 +259,13 @@ export async function POST(request: NextRequest) {
         analysisPackage,
         analysisInput
       );
-      console.log('✅ Analysis saved with ID:', deliverableId);
+      console.log('  Analysis saved with ID:', deliverableId);
       
     } catch (serviceError) {
-      console.error('💥 Service error during analysis:', serviceError);
-      console.error('💥 Service error name:', serviceError instanceof Error ? serviceError.name : 'Unknown');
-      console.error('💥 Service error message:', serviceError instanceof Error ? serviceError.message : 'Unknown');
-      console.error('💥 Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
+      console.error('  Service error during analysis:', serviceError);
+      console.error('  Service error name:', serviceError instanceof Error ? serviceError.name : 'Unknown');
+      console.error('  Service error message:', serviceError instanceof Error ? serviceError.message : 'Unknown');
+      console.error('  Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       
       // Check if it's an OpenRouter API error
       if (serviceError instanceof Error && serviceError.message.includes('OpenRouter')) {
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
           sentiment: analysisPackage.callResults.analysis.sentiment
         }
       });
-      console.log('✅ Notification created');
+      console.log('  Notification created');
     } catch (notifError) {
       console.error('⚠️ Failed to create notification (non-critical):', notifError);
     }
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
           sentiment: analysisPackage.callResults.analysis.sentiment
         }
       });
-      console.log('✅ Usage logged');
+      console.log('  Usage logged');
     } catch (logError) {
       console.error('⚠️ Usage logging failed (non-critical):', logError);
     }
@@ -346,10 +346,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 UNEXPECTED ERROR IN API ROUTE:', error);
-    console.error('💥 Error type:', error?.constructor?.name);
-    console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
-    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('  UNEXPECTED ERROR IN API ROUTE:', error);
+    console.error('  Error type:', error?.constructor?.name);
+    console.error('  Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('  Error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json({
       success: false,
@@ -361,18 +361,18 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 Sales Call Analyzer GET API Route called');
+  console.log(' Sales Call Analyzer GET API Route called');
   
   try {
     // USE ROBUST AUTHENTICATION
    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in sales call analyzer GET:', authError);
+      console.error('  Auth failed in sales call analyzer GET:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Sales Call Analyzer GET user authenticated successfully:', user.id);
+    console.log('  Sales Call Analyzer GET user authenticated successfully:', user.id);
 
     // RATE LIMITING for list fetches
     const rateLimitResult = await rateLimit(
@@ -382,7 +382,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Sales call list rate limit exceeded for user:', user.id);
+      console.log('  Sales call list rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -420,9 +420,9 @@ export async function GET(request: NextRequest) {
         user.id,
         workspaceId || undefined
       );
-      console.log('✅ Retrieved', analyses.length, 'sales call analyses');
+      console.log('  Retrieved', analyses.length, 'sales call analyses');
     } catch (serviceError) {
-      console.error('💥 Error fetching sales call analyses:', serviceError);
+      console.error('  Error fetching sales call analyses:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -446,12 +446,12 @@ export async function GET(request: NextRequest) {
           action: 'list'
         }
       });
-      console.log('✅ Sales call analysis list usage logged successfully');
+      console.log('  Sales call analysis list usage logged successfully');
     } catch (logError) {
       console.error('⚠️ Sales call analysis list usage logging failed (non-critical):', logError);
     }
 
-    console.log('✅ Sales call analyses GET request completed successfully');
+    console.log('  Sales call analyses GET request completed successfully');
     return NextResponse.json({
       success: true,
       data: analyses,
@@ -462,7 +462,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected Sales Call Analyzer GET API Error:', error);
+    console.error('  Unexpected Sales Call Analyzer GET API Error:', error);
     console.error('Sales call analyzer GET error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

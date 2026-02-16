@@ -19,7 +19,7 @@ const templateSchema = z.object({
   isPublic: z.boolean().optional()
 });
 
-// ✅ Robust authentication function (same as main route)
+//   Robust authentication function (same as main route)
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
@@ -47,15 +47,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -68,13 +68,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Template [id] GET API Route called for ID:', params.id);
+    console.log(' Template [id] GET API Route called for ID:', params.id);
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in template [id] GET:', authError);
+      console.error('  Auth failed in template [id] GET:', authError);
       
       const response = NextResponse.json(
         { 
@@ -94,9 +94,9 @@ export async function GET(
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting - 50 individual template fetches per minute
+    //   Add rate limiting - 50 individual template fetches per minute
     const rateLimitResult = await rateLimit(user.id, 50, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -126,7 +126,7 @@ export async function GET(
       );
     }
 
-    // ✅ Log template fetch usage
+    //   Log template fetch usage
     await logUsage({
       userId: user.id,
       feature: 'template_fetch_single',
@@ -146,7 +146,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Template Fetch Error:', error);
+    console.error('  Template Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -163,13 +163,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Template [id] PUT API Route called for ID:', params.id);
+    console.log(' Template [id] PUT API Route called for ID:', params.id);
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in template [id] PUT:', authError);
+      console.error('  Auth failed in template [id] PUT:', authError);
       
       const response = NextResponse.json(
         { 
@@ -189,9 +189,9 @@ export async function PUT(
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting - 20 template updates per minute
+    //   Add rate limiting - 20 template updates per minute
     const rateLimitResult = await rateLimit(user.id, 20, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -234,7 +234,7 @@ export async function PUT(
       );
     }
 
-    // ✅ Log template update usage
+    //   Log template update usage
     await logUsage({
       userId: user.id,
       feature: 'template_update',
@@ -255,7 +255,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('💥 Template Update Error:', error);
+    console.error('  Template Update Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -272,13 +272,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Template [id] DELETE API Route called for ID:', params.id);
+    console.log(' Template [id] DELETE API Route called for ID:', params.id);
     
-    // ✅ Use robust authentication
+    //   Use robust authentication
 const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in template [id] DELETE:', authError);
+      console.error('  Auth failed in template [id] DELETE:', authError);
       
       const response = NextResponse.json(
         { 
@@ -298,9 +298,9 @@ const { user, error: authError } = await getAuthenticatedUser();
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting - 10 template deletions per minute
+    //  Add rate limiting - 10 template deletions per minute
     const rateLimitResult = await rateLimit(user.id, 10, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -327,7 +327,7 @@ const { user, error: authError } = await getAuthenticatedUser();
       );
     }
 
-    // ✅ Log template deletion usage
+    //  Log template deletion usage
     await logUsage({
       userId: user.id,
       feature: 'template_delete',
@@ -347,7 +347,7 @@ const { user, error: authError } = await getAuthenticatedUser();
     });
 
   } catch (error) {
-    console.error('💥 Template Delete Error:', error);
+    console.error('  Template Delete Error:', error);
     return NextResponse.json(
       { 
         success: false,

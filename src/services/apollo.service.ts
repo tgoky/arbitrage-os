@@ -508,7 +508,7 @@ export class EnhancedGlobalApolloService {
   };
   totalFound?: number;
 }> {
-    console.log('🚀 Starting GLOBAL lead generation for user:', userId);
+    console.log(' Starting GLOBAL lead generation for user:', userId);
     
     const userCredits = await this.creditsService.getUserCredits(userId);
     const costInfo = await this.creditsService.calculateCost(
@@ -537,7 +537,7 @@ export class EnhancedGlobalApolloService {
       response = await this.generateLeads(input);
       
     } catch (error) {
-      console.error('❌ Lead generation failed:', error);
+      console.error('  Lead generation failed:', error);
       throw error;
     }
     
@@ -560,7 +560,7 @@ export class EnhancedGlobalApolloService {
       deliverableId
     );
 
-    console.log('✅ Global lead generation completed:', {
+    console.log('  Global lead generation completed:', {
       leadsGenerated: actualLeadCount,
       creditsDeducted: creditInfo.creditsDeducted,
       remainingCredits: creditInfo.remainingCredits,
@@ -593,7 +593,7 @@ return {
     try {
       const cached = await this.redis.get(cacheKey);
       if (cached && typeof cached === 'string') {
-        console.log('✅ Found cached global results');
+        console.log('  Found cached global results');
         const cachedResult = JSON.parse(cached);
         return {
           ...cachedResult,
@@ -624,7 +624,7 @@ return {
         const result = await strategy.fn();
         
         if (result.leads.length > 0) {
-          console.log(`✅ ${strategy.name} succeeded with ${result.leads.length} leads`);
+          console.log(`  ${strategy.name} succeeded with ${result.leads.length} leads`);
           
           // Cache successful results
           try {
@@ -646,7 +646,7 @@ return {
         }
         
       } catch (error) {
-        console.error(`❌ ${strategy.name} failed:`, error);
+        console.error(`  ${strategy.name} failed:`, error);
         lastError = error instanceof Error ? error : new Error('Unknown error');
         
         // Critical errors should stop all strategies
@@ -671,7 +671,7 @@ return {
   private enhanceCriteriaWithGlobalIntelligence(criteria: LeadGenerationCriteria): any {
   const enhanced: any = { ...criteria };
   
-  // ✅ FIXED: Properly combine all location inputs
+  //   FIXED: Properly combine all location inputs
   const allLocationInputs = [
     ...(criteria.country || []),
     ...(criteria.state || []),
@@ -1008,7 +1008,7 @@ private async executeMultiIndustryMixedSearch(criteria: any): Promise<LeadGenera
         
         allLeads.push(...taggedLeads);
         totalFound += industryResponse.totalFound || industryResponse.leads.length;
-        console.log(`✅ Found ${industryResponse.leads.length} leads for ${industry}`);
+        console.log(`  Found ${industryResponse.leads.length} leads for ${industry}`);
       } else {
         console.log(`⚠️ No leads found for ${industry}`);
       }
@@ -1022,14 +1022,14 @@ private async executeMultiIndustryMixedSearch(criteria: any): Promise<LeadGenera
       }
       
     } catch (error) {
-      console.error(`❌ Failed to search ${industry}:`, error);
+      console.error(`  Failed to search ${industry}:`, error);
       // Continue with next industry instead of failing entirely
       continue;
     }
   }
   
   if (allLeads.length === 0) {
-    console.log('❌ No leads found across all industries');
+    console.log('  No leads found across all industries');
     // Fall back to original search strategy
     console.log('🔄 Falling back to original precision search...');
     return await this.executeOriginalPrecisionSearch(criteria);
@@ -1288,7 +1288,7 @@ private async executeContinentalBroadcast(criteria: any): Promise<LeadGeneration
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ ${strategy} Apollo API error:`, {
+        console.error(`  ${strategy} Apollo API error:`, {
           status: response.status,
           statusText: response.statusText,
           body: errorText.substring(0, 500)
@@ -1332,7 +1332,7 @@ private async executeContinentalBroadcast(criteria: any): Promise<LeadGeneration
       };
 
     } catch (error) {
-      console.error(`💥 ${strategy} Apollo API call failed:`, error);
+      console.error(`  ${strategy} Apollo API call failed:`, error);
       throw error;
     }
   }
@@ -1342,11 +1342,11 @@ private async executeContinentalBroadcast(criteria: any): Promise<LeadGeneration
     const contacts = data.people || data.contacts || [];
     
     if (!Array.isArray(contacts) || contacts.length === 0) {
-      console.log('❌ No contacts found in Apollo response');
+      console.log('  No contacts found in Apollo response');
       return [];
     }
 
-    console.log(`✅ Processing ${contacts.length} contacts from Apollo`);
+    console.log(`  Processing ${contacts.length} contacts from Apollo`);
 
     const processedLeads = contacts
       .filter(contact => this.isValidGlobalContact(contact))

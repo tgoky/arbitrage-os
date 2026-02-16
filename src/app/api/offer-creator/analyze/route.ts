@@ -16,7 +16,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Enhanced authentication function (matches other routes)
+//   Enhanced authentication function (matches other routes)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -43,15 +43,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -103,13 +103,13 @@ function getIndustryBenchmark(industry: string) {
 // POST method for analyzing signature offers
 export async function POST(req: NextRequest) {
   try {
-    console.log('🚀 Signature Offer Analysis API called');
+    console.log(' Signature Offer Analysis API called');
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
       const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in offer analysis:', authError);
+      console.error('  Auth failed in offer analysis:', authError);
       
       const response = NextResponse.json(
         { 
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for analysis requests
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
       RATE_LIMITS.ANALYSIS.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     // Parse and validate request body
     console.log('📥 Parsing analysis request...');
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
     console.log('🔍 Starting validation...');
     const validation = validateOfferCreatorInput(inputWithUserId);
     if (!validation.success) {
-      console.error('❌ VALIDATION FAILED:');
+      console.error('  VALIDATION FAILED:');
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
       return NextResponse.json(
         { 
@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!validation.data) {
-      console.error('❌ Validation data is null');
+      console.error('  Validation data is null');
       return NextResponse.json(
         { 
           success: false,
@@ -220,20 +220,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('✅ Input validation passed');
+    console.log('  Input validation passed');
 
-    // ✅ Perform signature offer analysis
+    //   Perform signature offer analysis
     console.log('🔍 Starting signature offer analysis...');
     let businessValidation: BusinessRulesValidation;
     try {
       businessValidation = validateOfferBusinessRules(validation.data);
-      console.log('✅ Business rules analysis completed');
+      console.log('  Business rules analysis completed');
       console.log('📊 Analysis results:');
       console.log('- Conversion score:', businessValidation.conversionPrediction.score);
       console.log('- Warnings:', businessValidation.warnings.length);
       console.log('- Suggestions:', businessValidation.suggestions.length);
     } catch (analysisError) {
-      console.error('💥 Error during analysis:', analysisError);
+      console.error('  Error during analysis:', analysisError);
       return NextResponse.json(
         { 
           success: false,
@@ -352,7 +352,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ✅ Log usage for signature offer analysis
+    //   Log usage for signature offer analysis
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -373,7 +373,7 @@ export async function POST(req: NextRequest) {
           hasStrongDifferentiation: validation.data.voice.differentiators.length >= 3
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -418,7 +418,7 @@ export async function POST(req: NextRequest) {
     } as ApiResponse<any>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Analysis Error:', error);
+    console.error('  Unexpected Signature Offer Analysis Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

@@ -32,22 +32,22 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 // POST: Create new email campaign
 export async function POST(req: NextRequest) {
-  console.log('🚀 Email Campaign Create API called');
+  console.log(' Email Campaign Create API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     let validLeads: any[] = [];
     const leadGenerationMap: { [leadId: string]: string } = {};
 
-    // ✅ HANDLE MANUAL ENTRY WITH PROPER UUIDs AND SMART COMPANY EXTRACTION
+    //   HANDLE MANUAL ENTRY WITH PROPER UUIDs AND SMART COMPANY EXTRACTION
     if (isManualEntry && manualLeadData) {
       console.log('📝 Processing manual lead entry with UUIDs...');
       
@@ -118,12 +118,12 @@ export async function POST(req: NextRequest) {
         
         if (email && email.includes('@')) {
           const name = parts[1] || email.split('@')[0];
-          const providedCompany = parts[2];  // ✅ User-provided company name
+          const providedCompany = parts[2];  //   User-provided company name
           
           const [firstName, ...lastNameParts] = name.split(' ');
           const lastName = lastNameParts.join(' ') || '';
           
-          // ✅ SMART COMPANY EXTRACTION (avoids "gmail" problem)
+          //   SMART COMPANY EXTRACTION (avoids "gmail" problem)
           const emailDomain = email.split('@')[1]?.split('.')[0] || '';
           const isGenericDomain = ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'protonmail'].includes(emailDomain.toLowerCase());
           
@@ -131,13 +131,13 @@ export async function POST(req: NextRequest) {
           let companyName = providedCompany;
           if (!companyName) {
             if (isGenericDomain) {
-              companyName = 'their company';  // ✅ Generic placeholder instead of "gmail"
+              companyName = 'their company';  //   Generic placeholder instead of "gmail"
             } else {
               companyName = emailDomain.charAt(0).toUpperCase() + emailDomain.slice(1);
             }
           }
           
-          // ✅ Generate proper UUID for manual leads
+          //   Generate proper UUID for manual leads
           const leadUUID = randomUUID();
           
           validLeads.push({
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
             email: email,
             first_name: firstName,
             last_name: lastName,
-            company: companyName,  // ✅ FIXED: No more "gmail" as company
+            company: companyName,  //   FIXED: No more "gmail" as company
             title: 'Contact',
             job_title: 'Contact',
             industry: 'Unknown',
@@ -161,10 +161,10 @@ export async function POST(req: NextRequest) {
         }
       });
       
-      console.log(`✅ Processed ${validLeads.length} manual leads with proper UUIDs and company names`);
+      console.log(`  Processed ${validLeads.length} manual leads with proper UUIDs and company names`);
       
     } else {
-      // ✅ HANDLE LEAD GENERATION IMPORT
+      //   HANDLE LEAD GENERATION IMPORT
       console.log('🔍 Validating leads from deliverables...');
       
       const deliverables = await prisma.deliverable.findMany({
@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
         }
       });
       
-      console.log(`✅ Validated ${validLeads.length} leads from deliverables`);
+      console.log(`  Validated ${validLeads.length} leads from deliverables`);
     }
 
     if (validLeads.length === 0) {
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // ✅ Create campaign with validated leads stored in metadata
+    //   Create campaign with validated leads stored in metadata
     const { EmailCampaignAgent } = await import('@/services/emailCampaignAgent.service');
     const agent = new EmailCampaignAgent();
     
@@ -259,7 +259,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Create campaign error:', error);
+    console.error('  Create campaign error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -272,7 +272,7 @@ export async function POST(req: NextRequest) {
 
 // GET: Fetch all campaigns
 export async function GET(req: NextRequest) {
-  console.log('🚀 Email Campaigns List API called');
+  console.log(' Email Campaigns List API called');
   
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -343,7 +343,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('💥 Fetch campaigns error:', error);
+    console.error('  Fetch campaigns error:', error);
     return NextResponse.json(
       { 
         success: false,

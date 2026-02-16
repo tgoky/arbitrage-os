@@ -16,19 +16,19 @@ export function useColdEmail() {
   const [error, setError] = useState<string | null>(null);
     const { currentWorkspace } = useWorkspaceContext(); // ADD THIS
 
-  // ✅ Simplified API call (same as pricing calculator)
-// ✅ Enhanced handleApiCall with token refresh and better auth handling
+  //   Simplified API call (same as pricing calculator)
+//   Enhanced handleApiCall with token refresh and better auth handling
 const handleApiCall = async <T>(
   url: string, 
   options: RequestInit,
   errorMessage: string = 'Operation failed'
 ): Promise<T> => {
   try {
-    console.log(`🚀 handleApiCall starting for: ${url}`);
-    console.log(`🚀 Method: ${options.method}`);
-    console.log(`🚀 Body preview:`, options.body?.toString().substring(0, 200));
+    console.log(` handleApiCall starting for: ${url}`);
+    console.log(` Method: ${options.method}`);
+    console.log(` Body preview:`, options.body?.toString().substring(0, 200));
     
-    // ✅ Add Supabase client and token refresh
+    //   Add Supabase client and token refresh
     let authHeaders = {};
     
     try {
@@ -46,7 +46,7 @@ const handleApiCall = async <T>(
         authHeaders = {
           'Authorization': `Bearer ${session.access_token}`
         };
-        console.log('✅ Added auth token');
+        console.log('  Added auth token');
       } else {
         console.warn('⚠️ No active session found');
       }
@@ -69,7 +69,7 @@ const handleApiCall = async <T>(
     console.log(`📡 Response ok: ${response.ok}`);
 
     if (!response.ok) {
-      console.error('❌ Response not ok');
+      console.error('  Response not ok');
       
       let errorData;
       try {
@@ -83,7 +83,7 @@ const handleApiCall = async <T>(
           errorData = { error: errorText };
         }
       } catch (readError) {
-        console.error('❌ Could not read error response:', readError);
+        console.error('  Could not read error response:', readError);
         errorData = { error: 'Unknown error' };
       }
       
@@ -105,21 +105,21 @@ const handleApiCall = async <T>(
       console.log('📄 Parsed data keys:', Object.keys(data));
       console.log('📄 Success flag:', data.success);
     } catch (parseError) {
-      console.error('❌ Parse error:', parseError);
+      console.error('  Parse error:', parseError);
       throw new Error('Invalid response format from server');
     }
     
     if (!data.success) {
-      console.error('❌ API returned success: false');
-      console.error('❌ Error from API:', data.error);
+      console.error('  API returned success: false');
+      console.error('  Error from API:', data.error);
       throw new Error(data.error || errorMessage);
     }
 
-    console.log('✅ API call successful');
-    console.log('✅ Returning data:', data.data);
+    console.log('  API call successful');
+    console.log('  Returning data:', data.data);
     return data.data;
   } catch (err) {
-    console.error(`💥 handleApiCall error:`, err);
+    console.error(`  handleApiCall error:`, err);
     throw err;
   }
 };
@@ -135,10 +135,10 @@ const generateEmails = useCallback(async (input: ColdEmailGenerationInput): Prom
   setError(null);
   
   try {
-    console.log('🚀 generateEmails called with input:', input);
-    console.log('🚀 Input keys:', Object.keys(input));
-    console.log('🚀 Input firstName:', input.firstName);
-    console.log('🚀 Input method:', input.method);
+    console.log('generateEmails called with input:', input);
+    console.log('Input keys:', Object.keys(input));
+    console.log('Input firstName:', input.firstName);
+    console.log('Input method:', input.method);
     // MODIFY REQUEST TO INCLUDE WORKSPACE ID
       const requestData = {
         ...input,
@@ -157,30 +157,30 @@ const generateEmails = useCallback(async (input: ColdEmailGenerationInput): Prom
       'Failed to generate emails'
     );
 
-    console.log('✅ handleApiCall returned successfully');
-    console.log('✅ Response type:', typeof response);
-    console.log('✅ Response:', response);
-    console.log('✅ Response has emails:', !!response.emails);
-    console.log('✅ Email count:', response.emails?.length || 0);
+    console.log('  handleApiCall returned successfully');
+    console.log('  Response type:', typeof response);
+    console.log('  Response:', response);
+    console.log('  Response has emails:', !!response.emails);
+    console.log('  Email count:', response.emails?.length || 0);
 
-    // ✅ Extract emails from the nested response structure
+    //   Extract emails from the nested response structure
     const emails = response.emails || [];
     
     if (emails.length === 0) {
-      console.error('❌ No emails in response');
+      console.error('  No emails in response');
       throw new Error('No emails were generated');
     }
 
-    console.log('✅ About to return emails:', emails);
+    console.log('  About to return emails:', emails);
     message.success('Emails generated successfully!');
     return emails;
   } catch (err) {
-    console.error('❌ Generate emails error:', err);
-    console.error('❌ Error type:', typeof err);
-    console.error('❌ Error instanceof Error:', err instanceof Error);
+    console.error('  Generate emails error:', err);
+    console.error('  Error type:', typeof err);
+    console.error('  Error instanceof Error:', err instanceof Error);
     
     const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-    console.error('❌ Final error message:', errorMessage);
+    console.error('  Final error message:', errorMessage);
     
     setError(errorMessage);
     message.error(errorMessage);

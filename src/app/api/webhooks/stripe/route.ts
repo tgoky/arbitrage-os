@@ -21,14 +21,14 @@ export async function POST(req: NextRequest) {
     try {
       event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
     } catch (err) {
-      console.error('❌ Webhook signature verification failed:', err);
+      console.error('  Webhook signature verification failed:', err);
       return NextResponse.json(
         { error: 'Webhook signature verification failed' },
         { status: 400 }
       );
     }
 
-    console.log('✅ Webhook event type:', event.type);
+    console.log('  Webhook event type:', event.type);
 
     // Handle successful payment
     if (event.type === 'checkout.session.completed') {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const packageName = session.metadata?.package_name;
 
       if (!userId || !packageId || !credits) {
-        console.error('❌ Missing required data in webhook:', {
+        console.error('  Missing required data in webhook:', {
           userId,
           packageId,
           credits
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
           `Stripe purchase: ${packageName} (${credits} credits)`
         );
 
-        console.log('✅ Credits added successfully:', {
+        console.log('  Credits added successfully:', {
           userId,
           credits,
           packageName,
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         // No need to send custom emails here
 
       } catch (error) {
-        console.error('❌ Failed to add credits:', error);
+        console.error('  Failed to add credits:', error);
         
         // Log for manual intervention
         console.error('🚨 MANUAL INTERVENTION REQUIRED:', {
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     if (event.type === 'checkout.session.expired' || event.type === 'payment_intent.payment_failed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
-      console.log('❌ Payment failed or expired:', {
+      console.log('  Payment failed or expired:', {
         sessionId: session.id,
         clientReferenceId: session.client_reference_id,
         customerEmail: session.customer_email
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true }, { status: 200 });
 
   } catch (error) {
-    console.error('💥 Webhook handler error:', error);
+    console.error('  Webhook handler error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }

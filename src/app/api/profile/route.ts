@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 
-// ✅ SIMPLIFIED: Authentication function from work-items
+//   SIMPLIFIED: Authentication function from work-items
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -30,15 +30,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Profile auth failed:', authError);
+      console.error('  Profile auth failed:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('✅ Profile auth successful, fetching user:', user.id);
+    console.log('  Profile auth successful, fetching user:', user.id);
 
     // Get user profile from database
     let userProfile = await prisma.user.findUnique({
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
         }
       });
       
-      console.log('✅ User profile created:', userProfile.id);
+      console.log('  User profile created:', userProfile.id);
     } else {
       // Update last_login for existing users
       await prisma.user.update({
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    console.log('✅ Profile fetched successfully');
+    console.log('  Profile fetched successfully');
 
     return NextResponse.json({
       success: true,
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Profile fetch error:', error);
+    console.error('  Profile fetch error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -138,7 +138,7 @@ export async function PATCH(req: NextRequest) {
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Profile update auth failed:', authError);
+      console.error('  Profile update auth failed:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    console.log('✅ Profile update auth successful:', user.id);
+    console.log('  Profile update auth successful:', user.id);
 
     const body = await req.json();
     const { name, avatar } = body;
@@ -194,7 +194,7 @@ export async function PATCH(req: NextRequest) {
       }
     });
 
-    console.log('✅ Profile updated successfully');
+    console.log('  Profile updated successfully');
 
     return NextResponse.json({
       success: true,
@@ -202,7 +202,7 @@ export async function PATCH(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Profile update error:', error);
+    console.error('  Profile update error:', error);
     
     // Handle Prisma errors
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {

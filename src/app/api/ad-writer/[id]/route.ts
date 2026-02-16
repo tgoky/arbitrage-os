@@ -35,15 +35,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -54,14 +54,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Ad Writer Detail GET API Route called for ID:', params.id);
+  console.log(' Ad Writer Detail GET API Route called for ID:', params.id);
   
   try {
     // Authenticate user
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in ad writer detail GET:', authError);
+      console.error('  Auth failed in ad writer detail GET:', authError);
       
       const response = NextResponse.json(
         { 
@@ -81,7 +81,7 @@ export async function GET(
       return response;
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
 
     // Rate limiting for detail fetches
     const rateLimitResult = await rateLimit(user.id, 200, 60);
@@ -124,7 +124,7 @@ export async function GET(
     });
 
     if (!generation) {
-      console.log('❌ Ad generation not found:', params.id);
+      console.log('  Ad generation not found:', params.id);
       return NextResponse.json(
         { 
           success: false,
@@ -135,7 +135,7 @@ export async function GET(
       );
     }
 
-    console.log('✅ Ad generation found:', {
+    console.log(' Ad generation found:', {
       id: generation.id,
       title: generation.title,
       type: generation.type
@@ -148,7 +148,7 @@ export async function GET(
         ? JSON.parse(generation.content) 
         : generation.content;
     } catch (parseError) {
-      console.error('❌ Failed to parse ad data:', parseError);
+      console.error('  Failed to parse ad data:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -198,7 +198,7 @@ export async function GET(
       }
     });
 
-    console.log('✅ Returning ad generation detail');
+    console.log('Returning ad generation detail');
     return NextResponse.json({
       success: true,
       data: responseData,
@@ -208,7 +208,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Ad Generation Detail Fetch Error:', error);
+    console.error('  Ad Generation Detail Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -225,14 +225,14 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Ad Writer Detail DELETE API Route called for ID:', params.id);
+  console.log(' Ad Writer Detail DELETE API Route called for ID:', params.id);
   
   try {
     // Authenticate user
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in ad writer detail DELETE:', authError);
+      console.error('  Auth failed in ad writer detail DELETE:', authError);
       
       return NextResponse.json(
         { 
@@ -244,7 +244,7 @@ export async function DELETE(
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
 
     // Rate limiting for delete operations
     const rateLimitResult = await rateLimit(user.id, 50, 60);
@@ -271,7 +271,7 @@ export async function DELETE(
     });
 
     if (result.count === 0) {
-      console.log('❌ Ad generation not found or already deleted:', params.id);
+      console.log('  Ad generation not found or already deleted:', params.id);
       return NextResponse.json(
         { 
           success: false,
@@ -294,7 +294,7 @@ export async function DELETE(
       }
     });
 
-    console.log('✅ Ad generation deleted successfully:', params.id);
+    console.log(' Ad generation deleted successfully:', params.id);
     return NextResponse.json({
       success: true,
       data: { 
@@ -307,7 +307,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('💥 Ad Generation Delete Error:', error);
+    console.error('  Ad Generation Delete Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -324,7 +324,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Ad Writer Detail PUT API Route called for ID:', params.id);
+  console.log(' Ad Writer Detail PUT API Route called for ID:', params.id);
   
   try {
     // Authenticate user
@@ -451,7 +451,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('💥 Ad Generation Update Error:', error);
+    console.error('  Ad Generation Update Error:', error);
     return NextResponse.json(
       { 
         success: false,

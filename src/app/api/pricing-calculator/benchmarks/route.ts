@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { rateLimit } from '@/lib/rateLimit'; // ✅ Add rate limiting
-import { logUsage } from '@/lib/usage'; // ✅ Add usage logging
+import { rateLimit } from '@/lib/rateLimit'; //   Add rate limiting
+import { logUsage } from '@/lib/usage'; //   Add usage logging
 
 const RATE_LIMITS = {
   BENCHMARKS: {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ ADD RATE LIMITING for benchmarks
+    //   ADD RATE LIMITING for benchmarks
     const rateLimitResult = await rateLimit(
       `pricing_benchmarks:${user.id}`,
       RATE_LIMITS.BENCHMARKS.limit,
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     const benchmarks = getPricingBenchmarks(industry, serviceType);
 
-    // ✅ LOG USAGE for benchmarks
+    //   LOG USAGE for benchmarks
     await logUsage({
       userId: user.id,
       feature: 'pricing_benchmarks',

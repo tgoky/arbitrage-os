@@ -10,7 +10,7 @@ import { GrowthPlanServiceResponse } from '@/types/growthPlan';
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ ROBUST AUTHENTICATION (same as main route)
+//   ROBUST AUTHENTICATION (same as main route)
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser(request: NextRequest) {
   try {
@@ -129,21 +129,21 @@ function createAuthErrorResponse() {
 }
 
 export async function DELETE(request: NextRequest) {
-  console.log('🚀 Growth Plan Bulk Delete API Route called');
+  console.log(' Growth Plan Bulk Delete API Route called');
   
   try {
-    // ✅ USE ROBUST AUTHENTICATION
+    //   USE ROBUST AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser(request);
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan bulk delete:', authError);
+      console.error('  Auth failed in growth plan bulk delete:', authError);
       return createAuthErrorResponse();
     }
 
-    console.log('✅ Growth Plan Bulk Delete user authenticated successfully:', user.id);
+    console.log('  Growth Plan Bulk Delete user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ RATE LIMITING for bulk operations (strict for destructive operations)
+    //   RATE LIMITING for bulk operations (strict for destructive operations)
     const rateLimitResult = await rateLimit(
       `growth_plan_bulk_delete:${userId}`,
       5, // 5 bulk operations per hour
@@ -151,7 +151,7 @@ export async function DELETE(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan bulk delete rate limit exceeded for user:', userId);
+      console.log('  Growth plan bulk delete rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Bulk delete rate limit exceeded' },
         { status: 429 }
@@ -163,7 +163,7 @@ export async function DELETE(request: NextRequest) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse bulk delete request body:', parseError);
+      console.error('  Failed to parse bulk delete request body:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -176,7 +176,7 @@ export async function DELETE(request: NextRequest) {
     const { planIds } = body;
 
     if (!Array.isArray(planIds) || planIds.length === 0) {
-      console.error('❌ Invalid planIds in bulk delete request');
+      console.error('  Invalid planIds in bulk delete request');
       return NextResponse.json(
         { success: false, error: 'Plan IDs array is required' },
         { status: 400 }
@@ -185,7 +185,7 @@ export async function DELETE(request: NextRequest) {
 
     // Limit bulk operations to prevent abuse
     if (planIds.length > 50) {
-      console.error('❌ Too many plans in bulk delete request:', planIds.length);
+      console.error('  Too many plans in bulk delete request:', planIds.length);
       return NextResponse.json(
         { success: false, error: 'Cannot delete more than 50 plans at once' },
         { status: 400 }
@@ -197,9 +197,9 @@ export async function DELETE(request: NextRequest) {
     let deletedCount;
     try {
       deletedCount = await growthPlanService.bulkDeleteGrowthPlans(userId, planIds);
-      console.log('✅ Bulk delete completed, deleted count:', deletedCount);
+      console.log('  Bulk delete completed, deleted count:', deletedCount);
     } catch (serviceError) {
-      console.error('💥 Error during bulk delete:', serviceError);
+      console.error('  Error during bulk delete:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -210,7 +210,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId,
@@ -223,7 +223,7 @@ export async function DELETE(request: NextRequest) {
           planIds: planIds.slice(0, 10) // Log first 10 IDs only
         }
       });
-      console.log('✅ Growth plan bulk delete usage logged');
+      console.log('  Growth plan bulk delete usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan bulk delete usage logging failed (non-critical):', logError);
     }
@@ -234,11 +234,11 @@ export async function DELETE(request: NextRequest) {
       message: `Successfully deleted ${deletedCount} growth plan(s)`
     };
 
-    console.log('✅ Growth plan bulk delete request completed successfully');
+    console.log('  Growth plan bulk delete request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan Bulk Delete API Error:', error);
+    console.error('  Unexpected Growth Plan Bulk Delete API Error:', error);
     console.error('Growth plan bulk delete error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(

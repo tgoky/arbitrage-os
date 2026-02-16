@@ -32,15 +32,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in credits history:', authError);
+      console.error('  Auth failed in credits history:', authError);
       
       const response = NextResponse.json(
         { 
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     const { searchParams } = new URL(req.url);
     const timeframe = searchParams.get('timeframe') as 'week' | 'month' | 'all' || 'month';
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     // Get usage statistics for the timeframe
     const usageStats = await creditsService.getUserUsageStats(user.id, timeframe);
 
-    console.log('✅ Credits history loaded:', {
+    console.log('  Credits history loaded:', {
       transactionCount: transactions.length,
       timeframe,
       usageStats
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Credits History API Error:', error);
+    console.error('  Credits History API Error:', error);
     return NextResponse.json(
       { 
         success: false,

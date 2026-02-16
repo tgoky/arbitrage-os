@@ -129,28 +129,28 @@ const EmailAgentDashboard: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // ✅ Use workspace context (same pattern as ColdEmailWriter)
+  //   Use workspace context (same pattern as ColdEmailWriter)
   const { currentWorkspace, isWorkspaceReady } = useWorkspaceContext();
   
-  // ✅ Prefer workspace context, fallback to prop
+  //   Prefer workspace context, fallback to prop
   // const workspaceId = currentWorkspace?.id || propWorkspaceId;
   const workspaceId = currentWorkspace?.id;
   
-  // ✅ Validate workspace ID immediately
+  //   Validate workspace ID immediately
   useEffect(() => {
     if (!isWorkspaceReady) {
       return; // Still loading
     }
     
     if (!workspaceId || workspaceId === 'undefined') {
-      console.error('❌ Invalid workspace ID:', workspaceId);
+      console.error('  Invalid workspace ID:', workspaceId);
       notification.error({
         message: 'Invalid Workspace',
         description: 'Workspace ID is missing. Redirecting to dashboard...',
       });
       router.push('/dashboard');
     } else {
-      console.log('✅ Email Agent - Valid workspace ID:', workspaceId);
+      console.log('  Email Agent - Valid workspace ID:', workspaceId);
     }
   }, [workspaceId, isWorkspaceReady, router]);
   
@@ -181,7 +181,7 @@ const loadLeadGenerations = async () => {
     
     if (data.success && data.data) {
       setLeadGenerations(data.data);
-      console.log(`✅ Loaded ${data.data.length} lead generation campaigns`);
+      console.log(`  Loaded ${data.data.length} lead generation campaigns`);
     }
   } catch (error) {
     console.error('Failed to load lead generations:', error);
@@ -249,7 +249,7 @@ useEffect(() => {
 useEffect(() => {
   if (workspaceId && workspaceId !== 'undefined') {
     loadDashboardData();
-    loadLeadGenerations(); // ✅ ADD THIS
+    loadLeadGenerations(); //   ADD THIS
   }
 }, [workspaceId]);
 
@@ -346,7 +346,7 @@ const handleGenerationSelect = async (generationId: string) => {
       const data = await res.json();
       
       if (data.success) {
-        // ✅ FIXED: Correct path is data.data.accounts
+        //   FIXED: Correct path is data.data.accounts
         setEmailAccounts(data.data?.accounts || []);
       } else {
         console.error('Failed to load accounts:', data.error);
@@ -373,7 +373,7 @@ const handleGenerationSelect = async (generationId: string) => {
       const data = await res.json();
       
       if (data.success) {
-        // ✅ FIXED: Correct path is data.data (array directly)
+        //   FIXED: Correct path is data.data (array directly)
         setCampaigns(data.data || []);
       } else {
         console.error('Failed to load campaigns:', data.error);
@@ -401,7 +401,7 @@ const handleGenerationSelect = async (generationId: string) => {
       const data = await res.json();
       
       if (data.success) {
-        // ✅ FIXED: Correct path is data.data.leads
+        //   FIXED: Correct path is data.data.leads
         setLeads(data.data?.leads || []);
       } else {
         console.error('Failed to load leads:', data.error);
@@ -428,7 +428,7 @@ const handleGenerationSelect = async (generationId: string) => {
       const data = await res.json();
       
       if (data.success) {
-        // ✅ FIXED: Correct path is data.data.emails
+        //   FIXED: Correct path is data.data.emails
         setInboxItems(data.data?.emails || []);
       } else {
         console.error('Failed to load inbox:', data.error);
@@ -454,7 +454,7 @@ const handleGenerationSelect = async (generationId: string) => {
       const data = await res.json();
       
       if (data.success) {
-        // ✅ FIXED: Correct path is data.data
+        //   FIXED: Correct path is data.data
         setAnalytics(data.data || null);
       } else {
         console.error('Failed to load analytics:', data.error);
@@ -538,7 +538,7 @@ const handleGenerationSelect = async (generationId: string) => {
 
   setLoading(true);
   try {
-    // ✅ Process manual leads if in manual mode
+    //   Process manual leads if in manual mode
     let finalLeadIds = campaignForm.leadIds;
     
     if (leadImportMode === 'manual' && campaignForm.manualLeadEmails) {
@@ -572,8 +572,8 @@ const handleGenerationSelect = async (generationId: string) => {
         description: campaignForm.description,
         emailAccountId: campaignForm.emailAccountId,
         leadIds: finalLeadIds,
-        isManualEntry: leadImportMode === 'manual', // ✅ Flag for backend
-        manualLeadData: leadImportMode === 'manual' ? campaignForm.manualLeadEmails : undefined, // ✅ Send raw data
+        isManualEntry: leadImportMode === 'manual', //   Flag for backend
+        manualLeadData: leadImportMode === 'manual' ? campaignForm.manualLeadEmails : undefined, //   Send raw data
         scheduleType: campaignForm.scheduleType,
         autoReply: campaignForm.autoReply,
         autoFollowup: campaignForm.autoFollowup,
@@ -618,7 +618,7 @@ const resetCampaignForm = () => {
     description: '',
     emailAccountId: '',
     leadIds: [],
-    manualLeadEmails: '', // ✅ ADD THIS LINE
+    manualLeadEmails: '', //   ADD THIS LINE
     scheduleType: 'immediate',
     autoReply: true,
     autoFollowup: true,

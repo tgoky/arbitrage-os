@@ -31,7 +31,7 @@ export const useProposalCreator = () => {
     setError(null);
     
     try {
-      console.log('🚀 Sending proposal generation request...');
+      console.log(' Sending proposal generation request...');
 
       // Validate essential fields only
       if (!input.clientInfo?.legalName?.trim()) {
@@ -62,7 +62,7 @@ export const useProposalCreator = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
+        console.error('  API Error:', errorData);
         throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
@@ -81,7 +81,7 @@ export const useProposalCreator = () => {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('💥 Generation error:', err);
+      console.error('  Generation error:', err);
       setError(errorMessage);
       message.error(errorMessage);
       return null;

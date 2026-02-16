@@ -613,7 +613,7 @@ export const useCalculationExport = () => {
 
     const blob = await response.blob();
     
-    // ✅ Create download link with proper error handling
+    //   Create download link with proper error handling
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     
@@ -624,7 +624,7 @@ export const useCalculationExport = () => {
       document.body.appendChild(a);
       a.click();
     } finally {
-      // ✅ Cleanup always happens, even if an error occurs
+      //   Cleanup always happens, even if an error occurs
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     }

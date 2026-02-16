@@ -9,7 +9,7 @@ import { GrowthPlanInput, GrowthPlanServiceResponse } from '@/types/growthPlan';
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ SIMPLIFIED AUTHENTICATION (from work-items route)
+//   SIMPLIFIED AUTHENTICATION (from work-items route)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -36,28 +36,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Growth Plan Template Creation API Route called');
+  console.log(' Growth Plan Template Creation API Route called');
   
   try {
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan template creation:', authError);
+      console.error('  Auth failed in growth plan template creation:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Growth Plan Template Creation user authenticated successfully:', user.id);
+    console.log('  Growth Plan Template Creation user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ TEMPLATE CREATION RATE LIMITING
+    //   TEMPLATE CREATION RATE LIMITING
     const rateLimitResult = await rateLimit(
       `growth_plan_template_create:${userId}`,
       20, // 20 templates per hour
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan template creation rate limit exceeded for user:', userId);
+      console.log('  Growth plan template creation rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Template creation rate limit exceeded' },
         { status: 429 }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse template creation request body:', parseError);
+      console.error('  Failed to parse template creation request body:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const { name, description, template } = body;
 
     if (!name || !template) {
-      console.error('❌ Missing required fields in template creation request');
+      console.error('  Missing required fields in template creation request');
       return NextResponse.json(
         { success: false, error: 'Name and template data are required' },
         { status: 400 }
@@ -121,9 +121,9 @@ export async function POST(request: NextRequest) {
         description || '',
         template
       );
-      console.log('✅ Template created with ID:', templateId);
+      console.log('  Template created with ID:', templateId);
     } catch (serviceError) {
-      console.error('💥 Error creating template:', serviceError);
+      console.error('  Error creating template:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId,
@@ -146,12 +146,12 @@ export async function POST(request: NextRequest) {
           templateName: name
         }
       });
-      console.log('✅ Growth plan template creation usage logged');
+      console.log('  Growth plan template creation usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan template creation usage logging failed (non-critical):', logError);
     }
 
-    console.log('✅ Growth plan template creation completed successfully');
+    console.log('  Growth plan template creation completed successfully');
     return NextResponse.json({
       success: true,
       data: { templateId },
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan Template Creation API Error:', error);
+    console.error('  Unexpected Growth Plan Template Creation API Error:', error);
     console.error('Growth plan template creation error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(
@@ -174,14 +174,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 Growth Plan Templates GET API Route called');
+  console.log(' Growth Plan Templates GET API Route called');
   
   try {
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan templates GET:', authError);
+      console.error('  Auth failed in growth plan templates GET:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -192,10 +192,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('✅ Growth Plan Templates GET user authenticated successfully:', user.id);
+    console.log('  Growth Plan Templates GET user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ TEMPLATE READ RATE LIMITING
+    //   TEMPLATE READ RATE LIMITING
     const rateLimitResult = await rateLimit(
       `growth_plan_template_read:${userId}`,
       100, // 100 template reads per hour
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan template read rate limit exceeded for user:', userId);
+      console.log('  Growth plan template read rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Too many requests' },
         { status: 429 }
@@ -215,9 +215,9 @@ export async function GET(request: NextRequest) {
     let templates;
     try {
       templates = await growthPlanService.getGrowthPlanTemplates(userId);
-      console.log('✅ Retrieved', templates.length, 'templates');
+      console.log('  Retrieved', templates.length, 'templates');
     } catch (serviceError) {
-      console.error('💥 Error fetching templates:', serviceError);
+      console.error('  Error fetching templates:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId,
@@ -239,19 +239,19 @@ export async function GET(request: NextRequest) {
           templatesCount: templates.length
         }
       });
-      console.log('✅ Growth plan template read usage logged');
+      console.log('  Growth plan template read usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan template read usage logging failed (non-critical):', logError);
     }
 
-    console.log('✅ Growth plan templates GET request completed successfully');
+    console.log('  Growth plan templates GET request completed successfully');
     return NextResponse.json({
       success: true,
       data: { templates }
     });
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan Templates GET API Error:', error);
+    console.error('  Unexpected Growth Plan Templates GET API Error:', error);
     console.error('Growth plan templates GET error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(

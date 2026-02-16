@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
-  console.log('🚀 Google OAuth Callback received');
+  console.log(' Google OAuth Callback received');
   
   try {
     const { searchParams } = new URL(req.url);
@@ -18,18 +18,18 @@ export async function GET(req: NextRequest) {
       error: error || 'none'
     });
 
-    // ✅ User denied access
+    //   User denied access
     if (error) {
-      console.log('❌ OAuth error from Google:', error);
+      console.log('  OAuth error from Google:', error);
       const redirectUrl = state 
         ? `/email-agent?error=access_denied&workspaceId=${state}`
         : `/dashboard?error=access_denied`;
       return NextResponse.redirect(new URL(redirectUrl, req.url));
     }
 
-    // ✅ Missing required params
+    //   Missing required params
     if (!code) {
-      console.log('❌ Missing OAuth code');
+      console.log('  Missing OAuth code');
       const redirectUrl = state
         ? `/email-agent?error=invalid_callback&workspaceId=${state}`
         : `/dashboard?error=invalid_callback`;
@@ -37,15 +37,15 @@ export async function GET(req: NextRequest) {
     }
 
     if (!state) {
-      console.log('❌ Missing workspace ID (state)');
+      console.log('  Missing workspace ID (state)');
       return NextResponse.redirect(
         new URL(`/dashboard?error=invalid_callback`, req.url)
       );
     }
 
-    console.log(`✅ OAuth code received for workspace: ${state}`);
+    console.log(`  OAuth code received for workspace: ${state}`);
 
-    // ✅ Verify user authentication
+    //   Verify user authentication
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -67,15 +67,15 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.error('❌ User authentication failed:', authError);
+      console.error('  User authentication failed:', authError);
       return NextResponse.redirect(
         new URL(`/email-agent?error=unauthorized&workspaceId=${state}`, req.url)
       );
     }
 
-    console.log(`✅ User authenticated: ${user.id}`);
+    console.log(`  User authenticated: ${user.id}`);
 
-    // ✅ Connect Gmail account
+    //   Connect Gmail account
     console.log('🔐 Connecting Gmail account...');
     
     const { EmailConnectionService } = await import('@/services/emailConnection.service');
@@ -83,18 +83,18 @@ export async function GET(req: NextRequest) {
     
     const result = await emailService.connectGmail(user.id, state, code);
     
-    console.log(`✅ Gmail connected successfully: ${result.account.email}`);
+    console.log(`  Gmail connected successfully: ${result.account.email}`);
 
-    // ✅ Redirect back to email-agent with success (direct route, not nested in dashboard)
+    //  Redirect back to email-agent with success (direct route, not nested in dashboard)
     return NextResponse.redirect(
       new URL(`/email-agent?connected=true&workspaceId=${state}`, req.url)
     );
 
   } catch (error: any) {
-    console.error('💥 OAuth callback error:', error);
+    console.error('  OAuth callback error:', error);
     console.error('Error stack:', error.stack);
     
-    // ✅ FIX: Include workspace ID in error redirect if available
+    //  FIX: Include workspace ID in error redirect if available
     const { searchParams } = new URL(req.url);
     const state = searchParams.get('state');
     

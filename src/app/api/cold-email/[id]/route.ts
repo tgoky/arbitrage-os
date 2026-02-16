@@ -7,7 +7,7 @@ import { ColdEmailService } from '@/services/coldEmail.service';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 
-// ✅ Same robust authentication function as main route
+// Same robust authentication function as main route
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -34,15 +34,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error(' Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error(' Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -52,14 +52,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Cold Email Detail GET API Route called for ID:', params.id);
+  console.log(' Cold Email Detail GET API Route called for ID:', params.id);
   
   try {
     // Authenticate user
       const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in cold email detail GET:', authError);
+      console.error('  Auth failed in cold email detail GET:', authError);
       
       const response = NextResponse.json(
         { 
@@ -79,7 +79,7 @@ export async function GET(
       return response;
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
 
     // Rate limiting for detail fetches
     const rateLimitResult = await rateLimit(user.id, 200, 60);
@@ -109,7 +109,7 @@ export async function GET(
     const generation = await coldEmailService.getEmailGeneration(user.id, params.id);
 
     if (!generation) {
-      console.log('❌ Email generation not found:', params.id);
+      console.log('  Email generation not found:', params.id);
       return NextResponse.json(
         { 
           success: false,
@@ -120,7 +120,7 @@ export async function GET(
       );
     }
 
-    console.log('✅ Email generation found:', {
+    console.log(' Email generation found:', {
       id: generation.id,
       title: generation.title,
       emailCount: generation.emails?.emails?.length || 0
@@ -133,7 +133,7 @@ export async function GET(
         ? JSON.parse(generation.emails) 
         : generation.emails;
     } catch (parseError) {
-      console.error('❌ Failed to parse email data:', parseError);
+      console.error('  Failed to parse email data:', parseError);
       return NextResponse.json(
         { 
           success: false,
@@ -177,7 +177,7 @@ export async function GET(
       }
     });
 
-    console.log('✅ Returning email generation detail');
+    console.log(' Returning email generation detail');
     return NextResponse.json({
       success: true,
       data: responseData,
@@ -187,7 +187,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Email Generation Detail Fetch Error:', error);
+    console.error('  Email Generation Detail Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,
@@ -204,14 +204,14 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Cold Email Detail DELETE API Route called for ID:', params.id);
+  console.log(' Cold Email Detail DELETE API Route called for ID:', params.id);
   
   try {
     // Authenticate user
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in cold email detail DELETE:', authError);
+      console.error('  Auth failed in cold email detail DELETE:', authError);
       
       return NextResponse.json(
         { 
@@ -223,7 +223,7 @@ export async function DELETE(
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
 
     // Rate limiting for delete operations
     const rateLimitResult = await rateLimit(user.id, 50, 60);
@@ -245,7 +245,7 @@ export async function DELETE(
     const deleted = await coldEmailService.deleteEmailGeneration(user.id, params.id);
 
     if (!deleted) {
-      console.log('❌ Email generation not found or already deleted:', params.id);
+      console.log('  Email generation not found or already deleted:', params.id);
       return NextResponse.json(
         { 
           success: false,
@@ -268,7 +268,7 @@ export async function DELETE(
       }
     });
 
-    console.log('✅ Email generation deleted successfully:', params.id);
+    console.log(' Email generation deleted successfully:', params.id);
     return NextResponse.json({
       success: true,
       data: { 
@@ -281,7 +281,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('💥 Email Generation Delete Error:', error);
+    console.error('  Email Generation Delete Error:', error);
     return NextResponse.json(
       { 
         success: false,

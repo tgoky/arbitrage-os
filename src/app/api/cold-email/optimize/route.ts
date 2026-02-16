@@ -7,7 +7,7 @@ import { logUsage } from '@/lib/usage';
 import { rateLimit } from '@/lib/rateLimit';
 import { ColdEmailOptimizationType } from '@/types/coldEmail';
 
-// ✅ Use the SAME robust authentication function as main route
+//   Use the SAME robust authentication function as main route
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
@@ -35,15 +35,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -51,13 +51,13 @@ async function getAuthenticatedUser() {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🚀 Cold Email Optimize API Route called');
+    console.log(' Cold Email Optimize API Route called');
     
-    // ✅ Use robust authentication (same as main route)
+    //   Use robust authentication (same as main route)
       const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in optimize:', authError);
+      console.error('  Auth failed in optimize:', authError);
       
       const response = NextResponse.json(
         { 
@@ -85,9 +85,9 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
-    // ✅ Add rate limiting - 30 optimizations per minute
+    //   Add rate limiting - 30 optimizations per minute
     const rateLimitResult = await rateLimit(user.id, 30, 60);
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('💥 Email Optimization Error:', error);
+    console.error('  Email Optimization Error:', error);
     return NextResponse.json(
       { 
         success: false,

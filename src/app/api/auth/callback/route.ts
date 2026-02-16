@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   // Handle error cases
   if (error) {
-    console.error('❌ Auth callback error:', { error, errorDescription })
+    console.error('  Auth callback error:', { error, errorDescription })
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, origin)
     )
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode)
       
       if (exchangeError) {
-        console.error('❌ Code exchange error:', exchangeError)
+        console.error('  Code exchange error:', exchangeError)
         
         if (exchangeError.message.includes('expired') || exchangeError.message.includes('invalid')) {
           return NextResponse.redirect(
@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
       }
 
       if (!session) {
-        console.error('❌ No session created');
+        console.error('  No session created');
         return NextResponse.redirect(
           new URL('/login?error=Failed to create session', origin)
         )
       }
 
-      console.log('✅ Session created successfully for user:', session.user.id);
+      console.log('  Session created successfully for user:', session.user.id);
 
       // Ensure user exists in database
       try {
@@ -81,9 +81,9 @@ export async function GET(request: NextRequest) {
             last_login: new Date()
           }
         });
-        console.log('✅ User record ensured in database');
+        console.log('  User record ensured in database');
       } catch (userError) {
-        console.error('❌ Error ensuring user exists:', userError);
+        console.error('  Error ensuring user exists:', userError);
       }
 
       // Handle invite acceptance
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
           if (invite) {
             if (invite.expires_at && new Date() > invite.expires_at) {
-              console.log('❌ Invite expired');
+              console.log('  Invite expired');
               return NextResponse.redirect(
                 new URL(`/invite-expired?error=invite_expired&invite_id=${inviteId}`, origin)
               );
@@ -116,18 +116,18 @@ export async function GET(request: NextRequest) {
               }
             });
 
-            console.log('✅ Invite accepted');
+            console.log('  Invite accepted');
           }
         } catch (inviteError) {
-          console.error('❌ Error processing invite:', inviteError);
+          console.error('  Error processing invite:', inviteError);
         }
       }
 
-      console.log('🚀 Redirecting to:', next);
+      console.log(' Redirecting to:', next);
       return NextResponse.redirect(new URL(next, origin))
       
     } catch (error: any) {
-      console.error('❌ Auth confirmation error:', error)
+      console.error('  Auth confirmation error:', error)
       return NextResponse.redirect(
         new URL(`/login?error=${encodeURIComponent(error.message || 'Server error')}`, origin)
       )
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/login?invite_id=${inviteId}`, origin));
   }
 
-  console.error('❌ No authentication code provided');
+  console.error('  No authentication code provided');
   return NextResponse.redirect(
     new URL('/login?error=Missing authentication code', origin)
   );

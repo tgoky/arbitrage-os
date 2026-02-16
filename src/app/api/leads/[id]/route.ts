@@ -42,15 +42,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -120,20 +120,20 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Lead Detail API called for ID:', params.id);
+  console.log(' Lead Detail API called for ID:', params.id);
   
   try {
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed:', authError);
+      console.error('  Auth failed:', authError);
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
 
     const result = await findLeadInGenerations(user.id, params.id);
     
@@ -161,7 +161,7 @@ export async function GET(
       interactions.push(...leadInteractions);
     }
 
-    console.log('✅ Found lead:', result.lead.name);
+    console.log('  Found lead:', result.lead.name);
 
     return NextResponse.json({
       success: true,
@@ -173,7 +173,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Lead Detail API Error:', error);
+    console.error('  Lead Detail API Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch lead details' },
       { status: 500 }
@@ -186,7 +186,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🚀 Lead Update API called for ID:', params.id);
+  console.log(' Lead Update API called for ID:', params.id);
   
   try {
    const { user, error: authError } = await getAuthenticatedUser();
@@ -260,7 +260,7 @@ export async function PATCH(
       }
     });
 
-    console.log('✅ Lead updated successfully');
+    console.log('  Lead updated successfully');
 
     return NextResponse.json({
       success: true,
@@ -268,7 +268,7 @@ export async function PATCH(
     });
 
   } catch (error) {
-    console.error('💥 Lead Update Error:', error);
+    console.error('  Lead Update Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update lead' },
       { status: 500 }

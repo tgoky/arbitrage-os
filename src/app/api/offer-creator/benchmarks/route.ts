@@ -14,7 +14,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Industry benchmarks data - moved from utils to route since it's specific
+//   Industry benchmarks data - moved from utils to route since it's specific
 const SIGNATURE_OFFER_BENCHMARKS = {
   'B2B SaaS': {
     conversionRate: { min: 2.5, max: 6.0, average: 3.8, description: 'Proposal to client conversion rate' },
@@ -210,7 +210,7 @@ const SIGNATURE_OFFER_BENCHMARKS = {
   }
 };
 
-// ✅ Enhanced authentication function (matches other routes)
+//   Enhanced authentication function (matches other routes)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -237,15 +237,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -259,13 +259,13 @@ function getSignatureOfferBenchmark(industry: string) {
 // GET method for retrieving signature offer benchmarks
 export async function GET(req: NextRequest) {
   try {
-    console.log('🚀 Signature Offer Benchmarks API called');
+    console.log(' Signature Offer Benchmarks API called');
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
    const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in benchmarks:', authError);
+      console.error('  Auth failed in benchmarks:', authError);
       
       const response = NextResponse.json(
         { 
@@ -293,7 +293,7 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for benchmarks
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -303,7 +303,7 @@ export async function GET(req: NextRequest) {
       RATE_LIMITS.BENCHMARKS.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -313,7 +313,7 @@ export async function GET(req: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const { searchParams } = new URL(req.url);
     const industry = searchParams.get('industry');
@@ -385,7 +385,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // ✅ Log usage for benchmarks with enhanced metadata
+    //   Log usage for benchmarks with enhanced metadata
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -400,7 +400,7 @@ export async function GET(req: NextRequest) {
           industriesRequested: industry ? 1 : Object.keys(SIGNATURE_OFFER_BENCHMARKS).length
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -419,7 +419,7 @@ export async function GET(req: NextRequest) {
     } as ApiResponse<any>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Benchmarks Error:', error);
+    console.error('  Unexpected Signature Offer Benchmarks Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

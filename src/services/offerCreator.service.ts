@@ -193,10 +193,10 @@ const acvData = this.parseACV(input.business.acv, input.business.acvPeriod || 'm
 ${strengthSpecificExamples}
 
 **FORBIDDEN APPROACHES:**
-- ❌ Generic "lead generation" unless user specifically listed it as a core strength
-- ❌ "Marketing campaigns" unless user's strength is marketing
-- ❌ "Client acquisition" unless user's strength is business development
-- ❌ Vague "strategy development" or "consultation services"
+-   Generic "lead generation" unless user specifically listed it as a core strength
+-   "Marketing campaigns" unless user's strength is marketing
+-   "Client acquisition" unless user's strength is business development
+-   Vague "strategy development" or "consultation services"
 
 ## 2. PER-CLIENT PRICING SPECIFICITY (MANDATORY)
 Each tier MUST specify:
@@ -234,9 +234,9 @@ Calculate deliverables based on actual time allocation:
 - **Premium:** "The [Timeframe] [Primary Outcome] ${primaryStrength} Excellence Build"
 
 **Examples Based on User's Expertise:**
-- ✅ "The ${input.market.targetMarket} ${primaryOutcome} ${primaryStrength} Engine"
-- ✅ "The 90-Day ${primaryOutcome} ${primaryStrength} Build"
-- ❌ Generic "Starter Package" or "Premium Service"
+-   "The ${input.market.targetMarket} ${primaryOutcome} ${primaryStrength} Engine"
+-   "The 90-Day ${primaryOutcome} ${primaryStrength} Build"
+-   Generic "Starter Package" or "Premium Service"
 
 ## 5. GUARANTEE STRUCTURE BASED ON USER'S APPROACH
 Tie guarantees to user's specific deliverables and processes:
@@ -399,15 +399,15 @@ Tie guarantees to user's specific deliverables and processes:
 \`\`\`
 
 ## FINAL VALIDATION CHECKLIST:
-- ✅ ALL deliverables match user's actual strength: "${primaryStrength}"
-- ✅ ALL processes reference user's methodology: "${primaryProcess}" and "${secondaryProcess}"
-- ✅ Pricing shows per-client monthly fee with specific hour allocation
-- ✅ Deliverable quantities scale appropriately based on hours allocated
-- ✅ NO generic lead generation unless user specifically listed it as expertise
-- ✅ Names use outcome-focused language: "${primaryOutcome}"
-- ✅ Guarantees tie to user's specific deliverables and processes
-- ✅ Scope items are concrete and measurable, not vague consulting speak
-- ✅ Each tier provides clear value escalation matching price increase
+-   ALL deliverables match user's actual strength: "${primaryStrength}"
+-   ALL processes reference user's methodology: "${primaryProcess}" and "${secondaryProcess}"
+-   Pricing shows per-client monthly fee with specific hour allocation
+-   Deliverable quantities scale appropriately based on hours allocated
+-   NO generic lead generation unless user specifically listed it as expertise
+-   Names use outcome-focused language: "${primaryOutcome}"
+-   Guarantees tie to user's specific deliverables and processes
+-   Scope items are concrete and measurable, not vague consulting speak
+-   Each tier provides clear value escalation matching price increase
 
 Create offers that authentically represent the user's expertise in "${primaryStrength}" using their proven "${primaryProcess}" methodology, not generic business templates.`;
 }
@@ -945,10 +945,10 @@ async saveOffer(userId: string, workspaceId: string, offer: GeneratedOfferPackag
       }
     });
 
-    console.log('✅ Signature offer deliverable created successfully with ID:', deliverable.id);
+    console.log('  Signature offer deliverable created successfully with ID:', deliverable.id);
     return deliverable.id;
   } catch (error) {
-    console.error('💥 Error saving signature offers:', error);
+    console.error('  Error saving signature offers:', error);
     throw error;
   }
 }

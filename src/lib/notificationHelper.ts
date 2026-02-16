@@ -118,7 +118,7 @@ export async function createNotification(params: CreateNotificationParams) {
       }
     });
 
-    console.log('✅ Notification created:', notification.id, type);
+    console.log('  Notification created:', notification.id, type);
     return notification;
     
   } catch (error) {
@@ -153,7 +153,7 @@ export async function createBulkNotifications(
       data: notificationData
     });
 
-    console.log(`✅ Created ${result.count} notifications`);
+    console.log(`  Created ${result.count} notifications`);
     return result;
     
   } catch (error) {

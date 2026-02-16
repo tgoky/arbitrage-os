@@ -37,15 +37,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in payment verification:', authError);
+      console.error('  Auth failed in payment verification:', authError);
       
       const response = NextResponse.json(
         { 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     const body = await req.json();
     const { sessionId } = body;
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    console.log('✅ Payment verification successful:', verificationResult);
+    console.log('  Payment verification successful:', verificationResult);
 
     return NextResponse.json({
       success: true,
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Payment verification error:', error);
+    console.error('  Payment verification error:', error);
     
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

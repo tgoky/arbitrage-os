@@ -9,7 +9,7 @@ import { ListGrowthPlansResponse, GrowthPlanServiceResponse } from '@/types/grow
 
 const growthPlanService = new GrowthPlanService();
 
-// ✅ SIMPLIFIED AUTHENTICATION (from work-items route)
+//   SIMPLIFIED AUTHENTICATION (from work-items route)
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -36,28 +36,28 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 Growth Plan Search API Route called');
+  console.log(' Growth Plan Search API Route called');
   
   try {
-    // ✅ USE SIMPLIFIED AUTHENTICATION
+    //   USE SIMPLIFIED AUTHENTICATION
     const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in growth plan search:', authError);
+      console.error('  Auth failed in growth plan search:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -68,10 +68,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('✅ Growth Plan Search user authenticated successfully:', user.id);
+    console.log('  Growth Plan Search user authenticated successfully:', user.id);
     const userId = user.id;
 
-    // ✅ RATE LIMITING for search
+    //   RATE LIMITING for search
     const rateLimitResult = await rateLimit(
       `growth_plan_search:${userId}`,
       60, // 60 searches per hour
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
-      console.log('❌ Growth plan search rate limit exceeded for user:', userId);
+      console.log('  Growth plan search rate limit exceeded for user:', userId);
       return NextResponse.json(
         { success: false, error: 'Search rate limit exceeded' },
         { status: 429 }
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     const workspaceId = searchParams.get('workspaceId');
 
     if (!query.trim()) {
-      console.error('❌ Empty search query provided');
+      console.error('  Empty search query provided');
       return NextResponse.json(
         { success: false, error: 'Search query is required' },
         { status: 400 }
@@ -112,9 +112,9 @@ export async function GET(request: NextRequest) {
     let plans;
     try {
       plans = await growthPlanService.searchGrowthPlans(userId, query, filters);
-      console.log('✅ Search completed, found', plans.length, 'plans');
+      console.log('  Search completed, found', plans.length, 'plans');
     } catch (serviceError) {
-      console.error('💥 Error during search:', serviceError);
+      console.error('  Error during search:', serviceError);
       return NextResponse.json(
         { 
           success: false,
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ✅ LOG USAGE
+    //   LOG USAGE
     try {
       await logUsage({
         userId,
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
           resultCount: plans.length
         }
       });
-      console.log('✅ Growth plan search usage logged');
+      console.log('  Growth plan search usage logged');
     } catch (logError) {
       console.error('⚠️ Growth plan search usage logging failed (non-critical):', logError);
     }
@@ -152,11 +152,11 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log('✅ Growth plan search request completed successfully');
+    console.log('  Growth plan search request completed successfully');
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('💥 Unexpected Growth Plan Search API Error:', error);
+    console.error('  Unexpected Growth Plan Search API Error:', error);
     console.error('Growth plan search error stack:', error instanceof Error ? error.stack : 'No stack');
     
     return NextResponse.json(

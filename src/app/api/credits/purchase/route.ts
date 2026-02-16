@@ -38,15 +38,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error(' Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in credit purchase:', authError);
+      console.error(' Auth failed in credit purchase:', authError);
       
       const response = NextResponse.json(
         { 
@@ -87,7 +87,7 @@ const { user, error: authError } = await getAuthenticatedUser();
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     const body = await req.json();
     const { packageId } = body;
@@ -133,7 +133,7 @@ const { user, error: authError } = await getAuthenticatedUser();
       }
     });
 
-    console.log('✅ Checkout session created:', session.id);
+    console.log('  Checkout session created:', session.id);
 
     return NextResponse.json({
       success: true,
@@ -149,7 +149,7 @@ const { user, error: authError } = await getAuthenticatedUser();
     });
 
   } catch (error) {
-    console.error('💥 Credit Purchase API Error:', error);
+    console.error('  Credit Purchase API Error:', error);
     return NextResponse.json(
       { 
         success: false,

@@ -26,7 +26,7 @@ export class SalesCallAnalyzerService {
 async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   const startTime = Date.now();
   
-  console.log('🚀 analyzeCall called');
+  console.log(' analyzeCall called');
   console.log('📦 Input:', {
     title: input.title,
     callType: input.callType,
@@ -38,11 +38,11 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   
   // Validate transcript
   if (!input.transcript || input.transcript.length < 50) {
-    console.error('❌ Transcript validation failed');
+    console.error('  Transcript validation failed');
     throw new Error('Transcript must be at least 50 characters for meaningful analysis');
   }
   
-  console.log('✅ Transcript validation passed');
+  console.log('  Transcript validation passed');
   
   // Check cache
   const cacheKey = this.generateCacheKey(input);
@@ -51,7 +51,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   try {
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      console.log('✅ Cache hit');
+      console.log('  Cache hit');
       return JSON.parse(cached as string);
     }
     console.log('📭 Cache miss - proceeding with analysis');
@@ -60,7 +60,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
   }
 
   try {
-    // ✅ STEP 1: Main Analysis (Structured JSON)
+    //   STEP 1: Main Analysis (Structured JSON)
     console.log('🤖 Step 1: Generating main structured analysis...');
     const mainAnalysisPrompt = this.buildAnalysisPrompt(input);
     
@@ -80,10 +80,10 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       max_tokens: 12000
     });
 
-    console.log('✅ Main analysis complete');
+    console.log('  Main analysis complete');
     console.log('📊 Tokens used:', mainResponse.usage?.total_tokens);
     
-    // ✅ STEP 2: Parse response (NOW PROPERLY ASYNC)
+    //   STEP 2: Parse response (NOW PROPERLY ASYNC)
     let analysisResults = await this.parseAnalysisResponse(mainResponse.content, input);
     
     // Check if main parsing was successful
@@ -93,7 +93,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       console.warn('⚠️ Main analysis parse failed, already using enhanced fallback from parseAnalysisResponse');
     }
     
-    // ✅ STEP 3: Generate detailed report with AI (if not already present)
+    //   STEP 3: Generate detailed report with AI (if not already present)
     console.log('📝 Step 3: Generating detailed report with AI...');
     let detailedReport: string;
     try {
@@ -107,7 +107,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       detailedReport = this.generateBasicDetailedReport(input, input.transcript);
     }
     
-    // ✅ STEP 4: Generate call structure analysis (optional enhancement)
+    //   STEP 4: Generate call structure analysis (optional enhancement)
     console.log('📊 Step 4: Generating call structure analysis...');
     let callStructure: CallStructureAnalysis | null = null;
     try {
@@ -116,7 +116,7 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       console.warn('⚠️ Call structure analysis failed (non-critical):', structureError);
     }
     
-    // ✅ STEP 5: Generate AI-powered artifacts if needed
+    //   STEP 5: Generate AI-powered artifacts if needed
     console.log('📄 Step 5: Generating AI-powered artifacts...');
     
     // Generate follow-up email if applicable and not already present
@@ -139,13 +139,13 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       }
     }
 
-    // ✅ STEP 5.5: Generate Deal Architecture (NEW - Commercial Focus)
+    //   STEP 5.5: Generate Deal Architecture (NEW - Commercial Focus)
     console.log('🏗️ Step 5.5: Generating deal architecture (solution stack, pricing, diagnosis)...');
     let dealArchitecture: DealArchitecturePackage | undefined;
     if (input.callType === 'sales' || input.callType === 'discovery') {
       try {
         dealArchitecture = await this.generateDealArchitecture(input, input.transcript);
-        console.log('✅ Deal architecture generated successfully');
+        console.log('  Deal architecture generated successfully');
       } catch (dealError) {
         console.warn('⚠️ Deal architecture generation failed (non-critical):', dealError);
         // Generate fallback deal architecture
@@ -153,28 +153,28 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
       }
     }
 
-    // ✅ STEP 6: Combine all results
+    //   STEP 6: Combine all results
     const callPackage: GeneratedCallPackage = {
       ...analysisResults,
       callResults: {
         ...analysisResults.callResults,
-        transcript: input.transcript, // ✅ CHANGED: Full transcript instead of truncated
+        transcript: input.transcript, //   CHANGED: Full transcript instead of truncated
         detailedReport, // AI-generated or fallback
         callStructureAnalysis: callStructure || undefined, // Optional enhancement
         followUpEmail: followUpEmail || analysisResults.callResults.followUpEmail,
         proposalTemplate: proposalTemplate || analysisResults.callResults.proposalTemplate
       },
-      dealArchitecture, // ✅ NEW: Deal architecture package
+      dealArchitecture, //   NEW: Deal architecture package
       tokensUsed: mainResponse.usage?.total_tokens || 0,
       processingTime: Date.now() - startTime
     };
 
 
-    // ✅ STEP 7: Cache result
+    //   STEP 7: Cache result
     console.log('💾 Caching result...');
     try {
       await this.redis.set(cacheKey, JSON.stringify(callPackage), { ex: 86400 });
-      console.log('✅ Result cached successfully');
+      console.log('  Result cached successfully');
     } catch (cacheError) {
       console.warn('⚠️ Cache set failed (non-critical):', cacheError);
     }
@@ -184,9 +184,9 @@ async analyzeCall(input: SalesCallInput): Promise<GeneratedCallPackage> {
     return callPackage;
     
   } catch (error) {
-    console.error('💥 analyzeCall error:', error);
-    console.error('💥 Error type:', error?.constructor?.name);
-    console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('  analyzeCall error:', error);
+    console.error('  Error type:', error?.constructor?.name);
+    console.error('  Error message:', error instanceof Error ? error.message : 'Unknown');
     
     console.log('⚠️ Returning enhanced fallback analysis');
     return this.generateFallbackAnalysis(input, Date.now() - startTime);
@@ -202,13 +202,13 @@ private async generateEnhancedFallback(input: SalesCallInput): Promise<Omit<Gene
   const speakers = this.extractSpeakersFromTranscript(transcript);
   const overallScore = this.calculateOverallScore(transcript, input.callType);
   
-  // ✅ Run AI generations in parallel for speed
+  //   Run AI generations in parallel for speed
   const [
     keyInsights,
     actionItems,
     coachingFeedback,
     executiveSummary,
-    summaryPresentation, // ✅ ADDED THIS
+    summaryPresentation, //   ADDED THIS
     followUpEmail,
     proposalTemplate
   ] = await Promise.allSettled([
@@ -216,7 +216,7 @@ private async generateEnhancedFallback(input: SalesCallInput): Promise<Omit<Gene
     this.generateActionItems(input),
     this.generateCoachingFeedback(transcript, input.callType),
     this.generateExecutiveSummary(input, transcript),
-    this.generateSummaryPresentation(input, transcript), // ✅ ADDED THIS
+    this.generateSummaryPresentation(input, transcript), //   ADDED THIS
     (input.callType === 'sales' || input.callType === 'discovery') 
       ? this.generateFollowUpEmail(input) 
       : Promise.resolve(undefined),
@@ -225,12 +225,12 @@ private async generateEnhancedFallback(input: SalesCallInput): Promise<Omit<Gene
       : Promise.resolve(undefined)
   ]);
   
-  // ✅ Extract results with proper fallbacks
+  //   Extract results with proper fallbacks
   const insights = keyInsights.status === 'fulfilled' ? keyInsights.value : this.generateKeyInsightsFallback(transcript, input.callType);
   const actions = actionItems.status === 'fulfilled' ? actionItems.value : this.generateActionItemsFallback(input);
   const coaching = coachingFeedback.status === 'fulfilled' ? coachingFeedback.value : this.generateCoachingFeedbackFallback(transcript, input.callType);
   const summary = executiveSummary.status === 'fulfilled' ? executiveSummary.value : this.generateExecutiveSummaryFallback(input, transcript);
-  const presentation = summaryPresentation.status === 'fulfilled' ? summaryPresentation.value : this.generateSummaryPresentationFallback(input, transcript); // ✅ ADDED FALLBACK
+  const presentation = summaryPresentation.status === 'fulfilled' ? summaryPresentation.value : this.generateSummaryPresentationFallback(input, transcript); //   ADDED FALLBACK
   const email = followUpEmail.status === 'fulfilled' ? followUpEmail.value : undefined;
   const proposal = proposalTemplate.status === 'fulfilled' ? proposalTemplate.value : undefined;
   
@@ -258,13 +258,13 @@ private async generateEnhancedFallback(input: SalesCallInput): Promise<Omit<Gene
         })
       },
       executiveSummary: summary,
-      detailedReport: this.generateBasicDetailedReport(input, transcript), // ✅ FIXED METHOD NAME
+      detailedReport: this.generateBasicDetailedReport(input, transcript), //   FIXED METHOD NAME
       followUpEmail: email,
       proposalTemplate: proposal,
       coachingFeedback: coaching,
       benchmarks: this.generateBenchmarks(transcript, input.callType)
     },
-    summaryPresentation: presentation, // ✅ NOW PROPERLY AWAITED
+    summaryPresentation: presentation, //   NOW PROPERLY AWAITED
     nextStepsStrategy: this.generateNextStepsStrategy(input, transcript),
     performanceMetrics: this.calculatePerformanceMetrics(transcript, speakers)
   };
@@ -366,7 +366,7 @@ private generateExecutiveSummaryFallback(input: SalesCallInput, transcript: stri
   return `${callType} call with ${company} completed successfully with ${sentiment} sentiment. Key objectives were addressed and clear next steps established for continued engagement.`;
 }
 
-// ✅ UPDATE generateFallbackAnalysis to use the enhanced version
+//   UPDATE generateFallbackAnalysis to use the enhanced version
 private async generateFallbackAnalysis(input: SalesCallInput, processingTime: number): Promise<GeneratedCallPackage> {
   const transcript = input.transcript!;
   
@@ -379,9 +379,9 @@ private async generateFallbackAnalysis(input: SalesCallInput, processingTime: nu
       processingTime
     };
   } catch (enhancedError) {
-    console.error('❌ Enhanced fallback failed, using hardcoded fallback:', enhancedError);
+    console.error('  Enhanced fallback failed, using hardcoded fallback:', enhancedError);
     
-    // ✅ Last resort: fully synchronous hardcoded fallback
+    //   Last resort: fully synchronous hardcoded fallback
     return this.generateHardcodedFallback(input, processingTime);
   }
 }
@@ -578,7 +578,7 @@ CRITICAL:
     
     return this.generateCallStructureFallback(transcript);
   } catch (error) {
-    console.error('❌ Call structure analysis failed:', error);
+    console.error('  Call structure analysis failed:', error);
     return this.generateCallStructureFallback(transcript);
   }
 }
@@ -1025,11 +1025,11 @@ CRITICAL: Double-check your output has:
         .replace(/\[(.+?)\]\(.+?\)/g, '$1');
     }
 
-    console.log('✅ AI detailed report generated and fully sanitized');
+    console.log('  AI detailed report generated and fully sanitized');
     return cleanedReport;
 
   } catch (error) {
-    console.error('❌ AI detailed report generation failed:', error);
+    console.error('  AI detailed report generation failed:', error);
     return this.generateBasicDetailedReport(input, transcript);
   }
 }
@@ -1544,7 +1544,7 @@ private async parseAnalysisResponse(content: string, input: SalesCallInput): Pro
 
       // Accept partial AI data — merge with defaults for any missing pieces
       if (parsed.callResults || parsed.analysis || parsed.summaryPresentation) {
-        console.log('✅ Partial or full AI response parsed, merging with defaults');
+        console.log('  Partial or full AI response parsed, merging with defaults');
 
         // The AI might return callResults at top level or nested differently
         const aiCallResults = parsed.callResults || parsed;
@@ -1830,7 +1830,7 @@ Focus on:
     throw new Error('No array found in response');
     
   } catch (error) {
-    console.error('❌ AI insights generation failed:', error);
+    console.error('  AI insights generation failed:', error);
     
     // Fallback
     const insights = [];
@@ -1850,7 +1850,7 @@ Focus on:
 }
 
   private async generateActionItems(input: SalesCallInput): Promise<string[]> {
-  console.log('✅ Generating AI-powered action items...');
+  console.log('  Generating AI-powered action items...');
   
   const prompt = `Based on this ${input.callType} call, what are the immediate action items?
 
@@ -1886,7 +1886,7 @@ Focus on what should be done in the next 24-48 hours.`;
     throw new Error('No array found');
     
   } catch (error) {
-    console.error('❌ AI action items failed:', error);
+    console.error('  AI action items failed:', error);
     
     const actions = ['Send follow-up email within 24 hours'];
     if (input.callType === 'sales') {
@@ -2166,7 +2166,7 @@ Keep it concise and professional.`;
     
     return response.content.trim();
   } catch (error) {
-    console.error('❌ AI summary failed:', error);
+    console.error('  AI summary failed:', error);
     const overallScore = this.calculateOverallScore(transcript, input.callType);
     const sentiment = this.analyzeSentiment(transcript, overallScore);
     return `${input.callType} call with ${input.companyName || 'prospect'} completed with ${sentiment} sentiment. Key objectives were addressed and next steps established.`;
@@ -2206,7 +2206,7 @@ private async generateDealArchitecture(input: SalesCallInput, transcript: string
 
       // Validate the structure has required fields
       if (parsed.prospectDiagnosis && parsed.solutionStack && parsed.pricingStrategy) {
-        console.log('✅ Deal architecture parsed successfully');
+        console.log('  Deal architecture parsed successfully');
         return parsed as DealArchitecturePackage;
       }
     }
@@ -2215,7 +2215,7 @@ private async generateDealArchitecture(input: SalesCallInput, transcript: string
     return this.generateFallbackDealArchitecture(input, transcript);
 
   } catch (error) {
-    console.error('❌ Deal architecture generation failed:', error);
+    console.error('  Deal architecture generation failed:', error);
     return this.generateFallbackDealArchitecture(input, transcript);
   }
 }
@@ -2884,7 +2884,7 @@ Best regards,
     
     return response.content;
   } catch (error) {
-    console.error('❌ AI follow-up email failed:', error);
+    console.error('  AI follow-up email failed:', error);
     // Fallback to basic template
     return `Subject: Thank you for our ${input.callType} call today - Next steps
 
@@ -2942,7 +2942,7 @@ Use actual details from the transcript - be specific!`;
     
     return response.content;
   } catch (error) {
-    console.error('❌ AI proposal generation failed:', error);
+    console.error('  AI proposal generation failed:', error);
     return `# PROPOSAL FOR ${input.companyName?.toUpperCase() || 'CLIENT'}
 
 ## Executive Summary
@@ -3011,7 +3011,7 @@ Be specific - reference actual moments from the transcript!`;
     throw new Error('No JSON found in response');
     
   } catch (error) {
-    console.error('❌ AI coaching feedback failed:', error);
+    console.error('  AI coaching feedback failed:', error);
     const questionCount = (transcript.match(/\?/g) || []).length;
     
     return {
@@ -3120,7 +3120,7 @@ private async generateSummaryPresentation(input: SalesCallInput, transcript: str
   const overallScore = this.calculateOverallScore(transcript, input.callType);
   const sentiment = this.analyzeSentiment(transcript, overallScore);
   
-  // ✅ Await the async methods
+  //   Await the async methods
   const keyInsights = await this.generateKeyInsights(transcript, input.callType);
   const actionItems = await this.generateActionItems(input);
   
@@ -3137,12 +3137,12 @@ private async generateSummaryPresentation(input: SalesCallInput, transcript: str
     },
     {
       title: 'Key Insights',
-      content: keyInsights.join('\n• '), // ✅ Now properly awaited
+      content: keyInsights.join('\n• '), //   Now properly awaited
       visualType: 'bullet' as const
     },
     {
       title: 'Action Items & Next Steps',
-      content: actionItems.join('\n• '), // ✅ Now properly awaited
+      content: actionItems.join('\n• '), //   Now properly awaited
       visualType: 'bullet' as const
     }
   ];
@@ -3291,7 +3291,7 @@ async saveCallAnalysis(userId: string, workspaceId: string, analysis: GeneratedC
   
   try {
     const { prisma } = await import('@/lib/prisma');
-    console.log('✅ Prisma imported successfully');
+    console.log('  Prisma imported successfully');
     
     console.log('📝 Creating deliverable record...');
     const deliverable = await prisma.deliverable.create({
@@ -3331,14 +3331,14 @@ async saveCallAnalysis(userId: string, workspaceId: string, analysis: GeneratedC
       }
     });
 
-    console.log('✅ Deliverable created with ID:', deliverable.id);
+    console.log('  Deliverable created with ID:', deliverable.id);
     return deliverable.id;
     
   } catch (error) {
-    console.error('💥 Error saving call analysis:', error);
-    console.error('💥 Error type:', error?.constructor?.name);
-    console.error('💥 Error message:', error instanceof Error ? error.message : 'Unknown');
-    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('  Error saving call analysis:', error);
+    console.error('  Error type:', error?.constructor?.name);
+    console.error('  Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('  Error stack:', error instanceof Error ? error.stack : 'No stack');
     throw new Error('Failed to save call analysis');
   }
 }
@@ -3759,7 +3759,7 @@ ${slide.content}
     if (avgScore >= 85) {
       insights.push('🎉 Excellent call performance - consistently high scores across all calls');
     } else if (avgScore >= 75) {
-      insights.push('✅ Strong call performance with good consistency');
+      insights.push('  Strong call performance with good consistency');
     } else if (avgScore >= 65) {
       insights.push('📈 Solid performance with opportunities for improvement');
     } else {

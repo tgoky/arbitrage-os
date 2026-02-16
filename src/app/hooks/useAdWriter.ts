@@ -19,7 +19,7 @@ export interface AdWriterInput {
   coreResult: string;
   secondaryBenefits?: string[];
   timeline?: string;
-  activePlatforms: string[]; // ✅ Keep as string[] for form compatibility
+  activePlatforms: string[]; //   Keep as string[] for form compatibility
   adType: 'awareness' | 'conversion' | 'lead' | 'traffic';
   tone: 'professional' | 'friendly' | 'urgent' | 'humorous' | 'inspirational';
   caseStudy1?: string;
@@ -43,11 +43,11 @@ export interface GeneratedAd {
   ctas: string[];
   hooks?: string[];
   visualSuggestions?: string[];
-  // ✅ NEW: Add the script section properties
+  //   NEW: Add the script section properties
   fixes?: string[];
   results?: string[];
   proofs?: string[];
-  // ✅ ADD this line
+  //   ADD this line
   fullScripts?: FullScript[];
 }
 
@@ -93,7 +93,7 @@ export function useAdWriter() {
         throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
       }
 
-      // ✅ FIXED: Convert platforms to the correct format before sending
+      //   FIXED: Convert platforms to the correct format before sending
   const requestData = {
   ...input,
   workspaceId: getCurrentWorkspaceId(), // Add this line
@@ -121,16 +121,16 @@ export function useAdWriter() {
       const result = await response.json();
       console.log('API Response body:', result);
       
-      // ✅ ADD DETAILED LOGGING to understand the response structure
+      //   ADD DETAILED LOGGING to understand the response structure
       if (result.success) {
-        console.log('✅ API Success - result.data:', result.data);
-        console.log('✅ result.data.ads exists?', !!result.data?.ads);
-        console.log('✅ result.data.ads is array?', Array.isArray(result.data?.ads));
+        console.log('  API Success - result.data:', result.data);
+        console.log('  result.data.ads exists?', !!result.data?.ads);
+        console.log('  result.data.ads is array?', Array.isArray(result.data?.ads));
         if (result.data?.ads) {
-          console.log('✅ Number of ads returned:', result.data.ads.length);
-          console.log('✅ All ads structure:', result.data.ads);
+          console.log('  Number of ads returned:', result.data.ads.length);
+          console.log('  All ads structure:', result.data.ads);
           result.data.ads.forEach((ad: any, index: number) => {
-            console.log(`✅ Ad ${index + 1} (${ad.platform}):`, {
+            console.log(`  Ad ${index + 1} (${ad.platform}):`, {
               headlines: ad.headlines?.length || 0,
               descriptions: ad.descriptions?.length || 0,
               ctas: ad.ctas?.length || 0,
@@ -162,7 +162,7 @@ export function useAdWriter() {
       }
 
       if (result.success && result.data && result.data.ads && Array.isArray(result.data.ads)) {
-        // ✅ IMPROVED: Validate response structure with better error handling
+        //   IMPROVED: Validate response structure with better error handling
         const validAds = result.data.ads.filter((ad: any) => {
           const hasRequiredFields = (
             ad.platform && 
@@ -182,7 +182,7 @@ export function useAdWriter() {
           throw new Error('No valid ads received from server');
         }
         
-        // ✅ Ensure the response matches our GeneratedAd interface
+        //   Ensure the response matches our GeneratedAd interface
        const typedAds: GeneratedAd[] = validAds.map((ad: any) => ({
   platform: ad.platform,
   headlines: ad.headlines || [],
@@ -193,7 +193,7 @@ export function useAdWriter() {
   fixes: ad.fixes || [],
   results: ad.results || [],
   proofs: ad.proofs || [],
-  // ✅ ADD this line
+  //   ADD this line
   fullScripts: ad.fullScripts || []
 }));
         
@@ -264,7 +264,7 @@ export function useAdWriter() {
         throw new Error('Platform is required');
       }
 
-      // ✅ FIXED: Validate that the platform is valid
+      //   FIXED: Validate that the platform is valid
       const validPlatforms = ['facebook', 'google', 'linkedin', 'tiktok', 'generic'];
       if (!validPlatforms.includes(platform)) {
         throw new Error(`Invalid platform: ${platform}`);
@@ -305,7 +305,7 @@ export function useAdWriter() {
           throw new Error('No CTAs generated');
         }
 
-        // ✅ Return properly typed GeneratedAd
+        //   Return properly typed GeneratedAd
       const typedAd: GeneratedAd = {
   platform: newAd.platform,
   headlines: newAd.headlines || [],
@@ -316,7 +316,7 @@ export function useAdWriter() {
   fixes: newAd.fixes || [],
   results: newAd.results || [],
   proofs: newAd.proofs || [],
-  // ✅ ADD this line
+  //   ADD this line
   fullScripts: newAd.fullScripts || []
 };
 
@@ -394,7 +394,7 @@ export function useAdWriter() {
       }
     }
 
-    // ✅ NO PLATFORM REQUIREMENT - platforms are optional
+    //   NO PLATFORM REQUIREMENT - platforms are optional
 
     if (!input.adType) {
       errors.push('Ad type is required');

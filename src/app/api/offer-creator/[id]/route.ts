@@ -19,7 +19,7 @@ const RATE_LIMITS = {
   }
 };
 
-// ✅ Enhanced authentication function (matches other routes)
+//   Enhanced authentication function (matches other routes)
 // Use this IMPROVED 3-method approach in ALL routes
 async function getAuthenticatedUser() {
   try {
@@ -47,15 +47,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -78,13 +78,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Signature Offer Get API called for offer:', params.id);
+    console.log(' Signature Offer Get API called for offer:', params.id);
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
   const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in offer get:', authError);
+      console.error('  Auth failed in offer get:', authError);
       
       const response = NextResponse.json(
         { 
@@ -112,7 +112,7 @@ export async function GET(
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for individual offer fetches
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -122,7 +122,7 @@ export async function GET(
       RATE_LIMITS.OFFER_GET.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -132,13 +132,13 @@ export async function GET(
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const offerId = params.id;
     
     // Validate offer ID format
     if (!offerId || offerId.length < 10) {
-      console.error('❌ Invalid offer ID:', offerId);
+      console.error('  Invalid offer ID:', offerId);
       return NextResponse.json(
         { 
           success: false,
@@ -148,7 +148,7 @@ export async function GET(
       );
     }
 
-    // ✅ Get signature offer with error handling
+    //   Get signature offer with error handling
     console.log('📋 Fetching signature offer:', offerId);
     let offer;
     try {
@@ -156,7 +156,7 @@ export async function GET(
       offer = await offerService.getOffer(user.id, offerId);
       
       if (!offer) {
-        console.log('❌ Offer not found:', offerId);
+        console.log('  Offer not found:', offerId);
         return NextResponse.json(
           { 
             success: false,
@@ -167,9 +167,9 @@ export async function GET(
         );
       }
       
-      console.log('✅ Signature offer retrieved successfully');
+      console.log('  Signature offer retrieved successfully');
     } catch (fetchError) {
-      console.error('💥 Error fetching offer:', fetchError);
+      console.error('  Error fetching offer:', fetchError);
       return NextResponse.json(
         { 
           success: false,
@@ -196,7 +196,7 @@ export async function GET(
       }
     }
 
-    // ✅ Log usage for signature offer view with enhanced metadata
+    //   Log usage for signature offer view with enhanced metadata
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -223,7 +223,7 @@ export async function GET(
           }
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -245,7 +245,7 @@ export async function GET(
     } as ApiResponse<any>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Fetch Error:', error);
+    console.error('  Unexpected Signature Offer Fetch Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -264,13 +264,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Signature Offer Delete API called for offer:', params.id);
+    console.log(' Signature Offer Delete API called for offer:', params.id);
 
-    // ✅ Enhanced authentication
+    //   Enhanced authentication
   const { user, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
-      console.error('❌ Auth failed in offer delete:', authError);
+      console.error('  Auth failed in offer delete:', authError);
       return NextResponse.json(
         { 
           success: false,
@@ -281,7 +281,7 @@ export async function DELETE(
       );
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log('  User authenticated successfully:', user.id);
 
     // Rate limiting for offer deletions
     console.log('🔍 Checking rate limits for user:', user.id);
@@ -291,7 +291,7 @@ export async function DELETE(
       RATE_LIMITS.OFFER_DELETE.window
     );
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         {
           success: false,
@@ -301,13 +301,13 @@ export async function DELETE(
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log('  Rate limit check passed');
 
     const offerId = params.id;
     
     // Validate offer ID format
     if (!offerId || offerId.length < 10) {
-      console.error('❌ Invalid offer ID:', offerId);
+      console.error('  Invalid offer ID:', offerId);
       return NextResponse.json(
         { 
           success: false,
@@ -317,7 +317,7 @@ export async function DELETE(
       );
     }
 
-    // ✅ Delete signature offer with error handling
+    //   Delete signature offer with error handling
     console.log('🗑️ Deleting signature offer:', offerId);
     let deleted: boolean;
     try {
@@ -325,7 +325,7 @@ export async function DELETE(
       deleted = await offerService.deleteOffer(user.id, offerId);
       
       if (!deleted) {
-        console.log('❌ Offer not found for deletion:', offerId);
+        console.log('  Offer not found for deletion:', offerId);
         return NextResponse.json(
           { 
             success: false,
@@ -336,9 +336,9 @@ export async function DELETE(
         );
       }
       
-      console.log('✅ Signature offer deleted successfully');
+      console.log('  Signature offer deleted successfully');
     } catch (deleteError) {
-      console.error('💥 Error deleting offer:', deleteError);
+      console.error('  Error deleting offer:', deleteError);
       return NextResponse.json(
         { 
           success: false,
@@ -349,7 +349,7 @@ export async function DELETE(
       );
     }
 
-    // ✅ Log usage for signature offer deletion
+    //   Log usage for signature offer deletion
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -363,7 +363,7 @@ export async function DELETE(
           deletedAt: new Date().toISOString()
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -381,7 +381,7 @@ export async function DELETE(
     } as ApiResponse<{ deleted: boolean }>);
 
   } catch (error) {
-    console.error('💥 Unexpected Signature Offer Delete Error:', error);
+    console.error('  Unexpected Signature Offer Delete Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 

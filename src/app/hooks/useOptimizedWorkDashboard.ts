@@ -54,10 +54,10 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
       // Sign out to clear any cached session
       await supabase.auth.signOut();
       
-      console.log('✅ Auth data cleared');
+      console.log('  Auth data cleared');
       return true;
     } catch (error) {
-      console.error('❌ Error clearing auth data:', error);
+      console.error('  Error clearing auth data:', error);
       return false;
     }
   }, [supabase]);
@@ -72,7 +72,7 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('❌ Session error:', sessionError);
+        console.error('  Session error:', sessionError);
         
         // If it's a parsing error and we haven't retried yet, clear corrupted data
         if (sessionError.message?.includes('JSON') && retryCount === 0) {
@@ -90,7 +90,7 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
       }
       
       if (!session?.access_token) {
-        console.error('❌ No valid session or access token found');
+        console.error('  No valid session or access token found');
         
         // Try to refresh if we haven't retried yet
         if (retryCount === 0) {
@@ -98,18 +98,18 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
           const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
           
           if (refreshError || !refreshData.session?.access_token) {
-            console.error('❌ Session refresh failed:', refreshError);
+            console.error('  Session refresh failed:', refreshError);
             throw new Error('No active session found. Please sign in again.');
           }
           
-          console.log('✅ Session refreshed successfully');
+          console.log('  Session refreshed successfully');
           return refreshData.session;
         }
         
         throw new Error('No authentication found. Please sign in.');
       }
       
-      console.log('✅ Valid session obtained:', {
+      console.log('  Valid session obtained:', {
         userId: session.user?.id,
         tokenLength: session.access_token.length
       });
@@ -135,7 +135,7 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
     const startTime = Date.now();
     
     try {
-      console.log(`🚀 ${forceRefresh ? 'Force refreshing' : 'Loading'} work items...`);
+      console.log(` ${forceRefresh ? 'Force refreshing' : 'Loading'} work items...`);
       
       // Get valid session with retry logic
       const session = await getValidSession();
@@ -189,7 +189,7 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
       
       const loadTime = Date.now() - startTime;
       
-      console.log(`✅ Work items loaded in ${loadTime}ms`, {
+      console.log(`  Work items loaded in ${loadTime}ms`, {
         authMethod: result.data.authMethod,
         cacheStatus: result.data.cached ? 'HIT' : 'MISS',
         itemCount: result.data.items.length
@@ -203,7 +203,7 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
       if (loadTime < 200) {
         console.log('⚡ Lightning fast load!');
       } else if (loadTime < 1000) {
-        console.log('🚀 Fast load!');
+        console.log(' Fast load!');
       } else {
         console.log('🐌 Slower load - investigating...');
       }
@@ -212,7 +212,7 @@ export function useOptimizedWorkDashboard(workspaceId?: string) {
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch work items';
-      console.error('💥 Dashboard fetch error:', err);
+      console.error('  Dashboard fetch error:', err);
       setError(errorMessage);
       
       // Show user-friendly error messages

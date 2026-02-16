@@ -100,12 +100,12 @@ export function validateSalesCallInput(data: any, partial = false):
     console.log('🔍 Running Zod validation...');
     const validated = schema.parse(data);
     
-    console.log('✅ Validation passed');
-    console.log('✅ Validated data keys:', Object.keys(validated));
+    console.log('  Validation passed');
+    console.log('  Validated data keys:', Object.keys(validated));
     
-    // ✅ FIX: Safe transcript length logging
+    //   FIX: Safe transcript length logging
     if (validated.transcript) {
-      console.log('✅ Validated transcript length:', validated.transcript.length);
+      console.log('  Validated transcript length:', validated.transcript.length);
     } else {
       console.log('⚠️ No transcript in validated data (partial mode)');
     }
@@ -116,11 +116,11 @@ export function validateSalesCallInput(data: any, partial = false):
     };
     
   } catch (error) {
-    console.error('❌ Validation failed');
+    console.error('  Validation failed');
     
     if (error instanceof z.ZodError) {
-      console.error('❌ Zod validation errors:', error.issues);
-      console.error('❌ Error details:', JSON.stringify(error.issues, null, 2));
+      console.error('  Zod validation errors:', error.issues);
+      console.error('  Error details:', JSON.stringify(error.issues, null, 2));
       
       // Log specific transcript errors
       const transcriptErrors = error.issues.filter(issue => 
@@ -128,8 +128,8 @@ export function validateSalesCallInput(data: any, partial = false):
       );
       
       if (transcriptErrors.length > 0) {
-        console.error('❌ TRANSCRIPT VALIDATION ERRORS:', transcriptErrors);
-        console.error('❌ Received transcript:', {
+        console.error('  TRANSCRIPT VALIDATION ERRORS:', transcriptErrors);
+        console.error('  Received transcript:', {
           exists: !!data?.transcript,
           type: typeof data?.transcript,
           length: data?.transcript?.length,
@@ -140,7 +140,7 @@ export function validateSalesCallInput(data: any, partial = false):
       return { success: false, errors: error.issues };
     }
     
-    console.error('❌ Unknown validation error:', error);
+    console.error('  Unknown validation error:', error);
     return { success: false, errors: [{ message: 'Validation failed' }] };
   }
 }

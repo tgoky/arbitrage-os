@@ -452,7 +452,7 @@ const ColdEmailWriter = () => {
 
       const result = await generateEmails(requestData);
       
-      console.log('✅ Generate emails returned:', result);
+      console.log('  Generate emails returned:', result);
       setGeneratedEmails(result);
       
       notification.success({
@@ -479,7 +479,7 @@ const ColdEmailWriter = () => {
       }
       
     } catch (error: any) {
-      console.error('❌ Form submission error:', error);
+      console.error('  Form submission error:', error);
       
       notification.error({
         message: 'Generation Failed',

@@ -18,9 +18,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🚀 Export API Route called for offer:', params.id);
+    console.log(' Export API Route called for offer:', params.id);
 
-    // ✅ SIMPLE AUTH (same as cold email)
+    //   SIMPLE AUTH (same as cold email)
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
       cookies: () => cookieStore
@@ -29,11 +29,11 @@ export async function GET(
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
-      console.error('❌ Auth failed:', error);
+      console.error('  Auth failed:', error);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('  User authenticated:', user.id);
 
     // Rate limiting for exports
     const rateLimitResult = await rateLimit(
@@ -100,7 +100,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('💥 Offer Export Error:', error);
+    console.error('  Offer Export Error:', error);
     return NextResponse.json(
       { error: 'Failed to export offer' },
       { status: 500 }

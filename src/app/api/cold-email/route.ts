@@ -11,7 +11,7 @@ import { logUsage } from '@/lib/usage';
 import { createNotification } from '@/lib/notificationHelper';
 
 
-// ✅ Exact same robust authentication function as pricing calculator
+//   Exact same robust authentication function as pricing calculator
 async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
@@ -38,15 +38,15 @@ async function getAuthenticatedUser() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.error('❌ Authentication failed:', error);
+      console.error('  Authentication failed:', error);
       return { user: null, error: error || new Error('No user found') };
     }
     
-    console.log('✅ User authenticated:', user.id);
+    console.log(' User authenticated:', user.id);
     return { user, error: null };
     
   } catch (error) {
-    console.error('❌ Authentication error:', error);
+    console.error('  Authentication error:', error);
     return { user: null, error };
   }
 }
@@ -55,14 +55,14 @@ async function getAuthenticatedUser() {
 
 
 export async function POST(req: NextRequest) {
-  console.log('🚀 Cold Email API Route called');
+  console.log(' Cold Email API Route called');
   
   try {
-    // ✅ Use robust authentication (same as pricing calculator)
+    //  Use robust authentication (same as pricing calculator)
    const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in cold email:', authError);
+      console.error(' Auth failed in cold email:', authError);
       
       // Clear corrupted cookies in response
       const response = NextResponse.json(
@@ -91,13 +91,13 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    console.log('✅ User authenticated successfully:', user.id);
+    console.log(' User authenticated successfully:', user.id);
 
     // Rate limiting - 20 emails per minute
     console.log('🔍 Checking rate limits for user:', user.id);
     const rateLimitResult = await rateLimit(user.id, 20, 60);
     if (!rateLimitResult.success) {
-      console.log('❌ Rate limit exceeded for user:', user.id);
+      console.log('  Rate limit exceeded for user:', user.id);
       return NextResponse.json(
         { 
           success: false,
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    console.log('✅ Rate limit check passed');
+    console.log(' Rate limit check passed');
 
     // Parse and validate request body
     console.log('📥 Parsing request body...');
@@ -142,7 +142,7 @@ console.log('🔍 Backend body sample:', {
 });
 
     
-    // ✅ COMPREHENSIVE DEBUG LOGGING
+    //  COMPREHENSIVE DEBUG LOGGING
     console.log('🔍 RECEIVED BODY:', JSON.stringify(body, null, 2));
     console.log('🔍 BODY KEYS:', Object.keys(body));
     console.log('🔍 BODY TYPE CHECK:');
@@ -161,10 +161,10 @@ console.log('🔍 Backend body sample:', {
     const validation = validateColdEmailInput(body);
         
     if (!validation.success) {
-      console.error('❌ VALIDATION FAILED:');
+      console.error('  VALIDATION FAILED:');
       console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
       
-      // ✅ Enhanced error response with debug info
+      //   Enhanced error response with debug info
       return NextResponse.json(
         { 
           success: false,
@@ -182,7 +182,7 @@ console.log('🔍 Backend body sample:', {
     }
 
     if (!validation.data) {
-      console.error('❌ Validation data is null');
+      console.error('  Validation data is null');
       return NextResponse.json(
         { 
           success: false,
@@ -192,10 +192,10 @@ console.log('🔍 Backend body sample:', {
       );
     }
 
-    console.log('✅ Input validation passed');
-    console.log('✅ Validated data keys:', Object.keys(validation.data));
+    console.log(' Input validation passed');
+    console.log(' Validated data keys:', Object.keys(validation.data));
 
-    // ✅ GET USER'S WORKSPACE with error handling (same pattern as pricing calc)
+    //  GET USER'S WORKSPACE with error handling (same pattern as pricing calc)
     console.log('🔍 Getting/creating workspace for user:', user.id);
     let workspace;
     try {
@@ -213,12 +213,12 @@ console.log('🔍 Backend body sample:', {
             description: 'Default workspace for cold emails'
           }
         });
-        console.log('✅ Created workspace:', workspace.id);
+        console.log('Created workspace:', workspace.id);
       } else {
-        console.log('✅ Found existing workspace:', workspace.id);
+        console.log(' Found existing workspace:', workspace.id);
       }
     } catch (dbError) {
-      console.error('💥 Database error getting/creating workspace:', dbError);
+      console.error('  Database error getting/creating workspace:', dbError);
       return NextResponse.json(
         { 
           success: false,
@@ -229,7 +229,7 @@ console.log('🔍 Backend body sample:', {
       );
     }
 
-    // ✅ SERVICE HANDLES BOTH GENERATION AND STORAGE with error handling
+    //  SERVICE HANDLES BOTH GENERATION AND STORAGE with error handling
     console.log('🤖 Starting email generation...');
     let result;
     try {
@@ -261,11 +261,11 @@ console.log('🔍 Backend body sample:', {
            workspaceId // Use validated workspace ID
       );
       
-      console.log('✅ Email generation completed successfully');
-      console.log('✅ Generated', result.emails.length, 'emails');
-      console.log('✅ Deliverable ID:', result.deliverableId);
+      console.log('Email generation completed successfully');
+      console.log(' Generated', result.emails.length, 'emails');
+      console.log(' Deliverable ID:', result.deliverableId);
     } catch (serviceError) {
-      console.error('💥 Service error during generation:', serviceError);
+      console.error('  Service error during generation:', serviceError);
       console.error('Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
       return NextResponse.json(
         { 
@@ -293,13 +293,13 @@ console.log('🔍 Backend body sample:', {
     }
   });
   
-  console.log('✅ Notification created for cold email generation:', result.deliverableId);
+  console.log(' Notification created for cold email generation:', result.deliverableId);
 } catch (notifError) {
   console.error('Failed to create notification:', notifError);
   // Don't fail the request if notification fails
 }
 
-    // ✅ LOG USAGE for analytics/billing with error handling
+    // LOG USAGE for analytics/billing with error handling
     console.log('📊 Logging usage...');
     try {
       await logUsage({
@@ -315,7 +315,7 @@ console.log('🔍 Backend body sample:', {
           targetIndustry: validation.data.targetIndustry
         }
       });
-      console.log('✅ Usage logged successfully');
+      console.log('  Usage logged successfully');
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('⚠️ Usage logging failed (non-critical):', logError);
@@ -336,7 +336,7 @@ console.log('🔍 Backend body sample:', {
     });
 
   } catch (error) {
-    console.error('💥 Unexpected Cold Email API Error:', error);
+    console.error('  Unexpected Cold Email API Error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { 
@@ -349,16 +349,16 @@ console.log('🔍 Backend body sample:', {
   }
 }
 
-// ✅ GET endpoint for fetching user's email generations
+//   GET endpoint for fetching user's email generations
 export async function GET(req: NextRequest) {
-  console.log('🚀 Cold Email GET API Route called');
+  console.log(' Cold Email GET API Route called');
   
   try {
     // Use robust authentication
  const { user, error: authError } = await getAuthenticatedUser();
     
     if (authError || !user) {
-      console.error('❌ Auth failed in cold email GET:', authError);
+      console.error('  Auth failed in cold email GET:', authError);
       
       const response = NextResponse.json(
         { 
@@ -394,14 +394,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
 
-    // ✅ USE SERVICE METHOD (consistent with architecture)
+    //   USE SERVICE METHOD (consistent with architecture)
     const coldEmailService = new ColdEmailService();
     const generations = await coldEmailService.getUserEmailGenerations(
       user.id,
       workspaceId || undefined
     );
 
-    // ✅ LOG USAGE for list access
+    //   LOG USAGE for list access
     await logUsage({
       userId: user.id,
       feature: 'cold_email_list',
@@ -423,7 +423,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Email Generations Fetch Error:', error);
+    console.error('  Email Generations Fetch Error:', error);
     return NextResponse.json(
       { 
         success: false,

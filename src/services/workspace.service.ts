@@ -90,10 +90,10 @@ class WorkspaceService {
     console.log('🔍 Getting workspaces...');
     try {
       const workspaces = await this.fetchWithAuth('/api/workspaces', {}, accessToken);
-      console.log('✅ Found workspaces:', workspaces.length);
+      console.log('  Found workspaces:', workspaces.length);
       return workspaces;
     } catch (error) {
-      console.error('❌ Error fetching workspaces:', error);
+      console.error('  Error fetching workspaces:', error);
       throw error;
     }
   }
@@ -110,10 +110,10 @@ class WorkspaceService {
       method: 'POST',
       body: JSON.stringify(input)
     });
-    console.log('✅ Workspace created successfully:', workspace);
+    console.log('  Workspace created successfully:', workspace);
     return workspace;
   } catch (error: any) {
-    console.error('❌ Error creating workspace:', error);
+    console.error('  Error creating workspace:', error);
     console.error('Error details:', error.message);
     throw error;
   }
@@ -128,10 +128,10 @@ class WorkspaceService {
         method: 'PATCH',
         body: JSON.stringify(updates)
       });
-      console.log('✅ Workspace updated successfully:', workspace);
+      console.log(' Workspace updated successfully:', workspace);
       return workspace;
     } catch (error) {
-      console.error('❌ Error updating workspace:', error);
+      console.error('  Error updating workspace:', error);
       throw error;
     }
   }
@@ -143,9 +143,9 @@ class WorkspaceService {
       await this.fetchWithAuth(`/api/workspaces/${id}`, {
         method: 'DELETE'
       });
-      console.log('✅ Workspace deleted successfully');
+      console.log(' Workspace deleted successfully');
     } catch (error) {
-      console.error('❌ Error deleting workspace:', error);
+      console.error('  Error deleting workspace:', error);
       throw error;
     }
   }
@@ -158,7 +158,7 @@ class WorkspaceService {
       console.log('📊 Workspace by slug result:', !!workspace);
       return workspace;
     } catch (error) {
-      console.error('❌ Error fetching workspace by slug:', error);
+      console.error('  Error fetching workspace by slug:', error);
       throw error;
     }
   }
@@ -170,7 +170,7 @@ class WorkspaceService {
       const workspace = await this.fetchWithAuth(`/api/workspaces/${id}/deliverables`);
       return workspace;
     } catch (error) {
-      console.error('❌ Error fetching workspace with deliverables:', error);
+      console.error('  Error fetching workspace with deliverables:', error);
       throw error;
     }
   }
