@@ -328,7 +328,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
                 <div style={getStatItemStyle('#722ed1')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#722ed1' }}>
                         <ThunderboltOutlined />
-                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Best Day</Text>
+                        <Text style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: isDark ? '#6b7280' : '#8c8c8c', fontFamily }}>Premier Day</Text>
                     </div>
                     <Text style={{ fontSize: 20, fontWeight: 800, color: isDark ? '#fff' : '#000', fontFamily }}>
                         {stats.bestDay}

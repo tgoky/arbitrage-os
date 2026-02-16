@@ -94,7 +94,7 @@ const CelebrationMilestonesPanel: React.FC<CelebrationMilestonesPanelProps> = ({
       },
       {
         id: 'power_user',
-        title: 'Power User',
+        title: 'Arbitrage User',
         description: 'Create 50 total items',
         achieved: workItems.length >= 50,
         progress: Math.min(100, (workItems.length / 50) * 100),
