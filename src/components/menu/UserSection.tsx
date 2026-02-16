@@ -193,7 +193,7 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                   className="h-8 w-8 rounded-lg object-cover"
                 />
               ) : (
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                <div className="h-8 w-8 rounded-lg bg-emerald-700 flex items-center justify-center text-black font-semibold shadow-sm">
                   {isLoading ? "..." : userInitial}
                 </div>
               )}
