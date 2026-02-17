@@ -9,7 +9,7 @@ import { logUsage } from '@/lib/usage';
 
 async function getAuthenticatedUser() {
   try {
-    const cookieStore = await cookies();
+const cookieStore = await cookies();
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

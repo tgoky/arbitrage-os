@@ -396,7 +396,7 @@ export default function AnalysisDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('deal-architecture');
 
-  const { getAnalysis, exportAnalysis, shareAnalysis } = useSalesCallAnalyzer();
+  const { getAnalysis,  shareAnalysis } = useSalesCallAnalyzer();
   const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
@@ -416,16 +416,17 @@ export default function AnalysisDetailPage() {
     }
   };
 
-  const handleExport = async (format: 'summary' | 'detailed' | 'presentation' | 'follow-up' = 'summary') => {
-    try {
-      await exportAnalysis(id as string, format);
-      message.success('Analysis exported successfully');
-    } catch (error) {
-      message.error('Failed to export analysis');
-    }
-  };
+  // const handleExport = async (format: 'summary' | 'detailed' | 'presentation' | 'follow-up' = 'summary') => {
+  //   try {
+  //     await exportAnalysis(id as string, format);
+  //     message.success('Analysis exported successfully');
+  //   } catch (error) {
+  //     message.error('Failed to export analysis');
+  //   }
+  // };
 
-const handleDownloadView = async () => {
+
+  const handleDownloadView = async () => {
   if (!analysis) return;
   try {
     await downloadAnalysisPDF(analysis);
