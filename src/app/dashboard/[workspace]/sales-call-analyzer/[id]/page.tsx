@@ -663,6 +663,7 @@ const shareToPlatform = (platform: string) => {
     </>
   )}
 </button>
+ <button   onClick={handleDownloadView}  className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Download Report</button>
       </div>
 
       <Rule />
