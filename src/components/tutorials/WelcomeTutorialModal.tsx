@@ -121,7 +121,7 @@ export const WelcomeTutorialModal: React.FC = () => {
           position: 'relative',
         }}>
           {/* Hero Icon */}
-          <div style={{
+          {/* <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -134,7 +134,7 @@ export const WelcomeTutorialModal: React.FC = () => {
             boxShadow: '0 0 40px -10px rgba(92, 196, 157, 0.3)',
           }}>
             <Rocket size={32} color={THEME.colors.brand} strokeWidth={2} />
-          </div>
+          </div> */}
 
           <h2 style={{
             fontSize: '24px',
@@ -159,7 +159,7 @@ export const WelcomeTutorialModal: React.FC = () => {
         </div>
 
         {/* --- FEATURES GRID --- */}
-        <div style={{
+        {/* <div style={{
           padding: '24px 32px',
           backgroundColor: THEME.colors.surface,
           borderTop: `1px solid ${THEME.colors.border}`,
@@ -192,7 +192,7 @@ export const WelcomeTutorialModal: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* --- ACTIONS FOOTER --- */}
         <div style={{

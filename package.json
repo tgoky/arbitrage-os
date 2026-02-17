@@ -78,6 +78,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^8",
     "eslint-config-next": "^14.1.0",
+    "jspdf": "^4.1.0",
     "postcss": "^8.4.38",
     "puppeteer": "^24.22.3",
     "raw-loader": "^4.0.2",

@@ -22,6 +22,8 @@ import { useGo } from "@refinedev/core";
 import { useParams } from 'next/navigation';
 import { useSalesCallAnalyzer } from '../../../hooks/useSalesCallAnalyzer';
 
+import { downloadAnalysisPDF } from '@/utils/downloadAnalysisPDF';
+
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
@@ -423,9 +425,17 @@ export default function AnalysisDetailPage() {
     }
   };
 
-  const handleDownloadView = () => {
-    window.open(`/sales-call-analyzer/report/${id}`, '_blank');
-  };
+const handleDownloadView = async () => {
+  if (!analysis) return;
+  try {
+    await downloadAnalysisPDF(analysis);
+    message.success('PDF downloaded successfully');
+  } catch (error) {
+    message.error('Failed to generate PDF');
+    console.error(error);
+  }
+};
+
 
   const handleShare = async () => {
     setShareLoading(true);
