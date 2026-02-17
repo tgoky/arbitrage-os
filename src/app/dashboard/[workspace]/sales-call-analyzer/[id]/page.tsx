@@ -22,6 +22,8 @@ import { useGo } from "@refinedev/core";
 import { useParams } from 'next/navigation';
 import { useSalesCallAnalyzer } from '../../../../hooks/useSalesCallAnalyzer';
 
+import { downloadAnalysisPDF } from '@/utils/downloadAnalysisPDF';
+
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
@@ -399,6 +401,20 @@ const [sharing, setSharing] = useState(false);
 const [copySuccess, setCopySuccess] = useState(false);
 const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
+
+  const handleDownloadView = async () => {
+  if (!analysis) return;
+  try {
+    await downloadAnalysisPDF(analysis);
+    message.success('PDF downloaded successfully');
+  } catch (error) {
+    message.error('Failed to generate PDF');
+    console.error(error);
+  }
+};
+
+
+
   const { getAnalysis, exportAnalysis, shareAnalysis } = useSalesCallAnalyzer();
 
   useEffect(() => {
@@ -622,7 +638,7 @@ const shareToPlatform = (platform: string) => {
       )}
 
       <div className="flex gap-2 mb-10">
-        <button onClick={() => handleExport()} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Export</button>
+        {/* <button onClick={() => handleExport()} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors">Export</button> */}
     <button 
   onClick={handleShare}
   disabled={sharing}
@@ -1245,7 +1261,7 @@ const shareToPlatform = (platform: string) => {
       <Rule />
       <div className="flex justify-center gap-3 pb-12">
         <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Back</button>
-        <button onClick={() => handleExport('detailed')} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Download Report</button>
+        <button   onClick={handleDownloadView}  className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Download Report</button>
       </div>
       {/* Professional Share Modal */}
 {shareModalVisible && (
