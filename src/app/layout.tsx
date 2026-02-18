@@ -147,6 +147,14 @@ export default function RootLayout({
                             label: "Sales Call Analyzer",
                           },
                         },
+                        {
+                          name: "Proposal_Generator",
+                          list: "/proposal-generator",
+                          meta: {
+                            canDelete: false,
+                            label: "Proposal Generator",
+                          },
+                        },
                          
                         {
                           name: "Growth_Plan_Creator",

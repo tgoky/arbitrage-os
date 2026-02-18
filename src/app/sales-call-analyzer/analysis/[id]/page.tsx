@@ -7,6 +7,8 @@ import {
   ShareAltOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  ThunderboltOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import {
   Button,
@@ -508,6 +510,79 @@ export default function AnalysisDetailPage() {
     return { talkTime: m?.talkTimePercentage || m?.talkTime || 0, engagement: m?.engagementScore || 0, clarity: m?.clarityScore || 0, professionalism: m?.professionalismScore || 0 };
   };
 
+  // ─── Proposal Generator helpers ───
+  const buildProposalPrefill = () => {
+    const deal = analysis?.analysis?.dealArchitecture;
+    const meta = analysis?.metadata;
+    const painPoints = deal?.prospectDiagnosis?.bleedingNeckProblems || [];
+    const phases = deal?.solutionStack
+      ? [deal.solutionStack.phase1QuickWin, deal.solutionStack.phase2CoreSystem, deal.solutionStack.phase3AIWowFactor]
+      : [];
+
+    return {
+      clientDetails: {
+        clientName: meta?.prospectName || '',
+        clientTitle: meta?.prospectTitle || '',
+        companyName: meta?.companyName || '',
+        corePitchGoal: deal?.pricingStrategy?.pitchAngle?.headline || 'Custom AI Automation Solutions',
+        presentationTone: 'Professional, ROI-focused',
+      },
+      currentState: {
+        mainBottleneck: painPoints[0]?.problem || '',
+        teamInefficiencies: painPoints.slice(1).map((p: any) => p.problem).join('. ') || '',
+        opportunityCost: painPoints[0]?.estimatedCost || '',
+      },
+      futureState: {
+        proposedTeamStructure: deal?.solutionStack?.phase2CoreSystem?.expectedOutcome || '',
+        ownerExecutiveRole: deal?.executiveBrief?.topPriority || '',
+      },
+      solutions: phases.filter(Boolean).map((phase: any, i: number) => ({
+        id: String(i + 1),
+        solutionName: phase?.phaseName || `Phase ${i + 1}`,
+        howItWorks: (phase?.tools || []).map((t: any) => t.toolName).join(' → ') || '',
+        keyBenefits: phase?.expectedOutcome || '',
+        setupFee: i === 0
+          ? `$${deal?.pricingStrategy?.setupFee?.recommended?.toLocaleString() || 'TBD'}`
+          : '',
+        monthlyFee: i === 1
+          ? `$${deal?.pricingStrategy?.monthlyRetainer?.recommended?.toLocaleString() || 'TBD'}/mo`
+          : '',
+      })),
+      closeDetails: {
+        bundleDiscountOffer: deal?.pricingStrategy?.contractTerms?.discountForLongerTerm || '',
+        callToAction: 'Book Your Strategy Call',
+        bookingLink: '',
+      },
+    };
+  };
+
+  const handleQuickGenerate = async () => {
+    const prefill = buildProposalPrefill();
+    try {
+      const res = await fetch('/api/proposal-generator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prefill),
+      });
+      const result = await res.json();
+      if (result.success) {
+        // Navigate to proposal generator with the output shown
+        const encoded = encodeURIComponent(JSON.stringify({ ...prefill, _quickGenerated: result.data.gammaPrompt }));
+        go({ to: `/proposal-generator?prefill=${encoded}` });
+      } else {
+        message.error(result.error || 'Failed to generate prompt.');
+      }
+    } catch {
+      message.error('Something went wrong generating the proposal.');
+    }
+  };
+
+  const handleOpenProposalEditor = () => {
+    const prefill = buildProposalPrefill();
+    const encoded = encodeURIComponent(JSON.stringify(prefill));
+    go({ to: `/proposal-generator?prefill=${encoded}` });
+  };
+
   if (loading) {
     return <div className="max-w-4xl mx-auto px-8 py-14 font-manrope"><Skeleton active paragraph={{ rows: 10 }} /></div>;
   }
@@ -575,13 +650,23 @@ export default function AnalysisDetailPage() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-10">
+      <div className="flex flex-wrap gap-2 mb-10">
         <button onClick={handleDownloadView} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
           <DownloadOutlined className="text-xs" /> Download
         </button>
         <button onClick={handleShare} disabled={shareLoading} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
           <ShareAltOutlined className="text-xs" /> {shareLoading ? 'Generating...' : 'Share'}
         </button>
+        {deal && (
+          <>
+            <button onClick={handleQuickGenerate} className="text-sm text-[#5CC49D] border border-[#5CC49D]/30 rounded px-3 py-1.5 hover:bg-[#5CC49D]/10 transition-colors flex items-center gap-1.5">
+              <ThunderboltOutlined className="text-xs" /> Quick Generate Proposal
+            </button>
+            <button onClick={handleOpenProposalEditor} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
+              <FileTextOutlined className="text-xs" /> Open in Proposal Editor
+            </button>
+          </>
+        )}
       </div>
 
       <Rule />
@@ -1175,6 +1260,33 @@ export default function AnalysisDetailPage() {
         </TabPane> */}
 
       </Tabs>
+
+      {/* Proposal Generator CTA */}
+      {deal && (
+        <>
+          <Rule />
+          <div className="border border-[#5CC49D]/20 rounded-lg p-6 text-center">
+            <h3 className="text-base font-medium text-gray-200 mb-2">Generate a Client Proposal</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Turn this analysis into a polished Gamma.app presentation prompt for your prospect.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleQuickGenerate}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#5CC49D] text-black font-semibold text-sm hover:bg-[#4db38c] transition-colors"
+              >
+                <ThunderboltOutlined /> Quick Generate
+              </button>
+              <button
+                onClick={handleOpenProposalEditor}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg border border-white/10 text-gray-400 text-sm hover:text-gray-200 hover:border-white/20 transition-colors"
+              >
+                <FileTextOutlined /> Open in Proposal Editor
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Footer */}
       <Rule />
