@@ -515,16 +515,25 @@ export default function AnalysisDetailPage() {
     const deal = analysis?.analysis?.dealArchitecture;
     const meta = analysis?.metadata;
     const painPoints = deal?.prospectDiagnosis?.bleedingNeckProblems || [];
+    const pricing = deal?.pricingStrategy;
     const phases = deal?.solutionStack
-      ? [deal.solutionStack.phase1QuickWin, deal.solutionStack.phase2CoreSystem, deal.solutionStack.phase3AIWowFactor]
+      ? [deal.solutionStack.phase1QuickWin, deal.solutionStack.phase2CoreSystem, deal.solutionStack.phase3AIWowFactor].filter(Boolean)
       : [];
+
+    // Distribute pricing across solutions proportionally
+    const setupPerSolution = pricing?.setupFee?.recommended
+      ? Math.round(pricing.setupFee.recommended / Math.max(phases.length, 1))
+      : 0;
+    const monthlyPerSolution = pricing?.monthlyRetainer?.recommended
+      ? Math.round(pricing.monthlyRetainer.recommended / Math.max(phases.length, 1))
+      : 0;
 
     return {
       clientDetails: {
         clientName: meta?.prospectName || '',
         clientTitle: meta?.prospectTitle || '',
         companyName: meta?.companyName || '',
-        corePitchGoal: deal?.pricingStrategy?.pitchAngle?.headline || 'Custom AI Automation Solutions',
+        corePitchGoal: pricing?.pitchAngle?.headline || 'Custom AI Automation Solutions',
         presentationTone: 'Professional, ROI-focused',
       },
       currentState: {
@@ -536,52 +545,35 @@ export default function AnalysisDetailPage() {
         proposedTeamStructure: deal?.solutionStack?.phase2CoreSystem?.expectedOutcome || '',
         ownerExecutiveRole: deal?.executiveBrief?.topPriority || '',
       },
-      solutions: phases.filter(Boolean).map((phase: any, i: number) => ({
+      solutions: phases.map((phase: any, i: number) => ({
         id: String(i + 1),
         solutionName: phase?.phaseName || `Phase ${i + 1}`,
-        howItWorks: (phase?.tools || []).map((t: any) => t.toolName).join(' → ') || '',
+        howItWorks: (phase?.tools || []).map((t: any) => `${t.toolName}: ${t.description || ''}`).join(' → ') || '',
         keyBenefits: phase?.expectedOutcome || '',
-        setupFee: i === 0
-          ? `$${deal?.pricingStrategy?.setupFee?.recommended?.toLocaleString() || 'TBD'}`
-          : '',
-        monthlyFee: i === 1
-          ? `$${deal?.pricingStrategy?.monthlyRetainer?.recommended?.toLocaleString() || 'TBD'}/mo`
-          : '',
+        setupFee: setupPerSolution > 0 ? `$${setupPerSolution.toLocaleString()}` : '',
+        monthlyFee: monthlyPerSolution > 0 ? `$${monthlyPerSolution.toLocaleString()}/mo` : '',
       })),
       closeDetails: {
-        bundleDiscountOffer: deal?.pricingStrategy?.contractTerms?.discountForLongerTerm || '',
+        bundleDiscountOffer: pricing?.contractTerms?.discountForLongerTerm || '',
         callToAction: 'Book Your Strategy Call',
         bookingLink: '',
       },
     };
   };
 
-  const handleQuickGenerate = async () => {
+  const storeAndNavigate = (mode: 'quick' | 'editor') => {
     const prefill = buildProposalPrefill();
     try {
-      const res = await fetch('/api/proposal-generator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(prefill),
-      });
-      const result = await res.json();
-      if (result.success) {
-        // Navigate to proposal generator with the output shown
-        const encoded = encodeURIComponent(JSON.stringify({ ...prefill, _quickGenerated: result.data.gammaPrompt }));
-        go({ to: `/proposal-generator?prefill=${encoded}` });
-      } else {
-        message.error(result.error || 'Failed to generate prompt.');
-      }
+      sessionStorage.setItem('proposal_generator_prefill', JSON.stringify(prefill));
     } catch {
-      message.error('Something went wrong generating the proposal.');
+      message.error('Failed to prepare proposal data.');
+      return;
     }
+    go({ to: `/proposal-generator?mode=${mode}` });
   };
 
-  const handleOpenProposalEditor = () => {
-    const prefill = buildProposalPrefill();
-    const encoded = encodeURIComponent(JSON.stringify(prefill));
-    go({ to: `/proposal-generator?prefill=${encoded}` });
-  };
+  const handleQuickGenerate = () => storeAndNavigate('quick');
+  const handleOpenProposalEditor = () => storeAndNavigate('editor');
 
   if (loading) {
     return <div className="max-w-4xl mx-auto px-8 py-14 font-manrope"><Skeleton active paragraph={{ rows: 10 }} /></div>;

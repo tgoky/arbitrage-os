@@ -52,5 +52,7 @@ export interface ProposalGeneratorInput {
 export interface ProposalGeneratorOutput {
   gammaPrompt: string;
   generatedAt: string;
+  tokensUsed: number;
+  processingTime: number;
   inputSnapshot: ProposalGeneratorInput;
 }
