@@ -97,6 +97,8 @@ interface LogoutDialogProps {
   onConfirm: () => void;
 }
 
+
+
 const LogoutDialog: React.FC<LogoutDialogProps> = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -170,6 +172,12 @@ const WorkspaceHomePage = () => {
 
   // Logout handler
   const handleLogout = () => setShowLogoutDialog(true);
+
+  // --- CUSTOM COLOR PALETTE ---
+const PHANTOM = '#1E1E24';  // For darker surfaces (card backgrounds)
+const ARSENIC = '#40424D';   // For dark surfaces (create card, borders)
+const GRAPHITE = '#6E7180';  // For icons and secondary text
+const BRAND_GREEN = '#5CC49D';
 
   // Delete workspace handler
   const handleDeleteWorkspace = async () => {
@@ -1240,149 +1248,157 @@ return (
   </Col>
 </Row>
 
-        {/* Workspaces Grid */}
-        <Row gutter={[16, 16]}>
-          {/* Create New Workspace Card */}
-          <Col xs={12} sm={12} md={8} lg={6} xl={6}>
-            <Card
-              hoverable
-              size="small"
-              className="cursor-pointer border-dashed h-full"
-              style={{ 
-                borderStyle: 'dashed', 
-          borderColor: theme === 'dark' ? '#404040' : '#d1d5db',
-           background: theme === 'dark' ? '#000000' : '#ffffff',
-                height: '140px'
-              }}
-              bodyStyle={{ 
-                padding: '16px', 
-                height: '100%', 
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onClick={() => setShowCreateModal(true)}
-            >
-              <div className="flex flex-col items-center justify-center w-full text-center">
-                <div className="w-10 h-10 bg-[#052c32] rounded-lg flex items-center justify-center mb-2">
-                  <PlusOutlined className="text-white text-sm" />
-                </div>
-                <Text className="text-sm font-medium">New Workspace</Text>
-              </div>
-            </Card>
-          </Col>
-
-          {/* Existing Workspaces */}
-        
-{filteredWorkspaces.map((workspace) => (
-  <Col xs={12} sm={12} md={8} lg={6} xl={6} key={workspace.id}>
-    {/* Wrapper to pass the current theme context to CSS */}
-    <div className={theme === 'dark' ? 'dark h-full' : 'light h-full'}>
-      <Card
-        hoverable
-        size="small"
-        // 1. ADD THE CLASS HERE
-        className="cursor-pointer h-full workspace-card-premium" 
-        style={{ 
-          height: '140px',
-          // 2. Ensure base border colors are set
-          borderColor: theme === 'dark' ? '#000000' : '#f0f0f0',
-          background: theme === 'dark' ? '#000000' : '#ffffff' 
-        }}
-        bodyStyle={{ 
-          padding: '16px', 
-          height: '100%', 
-          display: 'flex', 
-          flexDirection: 'column' 
-        }}
-        onClick={() => handleWorkspaceClick(workspace)}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
-              <FolderOutlined className="text-white text-sm" />
-            </div>
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'delete',
-                    label: 'Delete',
-                    icon: <DeleteOutlined />,
-                    danger: true,
-                    onClick: (info) => {
-                      info.domEvent.stopPropagation();
-                      setWorkspaceToDelete({ id: workspace.id, name: workspace.name });
-                      setShowDeleteConfirm(true);
-                    }
-                  }
-                ]
-              }}
-              trigger={['click']}
-              placement="bottomRight"
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={<MoreOutlined />}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  color: theme === 'dark' ? '#a1a1aa' : '#9ca3af',
-                  padding: '2px 4px',
-                  height: 'auto',
-                  minWidth: 'auto'
-                }}
-              />
-            </Dropdown>
-          </div>
-          
-          <div className="flex-1 min-h-0 mb-3">
-            <Text 
-              className="text-sm font-semibold block mb-2 leading-tight" 
-              ellipsis={{ tooltip: workspace.name }}
-              style={{ lineHeight: '1.2' }}
-            >
-              {workspace.name}
-            </Text>
-            
-            {workspace.description && (
-              <div className="mt-1">
-                <Text 
-                  type="secondary" 
-                  className="text-xs leading-relaxed block" 
-                  ellipsis={{ tooltip: workspace.description }}
-                  style={{ 
-                    lineHeight: '1.4',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    height: '36px'
-                  }}
-                >
-                  {workspace.description}
-                </Text>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-auto pt-4 border-t border-gray-100 mt-1">
-            <Text type="secondary" className="text-xs">
-              Last Edited: {(workspace.updated_at || workspace.created_at)
-                ? new Date(workspace.updated_at || workspace.created_at || 0).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })
-                : 'Never'}
-            </Text>
-          </div>
+       {/* Workspaces Grid */}
+<Row gutter={[16, 16]}>
+  {/* Create New Workspace Card */}
+  <Col xs={12} sm={12} md={8} lg={6} xl={6}>
+    <Card
+      hoverable
+      size="small"
+      className="cursor-pointer border-dashed h-full"
+      style={{ 
+        borderStyle: 'dashed', 
+        borderColor: theme === 'dark' ? '#40424D' : '#d1d5db', // ARSENIC for dark mode border
+        background: theme === 'dark' ? '#161619' : '#ffffff', // ARSENIC for dark mode background
+        height: '140px'
+      }}
+      bodyStyle={{ 
+        padding: '16px', 
+        height: '100%', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+      onClick={() => setShowCreateModal(true)}
+    >
+      <div className="flex flex-col items-center justify-center w-full text-center">
+        <div className="w-10 h-10 bg-[#052c32] rounded-lg flex items-center justify-center mb-2">
+          <PlusOutlined className="text-white text-sm" />
         </div>
-      </Card>
-    </div>
+        <Text className="text-sm font-medium">New Workspace</Text>
+      </div>
+    </Card>
   </Col>
-))}
-        </Row>
+
+  {/* Existing Workspaces */}
+  {filteredWorkspaces.map((workspace) => (
+    <Col xs={12} sm={12} md={8} lg={6} xl={6} key={workspace.id}>
+      <div className={theme === 'dark' ? 'dark h-full' : 'light h-full'}>
+        <Card
+          hoverable
+          size="small"
+          className="cursor-pointer h-full workspace-card-premium" 
+          style={{ 
+            height: '140px',
+            borderColor: theme === 'dark' ? '#1E1E24' : '#f0f0f0', // PHANTOM for dark mode border
+            background: theme === 'dark' ? '#1E1E24' : '#ffffff', // PHANTOM for dark mode background
+          }}
+          bodyStyle={{ 
+            padding: '16px', 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column' 
+          }}
+          onClick={() => handleWorkspaceClick(workspace)}
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
+                <FolderOutlined className="text-white text-sm" />
+              </div>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'delete',
+                      label: 'Delete',
+                      icon: <DeleteOutlined />,
+                      danger: true,
+                      onClick: (info) => {
+                        info.domEvent.stopPropagation();
+                        setWorkspaceToDelete({ id: workspace.id, name: workspace.name });
+                        setShowDeleteConfirm(true);
+                      }
+                    }
+                  ]
+                }}
+                trigger={['click']}
+                placement="bottomRight"
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined />}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    color: theme === 'dark' ? '#6E7180' : '#9ca3af', // GRAPHITE for dark mode icon
+                    padding: '2px 4px',
+                    height: 'auto',
+                    minWidth: 'auto'
+                  }}
+                />
+              </Dropdown>
+            </div>
+            
+            <div className="flex-1 min-h-0 mb-3">
+              <Text 
+                className="text-sm font-semibold block mb-2 leading-tight" 
+                ellipsis={{ tooltip: workspace.name }}
+                style={{ 
+                  lineHeight: '1.2',
+                  color: theme === 'dark' ? '#ffffff' : '#000000'
+                }}
+              >
+                {workspace.name}
+              </Text>
+              
+              {workspace.description && (
+                <div className="mt-1">
+                  <Text 
+                    type="secondary" 
+                    className="text-xs leading-relaxed block" 
+                    ellipsis={{ tooltip: workspace.description }}
+                    style={{ 
+                      lineHeight: '1.4',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      height: '36px',
+                      color: theme === 'dark' ? '#6E7180' : '#6b7280' // GRAPHITE for dark mode text
+                    }}
+                  >
+                    {workspace.description}
+                  </Text>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-auto pt-4 border-t mt-1" 
+              style={{ 
+                borderColor: theme === 'dark' ? '#40424D' : '#f0f0f0' // ARSENIC for divider
+              }}
+            >
+              <Text 
+                type="secondary" 
+                className="text-xs"
+                style={{ color: theme === 'dark' ? '#6E7180' : '#6b7280' }} // GRAPHITE for timestamp
+              >
+                Last Edited: {(workspace.updated_at || workspace.created_at)
+                  ? new Date(workspace.updated_at || workspace.created_at || 0).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                  : 'Never'}
+              </Text>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </Col>
+  ))}
+</Row>
 
         {/* Empty State */}
         {workspaces.length === 0 && !searchQuery && (
