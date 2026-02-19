@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ControlsProps {
   collapsed: boolean;
@@ -6,6 +7,8 @@ interface ControlsProps {
 }
 
 export const Controls = ({ collapsed, setCollapsed }: ControlsProps) => {
+  const router = useRouter();
+
   return (
     <div className="flex items-center justify-between p-3 border-b border-gray-800">
       {!collapsed && (
@@ -14,6 +17,13 @@ export const Controls = ({ collapsed, setCollapsed }: ControlsProps) => {
         </div>
       )}
       <div className="flex items-center gap-3">
+        <div
+          onClick={() => router.push('/home')}
+          title="All Workspaces"
+          className="cursor-pointer text-gray-400 hover:text-gray-300 transition-colors"
+        >
+          <Home className="h-4 w-4" />
+        </div>
         <div
           data-tour="sidebar-toggle"
           onClick={() => setCollapsed(!collapsed)}

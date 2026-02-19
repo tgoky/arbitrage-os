@@ -296,7 +296,7 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
                 {/* Status Items */}
                 <div className="flex items-center gap-4">
                    <div className="flex items-center gap-2 text-gray-400">
-                      <ThunderboltFilled style={{ color: '#faad14' }} />
+
                       <span>Pro Plan Active</span>
                    </div>
                    <div className="flex items-center gap-2 text-gray-400">

@@ -1291,7 +1291,7 @@ return (
           style={{ 
             height: '140px',
             borderColor: theme === 'dark' ? '#1E1E24' : '#f0f0f0', // PHANTOM for dark mode border
-            background: theme === 'dark' ? '#1E1E24' : '#ffffff', // PHANTOM for dark mode background
+            background: theme === 'dark' ? 'bg-[#052c32] ' : '#ffffff', // PHANTOM for dark mode background
           }}
           bodyStyle={{ 
             padding: '16px', 
