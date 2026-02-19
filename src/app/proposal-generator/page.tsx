@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGo } from "@refinedev/core";
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeftOutlined,
   PlusOutlined,
@@ -11,8 +12,9 @@ import {
   ThunderboltOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { message, Collapse } from 'antd';
+import { message, Collapse, Skeleton } from 'antd';
 import { useProposalGenerator } from '../hooks/useProposalGenerator';
+import { buildProposalFromAnalysis } from '@/utils/buildProposalFromAnalysis';
 import type {
   ProposalGeneratorInput,
   ProposalSolution,
@@ -66,7 +68,12 @@ function createEmptySolution(): ProposalSolution {
 
 export default function ProposalGeneratorPage() {
   const go = useGo();
+  const searchParams = useSearchParams();
+  const analysisId = searchParams.get('analysisId');
   const { generatePrompt } = useProposalGenerator();
+  const hasPrefilled = useRef(false);
+
+  const [prefilling, setPrefilling] = useState(!!analysisId);
 
   // Form state
   const [clientDetails, setClientDetails] = useState<ClientDetails>({
@@ -100,6 +107,34 @@ export default function ProposalGeneratorPage() {
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
   const [generating, setGenerating] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
+
+  // Prefill form from analysis data when analysisId is present
+  useEffect(() => {
+    if (!analysisId || hasPrefilled.current) {
+      setPrefilling(false);
+      return;
+    }
+    hasPrefilled.current = true;
+
+    (async () => {
+      try {
+        const response = await fetch(`/api/sales-call-analyzer/${analysisId}`);
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        const input = buildProposalFromAnalysis(result.data);
+        setClientDetails(input.clientDetails);
+        setCurrentState(input.currentState);
+        setFutureState(input.futureState);
+        if (input.solutions.length > 0) setSolutions(input.solutions);
+        setCloseDetails(input.closeDetails);
+      } catch {
+        message.error('Failed to load analysis data for prefill.');
+      } finally {
+        setPrefilling(false);
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Solution management
   const addSolution = () => {
@@ -192,7 +227,10 @@ export default function ProposalGeneratorPage() {
       </p>
 
       {/* ─── FORM ─── */}
-      {!showOutput && (
+      {prefilling && (
+        <div className="py-10"><Skeleton active paragraph={{ rows: 8 }} /></div>
+      )}
+      {!showOutput && !prefilling && (
         <div className="space-y-10">
           {/* Section 1: Client & Presentation Details */}
           <div>
