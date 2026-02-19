@@ -1,4 +1,3 @@
-
 // hooks/useProposalGenerator.ts
 import { useState, useCallback } from 'react';
 import type { ProposalGeneratorInput, ProposalGeneratorOutput } from '@/types/proposalGenerator';
@@ -9,9 +8,13 @@ export function useProposalGenerator() {
 
   /**
    * Call the API to generate a Gamma prompt from structured input.
+   * Pass workspaceId and analysisId to auto-save the result as a deliverable.
    */
   const generatePrompt = useCallback(
-    async (input: ProposalGeneratorInput): Promise<ProposalGeneratorOutput> => {
+    async (
+      input: ProposalGeneratorInput,
+      opts?: { workspaceId?: string; analysisId?: string }
+    ): Promise<ProposalGeneratorOutput & { deliverableId?: string }> => {
       setLoading(true);
       setError(null);
 
@@ -19,7 +22,11 @@ export function useProposalGenerator() {
         const response = await fetch('/api/proposal-generator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(input),
+          body: JSON.stringify({
+            ...input,
+            workspaceId: opts?.workspaceId,
+            analysisId: opts?.analysisId,
+          }),
         });
 
         const result = await response.json();
@@ -28,7 +35,7 @@ export function useProposalGenerator() {
           throw new Error(result.error || 'Failed to generate proposal prompt');
         }
 
-        return result.data as ProposalGeneratorOutput;
+        return result.data as ProposalGeneratorOutput & { deliverableId?: string };
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'An error occurred';
         setError(msg);

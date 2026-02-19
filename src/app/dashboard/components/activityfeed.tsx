@@ -18,7 +18,8 @@ import {
   HistoryOutlined,
   ReloadOutlined,
   UserOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  FundProjectionScreenOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
@@ -31,7 +32,7 @@ const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
 // --- Types ---
-type ToolType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation';
+type ToolType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation' | 'gamma-proposal';
 type ActivityStatus = 'completed' | 'processing' | 'failed' | 'queued';
 
 interface EnhancedActivity {
@@ -145,6 +146,16 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
             priority: 'medium'
           };
           break;
+        case 'gamma-proposal':
+          action = 'Generated Gamma prompt';
+          user = 'Proposal AI';
+          metadata = {
+            duration: item.metadata?.processingTime ? `${Math.round(item.metadata.processingTime / 1000)}s` : '20s',
+            tokensUsed: item.metadata?.tokensUsed || 0,
+            outputSize: `${item.metadata?.solutionCount || 0} solutions`,
+            priority: 'high'
+          };
+          break;
         default:
           action = `Processed ${item.type.replace('-', ' ')}`;
           user = 'AI Assistant';
@@ -188,6 +199,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       'n8n-workflow': 'n8n-builder',
       'proposal': 'proposal-creator',
       'lead-generation': 'lead-generation',
+      'gamma-proposal': 'proposal-generator',
     };
     return routes[toolType] || toolType;
   };
@@ -225,6 +237,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       'n8n-workflow': { icon: <PartitionOutlined />, color: '#fa541c', bg: '#fff2e8' },
       'proposal': { icon: <FileTextOutlined />, color: '#9254de', bg: '#f9f0ff' },
       'lead-generation': { icon: <UserOutlined />, color: '#52c41a', bg: '#f6ffed' },
+      'gamma-proposal': { icon: <FundProjectionScreenOutlined />, color: '#5CC49D', bg: '#e6fff5' },
     };
     return config[toolType] || { icon: <ThunderboltOutlined />, color: '#666', bg: '#f5f5f5' };
   };

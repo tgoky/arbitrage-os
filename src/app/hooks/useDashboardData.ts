@@ -5,7 +5,7 @@ import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 // Types
 export interface WorkItem {
   id: string;
-  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow'  | 'proposal' | 'lead-generation';
+  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow'  | 'proposal' | 'lead-generation' | 'gamma-proposal';
   title: string;
   subtitle: string;
   status: 'completed' | 'processing' | 'failed' | 'draft';

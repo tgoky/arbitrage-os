@@ -24,7 +24,8 @@ import {
   CheckCircleFilled,
   ClockCircleFilled,
   CloseCircleFilled,
-  FilterOutlined
+  FilterOutlined,
+  FundProjectionScreenOutlined
 } from '@ant-design/icons';
 import { 
   Card, 
@@ -71,7 +72,7 @@ const GLASS_BORDER = 'rgba(255, 255, 255, 0.08)';
 const GLASS_BG_HOVER = 'rgba(255, 255, 255, 0.06)';
 
 // Define proper types
-type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation';
+type WorkItemType = 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation' | 'gamma-proposal';
 type WorkItemStatus = 'completed' | 'processing' | 'failed' | 'draft';
 
 interface WorkItem {
@@ -176,8 +177,9 @@ const IntegratedWorkDashboard = () => {
       'offer-creator': <EditOutlined />,
       'ad-writer': <TagOutlined />,
       'n8n-workflow': <ThunderboltOutlined />,
-      'proposal': <FileTextOutlined />,        
-      'lead-generation': <TeamOutlined />  
+      'proposal': <FileTextOutlined />,
+      'lead-generation': <TeamOutlined />,
+      'gamma-proposal': <FundProjectionScreenOutlined />  
     };
     return icons[type] || <FileTextOutlined />;
   };
@@ -192,8 +194,9 @@ const IntegratedWorkDashboard = () => {
       'offer-creator': 'Offer Creator',
       'ad-writer': 'Ad Copy',
       'n8n-workflow': 'Automation',
-      'proposal': 'Proposal',           
-      'lead-generation': 'Lead Gen' 
+      'proposal': 'Proposal',
+      'lead-generation': 'Lead Gen',
+      'gamma-proposal': 'Gamma Prompt' 
     };
     return names[type] || type;
   };
@@ -226,8 +229,9 @@ const IntegratedWorkDashboard = () => {
       'offer-creator': '#13c2c2',
       'ad-writer': '#faad14',
       'n8n-workflow': '#fa541c',
-      'proposal': '#9254de',           
-      'lead-generation': '#52c41a'   
+      'proposal': '#9254de',
+      'lead-generation': '#52c41a',
+      'gamma-proposal': '#5CC49D'   
     };
     return colors[type] || '#666';
   };
@@ -350,8 +354,9 @@ const IntegratedWorkDashboard = () => {
             'cold-email': `/dashboard/${currentWorkspace.slug}/cold-email/${item.metadata.deliverableId}`,
             'ad-writer': `/dashboard/${currentWorkspace.slug}/ad-writer/${item.metadata.deliverableId}`,
             'n8n-workflow': `/dashboard/${currentWorkspace.slug}/n8n-builder/${item.metadata.deliverableId}`,
-            'proposal': `/dashboard/${currentWorkspace.slug}/proposal-creator/${item.metadata.deliverableId}`, 
-            'lead-generation': `/dashboard/${currentWorkspace.slug}/lead-generation/${item.metadata.deliverableId}`
+            'proposal': `/dashboard/${currentWorkspace.slug}/proposal-creator/${item.metadata.deliverableId}`,
+            'lead-generation': `/dashboard/${currentWorkspace.slug}/lead-generation/${item.metadata.deliverableId}`,
+            'gamma-proposal': `/dashboard/${currentWorkspace.slug}/proposal-generator/${item.metadata.deliverableId}`
           };
           
           const viewUrl = viewUrls[item.type];
@@ -643,6 +648,7 @@ const IntegratedWorkDashboard = () => {
               { key: 'niche-research', label: `Research (${getTabCount('niche-research')})` },
               { key: 'ad-writer', label: `Ad Copy (${getTabCount('ad-writer')})` },
               { key: 'proposal', label: `Contract (${getTabCount('proposal')})` },
+              { key: 'gamma-proposal', label: `Gamma Prompts (${getTabCount('gamma-proposal')})` },
             ]}
           />
 

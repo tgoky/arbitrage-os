@@ -15,7 +15,8 @@ import {
   TeamOutlined,
   ArrowRightOutlined,
   FolderOpenOutlined,
-  FileDoneOutlined
+  FileDoneOutlined,
+  FundProjectionScreenOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../../providers/ThemeProvider';
@@ -70,6 +71,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'n8n-workflow': { icon: <FileTextOutlined />, color: '#fa541c', bg: '#fff2e8' },
       'proposal': { icon: <FileDoneOutlined />, color: '#9254de', bg: '#f9f0ff' },
       'lead-generation': { icon: <TeamOutlined />, color: '#52c41a', bg: '#f6ffed' },
+      'gamma-proposal': { icon: <FundProjectionScreenOutlined />, color: '#5CC49D', bg: '#e6fff5' },
     };
     return config[type] || { icon: <FileTextOutlined />, color: '#666', bg: '#f5f5f5' };
   };
@@ -85,7 +87,8 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'ad-writer': 'Ads',
       'n8n-workflow': 'Workflow',
       'proposal': 'Proposal',
-      'lead-generation': 'Leads'
+      'lead-generation': 'Leads',
+      'gamma-proposal': 'Gamma Prompt'
     };
     return names[type] || type;
   };
@@ -102,6 +105,7 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
       'n8n-workflow': 'n8n-builder',
       'proposal': 'proposal-creator',
       'lead-generation': 'lead-generation',
+      'gamma-proposal': 'proposal-generator',
     };
     return routes[type] || type;
   };
@@ -409,8 +413,11 @@ const RecentDeliverables: React.FC<RecentDeliverablesProps> = ({
                           {item.type === 'proposal' && item.metadata.winProbability && 
                             renderMetadataPill(`${item.metadata.winProbability}% win prob`, 'success')}
                           
-                          {item.type === 'lead-generation' && item.metadata.leadCount && 
+                          {item.type === 'lead-generation' && item.metadata.leadCount &&
                             renderMetadataPill(`${item.metadata.leadCount} leads`, 'blue')}
+
+                          {item.type === 'gamma-proposal' && item.metadata.companyName &&
+                            renderMetadataPill(item.metadata.companyName, 'success')}
                         </div>
                       </div>
                     }

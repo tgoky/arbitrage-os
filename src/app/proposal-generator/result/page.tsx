@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { message, Collapse } from 'antd';
 import { useProposalGenerator } from '../../hooks/useProposalGenerator';
+import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { buildProposalFromAnalysis } from '@/utils/buildProposalFromAnalysis';
 import type { ProposalGeneratorInput } from '@/types/proposalGenerator';
 
@@ -42,10 +43,12 @@ export default function ProposalResultPage() {
   const searchParams = useSearchParams();
   const analysisId = searchParams.get('analysisId');
   const { generatePrompt } = useProposalGenerator();
+  const { currentWorkspace } = useWorkspaceContext();
   const hasStarted = useRef(false);
 
   const [generating, setGenerating] = useState(true);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [deliverableId, setDeliverableId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -110,9 +113,15 @@ export default function ProposalResultPage() {
         }];
       }
 
-      const result = await generatePrompt(filteredInput);
+      const result = await generatePrompt(filteredInput, {
+        workspaceId: currentWorkspace?.id,
+        analysisId: analysisId || undefined,
+      });
       setGeneratedPrompt(result.gammaPrompt);
-      message.success('Gamma prompt generated!');
+      if (result.deliverableId) {
+        setDeliverableId(result.deliverableId);
+      }
+      message.success('Gamma prompt generated & saved!');
     } catch {
       setError('Failed to generate the proposal prompt. Please try again from the analysis page.');
     } finally {
@@ -215,7 +224,7 @@ export default function ProposalResultPage() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 mt-6">
+      <div className="flex flex-wrap gap-3 mt-6 items-center">
         <button
           onClick={handleCopy}
           className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#5CC49D] text-black font-semibold text-sm hover:bg-[#4db38c] transition-colors"
@@ -228,6 +237,14 @@ export default function ProposalResultPage() {
         >
           Open Gamma.app
         </button>
+        {deliverableId && currentWorkspace && (
+          <button
+            onClick={() => go({ to: `/dashboard/${currentWorkspace.slug}/proposal-generator/${deliverableId}` })}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/10 text-gray-400 text-sm hover:text-gray-200 hover:border-white/20 transition-colors"
+          >
+            Saved — View in Dashboard
+          </button>
+        )}
       </div>
 
       <Rule />
