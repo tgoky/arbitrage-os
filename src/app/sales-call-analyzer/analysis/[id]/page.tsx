@@ -510,70 +510,13 @@ export default function AnalysisDetailPage() {
     return { talkTime: m?.talkTimePercentage || m?.talkTime || 0, engagement: m?.engagementScore || 0, clarity: m?.clarityScore || 0, professionalism: m?.professionalismScore || 0 };
   };
 
-  // ─── Proposal Generator helpers ───
-  const buildProposalPrefill = () => {
-    const deal = analysis?.analysis?.dealArchitecture;
-    const meta = analysis?.metadata;
-    const painPoints = deal?.prospectDiagnosis?.bleedingNeckProblems || [];
-    const pricing = deal?.pricingStrategy;
-    const phases = deal?.solutionStack
-      ? [deal.solutionStack.phase1QuickWin, deal.solutionStack.phase2CoreSystem, deal.solutionStack.phase3AIWowFactor].filter(Boolean)
-      : [];
-
-    // Distribute pricing across solutions proportionally
-    const setupPerSolution = pricing?.setupFee?.recommended
-      ? Math.round(pricing.setupFee.recommended / Math.max(phases.length, 1))
-      : 0;
-    const monthlyPerSolution = pricing?.monthlyRetainer?.recommended
-      ? Math.round(pricing.monthlyRetainer.recommended / Math.max(phases.length, 1))
-      : 0;
-
-    return {
-      clientDetails: {
-        clientName: meta?.prospectName || '',
-        clientTitle: meta?.prospectTitle || '',
-        companyName: meta?.companyName || '',
-        corePitchGoal: pricing?.pitchAngle?.headline || 'Custom AI Automation Solutions',
-        presentationTone: 'Professional, ROI-focused',
-      },
-      currentState: {
-        mainBottleneck: painPoints[0]?.problem || '',
-        teamInefficiencies: painPoints.slice(1).map((p: any) => p.problem).join('. ') || '',
-        opportunityCost: painPoints[0]?.estimatedCost || '',
-      },
-      futureState: {
-        proposedTeamStructure: deal?.solutionStack?.phase2CoreSystem?.expectedOutcome || '',
-        ownerExecutiveRole: deal?.executiveBrief?.topPriority || '',
-      },
-      solutions: phases.map((phase: any, i: number) => ({
-        id: String(i + 1),
-        solutionName: phase?.phaseName || `Phase ${i + 1}`,
-        howItWorks: (phase?.tools || []).map((t: any) => `${t.toolName}: ${t.description || ''}`).join(' → ') || '',
-        keyBenefits: phase?.expectedOutcome || '',
-        setupFee: setupPerSolution > 0 ? `$${setupPerSolution.toLocaleString()}` : '',
-        monthlyFee: monthlyPerSolution > 0 ? `$${monthlyPerSolution.toLocaleString()}/mo` : '',
-      })),
-      closeDetails: {
-        bundleDiscountOffer: pricing?.contractTerms?.discountForLongerTerm || '',
-        callToAction: 'Book Your Strategy Call',
-        bookingLink: '',
-      },
-    };
+  const handleQuickGenerate = () => {
+    go({ to: `/proposal-generator/result?analysisId=${id}` });
   };
 
-  const storeAndNavigate = (mode: 'quick' | 'editor') => {
-    const prefill = buildProposalPrefill();
-    try {
-      sessionStorage.setItem('proposal_generator_prefill', JSON.stringify(prefill));
-    } catch {
-      message.error('Failed to prepare proposal data.');
-      return;
-    }
-    go({ to: `/proposal-generator?mode=${mode}` });
+  const handleOpenProposalEditor = () => {
+    go({ to: `/proposal-generator?analysisId=${id}` });
   };
-
-  const handleQuickGenerate = () => storeAndNavigate('quick');
-  const handleOpenProposalEditor = () => storeAndNavigate('editor');
 
   if (loading) {
     return <div className="max-w-4xl mx-auto px-8 py-14 font-manrope"><Skeleton active paragraph={{ rows: 10 }} /></div>;

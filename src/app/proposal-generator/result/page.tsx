@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useGo } from "@refinedev/core";
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeftOutlined,
   CopyOutlined,
@@ -10,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { message, Collapse } from 'antd';
 import { useProposalGenerator } from '../../hooks/useProposalGenerator';
+import { buildProposalFromAnalysis } from '@/utils/buildProposalFromAnalysis';
 import type { ProposalGeneratorInput } from '@/types/proposalGenerator';
 
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -37,7 +39,9 @@ const videoWalkthroughs = [
 
 export default function ProposalResultPage() {
   const go = useGo();
-  const { generatePrompt, consumePrefill } = useProposalGenerator();
+  const searchParams = useSearchParams();
+  const analysisId = searchParams.get('analysisId');
+  const { generatePrompt } = useProposalGenerator();
   const hasStarted = useRef(false);
 
   const [generating, setGenerating] = useState(true);
@@ -50,29 +54,51 @@ export default function ProposalResultPage() {
     if (hasStarted.current) return;
     hasStarted.current = true;
 
-    const input = consumePrefill();
-    if (!input) {
-      setError('No proposal data found. Please generate from a Sales Call Analysis or the Proposal Generator form.');
+    if (!analysisId) {
+      setError('No analysis ID provided. Please generate from a Sales Call Analysis.');
       setGenerating(false);
       return;
     }
 
-    setClientName(input.clientDetails?.clientName || '');
-    setCompanyName(input.clientDetails?.companyName || '');
-    runGeneration(input);
+    fetchAnalysisAndGenerate(analysisId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const runGeneration = async (input: ProposalGeneratorInput) => {
+  const fetchAnalysisAndGenerate = async (id: string) => {
     setGenerating(true);
     setError(null);
 
+    try {
+      const response = await fetch(`/api/sales-call-analyzer/${id}`);
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch analysis');
+      }
+
+      const analysis = result.data;
+      const input = buildProposalFromAnalysis(analysis);
+
+      setClientName(input.clientDetails?.clientName || '');
+      setCompanyName(input.clientDetails?.companyName || '');
+
+      await runGeneration(input);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load analysis data. Please try again from the analysis page.'
+      );
+      setGenerating(false);
+    }
+  };
+
+  const runGeneration = async (input: ProposalGeneratorInput) => {
     try {
       const filteredInput = {
         ...input,
         solutions: input.solutions.filter((s) => s.solutionName),
       };
 
-      // Ensure at least one solution has a name for validation
       if (filteredInput.solutions.length === 0) {
         filteredInput.solutions = [{
           id: '1',
@@ -112,6 +138,10 @@ export default function ProposalResultPage() {
     window.open(GAMMA_APP_URL, '_blank', 'noopener,noreferrer');
   };
 
+  const backTo = analysisId
+    ? `/sales-call-analyzer/analysis/${analysisId}`
+    : '/sales-call-analyzer';
+
   // Loading state
   if (generating) {
     return (
@@ -136,10 +166,10 @@ export default function ProposalResultPage() {
           <p className="text-xl text-gray-300 mb-4">{error}</p>
           <div className="flex justify-center gap-3">
             <button
-              onClick={() => go({ to: '/sales-call-analyzer' })}
+              onClick={() => go({ to: backTo })}
               className="flex items-center gap-2 px-5 py-2 rounded-lg border border-white/10 text-gray-400 text-sm hover:text-gray-200 hover:border-white/20 transition-colors"
             >
-              <ArrowLeftOutlined /> Back to Analyses
+              <ArrowLeftOutlined /> Back to Analysis
             </button>
             <button
               onClick={() => go({ to: '/proposal-generator' })}
@@ -158,10 +188,10 @@ export default function ProposalResultPage() {
     <div className="mx-auto px-8 py-14 max-w-4xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
       {/* Back */}
       <button
-        onClick={() => go({ to: '/sales-call-analyzer' })}
+        onClick={() => go({ to: backTo })}
         className="group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 bg-white/5 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white mb-6"
       >
-        <ArrowLeftOutlined className="text-xs" /> Back to Analyses
+        <ArrowLeftOutlined className="text-xs" /> Back to Analysis
       </button>
 
       {/* Title */}
