@@ -6,7 +6,7 @@ export interface ClientDetails {
   clientTitle: string;
   companyName: string;
   corePitchGoal: string;
-  presentationTone: string; // e.g., "Professional, ROI-focused"
+  presentationTone: string;
 }
 
 /** Section 2: Current State / Pain Points */
@@ -26,7 +26,7 @@ export interface FutureState {
 export interface ProposalSolution {
   id: string;
   solutionName: string;
-  howItWorks: string; // Input -> Process -> Output description
+  howItWorks: string;
   keyBenefits?: string;
   setupFee: string;
   monthlyFee: string;
@@ -46,6 +46,13 @@ export interface ProposalGeneratorInput {
   futureState: FutureState;
   solutions: ProposalSolution[];
   closeDetails: CloseDetails;
+
+  /**
+   * Raw deal architecture JSON from the Sales Call Analyzer.
+   * When present, the AI uses this rich data to produce a much more
+   * detailed and specific prompt. Passed by the Quick Generate flow.
+   */
+  rawAnalysisContext?: string;
 }
 
 /** Output from the generator */

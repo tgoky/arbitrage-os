@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState } from 'react';
 import { useGo } from "@refinedev/core";
 import {
   ArrowLeftOutlined,
@@ -10,8 +9,10 @@ import {
   CopyOutlined,
   PlayCircleOutlined,
   ThunderboltOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
-import { Button, message, Collapse } from 'antd';
+import { message, Collapse } from 'antd';
+import { useProposalGenerator } from '../hooks/useProposalGenerator';
 import type {
   ProposalGeneratorInput,
   ProposalSolution,
@@ -19,9 +20,8 @@ import type {
   CurrentState,
   FutureState,
   CloseDetails,
-} from '../../types/proposalGenerator';
+} from '@/types/proposalGenerator';
 
-// Minimal pill component matching analyzer style
 const Label = ({ children }: { children: React.ReactNode }) => (
   <p className="text-xs uppercase tracking-widest text-gray-500 font-manrope mb-3 mt-0">{children}</p>
 );
@@ -66,7 +66,7 @@ function createEmptySolution(): ProposalSolution {
 
 export default function ProposalGeneratorPage() {
   const go = useGo();
-  const searchParams = useSearchParams();
+  const { generatePrompt } = useProposalGenerator();
 
   // Form state
   const [clientDetails, setClientDetails] = useState<ClientDetails>({
@@ -101,29 +101,6 @@ export default function ProposalGeneratorPage() {
   const [generating, setGenerating] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
 
-  // Pre-fill from Sales Call Analyzer data (via URL params)
-  useEffect(() => {
-    const prefillData = searchParams.get('prefill');
-    if (prefillData) {
-      try {
-        const data = JSON.parse(decodeURIComponent(prefillData));
-        if (data.clientDetails) setClientDetails((prev) => ({ ...prev, ...data.clientDetails }));
-        if (data.currentState) setCurrentState((prev) => ({ ...prev, ...data.currentState }));
-        if (data.futureState) setFutureState((prev) => ({ ...prev, ...data.futureState }));
-        if (data.solutions && data.solutions.length > 0) setSolutions(data.solutions);
-        if (data.closeDetails) setCloseDetails((prev) => ({ ...prev, ...data.closeDetails }));
-
-        // Quick Generate: auto-show prompt output
-        if (data._quickGenerated) {
-          setGeneratedPrompt(data._quickGenerated);
-          setShowOutput(true);
-        }
-      } catch {
-        console.error('Failed to parse prefill data');
-      }
-    }
-  }, [searchParams]);
-
   // Solution management
   const addSolution = () => {
     setSolutions((prev) => [...prev, createEmptySolution()]);
@@ -140,7 +117,7 @@ export default function ProposalGeneratorPage() {
     );
   };
 
-  // Generate prompt
+  // Generate prompt via hook
   const handleGenerate = async () => {
     if (!clientDetails.clientName || !clientDetails.companyName) {
       message.error('Client name and company name are required.');
@@ -161,19 +138,8 @@ export default function ProposalGeneratorPage() {
         closeDetails,
       };
 
-      const res = await fetch('/api/proposal-generator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-
-      const result = await res.json();
-      if (!result.success) {
-        message.error(result.error || 'Failed to generate prompt.');
-        return;
-      }
-
-      setGeneratedPrompt(result.data.gammaPrompt);
+      const result = await generatePrompt(input);
+      setGeneratedPrompt(result.gammaPrompt);
       setShowOutput(true);
       message.success('Gamma prompt generated!');
     } catch {
@@ -188,7 +154,6 @@ export default function ProposalGeneratorPage() {
       await navigator.clipboard.writeText(generatedPrompt);
       message.success('Prompt copied to clipboard!');
     } catch {
-      // Fallback: select all in textarea
       const textarea = document.getElementById('gamma-prompt-output') as HTMLTextAreaElement;
       if (textarea) {
         textarea.select();
@@ -478,7 +443,8 @@ export default function ProposalGeneratorPage() {
               disabled={generating}
               className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#5CC49D] text-black font-semibold text-base hover:bg-[#4db38c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ThunderboltOutlined /> {generating ? 'Generating...' : 'Generate Gamma Prompt'}
+              {generating ? <LoadingOutlined /> : <ThunderboltOutlined />}
+              {generating ? 'Generating...' : 'Generate Gamma Prompt'}
             </button>
           </div>
         </div>
@@ -498,12 +464,14 @@ export default function ProposalGeneratorPage() {
           {/* Prompt Output */}
           <div>
             <Label>Your Gamma Prompt</Label>
-            <textarea
-              id="gamma-prompt-output"
-              readOnly
-              value={generatedPrompt}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-4 text-sm text-gray-300 font-mono leading-relaxed resize-y min-h-[400px] focus:outline-none"
-            />
+          <textarea
+  id="gamma-prompt-output"
+  readOnly
+  value={generatedPrompt}
+  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-4 text-sm text-gray-300 font-mono leading-relaxed resize-y min-h-[400px] focus:outline-none"
+  // Add this to prevent any formatting
+  style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+/>
           </div>
 
           {/* Action Buttons */}

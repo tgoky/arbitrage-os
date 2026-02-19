@@ -40,6 +40,8 @@ const proposalGeneratorInputSchema = z.object({
     callToAction: z.string().max(200).optional().default('Book Your Strategy Call'),
     bookingLink: z.string().max(500).optional().default(''),
   }),
+
+  rawAnalysisContext: z.string().max(200000).optional(),
 });
 
 export function validateProposalGeneratorInput(data: unknown):

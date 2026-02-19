@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
-import { ProposalGeneratorService } from '@/services/proposalGenerator.service';
+import { ProposalGeneratorService } from '../../../services/proposalGenerator.service';
 import { validateProposalGeneratorInput } from '../../validators/proposalGenerator.validator';
 
 async function getAuthenticatedUser() {
