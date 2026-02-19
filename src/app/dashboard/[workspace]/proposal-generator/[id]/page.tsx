@@ -8,6 +8,7 @@ import {
   ThunderboltOutlined,
   FundProjectionScreenOutlined,
   LoadingOutlined,
+  PlayCircleOutlined
 } from '@ant-design/icons';
 import {
   Button,
@@ -15,12 +16,15 @@ import {
   Typography,
   Spin,
   message,
+  Collapse,
   Tag,
   ConfigProvider,
   theme,
 } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '../../../../hooks/useWorkspaceContext';
+
+import VidalyticsEmbed from '@/components/VidalyticsEmbed';
 
 const { Title, Text } = Typography;
 
@@ -29,6 +33,22 @@ const SURFACE_BG = '#000000';
 const TEXT_PRIMARY = '#f1f5f9';
 const TEXT_SECONDARY = '#94a3b8';
 const BORDER_COLOR = '#334155';
+
+const videoWalkthroughs = [
+  {
+    title: 'Step 1: Pasting Your Prompt into Gamma',
+    description: 'Learn how to take your generated prompt and paste it into Gamma.app to create a beautiful presentation.',
+        videoId: 'ICx2ePCXxSyHU52h',
+  },
+  {
+    title: 'Step 2: Choosing a Theme & Customizing',
+    description: 'Pick from Gamma\'s professional themes and customize colors to match your brand.',
+  },
+  {
+    title: 'Step 3: Exporting & Sending Your Proposal',
+    description: 'Export your finished proposal as a PDF or share a live link with your prospect.',
+  },
+];
 
 interface GammaProposalDetail {
   id: string;
@@ -252,6 +272,46 @@ const GammaProposalDetailPage = () => {
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-4 text-sm text-gray-300 font-mono leading-relaxed resize-y min-h-[400px] focus:outline-none"
             />
           </Card>
+
+          {/* Video Walkthroughs */}
+          <div className="mt-10">
+            <h2 className="text-lg font-medium text-gray-200 mb-2">How to Use This Prompt in Gamma</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Follow these video walkthroughs to turn your prompt into a polished proposal presentation.
+            </p>
+
+            <Collapse
+              ghost
+              className="proposal-video-collapse"
+              expandIconPosition="end"
+              items={videoWalkthroughs.map((video, index) => ({
+                key: String(index),
+                label: (
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <PlayCircleOutlined className="text-[#5CC49D] text-sm" />
+                    </div>
+                    <span className="text-base text-gray-300 font-manrope">{video.title}</span>
+                  </div>
+                ),
+                children: (
+                  <div className="pl-11">
+                    <p className="text-sm text-gray-500 mb-4">{video.description}</p>
+                    <div className="w-full">
+                      {video.videoId ? (
+                        <VidalyticsEmbed videoId={video.videoId} />
+                      ) : (
+                        <div className="w-full aspect-video bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
+                          <p className="text-sm text-gray-600">Video coming soon</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ),
+              }))}
+            />
+          </div>
+          
 
           {/* Gamma CTA */}
           <div className="text-center border border-white/10 rounded-lg p-8 mt-10">
