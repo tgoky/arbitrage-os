@@ -12,7 +12,7 @@ import {
 import { message, Collapse } from 'antd';
 import { useProposalGenerator } from '../../hooks/useProposalGenerator';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
-import { buildProposalFromAnalysis } from '@/utils/buildProposalFromAnalysis';
+import { buildProposalFromAnalysis } from '../../../utils/buildProposalfromAnalysis';
 import type { ProposalGeneratorInput } from '@/types/proposalGenerator';
 
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -154,7 +154,7 @@ export default function ProposalResultPage() {
   // Loading state
   if (generating) {
     return (
-      <div className="mx-auto px-8 py-14 max-w-4xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+      <div className="px-8 py-14 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
         <div className="text-center py-20">
           <LoadingOutlined className="text-5xl text-[#5CC49D] mb-6" />
           <p className="text-xl text-gray-200 mb-2">Generating your proposal prompt...</p>
@@ -170,7 +170,7 @@ export default function ProposalResultPage() {
   // Error state
   if (error) {
     return (
-      <div className="mx-auto px-8 py-14 max-w-4xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+      <div className="px-8 py-14 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
         <div className="text-center py-20">
           <p className="text-xl text-gray-300 mb-4">{error}</p>
           <div className="flex justify-center gap-3">
@@ -194,7 +194,7 @@ export default function ProposalResultPage() {
 
   // Result view
   return (
-    <div className="mx-auto px-8 py-14 max-w-4xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+    <div className="px-8 py-14 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
       {/* Back */}
       <button
         onClick={() => go({ to: backTo })}

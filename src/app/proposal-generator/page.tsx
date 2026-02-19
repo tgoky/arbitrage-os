@@ -214,7 +214,7 @@ export default function ProposalGeneratorPage() {
   const selectClass = `${inputClass} appearance-none cursor-pointer`;
 
   return (
-    <div className="mx-auto px-8 py-14 max-w-4xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+    <div className="px-8 py-14 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
       {/* Back */}
       <button
         onClick={() => go({ to: '/sales-call-analyzer' })}
