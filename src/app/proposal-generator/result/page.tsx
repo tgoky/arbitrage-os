@@ -13,6 +13,7 @@ import { message, Collapse } from 'antd';
 import { useProposalGenerator } from '../../hooks/useProposalGenerator';
 import { useWorkspaceContext } from '../../hooks/useWorkspaceContext';
 import { buildProposalFromAnalysis } from '../../../utils/buildProposalfromAnalysis';
+import VidalyticsEmbed from '@/components/VidalyticsEmbed';
 import type { ProposalGeneratorInput } from '@/types/proposalGenerator';
 
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -27,14 +28,17 @@ const videoWalkthroughs = [
   {
     title: 'Step 1: Pasting Your Prompt into Gamma',
     description: 'Learn how to take your generated prompt and paste it into Gamma.app to create a beautiful presentation.',
+    videoId: 'ICx2ePCXxSyHU52h',
   },
   {
     title: 'Step 2: Choosing a Theme & Customizing',
     description: 'Pick from Gamma\'s professional themes and customize colors to match your brand.',
+    videoId: '',
   },
   {
     title: 'Step 3: Exporting & Sending Your Proposal',
     description: 'Export your finished proposal as a PDF or share a live link with your prospect.',
+    videoId: '',
   },
 ];
 
@@ -273,8 +277,14 @@ export default function ProposalResultPage() {
             children: (
               <div className="pl-11">
                 <p className="text-sm text-gray-500 mb-4">{video.description}</p>
-                <div className="w-full aspect-video bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
-                  <p className="text-sm text-gray-600">Video embed placeholder — add Google Drive link here</p>
+                <div className="w-full">
+                  {video.videoId ? (
+                    <VidalyticsEmbed videoId={video.videoId} />
+                  ) : (
+                    <div className="w-full aspect-video bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
+                      <p className="text-sm text-gray-600">Video coming soon</p>
+                    </div>
+                  )}
                 </div>
               </div>
             ),

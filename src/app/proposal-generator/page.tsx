@@ -11,11 +11,15 @@ import {
   PlayCircleOutlined,
   ThunderboltOutlined,
   LoadingOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
-import { message, Collapse, Skeleton } from 'antd';
+import { message, Collapse, Skeleton, Tabs } from 'antd';
 import { useProposalGenerator } from '../hooks/useProposalGenerator';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { buildProposalFromAnalysis } from '../../utils/buildProposalfromAnalysis';
+import VidalyticsEmbed from '@/components/VidalyticsEmbed';
 import type {
   ProposalGeneratorInput,
   ProposalSolution,
@@ -45,14 +49,17 @@ const videoWalkthroughs = [
   {
     title: 'Step 1: Pasting Your Prompt into Gamma',
     description: 'Learn how to take your generated prompt and paste it into Gamma.app to create a beautiful presentation.',
+    videoId: 'ICx2ePCXxSyHU52h',
   },
   {
     title: 'Step 2: Choosing a Theme & Customizing',
     description: 'Pick from Gamma\'s professional themes and customize colors to match your brand.',
+    videoId: '',
   },
   {
     title: 'Step 3: Exporting & Sending Your Proposal',
     description: 'Export your finished proposal as a PDF or share a live link with your prospect.',
+    videoId: '',
   },
 ];
 
@@ -110,6 +117,12 @@ export default function ProposalGeneratorPage() {
   const [generating, setGenerating] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
 
+  // Tab & Saved Proposals state
+  const [activeTab, setActiveTab] = useState('generator');
+  const [savedProposals, setSavedProposals] = useState<any[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+  const savedFetched = useRef(false);
+
   // Prefill form from analysis data when analysisId is present
   useEffect(() => {
     if (!analysisId || hasPrefilled.current) {
@@ -137,6 +150,33 @@ export default function ProposalGeneratorPage() {
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch saved proposals when the tab is selected
+  const fetchSavedProposals = async () => {
+    if (!currentWorkspace?.id) return;
+    setLoadingSaved(true);
+    try {
+      const res = await fetch(`/api/deliverables?workspaceId=${currentWorkspace.id}`);
+      const result = await res.json();
+      if (result.success && Array.isArray(result.data)) {
+        const proposals = result.data.filter(
+          (d: any) => d.type === 'gamma_proposal'
+        );
+        setSavedProposals(proposals);
+      }
+    } catch {
+      message.error('Failed to load saved proposals.');
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'saved' && !savedFetched.current) {
+      savedFetched.current = true;
+      fetchSavedProposals();
+    }
+  }, [activeTab, currentWorkspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Solution management
   const addSolution = () => {
@@ -181,6 +221,7 @@ export default function ProposalGeneratorPage() {
       });
       setGeneratedPrompt(result.gammaPrompt);
       setShowOutput(true);
+      savedFetched.current = false; // allow refetch on next tab switch
       message.success('Gamma prompt generated & saved!');
     } catch {
       message.error('Something went wrong. Please try again.');
@@ -207,6 +248,32 @@ export default function ProposalGeneratorPage() {
     window.open(GAMMA_APP_URL, '_blank', 'noopener,noreferrer');
   };
 
+  const handleCopySaved = async (proposal: any) => {
+    try {
+      let content = proposal.content;
+      if (typeof content === 'string') {
+        try { content = JSON.parse(content); } catch { /* use as-is */ }
+      }
+      const prompt = content?.gammaPrompt || '';
+      if (!prompt) {
+        message.warning('No prompt content found.');
+        return;
+      }
+      await navigator.clipboard.writeText(prompt);
+      message.success('Prompt copied to clipboard!');
+    } catch {
+      message.error('Failed to copy prompt.');
+    }
+  };
+
+  const getProposalMeta = (proposal: any) => {
+    let meta = proposal.metadata;
+    if (typeof meta === 'string') {
+      try { meta = JSON.parse(meta); } catch { meta = {}; }
+    }
+    return meta || {};
+  };
+
   // Shared input styling
   const inputClass =
     'w-full bg-white/5 border border-white/10 rounded px-3 py-2.5 text-base text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors font-manrope';
@@ -227,15 +294,30 @@ export default function ProposalGeneratorPage() {
       <h1 className="text-3xl font-semibold text-gray-100 mb-2 leading-tight">
         Proposal Generator
       </h1>
-      <p className="text-base text-gray-500 mb-10">
+      <p className="text-base text-gray-500 mb-6">
         Create a polished Gamma.app presentation prompt from your sales data. Fill out the form below or use data from a Sales Call Analysis.
       </p>
 
-      {/* ─── FORM ─── */}
-      {prefilling && (
-        <div className="py-10"><Skeleton active paragraph={{ rows: 8 }} /></div>
-      )}
-      {!showOutput && !prefilling && (
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        className="proposal-tabs"
+        tabBarStyle={{ borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 32 }}
+        items={[
+          {
+            key: 'generator',
+            label: (
+              <span className="flex items-center gap-2 text-sm">
+                <ThunderboltOutlined /> Generator
+              </span>
+            ),
+            children: (
+              <>
+                {/* ─── FORM ─── */}
+                {prefilling && (
+                  <div className="py-10"><Skeleton active paragraph={{ rows: 8 }} /></div>
+                )}
+                {!showOutput && !prefilling && (
         <div className="space-y-10">
           {/* Section 1: Client & Presentation Details */}
           <div>
@@ -559,8 +641,14 @@ export default function ProposalGeneratorPage() {
                 children: (
                   <div className="pl-11">
                     <p className="text-sm text-gray-500 mb-4">{video.description}</p>
-                    <div className="w-full aspect-video bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
-                      <p className="text-sm text-gray-600">Video embed placeholder — add Google Drive link here</p>
+                    <div className="w-full">
+                      {video.videoId ? (
+                        <VidalyticsEmbed videoId={video.videoId} />
+                      ) : (
+                        <div className="w-full aspect-video bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
+                          <p className="text-sm text-gray-600">Video coming soon</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ),
@@ -585,6 +673,104 @@ export default function ProposalGeneratorPage() {
           </div>
         </div>
       )}
+              </>
+            ),
+          },
+          {
+            key: 'saved',
+            label: (
+              <span className="flex items-center gap-2 text-sm">
+                <FileTextOutlined /> Saved Proposals
+              </span>
+            ),
+            children: (
+              <div>
+                {loadingSaved ? (
+                  <div className="text-center py-20">
+                    <LoadingOutlined className="text-3xl text-[#5CC49D] mb-4" />
+                    <p className="text-base text-gray-400">Loading saved proposals...</p>
+                  </div>
+                ) : savedProposals.length === 0 ? (
+                  <div className="text-center py-20 border border-white/5 rounded-lg">
+                    <FileTextOutlined className="text-4xl text-gray-600 mb-4" />
+                    <p className="text-base text-gray-400 mb-2">No saved proposals yet</p>
+                    <p className="text-sm text-gray-600">
+                      Generate a proposal from the Generator tab to see it here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {savedProposals.map((proposal) => {
+                      const meta = getProposalMeta(proposal);
+                      return (
+                        <div
+                          key={proposal.id}
+                          className="border border-white/10 rounded-lg p-5 hover:border-white/20 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-base font-medium text-gray-200 mb-1 truncate">
+                                {proposal.title}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                {meta.companyName && (
+                                  <span>{meta.companyName}</span>
+                                )}
+                                {meta.clientName && (
+                                  <span>for {meta.clientName}</span>
+                                )}
+                                {meta.solutionCount > 0 && (
+                                  <span className="px-2 py-0.5 rounded bg-[#5CC49D]/10 text-[#5CC49D]">
+                                    {meta.solutionCount} solution{meta.solutionCount !== 1 ? 's' : ''}
+                                  </span>
+                                )}
+                                {meta.tone && (
+                                  <span className="px-2 py-0.5 rounded bg-white/5 text-gray-400">
+                                    {meta.tone}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  <CalendarOutlined />
+                                  {new Date(proposal.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                onClick={() => handleCopySaved(proposal)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 text-xs hover:text-gray-200 hover:border-white/20 transition-colors"
+                              >
+                                <CopyOutlined /> Copy
+                              </button>
+                              {currentWorkspace && (
+                                <button
+                                  onClick={() => go({ to: `/dashboard/${currentWorkspace.slug}/proposal-generator/${proposal.id}` })}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#5CC49D]/30 text-[#5CC49D] text-xs hover:bg-[#5CC49D]/10 transition-colors"
+                                >
+                                  <EyeOutlined /> View
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <button
+                      onClick={() => {
+                        savedFetched.current = false;
+                        fetchSavedProposals();
+                      }}
+                      className="w-full text-center py-3 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }
