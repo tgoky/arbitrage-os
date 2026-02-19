@@ -21,7 +21,7 @@ import {
 } from 'antd';
 import { useGo } from "@refinedev/core";
 import { useParams } from 'next/navigation';
-import { useSalesCallAnalyzer } from '../../../hooks/useSalesCallAnalyzer';
+import { useSalesCallAnalyzer } from '../../hooks/useSalesCallAnalyzer';
 
 import { downloadAnalysisPDF } from '@/utils/downloadAnalysisPDF';
 

@@ -15,7 +15,7 @@ import {
 import { message, Collapse, Skeleton } from 'antd';
 import { useProposalGenerator } from '../hooks/useProposalGenerator';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
-import { buildProposalFromAnalysis } from '@/utils/buildProposalFromAnalysis';
+import { buildProposalFromAnalysis } from '../../utils/buildProposalfromAnalysis';
 import type {
   ProposalGeneratorInput,
   ProposalSolution,
