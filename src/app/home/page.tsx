@@ -10,16 +10,16 @@ import { useWorkItems } from '../hooks/useDashboardData';
 import Image from 'next/image';
 import { Power } from "lucide-react";
 
-import { 
-  Button, 
-  Card, 
-  Input, 
-  Modal, 
-  Typography, 
-  Progress, 
-  Space, 
-  Avatar, 
-  Dropdown, 
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  Typography,
+  Progress,
+  Space,
+  Avatar,
+  Dropdown,
   Badge,
   Row,
   Col,
@@ -28,21 +28,22 @@ import {
   List,
   ConfigProvider,
   theme as antTheme,
-  Divider
+  Divider,
+  message
 } from 'antd';
-import { 
-  PlusOutlined, 
-  FolderOutlined, 
-  ArrowRightOutlined, 
-  BellOutlined, 
-  DownOutlined, 
+import {
+  PlusOutlined,
+  FolderOutlined,
+  ArrowRightOutlined,
+  BellOutlined,
+  DownOutlined,
   LoadingOutlined,
   ClockCircleOutlined,
   HistoryOutlined,
   RiseOutlined,
   CheckCircleFilled,
-  CheckCircleOutlined, 
-  ExclamationCircleOutlined, 
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
   InfoCircleOutlined,
   TrophyOutlined,
   LockOutlined,
@@ -53,7 +54,9 @@ import {
   LogoutOutlined,
   ThunderboltFilled,
   CodeOutlined,
-  ConsoleSqlOutlined
+  ConsoleSqlOutlined,
+  DeleteOutlined,
+  MoreOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -137,6 +140,7 @@ const WorkspaceHomePage = () => {
     workspaces,
     isLoading: workspaceHookLoading,
     createWorkspace,
+    deleteWorkspace,
     refreshWorkspaces
   } = useWorkspace();
 
@@ -160,9 +164,29 @@ const WorkspaceHomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [dataReady, setDataReady] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [deletingWorkspaceId, setDeletingWorkspaceId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Logout handler
   const handleLogout = () => setShowLogoutDialog(true);
+
+  // Delete workspace handler
+  const handleDeleteWorkspace = async () => {
+    if (!workspaceToDelete) return;
+    setDeletingWorkspaceId(workspaceToDelete.id);
+    try {
+      await deleteWorkspace(workspaceToDelete.id);
+      message.success('Workspace deleted successfully');
+    } catch (error) {
+      console.error('Error deleting workspace:', error);
+      message.error('Failed to delete workspace. Please try again.');
+    } finally {
+      setDeletingWorkspaceId(null);
+      setShowDeleteConfirm(false);
+      setWorkspaceToDelete(null);
+    }
+  };
 
   // Once data has been loaded (regardless of workspace count), mark as ready
   // Using !dataReady prevents refreshes from re-triggering the loading screen
@@ -686,10 +710,16 @@ const premiumStyles = `
     }
   };
 
-  const filteredWorkspaces = workspaces.filter(workspace =>
-    workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    workspace.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredWorkspaces = workspaces
+    .filter(workspace =>
+      workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      workspace.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
 
   const userMenuItems = [
     { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, onClick: handleLogout }
@@ -1123,7 +1153,7 @@ return (
     >
       <div className="flex items-center justify-between">
         <div className="text-left">
-          <Text type="secondary" className="text-xs block mb-1">Recent Workspace</Text>
+          <Text type="secondary" className="text-xs block mb-1">Last Opened</Text>
           <Title 
             level={4} 
             className="mb-0" 
@@ -1272,7 +1302,38 @@ return (
             <div className="w-8 h-8 bg-[#5CC49D] rounded flex items-center justify-center flex-shrink-0">
               <FolderOutlined className="text-white text-sm" />
             </div>
-            <ArrowRightOutlined className="text-gray-400 text-xs mt-1" />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'delete',
+                    label: 'Delete',
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    onClick: (info) => {
+                      info.domEvent.stopPropagation();
+                      setWorkspaceToDelete({ id: workspace.id, name: workspace.name });
+                      setShowDeleteConfirm(true);
+                    }
+                  }
+                ]
+              }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreOutlined />}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  color: theme === 'dark' ? '#a1a1aa' : '#9ca3af',
+                  padding: '2px 4px',
+                  height: 'auto',
+                  minWidth: 'auto'
+                }}
+              />
+            </Dropdown>
           </div>
           
           <div className="flex-1 min-h-0 mb-3">
@@ -1307,12 +1368,13 @@ return (
           
           <div className="mt-auto pt-4 border-t border-gray-100 mt-1">
             <Text type="secondary" className="text-xs">
-              {workspace.created_at 
-                ? new Date(workspace.created_at).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric'
+              Last Edited: {(workspace.updated_at || workspace.created_at)
+                ? new Date(workspace.updated_at || workspace.created_at || 0).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
                   })
-                : 'Recent'}
+                : 'Never'}
             </Text>
           </div>
         </div>
@@ -1377,6 +1439,53 @@ return (
           </Text>
         </div>
       </footer>
+
+      {/* Delete Workspace Confirmation Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+              <DeleteOutlined className="text-white text-sm" />
+            </div>
+            <div>
+              <Title level={4} className="mb-0" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>Delete Workspace</Title>
+              <Text type="secondary" className="text-sm">This action cannot be undone</Text>
+            </div>
+          </div>
+        }
+        open={showDeleteConfirm}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setWorkspaceToDelete(null);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setShowDeleteConfirm(false);
+              setWorkspaceToDelete(null);
+            }}
+            disabled={!!deletingWorkspaceId}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="delete"
+            danger
+            type="primary"
+            loading={!!deletingWorkspaceId}
+            onClick={handleDeleteWorkspace}
+          >
+            Delete Workspace
+          </Button>
+        ]}
+      >
+        <div className="py-4">
+          <Text style={{ color: theme === 'dark' ? '#d4d4d8' : '#374151' }}>
+            Are you sure you want to delete <strong>{workspaceToDelete?.name}</strong>? All data associated with this workspace will be permanently removed.
+          </Text>
+        </div>
+      </Modal>
 
       {/* Create Workspace Modal */}
       <Modal

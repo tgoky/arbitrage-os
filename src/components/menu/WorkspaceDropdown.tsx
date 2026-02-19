@@ -1,6 +1,7 @@
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Home } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 interface Workspace {
   id: string;
@@ -27,6 +28,7 @@ export const WorkspaceDropdown = ({
 }: WorkspaceDropdownProps) => {
   const { theme } = useTheme();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -179,21 +181,48 @@ export const WorkspaceDropdown = ({
         ))}
       </div>
 
-      {/* Create Workspace */}
+      {/* Home & Create Workspace */}
       <div
-        className={`border-t px-2 py-2 ${
+        className={`border-t px-2 py-2 space-y-1 ${
           theme === "dark" ? "border-zinc-800" : "border-gray-200"
         }`}
       >
         <button
           onClick={() => {
             setWorkspaceDropdownOpen(false);
+            router.push('/home');
+          }}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors ${
+            theme === "dark"
+              ? "bg-transparent text-gray-300 hover:bg-zinc-800"
+              : "bg-transparent text-gray-600 hover:bg-gray-100"
+          }`}
+          style={{ fontFamily: "'Manrope', sans-serif" }}
+        >
+          <div
+            className={`w-7 h-7 rounded-md flex items-center justify-center ${
+              theme === "dark" ? "bg-zinc-800" : "bg-gray-100"
+            }`}
+          >
+            <Home
+              className={`h-4 w-4 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}
+            />
+          </div>
+          <span className="text-sm font-medium">
+            All Workspaces
+          </span>
+        </button>
+        <button
+          onClick={() => {
+            setWorkspaceDropdownOpen(false);
             setCreateWorkspaceModalOpen(true);
           }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border-none transition-colors ${
-            theme === "dark" 
-              ? "bg-zinc-900 text-gray-300 hover:bg-zinc-800" 
-              : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+            theme === "dark"
+              ? "bg-transparent text-gray-300 hover:bg-zinc-800"
+              : "bg-transparent text-gray-600 hover:bg-gray-100"
           }`}
           style={{ fontFamily: "'Manrope', sans-serif" }}
         >
