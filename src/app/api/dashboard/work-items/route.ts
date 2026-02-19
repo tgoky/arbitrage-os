@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 
 interface WorkItem {
   id: string;
-  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation';
+  type: 'sales-call' | 'growth-plan' | 'pricing-calc' | 'niche-research' | 'cold-email' | 'offer-creator' | 'ad-writer' | 'n8n-workflow' | 'proposal' | 'lead-generation' | 'gamma-proposal';
   title: string;
   subtitle: string;
   status: 'completed' | 'processing' | 'failed' | 'draft';
@@ -155,7 +155,8 @@ async function fetchAllWorkItemsFromDeliverables(userId: string, workspaceId?: s
           'signature_offers',
           'proposal',
           'lead_generation',
-          'lead-generation'
+          'lead-generation',
+          'gamma_proposal'
         ]
       }
     };
@@ -279,6 +280,14 @@ function transformDeliverableToWorkItem(deliverable: any): WorkItem | null {
         const industries = metadata.criteria?.targetIndustry?.slice(0, 2).join(', ') || 'Multiple';
         subtitle = `${leadCount} leads • ${industries}`;
         actions = ['view', 'export', 'delete'];
+        break;
+
+      case 'gamma_proposal':
+        workItemType = 'gamma-proposal';
+        const gpCompany = metadata.companyName || metadata.clientName || 'Unknown';
+        const gpSolutions = metadata.solutionCount || 0;
+        subtitle = `${gpCompany} • ${gpSolutions} solution${gpSolutions !== 1 ? 's' : ''}`;
+        actions = ['view', 'copy', 'delete'];
         break;
 
       default:

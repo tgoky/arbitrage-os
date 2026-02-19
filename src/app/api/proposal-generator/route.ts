@@ -88,6 +88,58 @@ export async function POST(request: NextRequest) {
     const output = await service.generateGammaPrompt(validation.data);
     console.log('✅ Prompt generated in', output.processingTime, 'ms');
 
+    // Auto-save as deliverable when workspaceId is provided
+    let deliverableId: string | null = null;
+    const workspaceId = body.workspaceId;
+    if (workspaceId) {
+      try {
+        const { prisma } = await import('@/lib/prisma');
+
+        // Verify workspace ownership
+        const workspace = await prisma.workspace.findFirst({
+          where: { id: workspaceId, user_id: user.id },
+        });
+
+        if (workspace) {
+          const clientName = validation.data.clientDetails?.clientName || '';
+          const companyName = validation.data.clientDetails?.companyName || '';
+          const title = companyName
+            ? `Gamma Proposal — ${companyName}`
+            : clientName
+              ? `Gamma Proposal — ${clientName}`
+              : 'Gamma Proposal';
+
+          const deliverable = await prisma.deliverable.create({
+            data: {
+              title,
+              content: JSON.stringify({
+                gammaPrompt: output.gammaPrompt,
+                inputSnapshot: output.inputSnapshot,
+              }),
+              type: 'gamma_proposal',
+              user_id: user.id,
+              workspace_id: workspaceId,
+              metadata: {
+                clientName,
+                companyName,
+                solutionCount: validation.data.solutions.length,
+                tone: validation.data.clientDetails?.presentationTone || '',
+                tokensUsed: output.tokensUsed,
+                processingTime: output.processingTime,
+                generatedAt: new Date().toISOString(),
+                analysisId: body.analysisId || null,
+              },
+              tags: ['gamma-proposal', 'proposal-generator'],
+            },
+          });
+          deliverableId = deliverable.id;
+          console.log('✅ Gamma proposal saved as deliverable:', deliverableId);
+        }
+      } catch (saveError) {
+        console.error('⚠️ Failed to save gamma proposal (non-critical):', saveError);
+      }
+    }
+
     // Log usage
     try {
       await logUsage({
@@ -108,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: output,
+      data: { ...output, deliverableId },
       meta: {
         tokensUsed: output.tokensUsed,
         processingTime: output.processingTime,

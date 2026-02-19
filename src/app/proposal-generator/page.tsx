@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import { message, Collapse, Skeleton } from 'antd';
 import { useProposalGenerator } from '../hooks/useProposalGenerator';
+import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { buildProposalFromAnalysis } from '@/utils/buildProposalFromAnalysis';
 import type {
   ProposalGeneratorInput,
@@ -71,6 +72,7 @@ export default function ProposalGeneratorPage() {
   const searchParams = useSearchParams();
   const analysisId = searchParams.get('analysisId');
   const { generatePrompt } = useProposalGenerator();
+  const { currentWorkspace } = useWorkspaceContext();
   const hasPrefilled = useRef(false);
 
   const [prefilling, setPrefilling] = useState(!!analysisId);
@@ -173,10 +175,13 @@ export default function ProposalGeneratorPage() {
         closeDetails,
       };
 
-      const result = await generatePrompt(input);
+      const result = await generatePrompt(input, {
+        workspaceId: currentWorkspace?.id,
+        analysisId: analysisId || undefined,
+      });
       setGeneratedPrompt(result.gammaPrompt);
       setShowOutput(true);
-      message.success('Gamma prompt generated!');
+      message.success('Gamma prompt generated & saved!');
     } catch {
       message.error('Something went wrong. Please try again.');
     } finally {
