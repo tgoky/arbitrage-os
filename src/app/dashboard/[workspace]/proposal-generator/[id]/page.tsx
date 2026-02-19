@@ -227,14 +227,14 @@ const GammaProposalDetailPage = () => {
             </button>
             <button
               onClick={handleOpenGamma}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[#5CC49D]/40 text-[#5CC49D] font-semibold text-sm hover:bg-[#5CC49D]/10 transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#5CC49D] border border-[#5CC49D]/40 text-black font-semibold text-sm hover:bg-[#5CC49D]/10 transition-colors"
             >
               Open Gamma.app
             </button>
             {detail.analysisId && (
               <button
                 onClick={() => router.push(`/sales-call-analyzer/analysis/${detail.analysisId}`)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-white/10 text-gray-400 font-semibold text-sm hover:border-white/20 hover:text-white transition-colors"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#5CC49D]  border border-white/10 text-black font-semibold text-sm hover:border-white/20 hover:text-white transition-colors"
               >
                 View Source Analysis
               </button>
