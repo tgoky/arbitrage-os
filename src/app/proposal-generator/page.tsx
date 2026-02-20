@@ -278,7 +278,7 @@ export default function ProposalGeneratorPage() {
   const selectClass = `${inputClass} appearance-none cursor-pointer`;
 
   return (
-    <div className="px-8 py-14 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
+    <div className="px-6 py-4 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
       <LoadingOverlay visible={generating} />
       {/* Back */}
       <button
@@ -309,7 +309,7 @@ export default function ProposalGeneratorPage() {
             key: 'generator',
             label: (
               <span className="flex items-center gap-2 text-sm">
-                <ThunderboltOutlined /> Generator
+                 Generator
               </span>
             ),
             children: (

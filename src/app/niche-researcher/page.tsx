@@ -1618,7 +1618,7 @@ const NicheResearcher = () => {
       }}
     >
       <div className="min-h-screen bg-black font-manrope">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-2">
           <LoadingOverlay visible={isLoading} />
           
           {/* Header Section */}

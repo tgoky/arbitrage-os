@@ -66,7 +66,7 @@ const menuGroups: MenuGroupConfig[] = [
       "Ad_Writer",
       "Growth_Plan_Creator",
       "Contract_Generator",
-      "Lead_Generation",
+      // "Lead_Generation",
       "Sales_Call_Analyzer",
       "Proposal_Generator",
       "Offer_Creator",
