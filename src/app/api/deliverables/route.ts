@@ -1,21 +1,40 @@
 // app/api/deliverables/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+async function getAuthenticatedUser() {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
+      }
+    );
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return { user: null, error: error || new Error('No user found') };
+    return { user, error: null };
+  } catch (error) {
+    return { user: null, error };
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
-    // Create Supabase client for server-side auth
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ 
-      cookies: () => cookieStore 
-    });
-    
-    // Get the authenticated user
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -61,16 +80,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Create Supabase client for server-side auth
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ 
-      cookies: () => cookieStore 
-    });
-    
-    // Get the authenticated user
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

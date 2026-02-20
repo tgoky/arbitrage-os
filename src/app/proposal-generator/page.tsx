@@ -122,7 +122,6 @@ export default function ProposalGeneratorPage() {
   const [activeTab, setActiveTab] = useState('generator');
   const [savedProposals, setSavedProposals] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
-  const savedFetched = useRef(false);
 
   // Prefill form from analysis data when analysisId is present
   useEffect(() => {
@@ -152,12 +151,12 @@ export default function ProposalGeneratorPage() {
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch saved proposals when the tab is selected
+  // Fetch saved proposals
   const fetchSavedProposals = async () => {
-    if (!currentWorkspace?.id) return;
+    if (!currentWorkspace?.id || loadingSaved) return;
     setLoadingSaved(true);
     try {
-      const res = await fetch(`/api/deliverables?workspaceId=${currentWorkspace.id}&type=gamma_proposal`);
+      const res = await fetch(`/api/proposal-generator?workspaceId=${currentWorkspace.id}`);
       const result = await res.json();
       if (result.success && Array.isArray(result.data)) {
         setSavedProposals(result.data);
@@ -169,12 +168,13 @@ export default function ProposalGeneratorPage() {
     }
   };
 
+  // If the workspace finishes loading while the user is already on the saved tab,
+  // trigger a fetch (handles the case where the user clicked the tab before workspace was ready)
   useEffect(() => {
-    if (activeTab === 'saved' && currentWorkspace?.id && !savedFetched.current) {
-      savedFetched.current = true;
+    if (activeTab === 'saved' && currentWorkspace?.id) {
       fetchSavedProposals();
     }
-  }, [activeTab, currentWorkspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentWorkspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Solution management
   const addSolution = () => {
@@ -219,7 +219,6 @@ export default function ProposalGeneratorPage() {
       });
       setGeneratedPrompt(result.gammaPrompt);
       setShowOutput(true);
-      savedFetched.current = false; // allow refetch on next tab switch
       message.success('Gamma prompt generated & saved!');
     } catch {
       message.error('Something went wrong. Please try again.');
@@ -299,7 +298,10 @@ export default function ProposalGeneratorPage() {
 
       <Tabs
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={(key) => {
+          setActiveTab(key);
+          if (key === 'saved') fetchSavedProposals();
+        }}
         className="proposal-tabs"
         tabBarStyle={{ borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 32 }}
         items={[
@@ -737,14 +739,14 @@ export default function ProposalGeneratorPage() {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <button
                                 onClick={() => handleCopySaved(proposal)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 text-xs hover:text-gray-200 hover:border-white/20 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 text-xs hover:text-gray-200 hover:border-white/20 transition-colors bg-black"
                               >
                                 <CopyOutlined /> Copy
                               </button>
                               {currentWorkspace && (
                                 <button
                                   onClick={() => go({ to: `/dashboard/${currentWorkspace.slug}/proposal-generator/${proposal.id}` })}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#5CC49D]/30 text-[#5CC49D] text-xs hover:bg-[#5CC49D]/10 transition-colors"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#5CC49D]/30 text-[#5CC49D] text-xs hover:bg-[#5CC49D]/10 transition-colors bg-black"
                                 >
                                   <EyeOutlined /> View
                                 </button>
@@ -755,11 +757,8 @@ export default function ProposalGeneratorPage() {
                       );
                     })}
                     <button
-                      onClick={() => {
-                        savedFetched.current = false;
-                        fetchSavedProposals();
-                      }}
-                      className="w-full text-center py-3 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                      onClick={() => fetchSavedProposals()}
+                      className="w-full text-center py-3 text-sm text-white hover:text-white transition-colors bg-black border border-black"
                     >
                       Refresh
                     </button>

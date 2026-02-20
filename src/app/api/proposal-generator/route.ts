@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 import { rateLimit } from '@/lib/rateLimit';
 import { logUsage } from '@/lib/usage';
 import { ProposalGeneratorService } from '../../../services/proposalGenerator.service';
@@ -93,8 +94,6 @@ export async function POST(request: NextRequest) {
     const workspaceId = body.workspaceId;
     if (workspaceId) {
       try {
-        const { prisma } = await import('@/lib/prisma');
-
         // Verify workspace ownership
         const workspace = await prisma.workspace.findFirst({
           where: { id: workspaceId, user_id: user.id },
@@ -175,6 +174,62 @@ export async function POST(request: NextRequest) {
         error: 'Failed to generate proposal prompt. Please try again.',
         message: error instanceof Error ? error.message : 'Unknown error',
       },
+      { status: 500 }
+    );
+  }
+}
+
+// GET endpoint for fetching user's saved gamma proposals
+export async function GET(req: NextRequest) {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required.', code: 'AUTH_REQUIRED' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId');
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { success: false, error: 'Workspace ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify workspace ownership
+    const workspace = await prisma.workspace.findFirst({
+      where: { id: workspaceId, user_id: user.id },
+    });
+
+    if (!workspace) {
+      return NextResponse.json(
+        { success: false, error: 'Workspace not found or access denied' },
+        { status: 403 }
+      );
+    }
+
+    const proposals = await prisma.deliverable.findMany({
+      where: {
+        user_id: user.id,
+        workspace_id: workspaceId,
+        type: 'gamma_proposal',
+      },
+      orderBy: { created_at: 'desc' },
+      take: 50,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: proposals,
+    });
+  } catch (error) {
+    console.error('❌ Proposal list fetch error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch saved proposals' },
       { status: 500 }
     );
   }
