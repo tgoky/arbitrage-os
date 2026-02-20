@@ -213,7 +213,7 @@ const collapseItems: CollapseProps['items'] = videoWalkthroughs.map((video, inde
 
   return (
     <div className="min-h-screen bg-black font-manrope">
-      <div className="max-w-5xl mx-auto px-8 py-14">
+      <div className="px-8 py-14 w-full">
         
         {/* Navigation */}
         <button
@@ -302,7 +302,7 @@ const collapseItems: CollapseProps['items'] = videoWalkthroughs.map((video, inde
           {detail.analysisId && (
             <button
               onClick={() => router.push(`/sales-call-analyzer/analysis/${detail.analysisId}`)}
-              className="flex items-center gap-2 px-5 py-3 rounded-lg border border-white/10 text-gray-400 text-sm hover:text-gray-200 hover:border-white/20 transition-colors ml-auto"
+              className="flex items-center gap-2 px-5 py-3 bg-black rounded-lg border border-white/10 text-emerald-200 text-sm hover:text-gray-200 hover:border-white/20 transition-colors ml-auto"
             >
               View Source Analysis
             </button>
