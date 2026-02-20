@@ -16,6 +16,7 @@ import {
   EyeOutlined,
 } from '@ant-design/icons';
 import { message, Collapse, Skeleton, Tabs } from 'antd';
+import LoadingOverlay from './LoadingOverlay';
 import { useProposalGenerator } from '../hooks/useProposalGenerator';
 import { useWorkspaceContext } from '../hooks/useWorkspaceContext';
 import { buildProposalFromAnalysis } from '../../utils/buildProposalfromAnalysis';
@@ -156,13 +157,10 @@ export default function ProposalGeneratorPage() {
     if (!currentWorkspace?.id) return;
     setLoadingSaved(true);
     try {
-      const res = await fetch(`/api/deliverables?workspaceId=${currentWorkspace.id}`);
+      const res = await fetch(`/api/deliverables?workspaceId=${currentWorkspace.id}&type=gamma_proposal`);
       const result = await res.json();
       if (result.success && Array.isArray(result.data)) {
-        const proposals = result.data.filter(
-          (d: any) => d.type === 'gamma_proposal'
-        );
-        setSavedProposals(proposals);
+        setSavedProposals(result.data);
       }
     } catch {
       message.error('Failed to load saved proposals.');
@@ -172,7 +170,7 @@ export default function ProposalGeneratorPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'saved' && !savedFetched.current) {
+    if (activeTab === 'saved' && currentWorkspace?.id && !savedFetched.current) {
       savedFetched.current = true;
       fetchSavedProposals();
     }
@@ -282,6 +280,7 @@ export default function ProposalGeneratorPage() {
 
   return (
     <div className="px-8 py-14 w-full" style={{ fontFamily: "'Manrope', sans-serif" }}>
+      <LoadingOverlay visible={generating} />
       {/* Back */}
       <button
         onClick={() => go({ to: '/sales-call-analyzer' })}

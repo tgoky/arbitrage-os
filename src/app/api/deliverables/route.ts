@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
+    const typeFilter = searchParams.get('type');
 
     if (!workspaceId) {
       return NextResponse.json(
@@ -33,12 +34,13 @@ export async function GET(req: NextRequest) {
     const deliverables = await prisma.deliverable.findMany({
       where: {
         workspace_id: workspaceId,
-        user_id: user.id // Ensure user owns the deliverables
+        user_id: user.id, // Ensure user owns the deliverables
+        ...(typeFilter ? { type: typeFilter } : {}),
       },
       orderBy: {
         created_at: 'desc'
       },
-      take: 10,
+      take: 50,
       include: {
         workspace: true // Include workspace instead of client since we removed client
       }
