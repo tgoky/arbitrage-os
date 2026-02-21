@@ -4,6 +4,7 @@
 import type { PropsWithChildren } from "react";
 import { Breadcrumb } from "../breadcrumb";
 import { Menu } from "../menu";
+import { NotificationBell } from "../notification/NotificationBell";
 import { TutorialButton } from "../tutorials/TutorialButton";
 import { WelcomeTutorialModal } from "../tutorials/WelcomeTutorialModal";
 
@@ -16,8 +17,9 @@ export const Layout: React.FC<PropsWithChildren> = ({ children }) => {
           <div className="flex-shrink-0">
             <TutorialButton />
           </div>
-          <div className="flex-grow ml-4">
+          <div className="flex-grow ml-4 flex items-center justify-between">
             <Breadcrumb />
+            <NotificationBell />
           </div>
         </div>
         <div className="flex-1 w-full min-w-0 overflow-y-auto">

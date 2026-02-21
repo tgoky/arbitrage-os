@@ -10,11 +10,9 @@ import {
   FileDoneOutlined,
   ReloadOutlined,
   ThunderboltFilled,
-  BellOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { useWorkItems } from '../../hooks/useDashboardData';
-import { NotificationBell } from '../../../components/notification/NotificationBell';
 
 
 
@@ -214,10 +212,6 @@ const WelcomePanel: React.FC<WelcomePanelProps> = ({
                    {(lastRefreshTime || new Date(dataUpdatedAt || Date.now())).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </div>
              </div>
-             
-             <div className="h-8 w-[1px] bg-white/10 hidden md:block"></div>
-             
-             <NotificationBell />
              
              <Tooltip title="Refresh Data">
                 <Button 
