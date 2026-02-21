@@ -154,7 +154,9 @@ CRITICAL FORMAT RULES (NON-NEGOTIABLE)
 ═══════════════════════════════════════════════
 
 1. OPENING LINE: Always start with this exact structure:
-   "Create a comprehensive proposal presentation for [Full Name], [Title] of [Company Name]. The tone should be [tone]. The goal is to pitch [goal]."
+   - When a company name is provided: "Create a comprehensive proposal presentation for [Full Name], [Title] of [Company Name]. The tone should be [tone]. The goal is to pitch [goal]."
+   - When no company (individual / personal pitch): "Create a comprehensive proposal presentation for [Full Name], [Title]. The tone should be [tone]. The goal is to pitch [goal]."
+   Use whichever format matches the prospect data given to you. NEVER write "the company" or placeholder text.
 
 2. SLIDE STRUCTURE: Write each slide as:
    "Slide N: [Descriptive Title]"
@@ -241,6 +243,11 @@ OUTPUT: Return ONLY the Gamma prompt text. Start immediately with "Create a comp
   private buildUserPrompt(input: ProposalGeneratorInput): string {
     const { clientDetails, currentState, futureState, solutions, closeDetails } = input;
 
+    const hasCompany = Boolean(clientDetails.companyName?.trim());
+    const prospectRef = clientDetails.clientName || 'the prospect';
+    const companyRef = clientDetails.companyName || '';
+    const entityRef = companyRef || clientDetails.clientName || 'the prospect';
+
     let totalSetup = 0;
     let totalMonthly = 0;
     solutions.forEach((s) => {
@@ -254,12 +261,16 @@ OUTPUT: Return ONLY the Gamma prompt text. Start immediately with "Create a comp
       ? `$${(totalSetup + totalMonthly * 12).toLocaleString()}`
       : '';
 
+    const openingLine = hasCompany
+      ? `Create a comprehensive proposal presentation for ${prospectRef}, ${clientDetails.clientTitle || 'Owner'} of ${companyRef}.`
+      : `Create a comprehensive proposal presentation for ${prospectRef}, ${clientDetails.clientTitle || 'Owner'}.`;
+
     let prompt = `Generate a high-converting Gamma.app proposal prompt for this prospect. Use ALL the data below — every detail is there to make this specific and compelling.
 
 ═══ WHO WE'RE PITCHING ═══
-Prospect Name: ${clientDetails.clientName || 'The Prospect'}
+Prospect Name: ${prospectRef}
 Title: ${clientDetails.clientTitle || 'Owner / Decision Maker'}
-Company: ${clientDetails.companyName || 'Their Company'}
+${hasCompany ? `Company: ${companyRef}` : 'Company: None — this is an individual / personal pitch. Do NOT use "the company" anywhere — use the client\'s name instead.'}
 What We're Pitching: ${clientDetails.corePitchGoal || 'Custom AI & Automation Solutions'}
 Tone: ${clientDetails.presentationTone || 'Professional, direct, ROI-focused'}
 
@@ -268,11 +279,11 @@ Main Bottleneck: ${currentState.mainBottleneck || 'Manual processes consuming ti
 Team Inefficiencies: ${currentState.teamInefficiencies || 'Team doing low-value admin instead of revenue work'}
 ${currentState.opportunityCost ? `Opportunity Cost (use this for real dollar anchoring): ${currentState.opportunityCost}` : ''}
 
-IMPORTANT: These pain points must appear in the proposal with BOLD LABELS and SPECIFIC NUMBERS. Don't summarize — dramatize. What is this costing ${clientDetails.companyName || 'them'} every single week? Extrapolate.
+IMPORTANT: These pain points must appear in the proposal with BOLD LABELS and SPECIFIC NUMBERS. Don't summarize — dramatize. What is this costing ${entityRef} every single week? Extrapolate.
 
 ═══ WHERE WE'RE TAKING THEM ═══
 New Operational Model: ${futureState.proposedTeamStructure || 'Lean, automation-first operation'}
-${clientDetails.clientName || 'The Owner'}'s New Role: ${futureState.ownerExecutiveRole || 'Focus on high-value closing only — step away from daily grind'}
+${prospectRef}'s New Role: ${futureState.ownerExecutiveRole || 'Focus on high-value closing only — step away from daily grind'}
 
 ═══ THE SOLUTIONS (${solutions.length} total — each gets its own slide) ═══`;
 
@@ -283,11 +294,11 @@ ${clientDetails.clientName || 'The Owner'}'s New Role: ${futureState.ownerExecut
 
 Solution ${i + 1}: "${s.solutionName}"
   What it does: ${s.howItWorks || 'Automates the current manual process end-to-end'}
-  ${s.keyBenefits ? `Key benefit for ${clientDetails.companyName || 'them'}: ${s.keyBenefits}` : ''}
+  ${s.keyBenefits ? `Key benefit for ${entityRef}: ${s.keyBenefits}` : ''}
   Investment: ${setup} One-Time Setup | ${monthly} / Month
-  
+
   SLIDE INSTRUCTIONS for Solution ${i + 1}:
-  - Open with the SPECIFIC problem this solves for ${clientDetails.clientName || 'them'} at ${clientDetails.companyName || 'their company'}
+  - Open with the SPECIFIC problem this solves for ${prospectRef}${hasCompany ? ` at ${companyRef}` : ''}
   - Show the full workflow as: Input → Process → Output → Result (each as its own bullet with a label)
   - End with: "* Investment: ${setup} One-Time Setup | ${monthly} / Month"`;
     });
@@ -301,11 +312,11 @@ ${firstYearValue ? `Year 1 Total Value: ${firstYearValue}` : ''}
 
 ROI SUMMARY SLIDE INSTRUCTIONS (title MUST be "Summary of Impact & ROI"):
 - REQUIRED bullet 1: "* Efficiency: [specific % reduction — e.g. 100% reduction in manual proposal creation time. Instant speed-to-lead.]"
-- REQUIRED bullet 2: "* Team Restructure: [describe the before/after headcount or role change for ${clientDetails.companyName || 'the company'}]"
+- REQUIRED bullet 2: "* Team Restructure: [describe the before/after headcount or role change for ${entityRef}]"
 - REQUIRED bullet 3: "* Direct Savings: [specific cost eliminated — e.g. Eliminates $50k/year CSM hire. AI handles it for $750/month.]"
 - REQUIRED bullet 4: "* Total Investment Summary: ${totalSetupStr} Total Upfront Setup | ${totalMonthlyStr} / Month for AI Infrastructure."
 ${firstYearValue ? '- REQUIRED bullet 5: "* Year 1 Total Value: ' + firstYearValue + '"'  : ''}
-- Anchor against what ${clientDetails.clientName || 'they'} currently lose — if the problem costs more than the solution, say so with real numbers
+- Anchor against what ${prospectRef} currently loses — if the problem costs more than the solution, say so with real numbers
 
 ═══ THE CLOSE ═══
 ${closeDetails.bundleDiscountOffer ? `Bundle / Discount Offer: ${closeDetails.bundleDiscountOffer}` : ''}
@@ -314,7 +325,7 @@ ${closeDetails.bookingLink ? `Booking Link: ${closeDetails.bookingLink}` : ''}
 
 CTA SLIDE INSTRUCTIONS:
 - Create urgency tied to the bottleneck — not generic "contact us" language
-- Reference ${clientDetails.clientName || 'the prospect'} by name
+- Reference ${prospectRef} by name
 - Make the ask specific: what happens when they book the call?`;
 
     // If raw analysis data from Sales Call Analyzer is available
@@ -332,10 +343,10 @@ INSTRUCTION: Cross-reference everything above against this call data. Where the 
     prompt += `
 
 ═══ FINAL OUTPUT INSTRUCTIONS ═══
-Start your output with: "Create a comprehensive proposal presentation for ${clientDetails.clientName || 'the prospect'}, ${clientDetails.clientTitle || 'Owner'} of ${clientDetails.companyName || 'the company'}..."
+Start your output with: "${openingLine} The tone should be ${clientDetails.presentationTone || 'professional, direct, ROI-focused'}. The goal is to pitch ${clientDetails.corePitchGoal || 'Custom AI & Automation Solutions'}."
 
 Rules:
-- Use ${clientDetails.clientName || 'the prospect'}'s name and ${clientDetails.companyName || 'the company'} name throughout — in every 2-3 slides minimum
+- Use ${prospectRef}'s name throughout — in every 2-3 slides minimum${hasCompany ? `\n- Use ${companyRef} as the company name throughout — never write "the company" or "your business"` : '\n- There is NO company name for this pitch — never write "the company". Reference the prospect by name only.'}
 - Every bullet must have a BOLD LABEL followed by a colon, then specific detail
 - Each solution slide must show the full Input → Process → Output → Result workflow
 - The ROI/Summary slide must use the exact totals: ${totalSetupStr} setup + ${totalMonthlyStr}/month
@@ -363,46 +374,52 @@ Rules:
 
     const name = clientDetails.clientName || 'the prospect';
     const title = clientDetails.clientTitle || 'Owner';
-    const company = clientDetails.companyName || 'the company';
+    const company = clientDetails.companyName?.trim() || '';
+    const hasCompany = Boolean(company);
+    const entityRef = company || name;
     const pitch = clientDetails.corePitchGoal || 'Custom AI Automation Solutions';
     const tone = clientDetails.presentationTone || 'professional, innovative, direct, and highly ROI-focused';
     const totalSetupStr = totalSetup > 0 ? `$${totalSetup.toLocaleString()}` : 'Custom';
     const totalMonthlyStr = totalMonthly > 0 ? `$${totalMonthly.toLocaleString()}` : 'Custom';
 
-    let p = `Create a comprehensive proposal presentation for ${name}, ${title} of ${company}. The tone should be ${tone}. The goal is to pitch ${pitch}.\n`;
+    const openingLine = hasCompany
+      ? `Create a comprehensive proposal presentation for ${name}, ${title} of ${company}.`
+      : `Create a comprehensive proposal presentation for ${name}, ${title}.`;
 
-    p += `\nSlide 1: Title Card\nTitle: Scaling ${company} with ${pitch}\nSubtitle: Eliminating ${currentState.mainBottleneck ? currentState.mainBottleneck.split('.')[0].trim() : 'Operational Bottlenecks'}, Stopping Revenue Leakage, and Building a Lean Machine.\n`;
+    let p = `${openingLine} The tone should be ${tone}. The goal is to pitch ${pitch}.\n`;
 
-    p += `\nSlide 2: The Main Bottleneck\nHighlight the primary pain points facing ${company}:\n`;
-    p += `* The Main Bleed: ${currentState.mainBottleneck || `${company} is losing time and money to manual, inefficient processes that should be automated.`}\n`;
+    p += `\nSlide 1: Title Card\nTitle: ${hasCompany ? `Scaling ${company} with` : `${name}'s Growth with`} ${pitch}\nSubtitle: Eliminating ${currentState.mainBottleneck ? currentState.mainBottleneck.split('.')[0].trim() : 'Operational Bottlenecks'}, Stopping Revenue Leakage, and Building a Lean Machine.\n`;
+
+    p += `\nSlide 2: The Main Bottleneck\nHighlight the primary pain points facing ${entityRef}:\n`;
+    p += `* The Main Bleed: ${currentState.mainBottleneck || `${entityRef} is losing time and money to manual, inefficient processes that should be automated.`}\n`;
     p += `* Wasted Labor: ${currentState.teamInefficiencies || `The current team structure is burning capital on low-value admin tasks instead of revenue-generating activities.`}\n`;
     if (currentState.opportunityCost) {
       p += `* Opportunity Cost: ${currentState.opportunityCost}\n`;
     } else {
-      p += `* Opportunity Cost: Every day without a fix, ${company} loses deals, momentum, and competitive advantage to faster-moving competitors.\n`;
+      p += `* Opportunity Cost: Every day without a fix, ${entityRef} loses deals, momentum, and competitive advantage to faster-moving competitors.\n`;
     }
 
-    p += `\nSlide 3: The New ${company} Ecosystem\nVisualize the operational and financial transformation:\n`;
+    p += `\nSlide 3: The New ${hasCompany ? `${company} ` : ''}Ecosystem\nVisualize the operational and financial transformation:\n`;
     p += `* Current State: ${currentState.teamInefficiencies || 'Manual processes, team inefficiencies, and missed opportunities draining the business.'}\n`;
     p += `* The Lean Model: ${futureState.proposedTeamStructure || 'A streamlined, automation-first operation that eliminates waste and scales without adding headcount.'}\n`;
     p += `* ${name}'s New Role: ${futureState.ownerExecutiveRole || `${name} steps away from the daily grind and focuses exclusively on high-value, high-margin closing activities.`}\n`;
 
     solutions.forEach((solution, index) => {
       const slideNum = index + 4;
-      p += `\nSlide ${slideNum}: Solution ${index + 1} - ${solution.solutionName}\nDescribe the full workflow and investment for ${company}:\n`;
-      p += `* The Problem It Solves: ${solution.howItWorks ? `${solution.howItWorks.split('.')[0]}.` : `Eliminates the manual bottleneck identified in ${company}'s current process.`}\n`;
+      p += `\nSlide ${slideNum}: Solution ${index + 1} - ${solution.solutionName}\nDescribe the full workflow and investment for ${entityRef}:\n`;
+      p += `* The Problem It Solves: ${solution.howItWorks ? `${solution.howItWorks.split('.')[0]}.` : `Eliminates the manual bottleneck identified in ${entityRef}'s current process.`}\n`;
       p += `* Input: Current manual data or trigger event enters the system.\n`;
       p += `* Process: ${solution.howItWorks || 'Automated workflow processes the input without human intervention.'}\n`;
       p += `* Output: ${solution.keyBenefits || 'Clean, automated result delivered instantly.'}\n`;
-      p += `* Result: ${company} gains speed, accuracy, and recovered capacity — without adding headcount.\n`;
+      p += `* Result: ${entityRef} gains speed, accuracy, and recovered capacity — without adding headcount.\n`;
       p += `* Investment: ${solution.setupFee || 'TBD'} One-Time Setup | ${solution.monthlyFee || 'TBD'} / Month.\n`;
     });
 
     const summarySlide = solutions.length + 4;
     const firstYearFallback = totalSetup > 0 && totalMonthly > 0 ? `\$${(totalSetup + totalMonthly * 12).toLocaleString()}` : '';
-    p += `\nSlide ${summarySlide}: Summary of Impact & ROI\nProvide a clear breakdown of the full value vs. cost for ${name} and ${company}:\n`;
+    p += `\nSlide ${summarySlide}: Summary of Impact & ROI\nProvide a clear breakdown of the full value vs. cost for ${name}${hasCompany ? ` and ${company}` : ''}:\n`;
     p += `* Efficiency: 100% reduction in manual admin work. Instant speed-to-lead — zero leads going cold due to slow turnaround.\n`;
-    p += `* Team Restructure: ${futureState.proposedTeamStructure || `Streamlined, automation-first operation — ${company} does more with less, freeing ${name} to focus exclusively on closing.`}\n`;
+    p += `* Team Restructure: ${futureState.proposedTeamStructure || `Streamlined, automation-first operation — ${entityRef} does more with less, freeing ${name} to focus exclusively on closing.`}\n`;
     p += `* Direct Savings: ${currentState.opportunityCost || `Eliminates the cost of manual inefficiencies, reducing overhead and recovering lost leads.`}\n`;
     p += `* Total Investment Summary: ${totalSetupStr} Total Upfront Setup | ${totalMonthlyStr} / Month for AI Infrastructure.\n`;
     if (firstYearFallback) {

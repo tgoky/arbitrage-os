@@ -163,7 +163,11 @@ export default function ProposalResultPage() {
           <LoadingOutlined className="text-5xl text-[#5CC49D] mb-6" />
           <p className="text-xl text-gray-200 mb-2">Generating your proposal prompt...</p>
           <p className="text-base text-gray-500 mb-1">
-            {companyName ? `Building a custom presentation for ${companyName}` : 'Crafting a polished Gamma.app prompt'}
+            {companyName
+              ? `Building a custom presentation for ${companyName}`
+              : clientName
+                ? `Building a custom presentation for ${clientName}`
+                : 'Crafting a polished Gamma.app prompt'}
           </p>
           <p className="text-sm text-gray-600">This typically takes 15-30 seconds.</p>
         </div>
@@ -209,10 +213,12 @@ export default function ProposalResultPage() {
 
       {/* Title */}
       <h1 className="text-3xl font-semibold text-gray-100 mb-2 leading-tight">
-        {companyName ? `Proposal for ${companyName}` : 'Generated Proposal Prompt'}
+        {companyName ? `Proposal for ${companyName}` : clientName ? `Proposal for ${clientName}` : 'Generated Proposal Prompt'}
       </h1>
       <p className="text-base text-gray-500 mb-10">
-        {clientName ? `Custom Gamma.app presentation prompt for ${clientName}` : 'Your AI-generated Gamma.app presentation prompt is ready.'}
+        {clientName
+          ? `Custom Gamma.app presentation prompt for ${clientName}${companyName ? ` at ${companyName}` : ''}`
+          : 'Your AI-generated Gamma.app presentation prompt is ready.'}
         {' '}Copy the prompt below and paste it into Gamma to create your presentation.
       </p>
 

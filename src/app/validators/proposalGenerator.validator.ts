@@ -14,7 +14,7 @@ const proposalGeneratorInputSchema = z.object({
   clientDetails: z.object({
     clientName: z.string().min(1, 'Client name is required').max(100),
     clientTitle: z.string().max(100).optional().default(''),
-    companyName: z.string().min(1, 'Company name is required').max(200),
+    companyName: z.string().max(200).optional().default(''),
     corePitchGoal: z.string().max(500).optional().default(''),
     presentationTone: z.string().max(100).optional().default('Professional, ROI-focused'),
   }),
