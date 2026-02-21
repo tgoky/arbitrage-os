@@ -3,13 +3,14 @@
 import { useBreadcrumb } from "@refinedev/core";
 import Link from "next/link";
 import { useTheme } from "../../providers/ThemeProvider";
-import { 
-  Home, 
-  ChevronRight, 
-  User, 
-  Settings, 
-  FileText, 
-  Folder, 
+import { AIChatDropdown } from "../../components/ai-chat/IChatDropdown";
+import {
+  Home,
+  ChevronRight,
+  User,
+  Settings,
+  FileText,
+  Folder,
   Database,
   ShoppingCart,
   Users,
@@ -180,6 +181,13 @@ export const Breadcrumb = () => {
             );
           })}
         </ol>
+
+        {/* AI Chat Separator & Button */}
+        <div
+          className="mx-2 h-4 w-px"
+          style={{ background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }}
+        />
+        <AIChatDropdown />
       </div>
     </nav>
   );
