@@ -1,13 +1,10 @@
-// components/NotificationBell.tsx
 "use client";
 
 import React, { useState } from 'react';
 import {
   BellOutlined,
-  CloseOutlined,
   DeleteOutlined,
   CheckOutlined,
-  EyeOutlined,
   DollarCircleOutlined,
   PhoneOutlined,
   RocketOutlined,
@@ -17,252 +14,207 @@ import {
   EditOutlined,
   TagOutlined,
   TeamOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  InboxOutlined
 } from '@ant-design/icons';
 import {
   Badge,
   Dropdown,
+  ConfigProvider,
   Button,
   List,
   Typography,
-  Space,
   Empty,
   Spin,
-  Divider,
-  Tooltip,
-  Tag
 } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '../../providers/NotificationProvider';
-import { useTheme } from '../../providers/ThemeProvider';
 import { Notification, NotificationType } from '../../types/notification';
 
 const { Text } = Typography;
 
-// Get icon for notification type
 const getNotificationIcon = (type: NotificationType) => {
+  const iconStyle = { fontSize: '16px' };
+  // Updated specifically for sales_call and lead-gen to Emerald-700
   const icons: Record<NotificationType, React.ReactNode> = {
-    'pricing_calculation': <DollarCircleOutlined style={{ color: '#52c41a' }} />,
-    'sales_call': <PhoneOutlined style={{ color: '#722ed1' }} />,
-    'growth_plan': <RocketOutlined style={{ color: '#1890ff' }} />,
-    'niche_research': <BulbOutlined style={{ color: '#fa8c16' }} />,
-    'cold_email': <MailOutlined style={{ color: '#eb2f96' }} />,
-    'offer_creator': <EditOutlined style={{ color: '#13c2c2' }} />,
-    'ad_writer': <TagOutlined style={{ color: '#faad14' }} />,
-    'n8n_workflow': <ThunderboltOutlined style={{ color: '#fa541c' }} />,
-      'proposal': <FileTextOutlined  style={{ color: '#9254de' }}/>,        
-       'lead-generation': <TeamOutlined style={{ color: '#52c41a' }}/>  
+    'pricing_calculation': <DollarCircleOutlined style={{ ...iconStyle, color: '#4ADE80' }} />,
+    'sales_call': <PhoneOutlined style={{ ...iconStyle, color: '#047857' }} />, // Emerald-700
+    'growth_plan': <RocketOutlined style={{ ...iconStyle, color: '#3B82F6' }} />,
+    'niche_research': <BulbOutlined style={{ ...iconStyle, color: '#F59E0B' }} />,
+    'cold_email': <MailOutlined style={{ ...iconStyle, color: '#EC4899' }} />,
+    'offer_creator': <EditOutlined style={{ ...iconStyle, color: '#14B8A6' }} />,
+    'ad_writer': <TagOutlined style={{ ...iconStyle, color: '#EAB308' }} />,
+    'n8n_workflow': <ThunderboltOutlined style={{ ...iconStyle, color: '#F97316' }} />,
+    'proposal': <FileTextOutlined style={{ ...iconStyle, color: '#8B5CF6' }} />,
+    'lead-generation': <TeamOutlined style={{ ...iconStyle, color: '#047857' }} /> // Emerald-700
   };
-  return icons[type];
+  return icons[type] || <BellOutlined />;
 };
 
-// Format time ago
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffInSeconds < 60) return 'now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
+  return `${Math.floor(diffInSeconds / 86400)}d`;
 };
 
 export const NotificationBell: React.FC = () => {
   const router = useRouter();
-  const { theme } = useTheme();
-  const {
-    notifications,
-    unreadCount,
-    isLoading,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification
-  } = useNotifications();
-
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read
-    if (notification.status === 'unread') {
-      await markAsRead(notification.id);
-    }
-
-    // Navigate to the item
+    if (notification.status === 'unread') await markAsRead(notification.id);
     router.push(notification.route);
     setDropdownOpen(false);
   };
 
-  const handleDelete = async (e: React.MouseEvent, notificationId: string) => {
-    e.stopPropagation();
-    await deleteNotification(notificationId);
-  };
-
-  const handleMarkAsRead = async (e: React.MouseEvent, notificationId: string) => {
-    e.stopPropagation();
-    await markAsRead(notificationId);
-  };
-
   const dropdownContent = (
-    <div
-      style={{
-        width: 380,
-        maxHeight: 500,
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-        borderRadius: 8,
-        boxShadow: theme === 'dark'
-          ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-          : '0 8px 32px rgba(0, 0, 0, 0.08)',
-        border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-      }}
-    >
+    <div style={{
+      width: 360,
+      backgroundColor: '#000000',
+      borderRadius: '12px',
+      border: '1px solid #262626',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+      overflow: 'hidden',
+    }}>
       {/* Header */}
-      <div
-        style={{
-          padding: '12px 16px',
-          borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #f0f0f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
-        <Text strong style={{ color: theme === 'dark' ? '#f9fafb' : '#000' }}>
-          Notifications
-        </Text>
+      <div style={{
+        padding: '16px',
+        borderBottom: '1px solid #262626',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Text strong style={{ color: '#FFFFFF', fontSize: '15px', letterSpacing: '-0.3px' }}>Notifications</Text>
+          {unreadCount > 0 && (
+            <span style={{ 
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', // Emerald-700 Gradient
+                color: 'white', 
+                fontSize: '10px', 
+                padding: '1px 7px', 
+                borderRadius: '6px',
+                fontWeight: 700,
+                letterSpacing: '0.5px'
+            }}>
+              {unreadCount} NEW
+            </span>
+          )}
+        </div>
         {unreadCount > 0 && (
-          <Button
-            type="link"
-            size="small"
+          <Button 
+            type="text" 
+            size="small" 
             onClick={markAllAsRead}
-            style={{ padding: 0 }}
+            style={{ color: '#737373', fontSize: '12px', padding: 0 }}
           >
-            Mark all as read
+            Mark all read
           </Button>
         )}
       </div>
 
-      {/* Notifications List */}
-      <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+      {/* List */}
+      <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
         {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center' }}>
-            <Spin />
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+
+
+            <ConfigProvider
+                     theme={{
+                       token: {
+                         colorPrimary: '#5CC49D',
+                       },
+                     }}
+                   >
+                     <Spin size="large"  />
+                   </ConfigProvider>
           </div>
         ) : notifications.length === 0 ? (
-          <div style={{ padding: '40px' }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No notifications"
-            />
+          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <InboxOutlined style={{ fontSize: '32px', color: '#262626', marginBottom: '12px' }} />
+            <Text style={{ color: '#525252', display: 'block' }}>All caught up</Text>
           </div>
         ) : (
           <List
             dataSource={notifications}
-            renderItem={(notification) => (
+            renderItem={(item) => (
               <div
-                key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
+                onClick={() => handleNotificationClick(item)}
                 style={{
-                  padding: '12px 16px',
+                  padding: '14px 16px',
                   cursor: 'pointer',
-                  backgroundColor: notification.status === 'unread'
-                    ? (theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(24, 144, 255, 0.05)')
-                    : 'transparent',
-                  borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid #f0f0f0',
-                  transition: 'background-color 0.2s'
+                  transition: 'background 0.2s ease',
+                  borderBottom: '1px solid #171717',
+                  backgroundColor: item.status === 'unread' ? 'rgba(4, 120, 87, 0.03)' : 'transparent'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fafafa';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = notification.status === 'unread'
-                    ? (theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(24, 144, 255, 0.05)')
-                    : 'transparent';
-                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111111'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = item.status === 'unread' ? 'rgba(4, 120, 87, 0.03)' : 'transparent'}
               >
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  {/* Icon */}
+                <div style={{ display: 'flex', gap: '14px' }}>
                   <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 6,
-                    backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f0f0f0',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    backgroundColor: '#111111',
+                    border: '1px solid #262626',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    {getNotificationIcon(notification.type)}
+                    {getNotificationIcon(item.type)}
                   </div>
 
-                  {/* Content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                      <Text
-                        strong
-                        style={{
-                          color: theme === 'dark' ? '#f9fafb' : '#000',
-                          fontSize: 14,
-                          display: 'block'
-                        }}
-                      >
-                        {notification.title}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <Text style={{ 
+                        color: item.status === 'unread' ? '#FFFFFF' : '#737373', 
+                        fontSize: '13px',
+                        fontWeight: item.status === 'unread' ? 600 : 400,
+                        display: 'block' 
+                      }}>
+                        {item.title}
                       </Text>
-                      {notification.status === 'unread' && (
-                        <div style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: '#1890ff',
-                          flexShrink: 0,
-                          marginLeft: 8,
-                          marginTop: 4
-                        }} />
-                      )}
+                      <Text style={{ color: '#404040', fontSize: '10px', textTransform: 'uppercase' }}>
+                        {formatTimeAgo(item.createdAt)}
+                      </Text>
                     </div>
-
-                    <Text
-                      style={{
-                        color: theme === 'dark' ? '#9ca3af' : '#666',
-                        fontSize: 13,
-                        display: 'block',
-                        marginBottom: 6
-                      }}
-                    >
-                      {notification.message}
+                    
+                    <Text style={{ 
+                      color: '#a3a3a3', 
+                      fontSize: '12px', 
+                      lineHeight: '1.5',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      marginTop: '2px'
+                    }}>
+                      {item.message}
                     </Text>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text
-                        type="secondary"
-                        style={{ fontSize: 12 }}
-                      >
-                        {formatTimeAgo(notification.createdAt)}
-                      </Text>
-
-                      <Space size={4}>
-                        {notification.status === 'unread' && (
-                          <Tooltip title="Mark as read">
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<CheckOutlined />}
-                              onClick={(e) => handleMarkAsRead(e, notification.id)}
-                              style={{ padding: '2px 4px' }}
-                            />
-                          </Tooltip>
-                        )}
-                        <Tooltip title="Delete">
-                          <Button
-                            type="text"
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={(e) => handleDelete(e, notification.id)}
-                            style={{ padding: '2px 4px' }}
-                          />
-                        </Tooltip>
-                      </Space>
+                    <div style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
+                       {item.status === 'unread' && (
+                         <Button 
+                            type="text" 
+                            size="small" 
+                            icon={<CheckOutlined style={{ fontSize: '10px' }} />}
+                            onClick={(e) => { e.stopPropagation(); markAsRead(item.id); }}
+                            style={{ color: '#047857', padding: 0, height: 'auto', fontSize: '11px', fontWeight: 600 }}
+                         >Done</Button>
+                       )}
+                       <Button 
+                          type="text" 
+                          size="small" 
+                          danger
+                          icon={<DeleteOutlined style={{ fontSize: '10px' }} />}
+                          onClick={(e) => { e.stopPropagation(); deleteNotification(item.id); }}
+                          style={{ padding: 0, height: 'auto', fontSize: '11px' }}
+                       >Remove</Button>
                     </div>
                   </div>
                 </div>
@@ -270,6 +222,12 @@ export const NotificationBell: React.FC = () => {
             )}
           />
         )}
+      </div>
+      
+      <div style={{ padding: '10px', textAlign: 'center', borderTop: '1px solid #171717' }}>
+        <Button type="text" block style={{ color: '#525252', fontSize: '11px' }}>
+          Archive
+        </Button>
       </div>
     </div>
   );
@@ -282,18 +240,23 @@ export const NotificationBell: React.FC = () => {
       trigger={['click']}
       placement="bottomRight"
     >
-      <Badge count={unreadCount} offset={[-2, 2]}>
-        <Button
-          type="text"
-          icon={<BellOutlined style={{ fontSize: 18 }} />}
-          style={{
-            color: theme === 'dark' ? '#f9fafb' : '#000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        />
-      </Badge>
+      <div style={{ cursor: 'pointer', padding: '4px' }}>
+        <Badge 
+            count={unreadCount} 
+            size="small"
+            style={{ 
+              backgroundColor: '#047857', 
+              boxShadow: '0 0 0 2px #000',
+              fontSize: '10px' 
+            }}
+        >
+          <BellOutlined style={{ 
+            fontSize: '19px', 
+            color: unreadCount > 0 ? '#FFFFFF' : '#737373',
+            transition: 'all 0.3s ease'
+          }} />
+        </Badge>
+      </div>
     </Dropdown>
   );
 };

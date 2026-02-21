@@ -178,7 +178,7 @@ const ColdEmailWriter = () => {
 <ConfigProvider
   theme={{
     token: {
-      colorPrimary: '#5CC49D',
+      color: '#5CC49D',
     },
   }}
 >
