@@ -586,20 +586,20 @@ export default function AnalysisDetailPage() {
       )}
 
       <div className="flex flex-wrap gap-2 mb-10">
-        <button onClick={handleDownloadView} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
+        <button onClick={handleDownloadView} className="text-sm text-gray-500    bg-[#092c2c] border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
           <DownloadOutlined className="text-xs" /> Download
         </button>
-        <button onClick={handleShare} disabled={shareLoading} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+        <button onClick={handleShare} disabled={shareLoading} className="text-sm     bg-[#092c2c] text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
           <ShareAltOutlined className="text-xs" /> {shareLoading ? 'Generating...' : 'Share'}
         </button>
         {deal && (
           <>
-            <button onClick={handleQuickGenerate} className="text-sm text-[#5CC49D] border border-[#5CC49D]/30 rounded px-3 py-1.5 hover:bg-[#5CC49D]/10 transition-colors flex items-center gap-1.5">
-              <ThunderboltOutlined className="text-xs" /> Quick Generate Proposal
+            <button onClick={handleQuickGenerate} className="text-sm text-[#5CC49D] border bg-[#092c2c] border-[#5CC49D]/30 rounded px-3 py-1.5 hover:bg-[#5CC49D]/10 transition-colors flex items-center gap-1.5">
+            Quick Generate Proposal
             </button>
-            <button onClick={handleOpenProposalEditor} className="text-sm text-gray-500 border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
+            {/* <button onClick={handleOpenProposalEditor} className="text-sm text-gray-500  bg-[#092c2c]  border border-white/10 rounded px-3 py-1.5 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
               <FileTextOutlined className="text-xs" /> Open in Proposal Editor
-            </button>
+            </button> */}
           </>
         )}
       </div>
@@ -1210,14 +1210,14 @@ export default function AnalysisDetailPage() {
                 onClick={handleQuickGenerate}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#5CC49D] text-black font-semibold text-sm hover:bg-[#4db38c] transition-colors"
               >
-                <ThunderboltOutlined /> Quick Generate
+              Generate Proposal
               </button>
-              <button
+              {/* <button
                 onClick={handleOpenProposalEditor}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg border border-white/10 text-gray-400 text-sm hover:text-gray-200 hover:border-white/20 transition-colors"
               >
                 <FileTextOutlined /> Open in Proposal Editor
-              </button>
+              </button> */}
             </div>
           </div>
         </>
@@ -1226,13 +1226,13 @@ export default function AnalysisDetailPage() {
       {/* Footer */}
       <Rule />
       <div className="flex justify-center gap-3 pb-12">
-        <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Back</button>
+        {/* <button onClick={() => go({ to: "/sales-call-analyzer" })} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors">Back</button>
         <button onClick={handleDownloadView} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5">
           <DownloadOutlined className="text-xs" /> Download Report
         </button>
         <button onClick={handleShare} disabled={shareLoading} className="text-sm text-gray-500 border border-white/10 rounded px-4 py-2 hover:text-gray-300 hover:border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
           <ShareAltOutlined className="text-xs" /> {shareLoading ? 'Generating...' : 'Share'}
-        </button>
+        </button> */}
       </div>
     </div>
   );

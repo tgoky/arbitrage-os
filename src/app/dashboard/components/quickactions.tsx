@@ -59,7 +59,7 @@ const QuickStartActions: React.FC<QuickStartActionsProps> = ({ workspaceId }) =>
       'offer-creator': 'Offer Creator',
       'ad-writer': 'Ad Copy Writer',
       'n8n-workflow': 'n8n Workflow',
-      'proposal': 'Proposal',
+      'proposal': 'Contract',
       'lead-generation': 'Lead Generation'
     };
     return names[type] || type;

@@ -652,7 +652,7 @@ export default function AnalysisDetailPage() {
         </button>
         {deal && (
           <button onClick={handleQuickGenerate} className="text-sm text-[#5CC49D] border border-[#5CC49D]/30 rounded px-3 py-1.5 hover:bg-[#5CC49D]/10 transition-colors flex items-center gap-1.5">
-            <ThunderboltOutlined className="text-xs" /> Quick Generate Proposal
+             Quick Generate Proposal
           </button>
         )}
       </div>
