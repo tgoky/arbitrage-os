@@ -60,6 +60,7 @@ export async function middleware(req: NextRequest) {
       '/api/auth/send-magic-link', 
      '/api/auth/check-password-status',
      '/api/share/',
+     
      '/share/',
   ];
 

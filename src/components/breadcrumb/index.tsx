@@ -3,6 +3,7 @@
 import { useBreadcrumb } from "@refinedev/core";
 import Link from "next/link";
 import { useTheme } from "../../providers/ThemeProvider";
+import { useWorkspace } from "@/app/hooks/useWorkspace";
 import { AIChatDropdown } from "../../components/ai-chat/IChatDropdown";
 import {
   Home,
@@ -90,6 +91,7 @@ const getIconForBreadcrumb = (label: string, href?: string) => {
 export const Breadcrumb = () => {
   const { breadcrumbs } = useBreadcrumb();
   const { theme } = useTheme();
+  const { currentWorkspace } = useWorkspace();
   const isDark = theme === 'dark';
 
   if (!breadcrumbs || breadcrumbs.length === 0) {
@@ -187,7 +189,7 @@ export const Breadcrumb = () => {
           className="mx-2 h-4 w-px"
           style={{ background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }}
         />
-        <AIChatDropdown />
+        <AIChatDropdown workspaceId={currentWorkspace?.id} />
       </div>
     </nav>
   );

@@ -31,6 +31,22 @@ async function getAuthenticatedUser() {
   }
 }
 
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    gamma_proposal: 'Proposal',
+    proposal: 'Proposal',
+    cold_email: 'Cold Email',
+    ad_copy: 'Ad Copy',
+    growth_plan: 'Growth Plan',
+    sales_analysis: 'Sales Analysis',
+    contract: 'Contract',
+    offer: 'Offer',
+    niche_research: 'Niche Research',
+    document: 'Document',
+  };
+  return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -48,6 +64,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Workspace ID is required' },
         { status: 400 }
+      );
+    }
+
+    // Verify workspace ownership
+    const workspace = await prisma.workspace.findFirst({
+      where: { id: workspaceId, user_id: user.id },
+    });
+
+    if (!workspace) {
+      return NextResponse.json(
+        { success: false, error: 'Workspace not found or access denied' },
+        { status: 403 }
       );
     }
 
@@ -82,10 +110,25 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const results = deliverables.map((d) => {
+      const metadata = (d.metadata as Record<string, any>) || {};
+      return {
+        id: d.id,
+        title: d.title,
+        type: d.type,
+        typeLabel: getTypeLabel(d.type),
+        tags: d.tags,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+        clientName: metadata.clientName || null,
+        companyName: metadata.companyName || null,
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      data: deliverables,
-      meta: { count: deliverables.length, query },
+      data: results,
+      meta: { count: results.length, query },
     });
   } catch (error) {
     console.error('Deliverables search error:', error);
