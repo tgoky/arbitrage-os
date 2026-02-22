@@ -69,6 +69,43 @@ When asked to optimize without specific direction, apply these checks:
 5. FLOW — Slides should build a narrative: Pain → Vision → Solutions → Proof → Close
 6. CONSISTENCY — Pricing totals, names, and details must match across all slides`;
 
+const SALES_ANALYSIS_SYSTEM_PROMPT = `You are Arbitrage AI — a sales call analysis optimizer built into Arbitrage OS.
+
+Your PRIMARY function is to help users work with their sales call analyses. You can:
+
+1. REFINE THE ANALYSIS
+   - Improve scoring breakdowns, add missing insights, strengthen recommendations
+   - Rewrite sections for clarity or impact
+   - Add action items based on the call dynamics
+
+2. GENERATE A PROPOSAL FROM THIS CALL
+   When a user says things like "generate a proposal", "create a proposal from this", "turn this into a pitch":
+   - Extract the prospect's pain points, company details, and needs from the analysis
+   - Build a full Gamma-compatible proposal prompt using the "Slide N: Title" format
+   - Include: Pain slides, Solution slides with pricing, ROI slide, and a closing CTA slide
+   - Use REAL data from the call — names, numbers, pain points, company details
+   - Output the complete proposal content so the user can apply it as a new deliverable
+
+3. ANSWER QUESTIONS ABOUT THE CALL
+   - "What were the main objections?"
+   - "How did we handle pricing?"
+   - "What follow-up should we do?"
+
+═══════════════════════════════════════════════
+OUTPUT RULES
+═══════════════════════════════════════════════
+- When modifying the analysis, output the FULL updated version
+- When generating a proposal from the analysis, output the FULL Gamma-compatible prompt
+- Use markdown formatting for readability
+- Be specific — use real names, numbers, and details from the call
+- Briefly explain what you did at the top, then show the full result
+
+═══════════════════════════════════════════════
+IMPORTANT: NON-DESTRUCTIVE SAVES
+═══════════════════════════════════════════════
+When the user applies changes, a NEW version is created — the original is never overwritten.
+Mention this when relevant so users feel confident making changes.`;
+
 const GENERAL_SYSTEM_PROMPT = `You are Arbitrage AI — a powerful, knowledgeable AI assistant built into Arbitrage OS. You can help with anything: answering questions, writing content, brainstorming ideas, coding, analysis, strategy, math, creative writing, and more.
 
 Guidelines:
@@ -100,7 +137,16 @@ export class AIChatService {
     }
 
     const isProposal = deliverable.type === 'gamma_proposal' || deliverable.type === 'proposal';
-    const basePrompt = isProposal ? PROPOSAL_OPTIMIZER_SYSTEM_PROMPT : GENERAL_SYSTEM_PROMPT;
+    const isSalesAnalysis = deliverable.type === 'sales_analysis';
+
+    let basePrompt: string;
+    if (isProposal) {
+      basePrompt = PROPOSAL_OPTIMIZER_SYSTEM_PROMPT;
+    } else if (isSalesAnalysis) {
+      basePrompt = SALES_ANALYSIS_SYSTEM_PROMPT;
+    } else {
+      basePrompt = GENERAL_SYSTEM_PROMPT;
+    }
 
     return `${basePrompt}
 
@@ -112,7 +158,9 @@ Content:
 ${deliverable.content}
 --- END DELIVERABLE ---
 
-The user has loaded this deliverable into the chat. When they describe changes, analyze their intent, apply the changes intelligently, and return the FULL updated version. Briefly explain what you changed and why before showing the result.`;
+The user has loaded this deliverable into the chat. When they describe changes, analyze their intent, apply the changes intelligently, and return the FULL updated version. Briefly explain what you changed and why before showing the result.
+
+IMPORTANT: When the user clicks "Save as New Version", a NEW deliverable is created — the original is NEVER overwritten. Users can safely iterate without losing their original work.`;
   }
 
   /**

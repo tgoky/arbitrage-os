@@ -55,11 +55,24 @@ export function useAIChat(options: UseAIChatOptions = {}) {
   const loadDeliverable = useCallback((item: DeliverableRef) => {
     setDeliverable(item);
     setError(null);
+
+    const isSalesAnalysis = item.type === 'sales_analysis';
+    const isProposal = item.type === 'gamma_proposal' || item.type === 'proposal';
+
+    let welcomeContent: string;
+    if (isSalesAnalysis) {
+      welcomeContent = `Loaded **"${item.title}"** into context.\n\nI can help you with this sales call analysis:\n- "Generate a proposal from this call"\n- "What were the main pain points?"\n- "Strengthen the recommendations"\n- "Add action items for follow-up"\n\nWhen you save changes, a **new version** is created — your original stays untouched.\n\nWhat would you like to do?`;
+    } else if (isProposal) {
+      welcomeContent = `Loaded **"${item.title}"** into context.\n\nTell me what to change in plain English:\n- "Make the tone more aggressive and urgent"\n- "Add a solution for social media automation at $500/mo"\n- "Strengthen the ROI section with real numbers"\n- "Rewrite the closing slide to create urgency"\n\nWhen you save changes, a **new version** is created — your original stays untouched.\n\nWhat would you like to modify?`;
+    } else {
+      welcomeContent = `Loaded **"${item.title}"** into context. The full content is now available for me to work with.\n\nDescribe what you'd like to change and I'll generate an updated version.\n\nWhen you save, a **new version** is created — the original is preserved.`;
+    }
+
     setMessages([
       {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `Loaded **"${item.title}"** into context. The full content is now available for me to work with.\n\nYou can tell me what to change in plain English:\n- "Make the tone more aggressive and urgent"\n- "Add a solution for social media automation at $500/mo"\n- "Strengthen the ROI section with real numbers"\n- "Rewrite the closing slide to create urgency"\n\nAfter I generate changes, you'll see an **Apply** button to save them back.\n\nWhat would you like to modify?`,
+        content: welcomeContent,
         timestamp: new Date(),
       },
     ]);
@@ -229,9 +242,10 @@ export function useAIChat(options: UseAIChatOptions = {}) {
           }),
         });
 
+        const resData = await res.json().catch(() => null);
+
         if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          throw new Error(data?.error || `Apply failed (${res.status})`);
+          throw new Error(resData?.error || `Apply failed (${res.status})`);
         }
 
         // Mark this message as applied
@@ -239,13 +253,20 @@ export function useAIChat(options: UseAIChatOptions = {}) {
           prev.map((m) => (m.id === messageId ? { ...m, applied: true } : m))
         );
 
+        // Build confirmation message based on whether a new revision was created
+        const revisionTitle = resData?.data?.title || deliverable.title;
+        const versionNumber = resData?.data?.versionNumber;
+        const confirmationMessage = versionNumber
+          ? `New revision created: **"${revisionTitle}"**. Your original **"${deliverable.title}"** is preserved.`
+          : `Changes applied to **"${deliverable.title}"**.`;
+
         // Add confirmation message
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: `Changes applied to **"${deliverable.title}"**. The deliverable has been updated.`,
+            content: confirmationMessage,
             timestamp: new Date(),
           },
         ]);
@@ -290,6 +311,8 @@ export function useAIChat(options: UseAIChatOptions = {}) {
           q: query,
           workspaceId: options.workspaceId,
           limit: '20',
+          // Only show Sales Analysis and Proposals/Gamma in chat search
+          types: 'sales_analysis,gamma_proposal,proposal',
         });
 
         const res = await fetch(`/api/deliverables/search?${params}`, {
