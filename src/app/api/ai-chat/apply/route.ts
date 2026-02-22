@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { deliverableId, workspaceId, modifiedContent, modificationSummary } = body;
+    const { deliverableId, workspaceId, modifiedContent, modificationSummary, mode } = body;
+    const applyMode: 'overwrite' | 'new_version' = mode === 'overwrite' ? 'overwrite' : 'new_version';
 
     // 3. VALIDATE
     if (!deliverableId || !workspaceId || !modifiedContent) {
@@ -104,6 +105,63 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // ──────────────────────────────────────────────
+    // MODE: OVERWRITE — update the original in place
+    // ──────────────────────────────────────────────
+    if (applyMode === 'overwrite') {
+      let updatedContent: string;
+      if (original.type === 'gamma_proposal' || original.type === 'proposal') {
+        // Preserve existing JSON structure but replace the gammaPrompt
+        let existing: Record<string, unknown> = {};
+        try {
+          existing = typeof original.content === 'string' ? JSON.parse(original.content) : (original.content as Record<string, unknown>) || {};
+        } catch { /* use empty */ }
+        updatedContent = JSON.stringify({ ...existing, gammaPrompt: modifiedContent });
+      } else if (original.type === 'sales_analysis') {
+        // Preserve analysis structure, update the content/text layer
+        let existing: Record<string, unknown> = {};
+        try {
+          existing = typeof original.content === 'string' ? JSON.parse(original.content) : (original.content as Record<string, unknown>) || {};
+        } catch { /* use empty */ }
+        updatedContent = JSON.stringify({ ...existing, content: modifiedContent });
+      } else {
+        updatedContent = modifiedContent;
+      }
+
+      const originalMetadata = (original.metadata as Record<string, unknown>) || {};
+      const updated = await prisma.deliverable.update({
+        where: { id: original.id },
+        data: {
+          content: updatedContent,
+          metadata: {
+            ...originalMetadata,
+            lastModifiedBy: 'ai-chat',
+            lastModifiedAt: new Date().toISOString(),
+            modificationSummary: modificationSummary || 'AI modification applied from chat',
+          },
+        },
+      });
+
+      console.log(`[ai-chat/apply] Overwrote original ${updated.id} — type: ${original.type}`);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: updated.id,
+          title: updated.title,
+          type: updated.type,
+          originalId: original.id,
+          originalTitle: original.title,
+        },
+        mode: 'overwrite',
+        message: `Changes applied directly to "${original.title}".`,
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    // MODE: NEW_VERSION — create a new revision
+    // ──────────────────────────────────────────────
 
     // 6. COUNT EXISTING REVISIONS to generate a version number
     const existingRevisions = await prisma.deliverable.count({
@@ -182,6 +240,7 @@ export async function POST(request: NextRequest) {
         originalId: original.id,
         originalTitle: original.title,
       },
+      mode: 'new_version',
       message: `New ${label} revision created — "${newTitle}". The original is preserved.`,
     });
   } catch (error) {

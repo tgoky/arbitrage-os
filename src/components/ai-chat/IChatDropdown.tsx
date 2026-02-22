@@ -15,6 +15,7 @@ import {
   Check,
   Loader2,
   RotateCcw,
+  Copy,
 } from "lucide-react";
 import { useAIChat, type ChatMessage, type SearchResult } from "@/app/hooks/useAIChat";
 
@@ -100,6 +101,7 @@ export const AIChatDropdown: React.FC<AIChatDropdownProps> = ({ workspaceId }) =
     stopStreaming,
     clearChat,
     applyChanges,
+    saveAsNewVersion,
     searchDeliverables,
     clearError,
   } = useAIChat({ workspaceId });
@@ -345,6 +347,7 @@ export const AIChatDropdown: React.FC<AIChatDropdownProps> = ({ workspaceId }) =
                   deliverable={deliverable}
                   error={error}
                   onApply={applyChanges}
+                  onSaveNewVersion={saveAsNewVersion}
                   onClearError={clearError}
                   chatEndRef={chatEndRef}
                 />
@@ -432,8 +435,9 @@ interface ChatViewProps {
   deliverable: { id: string; title: string; type: string } | null;
   error: string | null;
   onApply: (messageId: string) => void;
+  onSaveNewVersion: (messageId: string) => void;
   onClearError: () => void;
-  chatEndRef: React.RefObject<HTMLDivElement | null>;
+  chatEndRef: React.RefObject<HTMLDivElement>;
 }
 
 const ChatView: React.FC<ChatViewProps> = ({
@@ -444,6 +448,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   deliverable,
   error,
   onApply,
+  onSaveNewVersion,
   onClearError,
   chatEndRef,
 }) => {
@@ -467,32 +472,51 @@ const ChatView: React.FC<ChatViewProps> = ({
                   <FormattedContent content={msg.content} />
                 </div>
 
-                {/* Apply button — only shows when the message is a modification */}
+                {/* Apply buttons — two options when the message is a modification */}
                 {msg.isModification && deliverable && (
                   <div className="mt-2">
                     {msg.applied ? (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5CC49D]/10 text-[#5CC49D] text-[11px] font-bold">
                         <Check className="w-3 h-3" />
-                        Saved as new version
+                        Changes saved
                       </div>
                     ) : (
-                      <button
-                        onClick={() => onApply(msg.id)}
-                        disabled={isApplying}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5CC49D] text-black text-[11px] font-bold hover:bg-[#4DB88D] disabled:opacity-50 transition-all"
-                      >
-                        {isApplying ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-3 h-3" />
-                            Save as New Version
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => onApply(msg.id)}
+                          disabled={isApplying}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-[11px] font-bold hover:bg-gray-200 disabled:opacity-50 transition-all"
+                        >
+                          {isApplying ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Applying...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-3 h-3" />
+                              Apply Changes
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => onSaveNewVersion(msg.id)}
+                          disabled={isApplying}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5CC49D]/15 text-[#5CC49D] text-[11px] font-bold hover:bg-[#5CC49D]/25 disabled:opacity-50 transition-all ring-1 ring-[#5CC49D]/20"
+                        >
+                          {isApplying ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              Save as New Version
+                            </>
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -553,7 +577,7 @@ interface SearchViewProps {
   isSearching: boolean;
   onSearchInput: (value: string) => void;
   onSelect: (result: SearchResult) => void;
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  searchInputRef: React.RefObject<HTMLInputElement>;
 }
 
 const SearchView: React.FC<SearchViewProps> = ({

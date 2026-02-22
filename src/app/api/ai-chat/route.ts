@@ -75,11 +75,61 @@ export async function POST(request: NextRequest) {
 
         if (deliverable) {
           let content = deliverable.content;
-          try {
-            const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-            content = parsed?.gammaPrompt || JSON.stringify(parsed);
-          } catch {
-            // use raw content
+
+          // For sales_analysis, provide the FULL structured data so the AI can
+          // extract deal architecture, pricing, pain points, etc. for proposal generation
+          if (deliverable.type === 'sales_analysis') {
+            try {
+              const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+              // Build a rich text representation that includes all structured data
+              const sections: string[] = [];
+
+              // Include the human-readable content if it exists
+              if (parsed?.content) {
+                sections.push(`ANALYSIS CONTENT:\n${typeof parsed.content === 'string' ? parsed.content : JSON.stringify(parsed.content)}`);
+              }
+
+              // Include the full deal architecture
+              const deal = parsed?.analysis?.dealArchitecture || parsed?.dealArchitecture;
+              if (deal) {
+                sections.push(`DEAL ARCHITECTURE (structured data):\n${JSON.stringify(deal, null, 2)}`);
+              }
+
+              // Include transcript if available
+              if (parsed?.transcript) {
+                sections.push(`TRANSCRIPT:\n${parsed.transcript}`);
+              }
+
+              // Include metadata
+              const meta = parsed?.metadata;
+              if (meta) {
+                const metaParts = [
+                  meta.prospectName && `Prospect: ${meta.prospectName}`,
+                  meta.prospectTitle && `Title: ${meta.prospectTitle}`,
+                  meta.companyName && `Company: ${meta.companyName}`,
+                  meta.companyIndustry && `Industry: ${meta.companyIndustry}`,
+                  meta.callType && `Call Type: ${meta.callType}`,
+                ].filter(Boolean);
+                if (metaParts.length) sections.push(`METADATA:\n${metaParts.join('\n')}`);
+              }
+
+              // Include the gammaPrompt if one was already generated
+              if (parsed?.gammaPrompt) {
+                sections.push(`EXISTING GAMMA PROMPT:\n${parsed.gammaPrompt}`);
+              }
+
+              content = sections.length > 0 ? sections.join('\n\n---\n\n') : JSON.stringify(parsed);
+            } catch {
+              // use raw content
+            }
+          } else {
+            // For proposals and other types, extract gammaPrompt or stringify
+            try {
+              const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+              content = parsed?.gammaPrompt || JSON.stringify(parsed);
+            } catch {
+              // use raw content
+            }
           }
 
           deliverableContext = {
