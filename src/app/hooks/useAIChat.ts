@@ -61,11 +61,11 @@ export function useAIChat(options: UseAIChatOptions = {}) {
 
     let welcomeContent: string;
     if (isSalesAnalysis) {
-      welcomeContent = `Loaded **"${item.title}"** into context.\n\nI can help you with this sales call analysis:\n- "Generate a proposal from this call"\n- "What were the main pain points?"\n- "Strengthen the recommendations"\n- "Add action items for follow-up"\n\nWhen you save changes, a **new version** is created — your original stays untouched.\n\nWhat would you like to do?`;
+      welcomeContent = `Loaded **"${item.title}"** into context.\n\nI can help you with this sales call analysis:\n- "Generate a proposal from this call"\n- "What were the main pain points?"\n- "Strengthen the recommendations"\n- "Add action items for follow-up"\n- "What's the deal grade?"\n\nWhen I generate changes, you'll see two options:\n- **Apply Changes** — updates the original directly\n- **Save as New Version** — creates a copy, original preserved\n\nWhat would you like to do?`;
     } else if (isProposal) {
-      welcomeContent = `Loaded **"${item.title}"** into context.\n\nTell me what to change in plain English:\n- "Make the tone more aggressive and urgent"\n- "Add a solution for social media automation at $500/mo"\n- "Strengthen the ROI section with real numbers"\n- "Rewrite the closing slide to create urgency"\n\nWhen you save changes, a **new version** is created — your original stays untouched.\n\nWhat would you like to modify?`;
+      welcomeContent = `Loaded **"${item.title}"** into context.\n\nTell me what to change in plain English:\n- "Make the tone more aggressive and urgent"\n- "Add a solution for social media automation at $500/mo"\n- "Strengthen the ROI section with real numbers"\n- "Rewrite the closing slide to create urgency"\n\nWhen I generate changes, you'll see two options:\n- **Apply Changes** — updates the original directly\n- **Save as New Version** — creates a copy, original preserved\n\nWhat would you like to modify?`;
     } else {
-      welcomeContent = `Loaded **"${item.title}"** into context. The full content is now available for me to work with.\n\nDescribe what you'd like to change and I'll generate an updated version.\n\nWhen you save, a **new version** is created — the original is preserved.`;
+      welcomeContent = `Loaded **"${item.title}"** into context. The full content is now available for me to work with.\n\nDescribe what you'd like to change and I'll generate an updated version.\n\nYou'll have two options: **Apply Changes** to update the original, or **Save as New Version** to keep the original intact.`;
     }
 
     setMessages([
@@ -217,11 +217,10 @@ export function useAIChat(options: UseAIChatOptions = {}) {
   );
 
   /**
-   * Apply AI modifications back to the deliverable.
-   * This is the execution layer — it writes changes to the database.
+   * Internal helper — calls the apply API with the given mode.
    */
-  const applyChanges = useCallback(
-    async (messageId: string) => {
+  const applyWithMode = useCallback(
+    async (messageId: string, mode: 'overwrite' | 'new_version') => {
       if (!deliverable || !options.workspaceId || isApplying) return;
 
       const message = messages.find((m) => m.id === messageId);
@@ -239,6 +238,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
             workspaceId: options.workspaceId,
             modifiedContent: message.content,
             modificationSummary: 'AI modification applied from chat',
+            mode,
           }),
         });
 
@@ -253,14 +253,15 @@ export function useAIChat(options: UseAIChatOptions = {}) {
           prev.map((m) => (m.id === messageId ? { ...m, applied: true } : m))
         );
 
-        // Build confirmation message based on whether a new revision was created
-        const revisionTitle = resData?.data?.title || deliverable.title;
-        const versionNumber = resData?.data?.versionNumber;
-        const confirmationMessage = versionNumber
-          ? `New revision created: **"${revisionTitle}"**. Your original **"${deliverable.title}"** is preserved.`
-          : `Changes applied to **"${deliverable.title}"**.`;
+        // Build confirmation based on mode
+        let confirmationMessage: string;
+        if (mode === 'overwrite') {
+          confirmationMessage = `Changes applied directly to **"${deliverable.title}"**. The original has been updated.`;
+        } else {
+          const revisionTitle = resData?.data?.title || deliverable.title;
+          confirmationMessage = `New version created: **"${revisionTitle}"**. Your original **"${deliverable.title}"** is preserved.`;
+        }
 
-        // Add confirmation message
         setMessages((prev) => [
           ...prev,
           {
@@ -287,6 +288,22 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       }
     },
     [deliverable, options.workspaceId, isApplying, messages]
+  );
+
+  /**
+   * Apply changes — overwrites the original deliverable.
+   */
+  const applyChanges = useCallback(
+    (messageId: string) => applyWithMode(messageId, 'overwrite'),
+    [applyWithMode]
+  );
+
+  /**
+   * Save as new version — creates a new revision, original stays untouched.
+   */
+  const saveAsNewVersion = useCallback(
+    (messageId: string) => applyWithMode(messageId, 'new_version'),
+    [applyWithMode]
   );
 
   /**
@@ -390,6 +407,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
     stopStreaming,
     clearChat,
     applyChanges,
+    saveAsNewVersion,
     searchDeliverables,
     clearError: useCallback(() => setError(null), []),
   };
