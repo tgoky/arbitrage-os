@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get('q') || '';
     const workspaceId = searchParams.get('workspaceId');
     const type = searchParams.get('type');
+    const types = searchParams.get('types'); // comma-separated list e.g. "sales_analysis,gamma_proposal"
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
 
     if (!workspaceId) {
@@ -86,6 +87,12 @@ export async function GET(req: NextRequest) {
 
     if (type) {
       where.type = type;
+    } else if (types) {
+      // Support filtering by multiple types: ?types=sales_analysis,gamma_proposal,proposal
+      const typeList = types.split(',').map((t) => t.trim()).filter(Boolean);
+      if (typeList.length > 0) {
+        where.type = { in: typeList };
+      }
     }
 
     if (query.trim()) {

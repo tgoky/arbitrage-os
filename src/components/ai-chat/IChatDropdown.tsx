@@ -34,12 +34,27 @@ function typeIcon(type: string) {
 }
 
 function typeBadgeColor(type: string) {
-  if (type.includes("proposal") || type.includes("gamma")) return "bg-emerald-500/20 text-emerald-400";
-  if (type.includes("email")) return "bg-blue-500/20 text-blue-400";
-  if (type.includes("ad")) return "bg-purple-500/20 text-purple-400";
-  if (type.includes("growth")) return "bg-amber-500/20 text-amber-400";
-  if (type.includes("sales") || type.includes("analysis")) return "bg-rose-500/20 text-rose-400";
-  return "bg-gray-500/20 text-gray-400";
+  if (type.includes("proposal") || type.includes("gamma")) return "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/20";
+  if (type.includes("email")) return "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/20";
+  if (type.includes("ad")) return "bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/20";
+  if (type.includes("growth")) return "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/20";
+  if (type.includes("sales") || type.includes("analysis")) return "bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/20";
+  return "bg-gray-500/20 text-gray-400 ring-1 ring-gray-500/20";
+}
+
+function typeDotColor(type: string) {
+  if (type.includes("proposal") || type.includes("gamma")) return "bg-emerald-400";
+  if (type.includes("email")) return "bg-blue-400";
+  if (type.includes("ad")) return "bg-purple-400";
+  if (type.includes("growth")) return "bg-amber-400";
+  if (type.includes("sales") || type.includes("analysis")) return "bg-rose-400";
+  return "bg-gray-400";
+}
+
+function headerBadgeColor(type: string) {
+  if (type.includes("proposal") || type.includes("gamma")) return "bg-emerald-500/15 text-emerald-400";
+  if (type.includes("sales") || type.includes("analysis")) return "bg-rose-500/15 text-rose-400";
+  return "bg-[#5CC49D]/15 text-[#5CC49D]";
 }
 
 function timeAgo(dateStr: string) {
@@ -272,7 +287,7 @@ export const AIChatDropdown: React.FC<AIChatDropdownProps> = ({ workspaceId }) =
                 <div className="w-2 h-2 rounded-full bg-[#5CC49D] animate-pulse shrink-0" />
                 <span className="text-white text-[13px] font-bold shrink-0">Arbitrage AI</span>
                 {deliverable && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#5CC49D]/15 text-[#5CC49D] font-semibold truncate max-w-[180px]">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold truncate max-w-[180px] ${headerBadgeColor(deliverable.type)}`}>
                     {deliverable.title}
                   </span>
                 )}
@@ -458,7 +473,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                     {msg.applied ? (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5CC49D]/10 text-[#5CC49D] text-[11px] font-bold">
                         <Check className="w-3 h-3" />
-                        Applied to {deliverable.title}
+                        Saved as new version
                       </div>
                     ) : (
                       <button
@@ -469,12 +484,12 @@ const ChatView: React.FC<ChatViewProps> = ({
                         {isApplying ? (
                           <>
                             <Loader2 className="w-3 h-3 animate-spin" />
-                            Applying...
+                            Saving...
                           </>
                         ) : (
                           <>
                             <Check className="w-3 h-3" />
-                            Apply Changes
+                            Save as New Version
                           </>
                         )}
                       </button>
@@ -591,8 +606,11 @@ const SearchView: React.FC<SearchViewProps> = ({
                     {result.title}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-gray-500 font-medium">
-                      {result.typeLabel}
+                    <span className="flex items-center gap-1">
+                      <span className={`w-1.5 h-1.5 rounded-full ${typeDotColor(result.type)}`} />
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        {result.typeLabel}
+                      </span>
                     </span>
                     <span className="text-[10px] text-gray-600">
                       {timeAgo(result.updatedAt || result.createdAt)}
@@ -617,7 +635,17 @@ const SearchView: React.FC<SearchViewProps> = ({
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <Search className="w-5 h-5 mb-2 opacity-40" />
             <span className="text-[12px] font-medium">Search your deliverables</span>
-            <span className="text-[11px] text-gray-600 mt-1">Proposals, emails, transcripts and more</span>
+            <span className="text-[11px] text-gray-600 mt-1">Sales call analyses and proposals</span>
+            <div className="flex items-center gap-3 mt-3">
+              <span className="flex items-center gap-1 text-[10px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                <span className="text-gray-500">Sales</span>
+              </span>
+              <span className="flex items-center gap-1 text-[10px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-gray-500">Proposals</span>
+              </span>
+            </div>
           </div>
         )}
       </div>
